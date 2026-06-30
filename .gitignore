@@ -1,0 +1,12 @@
+.lake/
+benches/bench_ref
+benches/difftest_ryu
+benches/difftest_failures.log
+benches/__pycache__/
+benches/bench_java/*.class
+benches/perf.png
+benches/corpora/*
+!benches/corpora/SEED.txt
+benches/bench_hs/.stack-work/
+benches/bench_json_cpp
+benches/perf_json.png
