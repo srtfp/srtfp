@@ -58,7 +58,7 @@ private theorem c_cleared_pre (sig : Nat) (exp e : Int) (a b : Nat)
     have h_at := scaleByPow2_denom_clear_at' sig exp (52 - e) (e - 51 - 1) hk_eq
     exact_mod_cast h_at
 
-/-! ## Local arithmetic helpers (avoid `grind` / `ring`). -/
+/-! ## Local arithmetic helpers (avoid `grind` / `grind`). -/
 
 private theorem two_two_mul (x : Int) : 2 * (2 * x) = 4 * x := by
   rw [← Int.mul_assoc 2 2 x]; rfl

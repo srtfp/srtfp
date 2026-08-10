@@ -13,6 +13,7 @@
    falling back to the packed path). -/
 
 import Srtfp.Schubfach.Perf.KernelV12
+import Srtfp.Tactics
 
 namespace Srtfp.Schubfach
 
@@ -33,20 +34,20 @@ theorem residueR20Cond_band2_of_fiveAdic'
   have h10 : (10 : Nat) ^ k = 2 ^ k * 5 ^ k := by
     rw [show (10 : Nat) = 2 * 5 from rfl, Nat.mul_pow]
   have hsplit : (2 : Nat) ^ q = 2 ^ k * 2 ^ j := by
-    rw [hj, ← pow_add]; congr 1; omega
-  have hN : m * 2 ^ q = 2 ^ k * (m * 2 ^ j) := by rw [hsplit]; ring
+    rw [hj, ← Nat.pow_add]; congr 1; omega
+  have hN : m * 2 ^ q = 2 ^ k * (m * 2 ^ j) := by rw [hsplit]; grind
   have hmod : (m * 2 ^ q) % 10 ^ k = 2 ^ k * ((m * 2 ^ j) % 5 ^ k) := by
     rw [hN, h10, Nat.mul_mod_mul_left (2 ^ k) (m * 2 ^ j) (5 ^ k)]
   set r := (m * 2 ^ j) % 5 ^ k with hr
   have hgap : 10 ^ k - (m * 2 ^ q) % 10 ^ k = 2 ^ k * (5 ^ k - r) := by
     rw [hmod, h10, Nat.mul_sub]
   rw [hgap, h10]
-  have hcancel : m' * (2 ^ k * 5 ^ k) = 2 ^ k * (m' * 5 ^ k) := by ring
-  have hRHS : 2 ^ k * (5 ^ k - r) * 2 ^ s = 2 ^ k * ((5 ^ k - r) * 2 ^ s) := by ring
+  have hcancel : m' * (2 ^ k * 5 ^ k) = 2 ^ k * (m' * 5 ^ k) := by grind
+  have hRHS : 2 ^ k * (5 ^ k - r) * 2 ^ s = 2 ^ k * ((5 ^ k - r) * 2 ^ s) := by grind
   rw [hcancel, hRHS]
   apply Nat.mul_le_mul_left
   rw [Nat.mul_comm (5 ^ k - r) (2 ^ s)] at hDist ⊢
-  linarith [hDist]
+  grind
 
 theorem residueR20Cond_band1_of_twoAdic'
     (m m' qNeg kNeg s : Nat)
@@ -59,8 +60,8 @@ theorem residueR20Cond_band1_of_twoAdic'
   have h10 : (10 : Nat) ^ kNeg = 2 ^ kNeg * 5 ^ kNeg := by
     rw [show (10 : Nat) = 2 * 5 from rfl, Nat.mul_pow]
   have hsplit : (2 : Nat) ^ qNeg = 2 ^ kNeg * 2 ^ e := by
-    rw [he, ← pow_add]; congr 1; omega
-  have hN : m * 10 ^ kNeg = (m * 5 ^ kNeg) * 2 ^ kNeg := by rw [h10]; ring
+    rw [he, ← Nat.pow_add]; congr 1; omega
+  have hN : m * 10 ^ kNeg = (m * 5 ^ kNeg) * 2 ^ kNeg := by rw [h10]; grind
   have hmod : (m * 10 ^ kNeg) % 2 ^ qNeg = 2 ^ kNeg * ((m * 5 ^ kNeg) % 2 ^ e) := by
     rw [hN, hsplit, Nat.mul_comm (m * 5 ^ kNeg) (2 ^ kNeg),
         Nat.mul_mod_mul_left (2 ^ kNeg) (m * 5 ^ kNeg) (2 ^ e)]
@@ -68,12 +69,12 @@ theorem residueR20Cond_band1_of_twoAdic'
   have hgap : 2 ^ qNeg - (m * 10 ^ kNeg) % 2 ^ qNeg = 2 ^ kNeg * (2 ^ e - r) := by
     rw [hmod, hsplit, Nat.mul_sub]
   rw [hgap, hsplit]
-  have hcancel : m' * (2 ^ kNeg * 2 ^ e) = 2 ^ kNeg * (m' * 2 ^ e) := by ring
-  have hRHS : 2 ^ kNeg * (2 ^ e - r) * 2 ^ s = 2 ^ kNeg * ((2 ^ e - r) * 2 ^ s) := by ring
+  have hcancel : m' * (2 ^ kNeg * 2 ^ e) = 2 ^ kNeg * (m' * 2 ^ e) := by grind
+  have hRHS : 2 ^ kNeg * (2 ^ e - r) * 2 ^ s = 2 ^ kNeg * ((2 ^ e - r) * 2 ^ s) := by grind
   rw [hcancel, hRHS]
   apply Nat.mul_le_mul_left
   rw [Nat.mul_comm (2 ^ e - r) (2 ^ s)] at hDist ⊢
-  linarith [hDist]
+  grind
 
 /-! ## The ×10 band residues at shift `≥ 128` -/
 
@@ -86,13 +87,13 @@ theorem residueR20Cond_band2_x10
     residueR20Cond (10 * m) (10 ^ kNat) s (m * 2 ^ q) := by
   apply residueR20Cond_band2_of_fiveAdic' m (10 * m) q kNat s hkq
   have hgap1 : 1 ≤ 5 ^ kNat - (m * 2 ^ (q - kNat)) % 5 ^ kNat := by
-    have := Nat.mod_lt (m * 2 ^ (q - kNat)) (show 0 < 5 ^ kNat from Nat.pow_pos (by norm_num))
+    have := Nat.mod_lt (m * 2 ^ (q - kNat)) (show 0 < 5 ^ kNat from Nat.pow_pos (by grind))
     omega
   rcases Nat.lt_or_ge kNat 31 with hk30 | hk31
   · -- elementary: 10m·5^k ≤ 10m·5^30 ≤ 2^s ≤ (gap)·2^s
     calc 10 * m * 5 ^ kNat
         ≤ 10 * m * 5 ^ 30 := Nat.mul_le_mul_left _
-            (Nat.pow_le_pow_right (by norm_num) (by omega))
+            (Nat.pow_le_pow_right (by grind) (by omega))
       _ ≤ 2 ^ s := hsl5
       _ = 1 * 2 ^ s := (Nat.one_mul _).symm
       _ ≤ (5 ^ kNat - (m * 2 ^ (q - kNat)) % 5 ^ kNat) * 2 ^ s :=
@@ -103,7 +104,7 @@ theorem residueR20Cond_band2_x10
     calc 10 * m * 5 ^ kNat
         ≤ 10 * m * ((5 ^ kNat - (m * 2 ^ (q - kNat)) % 5 ^ kNat) * 2 ^ 71) :=
           Nat.mul_le_mul_left _ hFar
-      _ = (5 ^ kNat - (m * 2 ^ (q - kNat)) % 5 ^ kNat) * (10 * m * 2 ^ 71) := by ring
+      _ = (5 ^ kNat - (m * 2 ^ (q - kNat)) % 5 ^ kNat) * (10 * m * 2 ^ 71) := by grind
       _ ≤ (5 ^ kNat - (m * 2 ^ (q - kNat)) % 5 ^ kNat) * 2 ^ s :=
           Nat.mul_le_mul_left _ hsl
 
@@ -122,7 +123,7 @@ theorem residueR20Cond_band1_x10
   rcases Nat.lt_or_ge (qNeg - kNeg) 72 with he71 | he72
   · calc 10 * m * 2 ^ (qNeg - kNeg)
         ≤ 10 * m * 2 ^ 71 := Nat.mul_le_mul_left _
-            (Nat.pow_le_pow_right (by norm_num) (by omega))
+            (Nat.pow_le_pow_right (by grind) (by omega))
       _ ≤ 2 ^ s := hsl
       _ = 1 * 2 ^ s := (Nat.one_mul _).symm
       _ ≤ (2 ^ (qNeg - kNeg) - (m * 5 ^ kNeg) % 2 ^ (qNeg - kNeg)) * 2 ^ s :=
@@ -133,7 +134,7 @@ theorem residueR20Cond_band1_x10
         ≤ 10 * m * ((2 ^ (qNeg - kNeg) - (m * 5 ^ kNeg) % 2 ^ (qNeg - kNeg)) * 2 ^ 71) :=
           Nat.mul_le_mul_left _ hFar
       _ = (2 ^ (qNeg - kNeg) - (m * 5 ^ kNeg) % 2 ^ (qNeg - kNeg)) * (10 * m * 2 ^ 71) := by
-          ring
+          grind
       _ ≤ (2 ^ (qNeg - kNeg) - (m * 5 ^ kNeg) % 2 ^ (qNeg - kNeg)) * 2 ^ s :=
           Nat.mul_le_mul_left _ hsl
 
@@ -160,7 +161,7 @@ theorem residueR20Cond_decode_binary64_x10
     · have hk_not : ¬ k < 0 := by omega
       have hk_ge : k ≥ 0 := hk0
       rw [if_pos hk_ge, if_neg hk_not]
-      simp only [pow_zero, Nat.mul_one, Nat.one_mul]
+      simp only [Nat.pow_zero, Nat.mul_one, Nat.one_mul]
       have hqcast : ((q.toNat : Nat) : Int) = q := Int.toNat_of_nonneg hq0
       have hkq : k.toNat ≤ q.toNat := by
         have := kOfMQ_le_self m q hq0
@@ -174,10 +175,10 @@ theorem residueR20Cond_decode_binary64_x10
       have hk_lt : k < 0 := hk0
       have hk_ge_not : ¬ k ≥ 0 := by omega
       rw [if_neg hk_ge_not, if_pos hk_lt]
-      simp only [pow_zero, Nat.one_mul]
-      apply residueR20Cond_of_safe (10 * m) 1 s _ (by norm_num)
+      simp only [Nat.pow_zero, Nat.one_mul]
+      apply residueR20Cond_of_safe (10 * m) 1 s _ (by grind)
       rw [Nat.mul_one]
-      calc 10 * m = 10 * m * 1 := by ring
+      calc 10 * m = 10 * m * 1 := by grind
         _ ≤ 10 * m * 2 ^ 71 := Nat.mul_le_mul_left _ (Nat.one_le_two_pow)
         _ ≤ 2 ^ s := hsl
   · push_neg at hq0
@@ -186,7 +187,7 @@ theorem residueR20Cond_decode_binary64_x10
     have hk_lt : k < 0 := by rw [hk_def]; exact kOfMQ_neg_of_neg m q hq_lt
     have hk_ge_not : ¬ k ≥ 0 := by omega
     rw [if_pos hq_lt, if_neg hq_ge_not, if_neg hk_ge_not, if_pos hk_lt]
-    simp only [pow_zero, Nat.mul_one]
+    simp only [Nat.pow_zero, Nat.mul_one]
     set qNeg : Nat := (-q).toNat with hqNeg_def
     set kNeg : Nat := (-k).toNat with hkNeg_def
     have hkq : kNeg ≤ qNeg := by
@@ -214,9 +215,9 @@ theorem resid_mul10 (M N C s : Nat)
     (h : (M - N % M) * 2 ^ s ≥ C * M) :
     ((10 * M) - (10 * N) % (10 * M)) * 2 ^ s ≥ C * (10 * M) := by
   rw [Nat.mul_mod_mul_left, ← Nat.mul_sub]
-  calc C * (10 * M) = 10 * (C * M) := by ring
+  calc C * (10 * M) = 10 * (C * M) := by grind
     _ ≤ 10 * ((M - N % M) * 2 ^ s) := Nat.mul_le_mul_left _ h
-    _ = 10 * (M - N % M) * 2 ^ s := by ring
+    _ = 10 * (M - N % M) * 2 ^ s := by grind
 
 /-- Reassociation: the ×10 residue over the `k`-quantities equals the
     residue at the `(k+1)`-quantities with numerator multiplicand `10m`
@@ -244,35 +245,35 @@ theorem residueR20Cond_x10_reassoc
     have e3 : (if k + 1 ≥ 0 then (k + 1).toNat else 0) = k.toNat + 1 := by
       rw [if_pos (by omega : k + 1 ≥ 0)]; omega
     have e4 : (if k + 1 < 0 then (-(k + 1)).toNat else 0) = 0 := if_neg (by omega)
-    rw [e1, e2, pow_zero, Nat.mul_one] at h
-    rw [e3, e4, pow_zero, Nat.mul_one, pow_succ]
-    have hB10 : Q * (10 ^ k.toNat * 10) = 10 * (Q * 10 ^ k.toNat) := by ring
-    have hN10 : 10 * m * P = 10 * (m * P) := by ring
+    rw [e1, e2, Nat.pow_zero, Nat.mul_one] at h
+    rw [e3, e4, Nat.pow_zero, Nat.mul_one, Nat.pow_succ]
+    have hB10 : Q * (10 ^ k.toNat * 10) = 10 * (Q * 10 ^ k.toNat) := by grind
+    have hN10 : 10 * m * P = 10 * (m * P) := by grind
     rw [hB10, hN10]
     exact resid_mul10 _ _ _ _ h
   · push_neg at hk0
     have e1 : (if k ≥ 0 then k.toNat else 0) = 0 := if_neg (by omega)
     have e2 : (if k < 0 then (-k).toNat else 0) = (-k).toNat := if_pos (by omega)
-    rw [e1, e2, pow_zero, Nat.mul_one] at h
+    rw [e1, e2, Nat.pow_zero, Nat.mul_one] at h
     by_cases hk1 : k + 1 ≥ 0
     · have e3 : (if k + 1 ≥ 0 then (k + 1).toNat else 0) = 0 := by
         rw [if_pos hk1]; omega
       have e4 : (if k + 1 < 0 then (-(k + 1)).toNat else 0) = 0 := if_neg (by omega)
-      rw [e3, e4, pow_zero, Nat.mul_one, Nat.mul_one]
+      rw [e3, e4, Nat.pow_zero, Nat.mul_one, Nat.mul_one]
       have hknn : (-k).toNat = 1 := by omega
       rw [hknn] at h
-      have hre : m * P * 10 ^ 1 = 10 * m * P := by ring
+      have hre : m * P * 10 ^ 1 = 10 * m * P := by grind
       rw [hre] at h
       exact h
     · push_neg at hk1
       have e3 : (if k + 1 ≥ 0 then (k + 1).toNat else 0) = 0 := if_neg (by omega)
       have e4 : (if k + 1 < 0 then (-(k + 1)).toNat else 0) = (-(k + 1)).toNat :=
         if_pos (by omega)
-      rw [e3, e4, pow_zero, Nat.mul_one]
+      rw [e3, e4, Nat.pow_zero, Nat.mul_one]
       have hpow : (-k).toNat = (-(k + 1)).toNat + 1 := by omega
-      rw [hpow, pow_succ] at h
+      rw [hpow, Nat.pow_succ] at h
       have hre : m * P * (10 ^ (-(k + 1)).toNat * 10)
-          = 10 * m * P * 10 ^ (-(k + 1)).toNat := by ring
+          = 10 * m * P * 10 ^ (-(k + 1)).toNat := by grind
       rw [hre] at h
       exact h
 
@@ -291,11 +292,11 @@ theorem shiftedSig_x10_succ (m : Nat) (q k : Int) :
   by_cases hk0 : k ≥ 0
   · rw [if_neg (show ¬ k + 1 < 0 by omega), if_pos (show k + 1 ≥ 0 by omega),
         if_pos hk0, if_neg (show ¬ k < 0 by omega)]
-    rw [show (k + 1).toNat = k.toNat + 1 from by omega, pow_zero, pow_succ,
+    rw [show (k + 1).toNat = k.toNat + 1 from by omega, Nat.pow_zero, Nat.pow_succ,
         Nat.mul_one]
-    rw [show 10 * m * P = 10 * (m * P) from by ring,
-        show Q * (10 ^ k.toNat * 10) = 10 * (Q * 10 ^ k.toNat) from by ring]
-    rw [Nat.mul_div_mul_left _ _ (by norm_num : 0 < 10)]
+    rw [show 10 * m * P = 10 * (m * P) from by grind,
+        show Q * (10 ^ k.toNat * 10) = 10 * (Q * 10 ^ k.toNat) from by grind]
+    rw [Nat.mul_div_mul_left _ _ (by grind : 0 < 10)]
     rw [Nat.mul_one]
   · push_neg at hk0
     by_cases hk1 : k + 1 ≥ 0
@@ -304,15 +305,15 @@ theorem shiftedSig_x10_succ (m : Nat) (q k : Int) :
             rw [if_pos hk1]; omega,
           if_neg (show ¬ k ≥ 0 by omega), if_pos (show k < 0 by omega)]
       rw [show (-k).toNat = 1 from by omega]
-      rw [pow_zero]
-      rw [show m * P * 10 ^ 1 = 10 * m * P * 1 from by ring]
+      rw [Nat.pow_zero]
+      rw [show m * P * 10 ^ 1 = 10 * m * P * 1 from by grind]
     · push_neg at hk1
       rw [if_pos (show k + 1 < 0 by omega), if_neg (show ¬ k + 1 ≥ 0 by omega),
           if_neg (show ¬ k ≥ 0 by omega), if_pos (show k < 0 by omega)]
-      rw [pow_zero, Nat.mul_one]
-      rw [show (-k).toNat = (-(k + 1)).toNat + 1 from by omega, pow_succ]
+      rw [Nat.pow_zero, Nat.mul_one]
+      rw [show (-k).toNat = (-(k + 1)).toNat + 1 from by omega, Nat.pow_succ]
       rw [show m * P * (10 ^ (-(k + 1)).toNat * 10)
-            = 10 * m * P * 10 ^ (-(k + 1)).toNat from by ring]
+            = 10 * m * P * 10 ^ (-(k + 1)).toNat from by grind]
 
 set_option maxRecDepth 4000 in
 /-- **`s` from the boundary product.** For binary64 `(m, q)` with the
@@ -360,7 +361,7 @@ theorem sFromP_floor (m : Nat) (q : Int)
         have hhtoNat : (h_t.toNat : Int) = h_t := Int.toNat_of_nonneg hh_nn
         rw [if_pos hh_nn, if_neg hh_neg, hqtoNat, hhtoNat]
         push_cast
-        ring
+        grind
       · push_neg at hq
         have hq_nn : ¬ q ≥ 0 := by omega
         have hqtoNat : ((-q).toNat : Int) = -q := Int.toNat_of_nonneg (by omega)
@@ -370,13 +371,13 @@ theorem sFromP_floor (m : Nat) (q : Int)
           have hhtoNat : (h_t.toNat : Int) = h_t := Int.toNat_of_nonneg hh
           rw [if_pos hh, if_neg hh_neg, hhtoNat]
           push_cast
-          ring
+          grind
         · push_neg at hh
           have hh_nn : ¬ h_t ≥ 0 := by omega
           have hhtoNat : ((-h_t).toNat : Int) = -h_t := Int.toNat_of_nonneg (by omega)
           rw [if_neg hh_nn, if_pos hh, hhtoNat]
           push_cast
-          ring
+          grind
     exact_mod_cast hIntEq
   have hRegroup : 2 ^ w.toNat * 2 ^ qPos * 2 ^ hNeg = 2 ^ qNeg * 2 ^ hPos :=
     two_pow_regroup w.toNat qNeg qPos hPos hNeg (by omega)
@@ -421,22 +422,22 @@ theorem sFromP_floor (m : Nat) (q : Int)
     rcases hcov with hw128 | hm52
     · calc 10 * m * 2 ^ 71 ≤ 10 * (2 ^ 53 - 1) * 2 ^ 71 :=
             Nat.mul_le_mul_right _ (by omega)
-        _ ≤ 2 ^ 128 := by norm_num
-        _ ≤ 2 ^ w.toNat := Nat.pow_le_pow_right (by norm_num) (by omega)
+        _ ≤ 2 ^ 128 := by grind
+        _ ≤ 2 ^ w.toNat := Nat.pow_le_pow_right (by grind) (by omega)
     · calc 10 * m * 2 ^ 71 ≤ 10 * 2 ^ 52 * 2 ^ 71 :=
             Nat.mul_le_mul_right _ (by omega)
-        _ ≤ 2 ^ 127 := by norm_num
-        _ ≤ 2 ^ w.toNat := Nat.pow_le_pow_right (by norm_num) (by omega)
+        _ ≤ 2 ^ 127 := by grind
+        _ ≤ 2 ^ w.toNat := Nat.pow_le_pow_right (by grind) (by omega)
   have hsl5 : 10 * m * 5 ^ 30 ≤ 2 ^ w.toNat := by
     rcases hcov with hw128 | hm52
     · calc 10 * m * 5 ^ 30 ≤ 10 * (2 ^ 53 - 1) * 5 ^ 30 :=
             Nat.mul_le_mul_right _ (by omega)
-        _ ≤ 2 ^ 128 := by norm_num
-        _ ≤ 2 ^ w.toNat := Nat.pow_le_pow_right (by norm_num) (by omega)
+        _ ≤ 2 ^ 128 := by grind
+        _ ≤ 2 ^ w.toNat := Nat.pow_le_pow_right (by grind) (by omega)
     · calc 10 * m * 5 ^ 30 ≤ 10 * 2 ^ 52 * 5 ^ 30 :=
             Nat.mul_le_mul_right _ (by omega)
-        _ ≤ 2 ^ 127 := by norm_num
-        _ ≤ 2 ^ w.toNat := Nat.pow_le_pow_right (by norm_num) (by omega)
+        _ ≤ 2 ^ 127 := by grind
+        _ ≤ 2 ^ w.toNat := Nat.pow_le_pow_right (by grind) (by omega)
   have hres0 := residueR20Cond_decode_binary64_x10 m q w.toNat hm_pos hm53 hq_lo hq_hi hsl hsl5
   rw [← hk_def] at hres0
   have hres1 := residueR20Cond_x10_reassoc m q k w.toNat hres0
@@ -471,13 +472,10 @@ theorem shl2_192_toNat (hi mid lo : UInt64)
   have h62 : (62 : UInt64) = UInt64.ofNat 62 := rfl
   have eL : (lo <<< (2 : UInt64)).toNat = lo.toNat * 4 % 2 ^ 64 := by
     rw [h2c, UInt64_shl_toNat_lt lo 2 (by omega)]
-    norm_num
   have eM : (mid <<< (2 : UInt64)).toNat = mid.toNat * 4 % 2 ^ 64 := by
     rw [h2c, UInt64_shl_toNat_lt mid 2 (by omega)]
-    norm_num
   have eH : (hi <<< (2 : UInt64)).toNat = hi.toNat * 4 % 2 ^ 64 := by
     rw [h2c, UInt64_shl_toNat_lt hi 2 (by omega)]
-    norm_num
   have eMs : (mid >>> (62 : UInt64)).toNat = mid.toNat / 2 ^ 62 := by
     rw [h62, UInt64_shr_toNat_lt mid 62 (by omega)]
   have eLs : (lo >>> (62 : UInt64)).toNat = lo.toNat / 2 ^ 62 := by
@@ -502,15 +500,15 @@ theorem triple192_top_extract (hi mid lo : UInt64) (t : Nat)
   unfold triple192Nat
   have h2 := mid.toNat_lt; have h3 := lo.toNat_lt
   have hsplit : hi.toNat * 2 ^ 128 + mid.toNat * 2 ^ 64 + lo.toNat
-      = hi.toNat * 2 ^ 128 + (mid.toNat * 2 ^ 64 + lo.toNat) := by ring
+      = hi.toNat * 2 ^ 128 + (mid.toNat * 2 ^ 64 + lo.toNat) := by grind
   rw [hsplit]
   have hrem : mid.toNat * 2 ^ 64 + lo.toNat < 2 ^ 128 := by omega
   have hdiv128 : (hi.toNat * 2 ^ 128 + (mid.toNat * 2 ^ 64 + lo.toNat)) / 2 ^ 128
       = hi.toNat := by
-    rw [Nat.mul_comm (hi.toNat) (2 ^ 128), Nat.mul_add_div (by positivity),
+    rw [Nat.mul_comm (hi.toNat) (2 ^ 128), Nat.mul_add_div (by omega),
         Nat.div_eq_of_lt hrem]
     omega
-  rw [show (128 : Nat) + t = 128 + t from rfl, pow_add, ← Nat.div_div_eq_div_mul,
+  rw [show (128 : Nat) + t = 128 + t from rfl, Nat.pow_add, ← Nat.div_div_eq_div_mul,
       hdiv128]
 
 /-- flip2 with `s` extracted from the boundary product: `5P = P + 4P`,
@@ -786,7 +784,7 @@ theorem shortestUnsigned_u64_opt_flip3_some_eq_packed
     have h3 : b * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat) ≤ 2 ^ 60 * 2 ^ 128 :=
       Nat.mul_le_mul (by omega) (by omega)
     have h4 : (2 : Nat) ^ 60 * 2 ^ 128 < 2 ^ 192 := by
-      rw [← pow_add]
+      rw [← Nat.pow_add]
       exact Nat.pow_lt_pow_right (by omega) (by omega)
     omega
   have htrip0G : triple192Nat 0 gT.1 gT.2.1
@@ -807,7 +805,7 @@ theorem shortestUnsigned_u64_opt_flip3_some_eq_packed
     have h3 : b * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat) ≤ 2 ^ 63 * 2 ^ 128 :=
       Nat.mul_le_mul (by omega) (by omega)
     have h4 : (2 : Nat) ^ 63 * 2 ^ 128 < 2 ^ 192 := by
-      rw [← pow_add]
+      rw [← Nat.pow_add]
       exact Nat.pow_lt_pow_right (by omega) (by omega)
     omega
   have hp4_val : triple192Nat p4.1 p4.2.1 p4.2.2
@@ -815,18 +813,18 @@ theorem shortestUnsigned_u64_opt_flip3_some_eq_packed
     rw [hp4, shl2_192_toNat pH pMid pLo (by
       rw [hP_val]
       rw [show 4 * (4 * m * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat))
-            = 16 * m * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat) from by ring]
+            = 16 * m * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat) from by grind]
       exact hmulG_lt2 (16 * m) (by omega)), hP_val]
-    ring
+    grind
   have hp5_val : triple192Nat p5.1 p5.2.1 p5.2.2
       = 20 * m * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat) := by
     rw [hp5, add192_192_toNat _ _ _ _ _ _ (by
       rw [hp4_val, hP_val]
       rw [show 16 * m * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat)
             + 4 * m * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat)
-            = 20 * m * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat) from by ring]
+            = 20 * m * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat) from by grind]
       exact hmulG_lt2 (20 * m) (by omega)), hp4_val, hP_val]
-    ring
+    grind
   have ht_lt : (-q + gT.2.2 - 127).toNat < 64 := by omega
   have hext := triple192_top_extract p5.1 p5.2.1 p5.2.2 _ ht_lt
   rw [hp5_val] at hext
@@ -837,10 +835,10 @@ theorem shortestUnsigned_u64_opt_flip3_some_eq_packed
         / 2 ^ ((-q + gT.2.2).toNat + 1)
       = 10 * m * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat) / 2 ^ (-q + gT.2.2).toNat := by
     rw [show (2 : Nat) ^ ((-q + gT.2.2).toNat + 1)
-          = 2 ^ (-q + gT.2.2).toNat * 2 from pow_succ _ _,
+          = 2 ^ (-q + gT.2.2).toNat * 2 from Nat.pow_succ _ _,
         show 20 * m * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat)
-          = 10 * m * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat) * 2 from by ring,
-        Nat.mul_div_mul_right _ _ (by norm_num : (0 : Nat) < 2)]
+          = 10 * m * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat) * 2 from by grind,
+        Nat.mul_div_mul_right _ _ (by grind : (0 : Nat) < 2)]
   have hfl := sFromP_floor m q hm_pos (by
       have : (1 <<< 53 : Nat) = 2 ^ 53 := by decide
       omega) hq_lo hq_hi
@@ -1055,7 +1053,7 @@ theorem shortestUnsigned_u64_opt_flip3_some_eq_packed
       have h3 : b * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat) ≤ 2 ^ 60 * 2 ^ 128 :=
         Nat.mul_le_mul (by omega) (by omega)
       have h4 : (2 : Nat) ^ 60 * 2 ^ 128 < 2 ^ 192 := by
-        rw [← pow_add]
+        rw [← Nat.pow_add]
         exact Nat.pow_lt_pow_right (by omega) (by omega)
       omega
     have htrip0G2 : triple192Nat 0 gT2.1 gT2.2.1
@@ -1102,7 +1100,7 @@ theorem shortestUnsigned_u64_opt_flip3_some_eq_packed
         = 2 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat) := by
       rw [hmH2, shr1_192_toNat, hP2_val,
           show 4 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat)
-              = 2 * (2 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat)) from by ring,
+              = 2 * (2 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat)) from by grind,
           Nat.mul_div_cancel_left _ (by omega)]
     have hk_lo2 : pow10Table128_kMin ≤ -(kOfMQ m q) := by omega
     have hk_hi2 : -(kOfMQ m q) ≤ pow10Table128_kMax := by omega
@@ -1168,7 +1166,7 @@ theorem shortestUnsigned_u64_opt_flip3_some_eq_packed
       have h3 : b * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat) ≤ 2 ^ 60 * 2 ^ 128 :=
         Nat.mul_le_mul (by omega) (by omega)
       have h4 : (2 : Nat) ^ 60 * 2 ^ 128 < 2 ^ 192 := by
-        rw [← pow_add]
+        rw [← Nat.pow_add]
         exact Nat.pow_lt_pow_right (by omega) (by omega)
       omega
     have htrip0G2 : triple192Nat 0 gT2.1 gT2.2.1
@@ -1215,7 +1213,7 @@ theorem shortestUnsigned_u64_opt_flip3_some_eq_packed
         = 2 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat) := by
       rw [hmH2, shr1_192_toNat, hP2_val,
           show 4 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat)
-              = 2 * (2 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat)) from by ring,
+              = 2 * (2 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat)) from by grind,
           Nat.mul_div_cancel_left _ (by omega)]
     have hk_lo2 : pow10Table128_kMin ≤ -(kOfMQ m q) := by omega
     have hk_hi2 : -(kOfMQ m q) ≤ pow10Table128_kMax := by omega

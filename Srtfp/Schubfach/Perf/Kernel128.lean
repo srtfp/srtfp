@@ -25,10 +25,10 @@
    while definitional equality with the reference is preserved by the
    proofs in this file. -/
 import Srtfp.Schubfach
+import Srtfp.Tactics
 import Srtfp.Schubfach.Kernel192
 import Srtfp.Schubfach.KernelCorrectness
 import Srtfp.Schubfach.TableInvariant
-import Mathlib.Tactic.Linarith
 
 namespace Srtfp.Schubfach
 
@@ -111,7 +111,7 @@ theorem cmpScaledMixed_verdict_plus_one
   have hNat := cmpScaledMixed_plus_one a.toNat b.toNat s qPos qNeg hPos hNeg kPos kNeg hRegroup hVPlus
   -- hNat : a.toNat · 2^qPos · 10^kNeg > b.toNat · 10^kPos · 2^qNeg
   -- Step 6: reduce cmpScaledMixed to Nat form and conclude.
-  have hb_nonneg : 0 ≤ b := le_of_lt hb_pos
+  have hb_nonneg : 0 ≤ b := Int.le_of_lt hb_pos
   have hReduce := cmpScaledMixed_of_nonneg a b q k ha hb_nonneg
   rw [hReduce]
   -- Now goal: if lhsN < rhsN then -1 else if lhsN = rhsN then 0 else 1 = 1
@@ -170,7 +170,7 @@ theorem cmpScaledMixed_verdict_minus_one
     two_pow_regroup s qPos qNeg hPos hNeg hSplit'
   have hNat := cmpScaledMixed_minus_one a.toNat b.toNat s qPos qNeg hPos hNeg kPos kNeg hRegroup hVMinus
   -- hNat : a.toNat · 2^qPos · 10^kNeg < b.toNat · 10^kPos · 2^qNeg
-  have hb_nonneg : 0 ≤ b := le_of_lt hb_pos
+  have hb_nonneg : 0 ≤ b := Int.le_of_lt hb_pos
   have hReduce := cmpScaledMixed_of_nonneg a b q k ha hb_nonneg
   rw [hReduce]
   have hLt : a.toNat * 2 ^ qPos * 10 ^ kNeg < b.toNat * 10 ^ kPos * 2 ^ qNeg := hNat
@@ -422,8 +422,8 @@ theorem cmpScaledMixed_strict_minus
     have h60 : (1 <<< 60 : Int) = (2 : Int) ^ 60 := by decide
     rw [h60] at hb_lt
     have : (b.toNat : Int) < ((2 ^ 60 : Nat) : Int) := by
-      rw [Int.toNat_of_nonneg (le_of_lt hb_pos)]
-      push_cast; exact hb_lt
+      rw [Int.toNat_of_nonneg (Int.le_of_lt hb_pos)]
+      omega
     exact_mod_cast this
   -- R.toNat = b.toNat * g where g < 2^128.  So R.toNat < 2^60 · 2^128 = 2^188.
   have hgHi : (pow10Lookup128 k).1.toNat < 2 ^ 64 := (pow10Lookup128 k).1.toNat_lt
@@ -435,7 +435,7 @@ theorem cmpScaledMixed_strict_minus
     have h2 : (2 ^ 64 - 1) * 2 ^ 64 + 2 ^ 64 = 2 ^ 64 * 2 ^ 64 := by
       have hpow_pos : (0 : Nat) < 2 ^ 64 := Nat.two_pow_pos _
       have : (2 ^ 64 - 1) * 2 ^ 64 = 2 ^ 64 * 2 ^ 64 - 2 ^ 64 := by
-        rw [Nat.sub_mul]; ring_nf
+        rw [Nat.sub_mul]
       omega
     omega
   have hR_lt_188 : triple192Nat r_hi r_mid r_lo < 2 ^ 188 := by
@@ -483,7 +483,7 @@ theorem a_toNat_lt_60 (a : Int) (ha_nn : 0 ≤ a) (ha_lt : a < (1 <<< 60 : Int))
   rw [h60] at ha_lt
   have : (a.toNat : Int) < ((2 ^ 60 : Nat) : Int) := by
     rw [Int.toNat_of_nonneg ha_nn]
-    push_cast; exact ha_lt
+    omega
   exact_mod_cast this
 
 theorem qPlusH_toNat_in_range (qPlusH : Int)
@@ -491,7 +491,7 @@ theorem qPlusH_toNat_in_range (qPlusH : Int)
     64 ≤ qPlusH.toNat ∧ qPlusH.toNat ≤ 132 := by
   push_neg at hqh_lo hqh_hi
   obtain ⟨h1, h2⟩ := hqh_lo
-  have hnn : 0 ≤ qPlusH := by linarith
+  have hnn : 0 ≤ qPlusH := by omega
   have heq : (qPlusH.toNat : Int) = qPlusH := Int.toNat_of_nonneg hnn
   refine ⟨?_, ?_⟩
   · have : (64 : Int) ≤ (qPlusH.toNat : Int) := heq.symm ▸ h1
@@ -536,7 +536,7 @@ theorem cmpScaledMixed_eq_fast2 (a : Int) (q : Int) (b : Int) (k : Int) :
   obtain ⟨ha_nn, hb_nn⟩ := hab
   obtain ⟨ha_lt, hb_lt⟩ := hab60
   obtain ⟨hk_lo, hk_hi⟩ := hk
-  have hb_pos : 0 < b := lt_of_le_of_ne hb_nn (Ne.symm hb0)
+  have hb_pos : 0 < b := by omega
   -- Open the kernel and discharge the resolved guards.
   rw [cmpScaledMixed_eq_fast]
   unfold cmpScaledMixed_fast2
@@ -619,7 +619,7 @@ theorem cmpScaledMixed_eq_fast2 (a : Int) (q : Int) (b : Int) (k : Int) :
   have hqh_nonneg : 0 ≤ q + h := by
     by_contra hp
     push_neg at hp
-    have : (q + h).toNat = 0 := Int.toNat_of_nonpos (le_of_lt hp)
+    have : (q + h).toNat = 0 := Int.toNat_of_nonpos (Int.le_of_lt hp)
     rw [this] at hqpn_lo; omega
   have hqpn_lt_2_64 : (q + h).toNat < 2 ^ 64 := by
     have h264 : (132 : Nat) < 2 ^ 64 := by decide
@@ -689,7 +689,7 @@ theorem cmpScaledMixed_eq_fast2 (a : Int) (q : Int) (b : Int) (k : Int) :
         have h64_toNat : (UInt64.ofNat 64 : UInt64).toNat = 64 := by decide
         have h64_eq : (64 : UInt64) = UInt64.ofNat 64 := rfl
         have h64_s64 : (64 - s64 : UInt64).toNat = 64 - s64.toNat := by
-          conv_lhs => rw [h64_eq, hs64_bk]
+          conv => lhs; rw [h64_eq, hs64_bk]
           have := UInt64_sub_toNat_of_ge (UInt64.ofNat 64) s64.toNat (by omega)
                     (by rw [h64_toNat]; omega)
           rw [this, h64_toNat]
@@ -966,7 +966,7 @@ theorem shiftedSig_eq_fast2 (m : Nat) (q k : Int) :
     have h2 : (2 ^ 64 - 1) * 2 ^ 64 + 2 ^ 64 = 2 ^ 64 * 2 ^ 64 := by
       have hpow_pos : (0 : Nat) < 2 ^ 64 := Nat.two_pow_pos _
       have : (2 ^ 64 - 1) * 2 ^ 64 = 2 ^ 64 * 2 ^ 64 - 2 ^ 64 := by
-        rw [Nat.sub_mul]; ring_nf
+        rw [Nat.sub_mul]
       omega
     omega
   have hMG_lt : m * (gHi.toNat * 2 ^ 64 + gLo.toNat) < 2 ^ 188 := by
@@ -1087,7 +1087,7 @@ theorem shiftedSig_eq_fast2 (m : Nat) (q k : Int) :
         have hh_neg : ¬ h_t < 0 := by omega
         have hhtoNat : (h_t.toNat : Int) = h_t := Int.toNat_of_nonneg hh_nn
         rw [if_pos hh_nn, if_neg hh_neg]
-        rw [hqtoNat, hhtoNat]; ring
+        rw [hqtoNat, hhtoNat]; grind
       · push_neg at hq
         have hq_lt : q < 0 := hq
         have hq_nn : ¬ q ≥ 0 := by omega
@@ -1098,12 +1098,12 @@ theorem shiftedSig_eq_fast2 (m : Nat) (q k : Int) :
         · have hh_neg : ¬ h_t < 0 := by omega
           have hhtoNat : (h_t.toNat : Int) = h_t := Int.toNat_of_nonneg hh
           rw [if_pos hh, if_neg hh_neg]
-          rw [hhtoNat]; push_cast; ring
+          rw [hhtoNat]; push_cast; grind
         · push_neg at hh
           have hh_nn : ¬ h_t ≥ 0 := by omega
           have hhtoNat : ((-h_t).toNat : Int) = -h_t := Int.toNat_of_nonneg (by omega)
           rw [if_neg hh_nn, if_pos hh]
-          rw [hhtoNat]; push_cast; ring
+          rw [hhtoNat]; push_cast; grind
     -- Lift Int equation to Nat.
     have hL : ((shiftAmt.toNat + qPos + hNeg : Nat) : Int)
                 = ((qNeg + hPos : Nat) : Int) := by
@@ -1123,7 +1123,7 @@ theorem shiftedSig_eq_fast2 (m : Nat) (q k : Int) :
     by_cases hk_nn : k ≥ 0
     · by_cases hk_pos : k = 0
       · subst hk_pos; simp
-      · have hk_pos' : k > 0 := lt_of_le_of_ne hk_nn (Ne.symm hk_pos)
+      · have hk_pos' : k > 0 := by omega
         have h_neg_k_lt : -k < 0 := by omega
         have h_neg_k_not_nn : ¬ (-k : Int) ≥ 0 := by omega
         have h_k_not_lt_0 : ¬ k < 0 := by omega
@@ -1137,11 +1137,11 @@ theorem shiftedSig_eq_fast2 (m : Nat) (q k : Int) :
     by_cases hk_nn : k ≥ 0
     · by_cases hk_zero : k = 0
       · subst hk_zero; simp
-      · have hk_pos : k > 0 := lt_of_le_of_ne hk_nn (Ne.symm hk_zero)
+      · have hk_pos : k > 0 := by omega
         have h_neg_k_lt : (-k : Int) < 0 := by omega
         have hk_nn' : k ≥ 0 := hk_nn
         rw [if_pos h_neg_k_lt, if_pos hk_nn']
-        have : -(-k) = k := by ring
+        have : -(-k) = k := by grind
         rw [this]
     · push_neg at hk_nn
       have h_neg_k_nn : ¬ (-k : Int) < 0 := by omega

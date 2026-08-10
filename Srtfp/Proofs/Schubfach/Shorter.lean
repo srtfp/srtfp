@@ -438,7 +438,7 @@ theorem p10Num_eq_tenPosPow (K : Int) :
       have := Int.natAbs_of_nonneg h
       omega
     rw [hK_toN]
-  · rw [if_neg h, if_neg h]; rfl
+  · rw [if_neg h, if_neg h]
 
 /-- Casting helper: `p10Den K = tenNegPow K` (both are `10^max(-K,0)`). -/
 theorem p10Den_eq_tenNegPow (K : Int) :
@@ -447,7 +447,7 @@ theorem p10Den_eq_tenNegPow (K : Int) :
   by_cases h : K ≥ 0
   · rw [if_pos h]
     have hneg : ¬ K < 0 := by omega
-    rw [if_neg hneg]; rfl
+    rw [if_neg hneg]
   · rw [if_neg h]
     have hneg : K < 0 := by omega
     rw [if_pos hneg]

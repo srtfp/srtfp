@@ -49,12 +49,12 @@ theorem farCheckAt2_sound (qNat kNat : Nat) (hk31 : 31 ≤ kNat) (hkq : kNat ≤
   unfold farCheckAt2 at hchk
   rw [if_neg (by omega)] at hchk
   apply farAll_of_sweep (5^kNat) (2^(qNat-kNat)) 71 (2^53)
-  · positivity
+  · exact Nat.pow_pos (by omega)
   · exact Nat.Coprime.pow _ _ (show Nat.Coprime 2 5 by decide)
-  · calc (2:Nat)^53 ≤ 5^31 := by norm_num
-      _ ≤ 5^kNat := Nat.pow_le_pow_right (by norm_num) hk31
-  · exact le_refl _
-  · rw [show 2*2^53 = 2^54 from by ring]; exact Nat.pow_le_pow_right (by norm_num) (by norm_num)
+  · calc (2:Nat)^53 ≤ 5^31 := by grind
+      _ ≤ 5^kNat := Nat.pow_le_pow_right (by grind) hk31
+  · exact Nat.le_refl _
+  · rw [show 2*2^53 = 2^54 from by grind]; exact Nat.pow_le_pow_right (by grind) (by grind)
   · exact hchk
 
 /-- Per-`q` band-2 check: both `kOfMQ` candidates (`floorLog10Pow2 q` and
@@ -108,7 +108,10 @@ theorem band2_far (m : Nat) (q : Nat) (hq : q ≤ 971) (kNat : Nat)
   have hcheck := band2CheckQ_holds q hq
   unfold band2CheckQ at hcheck
   rw [Bool.and_eq_true] at hcheck
-  have hat : farCheckAt2 q kNat = true := by rcases hk with h | h <;> rw [h] <;> tauto
+  have hat : farCheckAt2 q kNat = true := by
+    rcases hk with h | h
+    · rw [h]; exact hcheck.1
+    · rw [h]; exact hcheck.2
   exact farCheckAt2_sound q kNat hk31 hkq hat m hm hm53
 
 /-! ## Band 1 (`q < 0`, modulus `2^e`, `e = qNeg − kNeg`) -/
@@ -127,11 +130,11 @@ theorem farCheckAt1_sound (qNeg kNeg : Nat) (he72 : 72 ≤ qNeg - kNeg) (hkq : k
   unfold farCheckAt1 at hchk
   rw [if_neg (by omega)] at hchk
   apply farAll_of_sweep (2^(qNeg-kNeg)) (5^kNeg) 71 (2^53)
-  · positivity
+  · exact Nat.pow_pos (by omega)
   · exact Nat.Coprime.pow _ _ (show Nat.Coprime 5 2 by decide)
-  · exact Nat.pow_le_pow_right (by norm_num) (by omega)
-  · exact le_refl _
-  · rw [show 2*2^53 = 2^54 from by ring]; exact Nat.pow_le_pow_right (by norm_num) (by norm_num)
+  · exact Nat.pow_le_pow_right (by grind) (by omega)
+  · exact Nat.le_refl _
+  · rw [show 2*2^53 = 2^54 from by grind]; exact Nat.pow_le_pow_right (by grind) (by grind)
   · exact hchk
 
 /-- Per-`qNeg` band-1 check (`q = -qNeg`), both `kOfMQ` candidates. -/
@@ -194,7 +197,10 @@ theorem band1_far (m qNeg kNeg : Nat) (h1 : 1 ≤ qNeg) (hq : qNeg ≤ 1074)
   have hcheck := band1CheckQ_holds qNeg h1 hq
   unfold band1CheckQ at hcheck
   rw [Bool.and_eq_true] at hcheck
-  have hat : farCheckAt1 qNeg kNeg = true := by rcases hk with h | h <;> rw [h] <;> tauto
+  have hat : farCheckAt1 qNeg kNeg = true := by
+    rcases hk with h | h
+    · rw [h]; exact hcheck.1
+    · rw [h]; exact hcheck.2
   exact farCheckAt1_sound qNeg kNeg he72 hkq hat m hm hm53
 
 /-! ## Assembled `residueR20Cond` over the binary64 range (no `B < 2^64` guard)
@@ -214,16 +220,16 @@ theorem residueR20Cond_band2_binary64
   rcases Nat.lt_or_ge kNat 31 with hk30 | hk31
   · -- elementary: m · 5^k ≤ 2^s since 5^30 < 2^70 and m < 2^53
     apply residueR20Cond_band2_elementary m q kNat s hkq
-    calc m * 5 ^ kNat ≤ m * 5 ^ 30 := Nat.mul_le_mul_left _ (Nat.pow_le_pow_right (by norm_num) (by omega))
+    calc m * 5 ^ kNat ≤ m * 5 ^ 30 := Nat.mul_le_mul_left _ (Nat.pow_le_pow_right (by grind) (by omega))
       _ ≤ (2^53 - 1) * 5 ^ 30 := Nat.mul_le_mul_right _ (by omega)
-      _ ≤ 2 ^ 124 := by norm_num
-      _ ≤ 2 ^ s := Nat.pow_le_pow_right (by norm_num) (by omega)
+      _ ≤ 2 ^ 124 := by grind
+      _ ≤ 2 ^ s := Nat.pow_le_pow_right (by grind) (by omega)
   · -- sweep: band2_far with a = 71, slack m·2^71 ≤ 2^s
     apply residueR20Cond_band2_of_far m q kNat s 71 hkq
       (band2_far m q hq kNat hk hk31 hkq hm hm53)
     calc m * 2 ^ 71 ≤ (2^53 - 1) * 2 ^ 71 := Nat.mul_le_mul_right _ (by omega)
-      _ ≤ 2 ^ 124 := by norm_num
-      _ ≤ 2 ^ s := Nat.pow_le_pow_right (by norm_num) (by omega)
+      _ ≤ 2 ^ 124 := by grind
+      _ ≤ 2 ^ s := Nat.pow_le_pow_right (by grind) (by omega)
 
 /-- Band-1 `residueR20Cond` for *every* binary64 `q < 0` (`qNeg = -q ∈
 [1,1074]`) and Schubfach `kNeg`, `kNeg ≤ qNeg`, `m < 2^53`, `s ≥ 124` —
@@ -239,15 +245,15 @@ theorem residueR20Cond_band1_binary64
   · -- elementary: m · 2^e ≤ 2^s since e ≤ 71 and m < 2^53
     apply residueR20Cond_band1_elementary m qNeg kNeg s hkq
     calc m * 2 ^ (qNeg - kNeg) ≤ m * 2 ^ 71 :=
-            Nat.mul_le_mul_left _ (Nat.pow_le_pow_right (by norm_num) (by omega))
+            Nat.mul_le_mul_left _ (Nat.pow_le_pow_right (by grind) (by omega))
       _ ≤ (2^53 - 1) * 2 ^ 71 := Nat.mul_le_mul_right _ (by omega)
-      _ ≤ 2 ^ 124 := by norm_num
-      _ ≤ 2 ^ s := Nat.pow_le_pow_right (by norm_num) (by omega)
+      _ ≤ 2 ^ 124 := by grind
+      _ ≤ 2 ^ s := Nat.pow_le_pow_right (by grind) (by omega)
   · -- sweep: band1_far with a = 71
     apply residueR20Cond_band1_of_far m qNeg kNeg s 71 hkq
       (band1_far m qNeg kNeg h1 hq hk he72 hkq hm hm53)
     calc m * 2 ^ 71 ≤ (2^53 - 1) * 2 ^ 71 := Nat.mul_le_mul_right _ (by omega)
-      _ ≤ 2 ^ 124 := by norm_num
-      _ ≤ 2 ^ s := Nat.pow_le_pow_right (by norm_num) (by omega)
+      _ ≤ 2 ^ 124 := by grind
+      _ ≤ 2 ^ s := Nat.pow_le_pow_right (by grind) (by omega)
 
 end Srtfp.Schubfach.R20Sweep

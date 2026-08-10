@@ -12,6 +12,7 @@
    (overrides StringFast's registration; later csimps win). -/
 import Srtfp.Schubfach.Perf.StringFast
 import Srtfp.Schubfach.Perf.KernelV6
+import Srtfp.Tactics
 
 namespace Srtfp.Schubfach
 

@@ -279,9 +279,9 @@ def ofMQ (m : Nat) (q : Int)
       show vlNum < vMidNum
       show (if irreg then 4 * mZ - 1 else 4 * mZ - 2) < 4 * mZ
       by_cases h : irreg = true
-      · simp [h]
+      · simp [h]; omega
       · have : irreg = false := Bool.eq_false_iff.mpr h
-        simp [this]
+        simp [this]; omega
     v_lt_vr_num := by
       show vMidNum < vrNum
       show (4 * mZ) < 4 * mZ + 2
@@ -324,14 +324,14 @@ theorem ofMQ_width_num_regular (m : Nat) (q : Int)
     (h_reg : ¬ (isIrregular m q = true)) :
     (ofMQ m q hm_pos hm_le hq_lo hq_hi).width.num = 4 := by
   unfold ofMQ
-  simp [h_reg]
+  simp [h_reg]; omega
 
 theorem ofMQ_width_num_irregular (m : Nat) (q : Int)
     (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971)
     (h_irreg : isIrregular m q = true) :
     (ofMQ m q hm_pos hm_le hq_lo hq_hi).width.num = 3 := by
   unfold ofMQ
-  simp [h_irreg]
+  simp [h_irreg]; omega
 
 theorem ofMQ_width_denPow2 (m : Nat) (q : Int)
     (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971) :

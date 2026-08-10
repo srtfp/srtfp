@@ -23,8 +23,7 @@
 -/
 import Srtfp.Schubfach
 import Srtfp.Schubfach.MulHigh128
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
+import Srtfp.Tactics
 
 namespace Srtfp.Schubfach
 
@@ -61,11 +60,11 @@ theorem triple192Nat_lt (hi mid lo : UInt64) :
       have : (0 : Nat) < 2 ^ 64 := Nat.two_pow_pos _
       omega
     have h1 : (2 ^ 64 - 1) * (2 ^ 64 * 2 ^ 64) = 2 ^ 64 * 2 ^ 64 * 2 ^ 64 - 2 ^ 64 * 2 ^ 64 := by
-      rw [Nat.sub_mul]; ring_nf
+      rw [Nat.sub_mul]
     have h2 : (2 ^ 64 - 1) * 2 ^ 64 = 2 ^ 64 * 2 ^ 64 - 2 ^ 64 := by
-      rw [Nat.sub_mul]; ring_nf
-    have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by nlinarith
-    have hn_le_n2 : (2 : Nat) ^ 64 ≤ 2 ^ 64 * 2 ^ 64 := by nlinarith
+      rw [Nat.sub_mul]
+    have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by grind
+    have hn_le_n2 : (2 : Nat) ^ 64 ≤ 2 ^ 64 * 2 ^ 64 := by grind
     omega
   omega
 
@@ -86,13 +85,11 @@ theorem UInt64_add_toNat_eq (x y : UInt64) :
   by_cases h : x.toNat + y.toNat < 2 ^ 64
   · simp only [if_pos h, Nat.add_zero]
     rw [Nat.mod_eq_of_lt h]
-  · push_neg at h
-    simp only [if_neg (not_lt_of_ge h)]
+  · simp only [if_neg h]
     have h1 : x.toNat + y.toNat - 2 ^ 64 < 2 ^ 64 := by omega
     have h2 : (x.toNat + y.toNat) = (x.toNat + y.toNat - 2 ^ 64) + 1 * 2 ^ 64 := by omega
     rw [h2, Nat.add_mul_mod_self_right]
     rw [Nat.mod_eq_of_lt h1]
-    omega
 
 /-- Carry indicator. `(x + y) < x` (UInt64 comparison) iff `x.toNat + y.toNat ≥ 2^64`. -/
 theorem add_carry_iff (x y : UInt64) :
@@ -105,8 +102,7 @@ theorem add_carry_iff (x y : UInt64) :
     refine ⟨?_, ?_⟩
     · intro hLt; omega
     · intro hGe; omega
-  · push_neg at h
-    have h1 : x.toNat + y.toNat - 2 ^ 64 < 2 ^ 64 := by omega
+  · have h1 : x.toNat + y.toNat - 2 ^ 64 < 2 ^ 64 := by omega
     have h2 : (x.toNat + y.toNat) = (x.toNat + y.toNat - 2 ^ 64) + 1 * 2 ^ 64 := by omega
     rw [h2, Nat.add_mul_mod_self_right]
     rw [Nat.mod_eq_of_lt h1]
@@ -163,8 +159,7 @@ theorem add192_64_toNat (hi mid lo x : UInt64) :
       have hCond : ¬ (c0 = 1 ∧ mid' < mid) := fun ⟨_, h⟩ => hNotLt h
       simp only [hCond, if_false, if_pos hC]
       decide
-    · push_neg at hC
-      -- mid + c0 ≥ 2^64.  Since mid < 2^64 and c0 ≤ 1, c0 = 1 and mid = 2^64-1.
+    ·       -- mid + c0 ≥ 2^64.  Since mid < 2^64 and c0 ≤ 1, c0 = 1 and mid = 2^64-1.
       have hc0_eq_one_nat : c0.toNat = 1 := by omega
       have hc0_eq_one : c0 = 1 := uint64_eq_one_of_toNat_one hc0_eq_one_nat
       have hMidLt : mid' < mid := by
@@ -197,22 +192,22 @@ theorem add192_64_toNat (hi mid lo x : UInt64) :
       hi.toNat * 2 ^ 128 + mid.toNat * 2 ^ 64 + lo.toNat + x.toNat
         = hi'.toNat * 2 ^ 128 + mid'.toNat * 2 ^ 64 + lo'.toNat + cHi * 2 ^ 128 := by
     have hCM_pow : cMid * 2 ^ 64 = c1.toNat * 2 ^ 128 := by
-      rw [h128, ← hc1_x_pow]; ring
+      rw [h128, ← hc1_x_pow]; grind
     -- Goal: ... = ... + cHi · 2^128.
     -- We have:
     --   hLoSum'       : lo + x = lo' + cLo
     --   hMidSum'·2^64 : mid·2^64 + c0·2^64 = mid'·2^64 + cMid·2^64
     --   hHiSum'·2^128 : hi·2^128 + c1·2^128 = hi'·2^128 + cHi·2^128
     -- And c0·2^64 = cLo, cMid·2^64 = c1·2^128.
-    nlinarith [hLoSum', hMidSum', hHiSum', hc0_x_pow, hCM_pow, h128]
+    grind
   have hCHi_cases : cHi * 2 ^ 128 = 0 ∨ cHi * 2 ^ 128 = 2 ^ 192 := by
     by_cases hCC : hi.toNat + c1.toNat < 2 ^ 64
     · left
       have : cHi = 0 := by rw [hcHi_def, if_pos hCC]
-      rw [this]; ring
+      rw [this]
     · right
       have : cHi = 2 ^ 64 := by rw [hcHi_def, if_neg hCC]
-      rw [this, h192]; ring
+      rw [this, h192]
   have hTriple_lt : hi'.toNat * 2 ^ 128 + mid'.toNat * 2 ^ 64 + lo'.toNat < 2 ^ 192 := by
     have hHi' : hi'.toNat < 2 ^ 64 := hi'.toNat_lt
     have hMid' : mid'.toNat < 2 ^ 64 := mid'.toNat_lt
@@ -227,11 +222,11 @@ theorem add192_64_toNat (hi mid lo x : UInt64) :
         have : (0 : Nat) < 2 ^ 64 := Nat.two_pow_pos _
         omega
       have h1 : (2 ^ 64 - 1) * (2 ^ 64 * 2 ^ 64) = 2 ^ 64 * 2 ^ 64 * 2 ^ 64 - 2 ^ 64 * 2 ^ 64 := by
-        rw [Nat.sub_mul]; ring_nf
+        rw [Nat.sub_mul]
       have h2 : (2 ^ 64 - 1) * 2 ^ 64 = 2 ^ 64 * 2 ^ 64 - 2 ^ 64 := by
-        rw [Nat.sub_mul]; ring_nf
-      have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by nlinarith
-      have hn_le_n2 : (2 : Nat) ^ 64 ≤ 2 ^ 64 * 2 ^ 64 := by nlinarith
+        rw [Nat.sub_mul]
+      have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by grind
+      have hn_le_n2 : (2 : Nat) ^ 64 ≤ 2 ^ 64 * 2 ^ 64 := by grind
       omega
     omega
   rcases hCHi_cases with hCHi0 | hCHi192
@@ -350,7 +345,7 @@ theorem mul192_b_g_toNat (bU gHi gLo : UInt64) :
   set bhi_lo : Nat := bhi % 2 ^ 64
   set bhi_hi : Nat := bhi / 2 ^ 64
   have hbg_eq : bU.toNat * (gHi.toNat * 2 ^ 64 + gLo.toNat) = bhi * 2 ^ 64 + blo := by
-    rw [hbhi_def, hblo_def]; ring
+    rw [hbhi_def, hblo_def]; grind
   have hbg_full :
       bU.toNat * (gHi.toNat * 2 ^ 64 + gLo.toNat)
         = bhi_hi * 2 ^ 128 + (bhi_lo + blo_hi) * 2 ^ 64 + blo_lo := by
@@ -359,7 +354,7 @@ theorem mul192_b_g_toNat (bU gHi gLo : UInt64) :
     --   = (bhi_hi · 2^64 + bhi_lo) · 2^64 + (blo_hi · 2^64 + blo_lo)
     have hb1 : bhi = bhi_hi * 2 ^ 64 + bhi_lo := hbhi_split
     have hb2 : blo = blo_hi * 2 ^ 64 + blo_lo := hblo_split
-    rw [hb1, hb2, h128]; ring
+    rw [hb1, hb2, h128]; grind
   -- midSum.toNat (the UInt64) = (bhi_lo + blo_hi) % 2^64
   --   and midCarry indicates whether bhi_lo + blo_hi ≥ 2^64.
   have hrHi_eq : rHi_v.toNat = bhi_lo := by rw [hrHi_def, hrHi_toNat]
@@ -420,7 +415,7 @@ theorem mul192_b_g_toNat (bU gHi gLo : UInt64) :
       rHi_top.toNat * 2 ^ 128 + midSum_v.toNat * 2 ^ 64 + blo_lo + cHi * 2 ^ 128
         = bhi_hi * 2 ^ 128 + (bhi_lo + blo_hi) * 2 ^ 64 + blo_lo := by
     have hcMid_pow128 : cMid * 2 ^ 64 = midCarry_v.toNat * 2 ^ 128 := by
-      rw [← hMidCarry_pow, h128]; ring
+      rw [← hMidCarry_pow, h128]; grind
     -- Use the carry equations.
     have hHiSum_eq' : rHi_top.toNat + cHi = bhi_hi + midCarry_v.toNat := by
       rw [hcHi_def]; omega
@@ -430,15 +425,15 @@ theorem mul192_b_g_toNat (bU gHi gLo : UInt64) :
     have h_hi : rHi_top.toNat * 2 ^ 128 + cHi * 2 ^ 128
                   = bhi_hi * 2 ^ 128 + midCarry_v.toNat * 2 ^ 128 := by
       have := congrArg (· * 2 ^ 128) hHiSum_eq'
-      simp at this; linarith
+      simp at this; omega
     have h_mid : midSum_v.toNat * 2 ^ 64 + cMid * 2 ^ 64
                    = bhi_lo * 2 ^ 64 + blo_hi * 2 ^ 64 := by
       have := congrArg (· * 2 ^ 64) hMidSum_eq'
       simp at this
       have : (midSum_v.toNat + cMid) * 2 ^ 64 = (bhi_lo + blo_hi) * 2 ^ 64 := by
         rw [hMidSum_eq']
-      linarith [this]
-    linarith [h_hi, h_mid, hcMid_pow128]
+      omega
+    omega
   -- Triple LHS bounded by 2^192.
   have hLHS_lt : rHi_top.toNat * 2 ^ 128 + midSum_v.toNat * 2 ^ 64 + blo_lo < 2 ^ 192 := by
     have hHi_bd : rHi_top.toNat * 2 ^ 128 ≤ (2 ^ 64 - 1) * 2 ^ 128 := by
@@ -452,11 +447,11 @@ theorem mul192_b_g_toNat (bU gHi gLo : UInt64) :
         have : (0 : Nat) < 2 ^ 64 := Nat.two_pow_pos _
         omega
       have h1 : (2 ^ 64 - 1) * (2 ^ 64 * 2 ^ 64) = 2 ^ 64 * 2 ^ 64 * 2 ^ 64 - 2 ^ 64 * 2 ^ 64 := by
-        rw [Nat.sub_mul]; ring_nf
+        rw [Nat.sub_mul]
       have h2 : (2 ^ 64 - 1) * 2 ^ 64 = 2 ^ 64 * 2 ^ 64 - 2 ^ 64 := by
-        rw [Nat.sub_mul]; ring_nf
-      have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by nlinarith
-      have hn_le_n2 : (2 : Nat) ^ 64 ≤ 2 ^ 64 * 2 ^ 64 := by nlinarith
+        rw [Nat.sub_mul]
+      have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by grind
+      have hn_le_n2 : (2 : Nat) ^ 64 ≤ 2 ^ 64 * 2 ^ 64 := by grind
       omega
     omega
   -- The cHi · 2^128 is either 0 or 2^192.
@@ -464,10 +459,10 @@ theorem mul192_b_g_toNat (bU gHi gLo : UInt64) :
     by_cases hCC : bhi_hi + midCarry_v.toNat < 2 ^ 64
     · left
       have : cHi = 0 := by rw [hcHi_def, if_pos hCC]
-      rw [this]; ring
+      rw [this]
     · right
       have : cHi = 2 ^ 64 := by rw [hcHi_def, if_neg hCC]
-      rw [this, h192]; ring
+      rw [this, h192]
   rcases hCHi_cases with hCHi0 | hCHi192
   · -- No top carry: rHi_top.toNat · 2^128 + midSum_v · 2^64 + blo_lo = bhi_hi · 2^128 + (bhi_lo + blo_hi) · 2^64 + blo_lo
     -- The product is < 2^192, so the mod is trivial.
@@ -580,10 +575,10 @@ theorem shift_kernel_mid_eq (aU : UInt64) (s64 : Nat)
       have hKey : (2 ^ 64 - 1) * 2 ^ 64 < 2 ^ 192 := by
         rw [h192]
         have h2 : (2 ^ 64 - 1) * 2 ^ 64 = 2 ^ 64 * 2 ^ 64 - 2 ^ 64 := by
-          rw [Nat.sub_mul]; ring_nf
+          rw [Nat.sub_mul]
         rw [h2]
         have h64_pos : (0 : Nat) < 2 ^ 64 := Nat.two_pow_pos _
-        have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by nlinarith
+        have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by grind
         have h_step1 : 2 ^ 64 * 2 ^ 64 - 2 ^ 64 < 2 ^ 64 * 2 ^ 64 := by omega
         omega
       omega
@@ -617,14 +612,14 @@ theorem shift_kernel_mid_eq (aU : UInt64) (s64 : Nat)
       rw [this]
     have hkey : (aU.toNat * 2 ^ s64) / 2 ^ 64 = aU.toNat / 2 ^ (64 - s64) := by
       rw [hpow_split]
-      rw [show 2 ^ (64 - s64) * 2 ^ s64 = 2 ^ s64 * 2 ^ (64 - s64) from by ring]
-      rw [show aU.toNat * 2 ^ s64 = 2 ^ s64 * aU.toNat from by ring]
+      rw [show 2 ^ (64 - s64) * 2 ^ s64 = 2 ^ s64 * 2 ^ (64 - s64) from by grind]
+      rw [show aU.toNat * 2 ^ s64 = 2 ^ s64 * aU.toNat from by grind]
       rw [Nat.mul_div_mul_left _ _ (Nat.two_pow_pos s64)]
     have h_pow : 2 ^ (s64 + 64) = 2 ^ s64 * 2 ^ 64 := by
       rw [Nat.pow_add]
     have habs : aU.toNat * 2 ^ (s64 + 64)
                   = (aU.toNat * 2 ^ s64) * 2 ^ 64 := by
-      rw [h_pow]; ring
+      rw [h_pow]; grind
     have h_div_mod : aU.toNat * 2 ^ s64 = ((aU.toNat * 2 ^ s64) / 2 ^ 64) * 2 ^ 64
                                           + (aU.toNat * 2 ^ s64) % 2 ^ 64 := by
       have := Nat.div_add_mod (aU.toNat * 2 ^ s64) (2 ^ 64); omega
@@ -643,7 +638,7 @@ theorem shift_kernel_mid_eq (aU : UInt64) (s64 : Nat)
           = ((aU.toNat / 2 ^ (64 - s64)) * 2 ^ 64
             + (aU.toNat * 2 ^ s64) % 2 ^ 64) * 2 ^ 64 := by rw [← hG]
         _ = (aU.toNat / 2 ^ (64 - s64)) * 2 ^ 128
-            + ((aU.toNat * 2 ^ s64) % 2 ^ 64) * 2 ^ 64 := by rw [h128]; ring
+            + ((aU.toNat * 2 ^ s64) % 2 ^ 64) * 2 ^ 64 := by rw [h128]; grind
     rw [hRHS]
     -- Now show LHS < 2^192, then drop the mod.
     have hLHS_lt :
@@ -652,7 +647,7 @@ theorem shift_kernel_mid_eq (aU : UInt64) (s64 : Nat)
       have h1 : aU.toNat / 2 ^ (64 - s64) < 2 ^ 64 := by
         apply Nat.div_lt_of_lt_mul
         have hp : 2 ^ (64 - s64) ≥ 1 := Nat.one_le_two_pow
-        nlinarith [ha, hp]
+        grind
       have hMod : (aU.toNat * 2 ^ s64) % 2 ^ 64 < 2 ^ 64 := Nat.mod_lt _ h2_64_pos
       have h_hi_bd : (aU.toNat / 2 ^ (64 - s64)) * 2 ^ 128 ≤ (2 ^ 64 - 1) * 2 ^ 128 := by
         apply Nat.mul_le_mul_right; omega
@@ -661,14 +656,14 @@ theorem shift_kernel_mid_eq (aU : UInt64) (s64 : Nat)
       have hKey : (2 ^ 64 - 1) * 2 ^ 128 + (2 ^ 64 - 1) * 2 ^ 64 < 2 ^ 192 := by
         rw [h128, h192]
         have h1 : (2 ^ 64 - 1) * (2 ^ 64 * 2 ^ 64) = 2 ^ 64 * 2 ^ 64 * 2 ^ 64 - 2 ^ 64 * 2 ^ 64 := by
-          rw [Nat.sub_mul]; ring_nf
+          rw [Nat.sub_mul]
         have h2 : (2 ^ 64 - 1) * 2 ^ 64 = 2 ^ 64 * 2 ^ 64 - 2 ^ 64 := by
-          rw [Nat.sub_mul]; ring_nf
+          rw [Nat.sub_mul]
         have h64_pos : 1 ≤ (2 : Nat) ^ 64 := by
           have : (0 : Nat) < 2 ^ 64 := Nat.two_pow_pos _
           omega
-        have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by nlinarith
-        have hn_le_n2 : (2 : Nat) ^ 64 ≤ 2 ^ 64 * 2 ^ 64 := by nlinarith
+        have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by grind
+        have hn_le_n2 : (2 : Nat) ^ 64 ≤ 2 ^ 64 * 2 ^ 64 := by grind
         omega
       omega
     exact (Nat.mod_eq_of_lt hLHS_lt).symm
@@ -720,7 +715,7 @@ theorem shift_kernel_hi_eq (aU : UInt64) (s64 : Nat)
       Nat.mod_eq_of_lt h_ash64_lt
     rw [hmod_eq]
     -- Goal: (a · 2^s64) · 2^128 = a · 2^(s64+128)
-    rw [Nat.pow_add]; ring
+    rw [Nat.pow_add]; grind
 
 /-! ## UInt64 sub bridge: `s - 64` equals `UInt64.ofNat (s.toNat - 64)`. -/
 
@@ -775,7 +770,7 @@ private theorem nat_lor_shift_add (a b k : Nat) (ha : a < 2 ^ k) :
     rcases Nat.exists_eq_add_of_lt hik with ⟨d, hd⟩
     -- d = k - i - 1, so k = i + d + 1.
     have hb2k_eq : b * 2 ^ k = (b * 2 ^ d) * 2 ^ (i + 1) := by
-      rw [hd, show i + d + 1 = (i + 1) + d from by ring, Nat.pow_add]; ring
+      rw [hd, show i + d + 1 = (i + 1) + d from by grind, Nat.pow_add]; grind
     rw [hb2k_eq]
     -- (a + c * 2^(i+1)).testBit i = a.testBit i.
     -- Use Nat.testBit_add and a < 2^k ≤ 2^(i+1)... wait, do we have a < 2^(i+1)?
@@ -783,7 +778,7 @@ private theorem nat_lor_shift_add (a b k : Nat) (ha : a < 2 ^ k) :
     -- Hmm. Better: use (x + c · 2^(i+1)).testBit i = x.testBit i for any x.
     -- Lemma: Nat.testBit_add_mul_two_pow_of_lt.
     have hLt_succ : i < i + 1 := Nat.lt_succ_self i
-    rw [show a + b * 2 ^ d * 2 ^ (i + 1) = a + 2 ^ (i + 1) * (b * 2 ^ d) from by ring]
+    rw [show a + b * 2 ^ d * 2 ^ (i + 1) = a + 2 ^ (i + 1) * (b * 2 ^ d) from by grind]
     -- Use Nat.testBit_add_two_pow_mul_eq or similar — look up the right name.
     -- Try: (a + 2^(i+1) * c).testBit i
     -- We know (a + 2^(i+1) * c) / 2^i = a / 2^i + (2^(i+1) * c) / 2^i = a/2^i + 2 * c. So
@@ -791,9 +786,9 @@ private theorem nat_lor_shift_add (a b k : Nat) (ha : a < 2 ^ k) :
     have hkey : (a + 2 ^ (i + 1) * (b * 2 ^ d)) / 2 ^ i % 2 = a / 2 ^ i % 2 := by
       have h_div : (a + 2 ^ (i + 1) * (b * 2 ^ d)) / 2 ^ i
                     = a / 2 ^ i + 2 * (b * 2 ^ d) := by
-        have hpow : 2 ^ (i + 1) = 2 * 2 ^ i := by rw [Nat.pow_succ]; ring
+        have hpow : 2 ^ (i + 1) = 2 * 2 ^ i := by rw [Nat.pow_succ]; grind
         rw [hpow]
-        rw [show 2 * 2 ^ i * (b * 2 ^ d) = 2 * (b * 2 ^ d) * 2 ^ i from by ring]
+        rw [show 2 * 2 ^ i * (b * 2 ^ d) = 2 * (b * 2 ^ d) * 2 ^ i from by grind]
         rw [Nat.add_mul_div_right _ _ (Nat.two_pow_pos i)]
       rw [h_div]
       omega
@@ -801,7 +796,7 @@ private theorem nat_lor_shift_add (a b k : Nat) (ha : a < 2 ^ k) :
     rw [Nat.testBit_eq_decide_div_mod_eq, Nat.testBit_eq_decide_div_mod_eq]
     rw [hkey]
   · -- Above shift point: a.testBit i = false (a < 2^k ≤ 2^i).
-    push_neg at hik
+    have hik := Nat.le_of_not_lt hik
     have ha_lt_2_i : a < 2 ^ i := Nat.lt_of_lt_of_le ha (Nat.pow_le_pow_right (by decide) hik)
     rw [Nat.testBit_lt_two_pow ha_lt_2_i, decide_eq_true hik, Bool.true_and, Bool.false_or]
     -- (a + b * 2^k).testBit i = b.testBit (i - k).
@@ -809,11 +804,11 @@ private theorem nat_lor_shift_add (a b k : Nat) (ha : a < 2 ^ k) :
     have hi_eq : i = (i - k) + k := by omega
     have hLHS : (a + b * 2 ^ k).testBit i
                   = ((a + b * 2 ^ k) / 2 ^ k).testBit (i - k) := by
-      conv_lhs => rw [hi_eq]
+      conv => lhs; rw [hi_eq]
       exact Nat.testBit_add (a + b * 2 ^ k) (i - k) k
     rw [hLHS]
     have hadd_div : (a + b * 2 ^ k) / 2 ^ k = b := by
-      rw [show a + b * 2 ^ k = a + 2 ^ k * b from by ring]
+      rw [show a + b * 2 ^ k = a + 2 ^ k * b from by grind]
       rw [Nat.add_mul_div_left _ _ (Nat.two_pow_pos k)]
       rw [Nat.div_eq_of_lt ha]
       simp
@@ -856,11 +851,11 @@ theorem shift_kernel_extract_hi (rHi rMid rLo : UInt64) (s : UInt64) (s64 : UInt
   rw [hpow]
   -- Goal: rHi.toNat / 2^s64.toNat = (rHi · 2^128 + rMid · 2^64 + rLo) / (2^s64 · 2^128)
   -- Use Nat.div_div_eq_div_mul backwards (a / (b · c) = a / b / c).
-  rw [show (2 ^ s64.toNat * 2 ^ 128 : Nat) = 2 ^ 128 * 2 ^ s64.toNat by ring]
+  rw [show (2 ^ s64.toNat * 2 ^ 128 : Nat) = 2 ^ 128 * 2 ^ s64.toNat by grind]
   rw [← Nat.div_div_eq_div_mul]
   -- Goal: rHi.toNat / 2^s64.toNat = ((rHi · 2^128 + rMid · 2^64 + rLo) / 2^128) / 2^s64
   rw [show rHi.toNat * 2 ^ 128 + rMid.toNat * 2 ^ 64 + rLo.toNat
-        = (rMid.toNat * 2 ^ 64 + rLo.toNat) + 2 ^ 128 * rHi.toNat by ring]
+        = (rMid.toNat * 2 ^ 64 + rLo.toNat) + 2 ^ 128 * rHi.toNat by grind]
   rw [Nat.add_mul_div_left _ _ (Nat.two_pow_pos 128)]
   rw [Nat.div_eq_of_lt hLower_lt]
   simp
@@ -900,7 +895,7 @@ theorem shift_kernel_extract_mid (rHi rMid rLo : UInt64) (s : UInt64) (s64 : UIn
       rw [h264]; omega]
   have h64_s64_toNat : (64 - s64 : UInt64).toNat = 64 - s64.toNat := by
     have h64_eq : (64 : UInt64) = UInt64.ofNat 64 := rfl
-    conv_lhs => rw [h64_eq, hs64_inj]
+    conv => lhs; rw [h64_eq, hs64_inj]
     apply UInt64_sub_toNat_of_ge (UInt64.ofNat 64) s64.toNat (by omega)
     rw [show (UInt64.ofNat 64 : UInt64).toNat = 64 from by decide]
     omega
@@ -957,14 +952,14 @@ theorem shift_kernel_extract_mid (rHi rMid rLo : UInt64) (s : UInt64) (s64 : UIn
   have hrLo_lt : rLo.toNat < 2 ^ 64 := rLo.toNat_lt
   have h128 : (2 : Nat) ^ 128 = 2 ^ 64 * 2 ^ 64 := pow2_128_split
   -- Rewrite T / (2^s64 · 2^64) = T / 2^64 / 2^s64.
-  rw [show (2 ^ s64.toNat * 2 ^ 64 : Nat) = 2 ^ 64 * 2 ^ s64.toNat by ring]
+  rw [show (2 ^ s64.toNat * 2 ^ 64 : Nat) = 2 ^ 64 * 2 ^ s64.toNat by grind]
   rw [← Nat.div_div_eq_div_mul]
   -- T / 2^64 = rHi · 2^64 + rMid (since rLo < 2^64).
   have hT_div_64 : (rHi.toNat * 2 ^ 128 + rMid.toNat * 2 ^ 64 + rLo.toNat) / 2 ^ 64
                     = rHi.toNat * 2 ^ 64 + rMid.toNat := by
     rw [show rHi.toNat * 2 ^ 128 + rMid.toNat * 2 ^ 64 + rLo.toNat
           = rLo.toNat + 2 ^ 64 * (rHi.toNat * 2 ^ 64 + rMid.toNat) from by
-            rw [h128]; ring]
+            rw [h128]; grind]
     rw [Nat.add_mul_div_left _ _ (Nat.two_pow_pos 64)]
     rw [Nat.div_eq_of_lt hrLo_lt]; simp
   rw [hT_div_64]
@@ -978,13 +973,13 @@ theorem shift_kernel_extract_mid (rHi rMid rLo : UInt64) (s : UInt64) (s64 : UIn
   have hHi_div : rHi.toNat * 2 ^ 64 / 2 ^ s64.toNat = rHi.toNat * 2 ^ (64 - s64.toNat) := by
     rw [h2_64_split]
     rw [show rHi.toNat * (2 ^ s64.toNat * 2 ^ (64 - s64.toNat))
-          = (rHi.toNat * 2 ^ (64 - s64.toNat)) * 2 ^ s64.toNat from by ring]
+          = (rHi.toNat * 2 ^ (64 - s64.toNat)) * 2 ^ s64.toNat from by grind]
     rw [Nat.mul_div_cancel _ (Nat.two_pow_pos _)]
   have hSplit : (rHi.toNat * 2 ^ 64 + rMid.toNat) / 2 ^ s64.toNat
                   = rHi.toNat * 2 ^ (64 - s64.toNat) + rMid.toNat / 2 ^ s64.toNat := by
     rw [show rHi.toNat * 2 ^ 64 + rMid.toNat
           = rMid.toNat + 2 ^ s64.toNat * (rHi.toNat * 2 ^ (64 - s64.toNat)) from by
-            rw [h2_64_split]; ring]
+            rw [h2_64_split]; grind]
     rw [Nat.add_mul_div_left _ _ (Nat.two_pow_pos s64.toNat)]
     omega
   rw [hSplit]

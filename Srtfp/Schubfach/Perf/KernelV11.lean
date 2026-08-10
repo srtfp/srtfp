@@ -19,6 +19,7 @@
    some⇒spec proof build on top. -/
 
 import Srtfp.Schubfach.Perf.KernelV10
+import Srtfp.Tactics
 
 namespace Srtfp.Schubfach
 
@@ -194,7 +195,7 @@ private theorem negPos_eq (q : Int) :
 
 private theorem negNeg_eq (q : Int) :
     (if -q < 0 then (- -q).toNat else 0) = (if q ≥ 0 then q.toNat else 0) := by
-  rw [neg_neg]
+  rw [Int.neg_neg]
   rcases lt_trichotomy q 0 with h | h | h
   · rw [if_neg (show ¬ -q < 0 by omega), if_neg (show ¬ q ≥ 0 by omega)]
   · subst h; simp
@@ -204,7 +205,7 @@ theorem cmpScaledMixed_flip (a q b k : Int) :
     cmpScaledMixed a q b k = - cmpScaledMixed b (-q) a (-k) := by
   unfold cmpScaledMixed
   simp only [negPos_eq, negNeg_eq]
-  exact cmp3_flip' _ _ _ _ (mul_right_comm a _ _) (mul_right_comm b _ _)
+  exact cmp3_flip' _ _ _ _ (by grind) (by grind)
 
 /-! ## Triple identification
 
@@ -407,7 +408,7 @@ theorem inRoundingInterval_u64_flipped_u8_some_eq
     have h3 : b * (gHi.toNat * 2 ^ 64 + gLo.toNat) ≤ 2 ^ 60 * 2 ^ 128 :=
       Nat.mul_le_mul (by omega) (by omega)
     have h4 : (2 : Nat) ^ 60 * 2 ^ 128 < 2 ^ 192 := by
-      rw [← pow_add]
+      rw [← Nat.pow_add]
       exact Nat.pow_lt_pow_right (by omega) (by omega)
     omega
   -- UInt64 boundary correspondences (Bridge helpers).
@@ -441,7 +442,7 @@ theorem inRoundingInterval_u64_flipped_u8_some_eq
     intro bI bU hb_nn hb_ne hb_lt hbU hstrict
     have h1 := cmpScaledMixed_packed_eq_u64_of_strict (-q) (-k') gHi gLo wPlusH
       (4 * (s : Int)) bI
-      (by positivity) hb_nn hb_ne
+      (by omega) hb_nn hb_ne
       (by rw [h60_lit]; omega) hb_lt
       hk_lo hk_hi hqh_lo hqh_hi
       (by rw [hs4U_corr, hbU]; exact hstrict)
@@ -716,7 +717,7 @@ theorem shortestUnsigned_u64_opt_flip_some_eq_packed
       have h3 : b * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat) ≤ 2 ^ 60 * 2 ^ 128 :=
         Nat.mul_le_mul (by omega) (by omega)
       have h4 : (2 : Nat) ^ 60 * 2 ^ 128 < 2 ^ 192 := by
-        rw [← pow_add]
+        rw [← Nat.pow_add]
         exact Nat.pow_lt_pow_right (by omega) (by omega)
       omega
     have htrip0G : triple192Nat 0 gT.1 gT.2.1

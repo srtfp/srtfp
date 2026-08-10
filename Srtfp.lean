@@ -6,6 +6,8 @@
    QuadParsers biparser library. -/
 
 import Srtfp.Clinger
+import Srtfp.Rat
+import Srtfp.NatLog
 import Srtfp.Correctness
 import Srtfp.Decimal.Instances
 import Srtfp.Decimal
@@ -40,6 +42,7 @@ import Srtfp.Proofs.Schubfach.TieBreak
 import Srtfp.Proofs.Schubfach.ToDecimal
 import Srtfp.Schubfach.Kernel192
 import Srtfp.Schubfach.KernelCorrectness
+import Srtfp.Tactics
 import Srtfp.Schubfach
 import Srtfp.Schubfach.MulHigh128
 import Srtfp.Schubfach.Perf.CsimpPin
@@ -64,7 +67,7 @@ import Srtfp.Schubfach.Perf.Uint64Kernel
 import Srtfp.Schubfach.Pow10Table128
 import Srtfp.Schubfach.Pow10Table
 import Srtfp.Schubfach.R20BandSweep
+import Srtfp.Schubfach.R20Continuant
 import Srtfp.Schubfach.R20Keystone
 import Srtfp.Schubfach.R20Legendre
-import Srtfp.Schubfach.R20Sweep
 import Srtfp.Schubfach.TableInvariant

@@ -28,6 +28,7 @@ import Srtfp.Proofs.Schubfach.ToDecimal
 import Srtfp.Proofs.Schubfach.Shortest
 import Srtfp.Proofs.Clinger
 import Srtfp.Float.RuntimeAxiom
+import Srtfp.Tactics
 
 namespace Srtfp
 
@@ -329,7 +330,7 @@ private theorem inRoundingInterval_mk'_eq (sign : Bool) (sig : Nat) (exp : Int)
     show ((d.exponent - exp).toNat : Int) = d.exponent - exp
     exact Int.toNat_of_nonneg (by omega)
   have hsig_eq : sig = d.significand * 10^k := hval.symm
-  have hexp_eq : exp = d.exponent - (k : Int) := by linarith
+  have hexp_eq : exp = d.exponent - (k : Int) := by grind
   rw [hsig_eq, hexp_eq]
   exact h_invariance
 
@@ -425,7 +426,7 @@ private theorem clinger_decode_m_ne_zero_aux
             * ((10 : Int) ^ kNeg)
           = 2 * (10 : Int)^kNeg
     have h_qpos : (if ((-1074 : Int) ≥ 0) then ((-1074 : Int).toNat) else 0) = 0 := by decide
-    rw [h_qpos]; ring
+    rw [h_qpos]; grind
   -- Right bracket from the Clinger witness: fourU(-1074) ≤ 2·10^kNeg.
   have h_fourU0_le :
       4 * (d.significand : Int) * (10 : Int)^kPos * (2 : Int)^1074
@@ -455,22 +456,19 @@ private theorem clinger_decode_m_ne_zero_aux
     show (if q_f < 0 then (-q_f).toNat else 0) ≤ 1074
     by_cases h : q_f < 0
     · rw [if_pos h]
-      have : (-q_f).toNat ≤ 1074 := by
-        have h_neg_q : ((-q_f).toNat : Int) = -q_f := Int.toNat_of_nonneg (by omega)
-        have : (((-q_f).toNat) : Int) ≤ (1074 : Int) := by rw [h_neg_q]; omega
-        exact_mod_cast this
+      have : (-q_f).toNat ≤ 1074 := by omega
       exact this
     · rw [if_neg h]; omega
   let D : Nat := 1074 - qfNeg
   have hD_add : qfNeg + D = 1074 := by show qfNeg + (1074 - qfNeg) = 1074; omega
   have hD_def_unfold : D = 1074 - qfNeg := rfl
   have h_pow_split : (2 : Int)^qfNeg * (2 : Int)^D = (2 : Int)^1074 := by
-    rw [← pow_add, hD_add]
+    rw [← Int.pow_add, hD_add]
   -- α := qfPos + D
   let α : Nat := qfPos + D
   have hα_def : α = qfPos + D := rfl
   have h_pow_combine : (2 : Int)^qfPos * (2 : Int)^D = (2 : Int)^α := by
-    rw [← pow_add]
+    rw [← Int.pow_add]
   -- α = 0 ↔ q_f = -1074.
   have hα_eq_iff : α = 0 ↔ q_f = -1074 := by
     constructor
@@ -490,10 +488,7 @@ private theorem clinger_decode_m_ne_zero_aux
       have hqfNeg_unfold : (if q_f < 0 then (-q_f).toNat else 0) = 1074 := hqfNeg_1074
       by_cases h_neg : q_f < 0
       · rw [if_pos h_neg] at hqfNeg_unfold
-        have h_neg_q : ((-q_f).toNat : Int) = -q_f := Int.toNat_of_nonneg (by omega)
-        have : -q_f = 1074 := by
-          have hcast : ((-q_f).toNat : Int) = (1074 : Int) := by exact_mod_cast hqfNeg_unfold
-          rw [h_neg_q] at hcast; exact hcast
+        have : -q_f = 1074 := by omega
         omega
       · rw [if_neg h_neg] at hqfNeg_unfold
         exact absurd hqfNeg_unfold (by decide)
@@ -513,11 +508,11 @@ private theorem clinger_decode_m_ne_zero_aux
       (2 : Int) ≤ (if isIrregular m_f q_f then 4 * (m_f : Int) - 1 else 4 * (m_f : Int) - 2) := by
     by_cases hi : isIrregular m_f q_f
     · rw [if_pos hi]
-      linarith
+      grind
     · rw [if_neg hi]
-      linarith
-  have hpow_α_ge_one : (1 : Int) ≤ (2 : Int)^α := one_le_pow₀ (by decide : (1:Int) ≤ 2)
-  have hpow_D_pos : (0 : Int) < (2 : Int)^D := pow_pos (by decide) _
+      grind
+  have hpow_α_ge_one : (1 : Int) ≤ (2 : Int)^α := one_le_pow_of_le (by decide : (1:Int) ≤ 2) _
+  have hpow_D_pos : (0 : Int) < (2 : Int)^D := Int.pow_pos (by decide)
   -- Combine the brackets. Multiply left bracket by 2^D.
   -- LHS (after multiplication): leftN_f · 2^qfPos · 10^kNeg · 2^D = leftN_f · 2^α · 10^kNeg.
   -- RHS: 4 d.sig · 10^kPos · 2^qfNeg · 2^D = 4 d.sig · 10^kPos · 2^1074.
@@ -532,12 +527,12 @@ private theorem clinger_decode_m_ne_zero_aux
   set B2 : Int := (2 : Int)^qfNeg with hB2_def
   set DPow : Int := (2 : Int)^D with hDPow_def
   set α2 : Int := (2 : Int)^α with hα2_def
-  have hX10_pos : (0 : Int) < X10 := pow_pos (by decide) _
-  have hY10_pos : (0 : Int) < Y10 := pow_pos (by decide) _
-  have hA2_pos : (0 : Int) < A2 := pow_pos (by decide) _
-  have hB2_pos : (0 : Int) < B2 := pow_pos (by decide) _
-  have hDPow_pos : (0 : Int) < DPow := pow_pos (by decide) _
-  have hα2_pos : (0 : Int) < α2 := pow_pos (by decide) _
+  have hX10_pos : (0 : Int) < X10 := Int.pow_pos (by decide)
+  have hY10_pos : (0 : Int) < Y10 := Int.pow_pos (by decide)
+  have hA2_pos : (0 : Int) < A2 := Int.pow_pos (by decide)
+  have hB2_pos : (0 : Int) < B2 := Int.pow_pos (by decide)
+  have hDPow_pos : (0 : Int) < DPow := Int.pow_pos (by decide)
+  have hα2_pos : (0 : Int) < α2 := Int.pow_pos (by decide)
   -- Restate the hypotheses in these names.
   have h_left_named :
       L * A2 * X10 < 4 * (d.significand : Int) * Y10 * B2 ∨
@@ -553,66 +548,68 @@ private theorem clinger_decode_m_ne_zero_aux
   --   LHS = L · (A2 · DPow) · X10 = L · α2 · X10.
   have h_chainLHS : L * A2 * X10 * DPow = L * α2 * X10 := by
     calc L * A2 * X10 * DPow
-        = L * (A2 * DPow) * X10 := by ring
+        = L * (A2 * DPow) * X10 := by grind
       _ = L * α2 * X10 := by rw [h_bridge_AD]
   have h_chainRHS :
       4 * (d.significand : Int) * Y10 * B2 * DPow
         = 4 * (d.significand : Int) * Y10 * (2 : Int)^1074 := by
     calc 4 * (d.significand : Int) * Y10 * B2 * DPow
-        = 4 * (d.significand : Int) * Y10 * (B2 * DPow) := by ring
+        = 4 * (d.significand : Int) * Y10 * (B2 * DPow) := by grind
       _ = 4 * (d.significand : Int) * Y10 * (2 : Int)^1074 := by rw [h_bridge_BD]
   -- L · α2 · X10 ≤ 4·sig · Y10 · 2^1074 ≤ 2 · X10. So L · α2 · X10 ≤ 2 · X10.
   have h_combined : L * α2 * X10 ≤ 2 * X10 := by
     rcases h_left_named with hstrict | ⟨heq, _⟩
     · -- Strict version: L·A2·X10 < 4·sig·Y10·B2. Multiply by DPow > 0.
       have h_step : L * A2 * X10 * DPow ≤ 4 * (d.significand : Int) * Y10 * B2 * DPow :=
-        mul_le_mul_of_nonneg_right (le_of_lt hstrict) (le_of_lt hDPow_pos)
+        Int.mul_le_mul_of_nonneg_right (Int.le_of_lt hstrict) (Int.le_of_lt hDPow_pos)
       have h1 : L * α2 * X10 ≤ 4 * (d.significand : Int) * Y10 * (2 : Int)^1074 := by
         rw [← h_chainLHS, ← h_chainRHS]; exact h_step
-      linarith
+      grind
     · -- Equality version: L·A2·X10 = 4·sig·Y10·B2. Multiply by DPow.
       have h_step : L * A2 * X10 * DPow = 4 * (d.significand : Int) * Y10 * B2 * DPow := by
         rw [heq]
       have h1 : L * α2 * X10 = 4 * (d.significand : Int) * Y10 * (2 : Int)^1074 := by
         rw [← h_chainLHS, h_step, h_chainRHS]
-      linarith
+      grind
   -- Divide by X10 > 0: L · α2 ≤ 2.
   have h_prod_le : L * α2 ≤ 2 :=
-    Int.le_of_mul_le_mul_right (by linarith [h_combined] : (L * α2) * X10 ≤ 2 * X10) hX10_pos
+    Int.le_of_mul_le_mul_right (by grind : (L * α2) * X10 ≤ 2 * X10) hX10_pos
   -- And L · α2 ≥ 2.
   have h_prod_ge : (2 : Int) ≤ L * α2 := by
-    have hL_pos : (0 : Int) < L := by linarith [hleftN_ge_two]
-    calc (2 : Int) = 2 * 1 := by ring
-      _ ≤ L * 1 := by linarith [hleftN_ge_two]
-      _ ≤ L * α2 := mul_le_mul_of_nonneg_left hpow_α_ge_one (le_of_lt hL_pos)
+    have hL_pos : (0 : Int) < L := by grind
+    calc (2 : Int) = 2 * 1 := by grind
+      _ ≤ L * 1 := by grind
+      _ ≤ L * α2 := Int.mul_le_mul_of_nonneg_left hpow_α_ge_one (Int.le_of_lt hL_pos)
   -- L · α2 = 2.
   have h_prod_eq : L * α2 = 2 := le_antisymm h_prod_le h_prod_ge
   -- L ≥ 2 and α2 ≥ 1, and product = 2. So L = 2 and α2 = 1.
   have hL_eq_2 : L = 2 := by
     by_contra hne
-    have h_gt : L > 2 := lt_of_le_of_ne (by linarith [hleftN_ge_two]) (Ne.symm hne)
+    have h_gt : L > 2 := by
+      have h2 : (2 : Int) ≤ L := by grind
+      omega
     have hα2_pos' : (0 : Int) < α2 := hα2_pos
     have : L * α2 > 2 * 1 := by
       have : L * α2 ≥ L * 1 := by
-        have hL_pos : (0 : Int) < L := by linarith
-        exact mul_le_mul_of_nonneg_left hpow_α_ge_one (le_of_lt hL_pos)
-      have : L * α2 ≥ L := by linarith
-      linarith
-    linarith
+        have hL_pos : (0 : Int) < L := by grind
+        exact Int.mul_le_mul_of_nonneg_left hpow_α_ge_one (Int.le_of_lt hL_pos)
+      have : L * α2 ≥ L := by grind
+      grind
+    grind
   have hα2_eq_1 : α2 = 1 := by
     have h := h_prod_eq
     rw [hL_eq_2] at h
-    linarith
+    grind
   -- α2 = 1 ⟹ α = 0.
   have hα_zero : α = 0 := by
     by_contra hne
     have hpos : 0 < α := Nat.pos_of_ne_zero hne
     have h2pow_ge_2 : (2 : Int) ≤ (2 : Int)^α := by
-      calc (2 : Int) = (2 : Int)^1 := by ring
+      calc (2 : Int) = (2 : Int)^1 := by grind
         _ ≤ (2 : Int)^α := by
             apply pow_le_pow_right₀ (by decide) hpos
     rw [← hα2_def] at h2pow_ge_2
-    linarith
+    grind
   -- So q_f = -1074.
   have hqf_eq : q_f = -1074 := hα_eq_iff.mp hα_zero
   -- L = 2 forces ¬isIrregular m_f q_f and m_f = 1.
@@ -620,15 +617,15 @@ private theorem clinger_decode_m_ne_zero_aux
     by_cases hi : isIrregular m_f q_f
     · rw [hL_def, if_pos hi] at hL_eq_2
       -- 4·m_f - 1 = 2 ⟹ 4 m_f = 3, contradiction with m_f ≥ 1.
-      have : (4 : Int) * (m_f : Int) = 3 := by linarith
-      linarith
+      have : (4 : Int) * (m_f : Int) = 3 := by grind
+      grind
     · cases h_val : isIrregular m_f q_f with
       | true => exact absurd h_val hi
       | false => rfl
   have hmf_eq : m_f = 1 := by
     rw [hL_def, hirreg_false, if_neg (by decide : ¬ (false = true))] at hL_eq_2
-    have : (4 : Int) * (m_f : Int) = 4 := by linarith
-    have : (m_f : Int) = 1 := by linarith
+    have : (4 : Int) * (m_f : Int) = 4 := by grind
+    have : (m_f : Int) = 1 := by grind
     exact_mod_cast this
   -- Now use the right bracket (or left bracket) parity: in the equality case
   -- we need m_f % 2 = 0, but m_f = 1 is odd.
@@ -650,20 +647,20 @@ private theorem clinger_decode_m_ne_zero_aux
         have h1 : L * α2 * X10 ≤ 2 * X10 := h_combined
         have h2 : (2 : Int) ≤ L * α2 := h_prod_ge
         have h3 : (L * α2) * X10 ≥ 2 * X10 := by
-          have hX10_nn : (0 : Int) ≤ X10 := le_of_lt hX10_pos
-          exact mul_le_mul_of_nonneg_right h2 hX10_nn
-        linarith
+          have hX10_nn : (0 : Int) ≤ X10 := Int.le_of_lt hX10_pos
+          exact Int.mul_le_mul_of_nonneg_right h2 hX10_nn
+        grind
       -- Multiply hstrict by DPow > 0:
       have h_step_strict : L * A2 * X10 * DPow < 4 * (d.significand : Int) * Y10 * B2 * DPow :=
         Int.mul_lt_mul_of_pos_right hstrict hDPow_pos
       rw [h_chainLHS, h_chainRHS] at h_step_strict
-      linarith
+      grind
     · exact heq
   -- Get the parity from the equality case directly.
   rcases h_left_named with hstrict | ⟨heq, h_parity⟩
   · exfalso
     -- Contradicts h_chain_eq.
-    linarith
+    grind
   · -- h_parity : m_f % 2 = 0. But m_f = 1, contradiction.
     rw [hmf_eq] at h_parity
     exact absurd h_parity (by decide)
@@ -721,32 +718,30 @@ private theorem rhs_bound_basic (m_f : Nat) (q_f : Int) (h_legal_f : LegalIEEE m
     rw [hqfPos_def]
     by_cases h : q_f ≥ 0
     · rw [if_pos h]
-      have h_toNat_eq : (q_f.toNat : Int) = q_f := Int.toNat_of_nonneg h
-      have h_le : (q_f.toNat : Int) ≤ (971 : Int) := by rw [h_toNat_eq]; omega
-      exact_mod_cast h_le
+      omega
     · rw [if_neg h]; omega
   -- (4 m_f + 2) ≤ 2^55 - 2 (since m_f ≤ 2^53 - 1).
   have h_4mf_le : 4 * (m_f : Int) + 2 ≤ (2 : Int) ^ 55 - 2 := by
     have h53eq : (2 : Int) ^ 53 = 9007199254740992 := by decide
     have h55eq : (2 : Int) ^ 55 = 36028797018963968 := by decide
-    have h_step : (m_f : Int) ≤ 2 ^ 53 - 1 := by linarith
-    linarith
+    have h_step : (m_f : Int) ≤ 2 ^ 53 - 1 := by grind
+    grind
   have h_4mf_nn : (0 : Int) ≤ 4 * (m_f : Int) + 2 := by
     have : (0 : Int) ≤ (m_f : Int) := Int.natCast_nonneg _
-    linarith
+    grind
   -- (2^qfPos) ≤ 2^971.
   have h_2qfPos_le : (2 : Int) ^ qfPos ≤ (2 : Int) ^ 971 :=
     pow_le_pow_right₀ (by decide) hqfPos_le
   -- (2^971) > 0.
-  have h_2_971_pos : (0 : Int) < (2 : Int) ^ 971 := pow_pos (by decide) _
+  have h_2_971_pos : (0 : Int) < (2 : Int) ^ 971 := Int.pow_pos (by decide)
   -- Chain: (4 m_f + 2)·2^qfPos ≤ (4 m_f + 2)·2^971 ≤ (2^55 - 2)·2^971.
   have h_step1 : (4 * (m_f : Int) + 2) * (2 : Int) ^ qfPos
                   ≤ (4 * (m_f : Int) + 2) * (2 : Int) ^ 971 :=
-    mul_le_mul_of_nonneg_left h_2qfPos_le h_4mf_nn
+    Int.mul_le_mul_of_nonneg_left h_2qfPos_le h_4mf_nn
   have h_step2 : (4 * (m_f : Int) + 2) * (2 : Int) ^ 971
                   ≤ ((2 : Int) ^ 55 - 2) * (2 : Int) ^ 971 :=
-    mul_le_mul_of_nonneg_right h_4mf_le (le_of_lt h_2_971_pos)
-  exact le_trans h_step1 h_step2
+    Int.mul_le_mul_of_nonneg_right h_4mf_le (Int.le_of_lt h_2_971_pos)
+  exact Int.le_trans h_step1 h_step2
 
 /-- Discrete bound on `(4·m_f + 2)·2^qfPos` when `m_f` is even: at most
 `(2^55 - 6)·2^971` (since `m_f ≤ 2^53 - 2`). -/
@@ -776,7 +771,7 @@ private theorem rhs_bound_even (m_f : Nat) (q_f : Int)
     have h_rhs : ((2 ^ 53 - 2 : Nat) : Int) = (2 : Int) ^ 53 - 2 := by
       have : (2 : Nat) ^ 53 = 9007199254740992 := by decide
       omega
-    linarith [this, h_rhs]
+    grind
   -- q_f ≤ 971.
   have hqf_le : q_f ≤ 971 := by
     rcases h_legal_f with ⟨_, _, hq⟩ | ⟨_, _, _, hq⟩
@@ -787,61 +782,59 @@ private theorem rhs_bound_even (m_f : Nat) (q_f : Int)
     rw [hqfPos_def]
     by_cases h : q_f ≥ 0
     · rw [if_pos h]
-      have h_toNat_eq : (q_f.toNat : Int) = q_f := Int.toNat_of_nonneg h
-      have h_le : (q_f.toNat : Int) ≤ (971 : Int) := by rw [h_toNat_eq]; omega
-      exact_mod_cast h_le
+      omega
     · rw [if_neg h]; omega
   -- (4 m_f + 2) ≤ 2^55 - 6.
   have h_4mf_le_strict : 4 * (m_f : Int) + 2 ≤ (2 : Int) ^ 55 - 6 := by
     have h53eq : (2 : Int) ^ 53 = 9007199254740992 := by decide
     have h55eq : (2 : Int) ^ 55 = 36028797018963968 := by decide
-    linarith
+    grind
   have h_4mf_nn : (0 : Int) ≤ 4 * (m_f : Int) + 2 := by
     have : (0 : Int) ≤ (m_f : Int) := Int.natCast_nonneg _
-    linarith
+    grind
   -- (2^qfPos) ≤ 2^971.
   have h_2qfPos_le : (2 : Int) ^ qfPos ≤ (2 : Int) ^ 971 :=
     pow_le_pow_right₀ (by decide) hqfPos_le
-  have h_2_971_pos : (0 : Int) < (2 : Int) ^ 971 := pow_pos (by decide) _
+  have h_2_971_pos : (0 : Int) < (2 : Int) ^ 971 := Int.pow_pos (by decide)
   have h_step1 : (4 * (m_f : Int) + 2) * (2 : Int) ^ qfPos
                   ≤ (4 * (m_f : Int) + 2) * (2 : Int) ^ 971 :=
-    mul_le_mul_of_nonneg_left h_2qfPos_le h_4mf_nn
+    Int.mul_le_mul_of_nonneg_left h_2qfPos_le h_4mf_nn
   have h_step2 : (4 * (m_f : Int) + 2) * (2 : Int) ^ 971
                   ≤ ((2 : Int) ^ 55 - 6) * (2 : Int) ^ 971 :=
-    mul_le_mul_of_nonneg_right h_4mf_le_strict (le_of_lt h_2_971_pos)
-  exact le_trans h_step1 h_step2
+    Int.mul_le_mul_of_nonneg_right h_4mf_le_strict (Int.le_of_lt h_2_971_pos)
+  exact Int.le_trans h_step1 h_step2
 
 /-- Identity: `(2^55 - 2) · 2^971 = 2^1026 - 2^972`. -/
 private theorem pow_identity_basic :
     ((2 : Int) ^ 55 - 2) * (2 : Int) ^ 971 = (2 : Int) ^ 1026 - (2 : Int) ^ 972 := by
   have h1 : (2 : Int) ^ 55 * (2 : Int) ^ 971 = (2 : Int) ^ 1026 := by
-    rw [← pow_add]
+    rw [← Int.pow_add]
   have h2 : (2 : Int) ^ 972 = 2 * (2 : Int) ^ 971 := by
-    rw [show (972 : Nat) = 971 + 1 from rfl, pow_succ]; ring
+    rw [show (972 : Nat) = 971 + 1 from rfl, Int.pow_succ]; grind
   have : ((2 : Int) ^ 55 - 2) * (2 : Int) ^ 971
-          = (2 : Int) ^ 55 * (2 : Int) ^ 971 - 2 * (2 : Int) ^ 971 := by ring
+          = (2 : Int) ^ 55 * (2 : Int) ^ 971 - 2 * (2 : Int) ^ 971 := by grind
   rw [this, h1, ← h2]
 
 /-- Identity: `(2^55 - 6) · 2^971 < 2^1026 - 2^972`. -/
 private theorem pow_identity_strict :
     ((2 : Int) ^ 55 - 6) * (2 : Int) ^ 971 < (2 : Int) ^ 1026 - (2 : Int) ^ 972 := by
   have h1 : (2 : Int) ^ 55 * (2 : Int) ^ 971 = (2 : Int) ^ 1026 := by
-    rw [← pow_add]
+    rw [← Int.pow_add]
   have h2 : (2 : Int) ^ 972 = 2 * (2 : Int) ^ 971 := by
-    rw [show (972 : Nat) = 971 + 1 from rfl, pow_succ]; ring
-  have h_2_971_pos : (0 : Int) < (2 : Int) ^ 971 := pow_pos (by decide) _
+    rw [show (972 : Nat) = 971 + 1 from rfl, Int.pow_succ]; grind
+  have h_2_971_pos : (0 : Int) < (2 : Int) ^ 971 := Int.pow_pos (by decide)
   -- (2^55 - 6) · 2^971 = 2^1026 - 6·2^971.
   -- 2^1026 - 2^972 = 2^1026 - 2·2^971.
   -- (2^1026 - 6·2^971) < (2^1026 - 2·2^971) ⟺ -6·2^971 < -2·2^971 ⟺ 2·2^971 < 6·2^971, true.
   have h_eq1 : ((2 : Int) ^ 55 - 6) * (2 : Int) ^ 971
           = (2 : Int) ^ 1026 - 6 * (2 : Int) ^ 971 := by
     have : ((2 : Int) ^ 55 - 6) * (2 : Int) ^ 971
-            = (2 : Int) ^ 55 * (2 : Int) ^ 971 - 6 * (2 : Int) ^ 971 := by ring
+            = (2 : Int) ^ 55 * (2 : Int) ^ 971 - 6 * (2 : Int) ^ 971 := by grind
     rw [this, h1]
   rw [h_eq1, h2]
   -- Goal: 2^1026 - 6 · 2^971 < 2^1026 - 2 · 2^971. Need 6·2^971 > 2·2^971.
   set X := (2 : Int) ^ 971 with hX_def
-  have hX_pos : (0 : Int) < X := pow_pos (by decide) _
+  have hX_pos : (0 : Int) < X := Int.pow_pos (by decide)
   -- Goal: 2^1026 - 6 * X < 2^1026 - 2 * X.
   omega
 
@@ -891,10 +884,11 @@ theorem isFiniteAbs_of_rv
          (4 * (m_f : Int) + 2) * (2 : Int) ^ qfPos * (b : Int))
       ∨ (4 * (a : Int) * (2 : Int) ^ qfNeg =
            (4 * (m_f : Int) + 2) * (2 : Int) ^ qfPos * (b : Int) ∧ m_f % 2 = 0) := by
-    rw [h_a_cast, h_b_cast]
-    convert h_bracket using 0
-    constructor <;> (intro h; rcases h with h | h) <;>
-      first | (left; linarith) | (right; exact ⟨by linarith [h.1], h.2⟩)
+    rcases h_bracket with h | ⟨h, hm⟩
+    · left; rw [h_a_cast, h_b_cast]; grind
+    · right
+      refine ⟨?_, hm⟩
+      rw [h_a_cast, h_b_cast]; grind
   -- Positivity.
   have ha_pos : 0 < a := by
     rw [ha_def]
@@ -910,18 +904,18 @@ theorem isFiniteAbs_of_rv
   -- Bound on RHS · b: (4 m_f + 2)·2^qfPos·b ≤ ((2^55-2)·2^971)·b = (2^1026-2^972)·b.
   have h_rhs_b_le : (4 * (m_f : Int) + 2) * (2 : Int) ^ qfPos * (b : Int)
                      ≤ ((2 : Int) ^ 1026 - (2 : Int) ^ 972) * (b : Int) := by
-    have h_b_nn : (0 : Int) ≤ (b : Int) := le_of_lt hb_pos_Int
+    have h_b_nn : (0 : Int) ≤ (b : Int) := Int.le_of_lt hb_pos_Int
     have h_step : (4 * (m_f : Int) + 2) * (2 : Int) ^ qfPos * (b : Int)
                     ≤ (((2 : Int) ^ 55 - 2) * (2 : Int) ^ 971) * (b : Int) :=
-      mul_le_mul_of_nonneg_right h_rhs_basic h_b_nn
+      Int.mul_le_mul_of_nonneg_right h_rhs_basic h_b_nn
     rw [pow_identity_basic] at h_step
     exact h_step
   -- Bound on LHS: 4·a·2^qfNeg ≤ (2^1026-2^972)·b.
   have h_lhs_le : 4 * (a : Int) * (2 : Int) ^ qfNeg
                     ≤ ((2 : Int) ^ 1026 - (2 : Int) ^ 972) * (b : Int) := by
     rcases h_bracket' with h_strict | ⟨h_eq, _⟩
-    · exact le_trans (le_of_lt h_strict) h_rhs_b_le
-    · exact le_trans (le_of_eq h_eq) h_rhs_b_le
+    · exact Int.le_trans (Int.le_of_lt h_strict) h_rhs_b_le
+    · exact Int.le_trans (Int.le_of_eq h_eq) h_rhs_b_le
   -- Set up Y := 2^qfNeg, Z := 2^971, W := 2^1026 - 2^972 = 2^1026 - 2*Z.
   -- Eventually we want to translate "a ≥ b · 2^1024" (overflow case)
   -- or "2 a ≥ b · (2^1025 - 2^971)" (carry case)
@@ -961,7 +955,7 @@ theorem isFiniteAbs_of_rv
       have ha_eq : a = d.significand * 10 ^ d.exponent.toNat := by
         rw [ha_def, h_kP]
       have hb_eq : b = 1 := by
-        rw [hb_def, h_kN, pow_zero]
+        rw [hb_def, h_kN, Nat.pow_zero]
       rw [ha_eq, hb_eq]
     · rw [if_neg h_e]
       have h_kP : kPos = 0 := by
@@ -969,7 +963,7 @@ theorem isFiniteAbs_of_rv
       have h_kN : kNeg = (-d.exponent).toNat := by
         rw [hkNeg_def, if_pos (by omega : d.exponent < 0)]
       have ha_eq : a = d.significand := by
-        rw [ha_def, h_kP, pow_zero, Nat.mul_one]
+        rw [ha_def, h_kP, Nat.pow_zero, Nat.mul_one]
       have hb_eq : b = 10 ^ (-d.exponent).toNat := by
         rw [hb_def, h_kN]
       rw [ha_eq, hb_eq]
@@ -991,9 +985,8 @@ theorem isFiniteAbs_of_rv
     have h_e_nn : e ≥ 0 := by rw [he_def]; omega
     rw [if_pos h_e_nn] at h_fb_le_bool
     have h_e_toNat_ge : e.toNat ≥ 1024 := by
-      have h_toNat_eq : (e.toNat : Int) = e := Int.toNat_of_nonneg h_e_nn
-      have : (1024 : Int) ≤ (e.toNat : Int) := by rw [h_toNat_eq]; linarith
-      exact_mod_cast this
+      have h1024 : (1024 : Int) ≤ e := by grind
+      omega
     have h_b_1024_le_a : b * 2 ^ 1024 ≤ a := by
       have h_pow_le : b * 2 ^ 1024 ≤ b * 2 ^ e.toNat :=
         Nat.mul_le_mul_left b (Nat.pow_le_pow_right (by decide) h_e_toNat_ge)
@@ -1006,30 +999,30 @@ theorem isFiniteAbs_of_rv
       have h_cast : ((b * 2 ^ 1024 : Nat) : Int) = (b : Int) * (2 : Int) ^ 1024 := by
         push_cast; rfl
       have h_le_Int : ((b * 2 ^ 1024 : Nat) : Int) ≤ (a : Int) := by exact_mod_cast this
-      linarith [h_cast]
+      grind
     -- Multiply by 4·2^qfNeg > 0.
-    have h_2qfNeg_pos : (0 : Int) < (2 : Int) ^ qfNeg := pow_pos (by decide) _
+    have h_2qfNeg_pos : (0 : Int) < (2 : Int) ^ qfNeg := Int.pow_pos (by decide)
     have h_4_2qfNeg_pos : (0 : Int) < 4 * (2 : Int) ^ qfNeg := by
       have : (0 : Int) < 4 := by decide
-      exact mul_pos this h_2qfNeg_pos
+      exact Int.mul_pos this h_2qfNeg_pos
     have h_lhs_lower : 4 * (b : Int) * (2 : Int) ^ 1024 * (2 : Int) ^ qfNeg
                         ≤ 4 * (a : Int) * (2 : Int) ^ qfNeg := by
-      have h_b_1024_4 : 4 * ((b : Int) * (2 : Int) ^ 1024) ≤ 4 * (a : Int) := by linarith
+      have h_b_1024_4 : 4 * ((b : Int) * (2 : Int) ^ 1024) ≤ 4 * (a : Int) := by grind
       have h_step : (4 * ((b : Int) * (2 : Int) ^ 1024)) * (2 : Int) ^ qfNeg
                       ≤ (4 * (a : Int)) * (2 : Int) ^ qfNeg :=
-        mul_le_mul_of_nonneg_right h_b_1024_4 (le_of_lt h_2qfNeg_pos)
+        Int.mul_le_mul_of_nonneg_right h_b_1024_4 (Int.le_of_lt h_2qfNeg_pos)
       have h_eq1 : 4 * (b : Int) * (2 : Int) ^ 1024 * (2 : Int) ^ qfNeg
-                    = (4 * ((b : Int) * (2 : Int) ^ 1024)) * (2 : Int) ^ qfNeg := by ring
+                    = (4 * ((b : Int) * (2 : Int) ^ 1024)) * (2 : Int) ^ qfNeg := by grind
       have h_eq2 : 4 * (a : Int) * (2 : Int) ^ qfNeg
-                    = (4 * (a : Int)) * (2 : Int) ^ qfNeg := by ring
-      linarith
+                    = (4 * (a : Int)) * (2 : Int) ^ qfNeg := by grind
+      grind
     -- Combine: 4·b·2^1024·2^qfNeg ≤ 4·a·2^qfNeg ≤ ((2^1026 - 2^972)·b).
     have h_chain : 4 * (b : Int) * (2 : Int) ^ 1024 * (2 : Int) ^ qfNeg
                     ≤ ((2 : Int) ^ 1026 - (2 : Int) ^ 972) * (b : Int) :=
-      le_trans h_lhs_lower h_lhs_le
+      Int.le_trans h_lhs_lower h_lhs_le
     -- Divide by b: 4·2^1024·2^qfNeg ≤ (2^1026 - 2^972).
     have h_lhs_b_factored : 4 * (b : Int) * (2 : Int) ^ 1024 * (2 : Int) ^ qfNeg
-                              = (4 * (2 : Int) ^ 1024 * (2 : Int) ^ qfNeg) * (b : Int) := by ring
+                              = (4 * (2 : Int) ^ 1024 * (2 : Int) ^ qfNeg) * (b : Int) := by grind
     rw [h_lhs_b_factored] at h_chain
     have h_div_b : 4 * (2 : Int) ^ 1024 * (2 : Int) ^ qfNeg
                     ≤ (2 : Int) ^ 1026 - (2 : Int) ^ 972 :=
@@ -1037,17 +1030,17 @@ theorem isFiniteAbs_of_rv
     -- 4·2^1024 = 2^1026.
     have h_4_2pow : 4 * (2 : Int) ^ 1024 = (2 : Int) ^ 1026 := by
       have h_eq : (4 : Int) = (2 : Int) ^ 2 := by decide
-      rw [h_eq, ← pow_add]
+      rw [h_eq, ← Int.pow_add]
     rw [h_4_2pow] at h_div_b
     -- 2^1026 · 2^qfNeg ≥ 2^1026 (qfNeg ≥ 0). Combined with bound: 2^1026 ≤ 2^1026 - 2^972. Contradiction.
     have h_2qfNeg_ge_one : (1 : Int) ≤ (2 : Int) ^ qfNeg :=
-      one_le_pow₀ (by decide : (1 : Int) ≤ 2)
-    have h_2_1026_pos : (0 : Int) < (2 : Int) ^ 1026 := pow_pos (by decide) _
+      one_le_pow_of_le (by decide : (1 : Int) ≤ 2) _
+    have h_2_1026_pos : (0 : Int) < (2 : Int) ^ 1026 := Int.pow_pos (by decide)
     have h_2_1026_mul : (2 : Int) ^ 1026 ≤ (2 : Int) ^ 1026 * (2 : Int) ^ qfNeg := by
-      calc (2 : Int) ^ 1026 = (2 : Int) ^ 1026 * 1 := by ring
+      calc (2 : Int) ^ 1026 = (2 : Int) ^ 1026 * 1 := by grind
         _ ≤ (2 : Int) ^ 1026 * (2 : Int) ^ qfNeg :=
-            mul_le_mul_of_nonneg_left h_2qfNeg_ge_one (le_of_lt h_2_1026_pos)
-    have h_2_972_pos : (0 : Int) < (2 : Int) ^ 972 := pow_pos (by decide) _
+            Int.mul_le_mul_of_nonneg_left h_2qfNeg_ge_one (Int.le_of_lt h_2_1026_pos)
+    have h_2_972_pos : (0 : Int) < (2 : Int) ^ 972 := Int.pow_pos (by decide)
     -- We have: h_div_b : 2^1026 * 2^qfNeg ≤ 2^1026 - 2^972 AND h_2_1026_mul : 2^1026 ≤ 2^1026 * 2^qfNeg.
     -- Combined: 2^1026 ≤ 2^1026 - 2^972. With h_2_972_pos: 2^972 > 0 ⟹ 2^1026 - 2^972 < 2^1026.
     -- Use omega with set aliases.
@@ -1058,7 +1051,7 @@ theorem isFiniteAbs_of_rv
   · push_neg at h_over
     -- e ≤ 1023.
     by_cases h_normal_range : e ≥ -1022
-    · simp only [if_neg (by linarith : ¬ e > 1023), if_pos h_normal_range]
+    · simp only [if_neg (by grind : ¬ e > 1023), if_pos h_normal_range]
       -- m_round case.
       by_cases h_carry : roundNearestEven (scaleByPow2 a b (52 - e)).1
                                           (scaleByPow2 a b (52 - e)).2 ≥ 2 ^ 53
@@ -1066,7 +1059,7 @@ theorem isFiniteAbs_of_rv
         by_cases h_carry_over : e + 1 > 1023
         · -- e = 1023 ∧ carry: contradiction.
           exfalso
-          have h_e_eq : e = 1023 := by linarith
+          have h_e_eq : e = 1023 := by grind
           -- The carry inequality: 2·a ≥ b·(2^1025 - 2^971).
           have h_scale_eq : scaleByPow2 a b (52 - e) = (a, b * 2 ^ 971) := by
             rw [h_e_eq]
@@ -1084,21 +1077,21 @@ theorem isFiniteAbs_of_rv
           have h_m_round_Int : ((2 ^ 53 : Nat) : Int)
                                 ≤ (roundNearestEven a (b * 2 ^ 971) : Int) := by
             exact_mod_cast h_m_round
-          have h_2_53_cast : ((2 ^ 53 : Nat) : Int) = (2 : Int) ^ 53 := by push_cast
+          have h_2_53_cast : ((2 ^ 53 : Nat) : Int) = (2 : Int) ^ 53 := by omega
           rw [h_2_53_cast] at h_m_round_Int
           have h_b_2_971_cast : ((b * 2 ^ 971 : Nat) : Int) = (b : Int) * (2 : Int) ^ 971 := by
             push_cast; rfl
           -- 2·2^53·(b·2^971) ≤ 2·m_round·(b·2^971).
           have h_b_2_971_Int_pos : (0 : Int) < (b : Int) * (2 : Int) ^ 971 := by
-            exact mul_pos hb_pos_Int (pow_pos (by decide) _)
+            exact Int.mul_pos hb_pos_Int (Int.pow_pos (by decide))
           have h_b_2_971_Int_nn : (0 : Int) ≤ (b : Int) * (2 : Int) ^ 971 :=
-            le_of_lt h_b_2_971_Int_pos
+            Int.le_of_lt h_b_2_971_Int_pos
           have h_step1 : 2 * (2 : Int) ^ 53 * ((b : Int) * (2 : Int) ^ 971)
                         ≤ 2 * (roundNearestEven a (b * 2 ^ 971) : Int)
                           * ((b : Int) * (2 : Int) ^ 971) := by
             have h_2_step : 2 * (2 : Int) ^ 53 ≤ 2 * (roundNearestEven a (b * 2 ^ 971) : Int) := by
-              linarith
-            exact mul_le_mul_of_nonneg_right h_2_step h_b_2_971_Int_nn
+              grind
+            exact Int.mul_le_mul_of_nonneg_right h_2_step h_b_2_971_Int_nn
           have h_round_high_recast :
               2 * (roundNearestEven a (b * 2 ^ 971) : Int) * ((b : Int) * (2 : Int) ^ 971)
                 ≤ 2 * (a : Int) + (b : Int) * (2 : Int) ^ 971 := by
@@ -1108,51 +1101,51 @@ theorem isFiniteAbs_of_rv
           have h_carry_ineq :
               2 * (2 : Int) ^ 53 * ((b : Int) * (2 : Int) ^ 971)
                 ≤ 2 * (a : Int) + (b : Int) * (2 : Int) ^ 971 :=
-            le_trans h_step1 h_round_high_recast
+            Int.le_trans h_step1 h_round_high_recast
           -- Rearrange: (2·2^53 - 1)·(b·2^971) ≤ 2·a. I.e., (2^54 - 1)·b·2^971 ≤ 2a.
           have h_2_54 : (2 : Int) ^ 54 = 2 * (2 : Int) ^ 53 := by
-            rw [show (54 : Nat) = 53 + 1 from rfl, pow_succ]; ring
+            rw [show (54 : Nat) = 53 + 1 from rfl, Int.pow_succ]; grind
           have h_carry_2a : ((2 : Int) ^ 54 - 1) * ((b : Int) * (2 : Int) ^ 971)
                               ≤ 2 * (a : Int) := by
             have h_expand : ((2 : Int) ^ 54 - 1) * ((b : Int) * (2 : Int) ^ 971)
                             = 2 * (2 : Int) ^ 53 * ((b : Int) * (2 : Int) ^ 971)
                               - ((b : Int) * (2 : Int) ^ 971) := by
-              rw [h_2_54]; ring
-            linarith
+              rw [h_2_54]; grind
+            grind
           -- Multiply by 2: (2^55 - 2)·b·2^971 ≤ 4a.
           have h_carry_4a : ((2 : Int) ^ 55 - 2) * ((b : Int) * (2 : Int) ^ 971)
                               ≤ 4 * (a : Int) := by
             have h_2_55 : (2 : Int) ^ 55 = 2 * (2 : Int) ^ 54 := by
-              rw [show (55 : Nat) = 54 + 1 from rfl, pow_succ]; ring
-            have h_double : ((2 : Int) ^ 55 - 2) = 2 * ((2 : Int) ^ 54 - 1) := by linarith
+              rw [show (55 : Nat) = 54 + 1 from rfl, Int.pow_succ]; grind
+            have h_double : ((2 : Int) ^ 55 - 2) = 2 * ((2 : Int) ^ 54 - 1) := by grind
             calc ((2 : Int) ^ 55 - 2) * ((b : Int) * (2 : Int) ^ 971)
                 = 2 * (((2 : Int) ^ 54 - 1) * ((b : Int) * (2 : Int) ^ 971)) := by
-                    rw [h_double]; ring
-              _ ≤ 2 * (2 * (a : Int)) := by linarith
-              _ = 4 * (a : Int) := by ring
+                    rw [h_double]; grind
+              _ ≤ 2 * (2 * (a : Int)) := by grind
+              _ = 4 * (a : Int) := by grind
           -- (2^55 - 2)·2^971·b ≤ 4a, hence (2^1026 - 2^972)·b ≤ 4a.
           have h_carry_4a_pow : ((2 : Int) ^ 1026 - (2 : Int) ^ 972) * (b : Int)
                                   ≤ 4 * (a : Int) := by
             have h_pow_eq := pow_identity_basic
             calc ((2 : Int) ^ 1026 - (2 : Int) ^ 972) * (b : Int)
                 = (((2 : Int) ^ 55 - 2) * (2 : Int) ^ 971) * (b : Int) := by rw [h_pow_eq]
-              _ = ((2 : Int) ^ 55 - 2) * ((b : Int) * (2 : Int) ^ 971) := by ring
+              _ = ((2 : Int) ^ 55 - 2) * ((b : Int) * (2 : Int) ^ 971) := by grind
               _ ≤ 4 * (a : Int) := h_carry_4a
           -- Multiply by 2^qfNeg ≥ 1: ((2^1026 - 2^972)·b)·2^qfNeg ≤ (4a)·2^qfNeg.
-          have h_2qfNeg_pos : (0 : Int) < (2 : Int) ^ qfNeg := pow_pos (by decide) _
+          have h_2qfNeg_pos : (0 : Int) < (2 : Int) ^ qfNeg := Int.pow_pos (by decide)
           have h_2qfNeg_ge_one : (1 : Int) ≤ (2 : Int) ^ qfNeg :=
-            one_le_pow₀ (by decide : (1 : Int) ≤ 2)
+            one_le_pow_of_le (by decide : (1 : Int) ≤ 2) _
           -- Now we use h_lhs_le: 4·a·2^qfNeg ≤ (2^1026-2^972)·b.
-          have h_b_nn : (0 : Int) ≤ (b : Int) := le_of_lt hb_pos_Int
+          have h_b_nn : (0 : Int) ≤ (b : Int) := Int.le_of_lt hb_pos_Int
           have h_diff_pos : (0 : Int) < (2 : Int) ^ 1026 - (2 : Int) ^ 972 := by
             have h1 : (2 : Int) ^ 972 < (2 : Int) ^ 1026 :=
               pow_lt_pow_right₀ (by decide) (by decide)
             omega
           have h_diff_b_nn : (0 : Int) ≤ ((2 : Int) ^ 1026 - (2 : Int) ^ 972) * (b : Int) := by
-            exact mul_nonneg (le_of_lt h_diff_pos) h_b_nn
+            exact Int.mul_nonneg (Int.le_of_lt h_diff_pos) h_b_nn
           have h_combine : ((2 : Int) ^ 1026 - (2 : Int) ^ 972) * (b : Int) * (2 : Int) ^ qfNeg
                             ≤ 4 * (a : Int) * (2 : Int) ^ qfNeg := by
-            exact mul_le_mul_of_nonneg_right h_carry_4a_pow (le_of_lt h_2qfNeg_pos)
+            exact Int.mul_le_mul_of_nonneg_right h_carry_4a_pow (Int.le_of_lt h_2qfNeg_pos)
           -- Combine with h_lhs_le: 4·a·2^qfNeg ≤ (2^1026 - 2^972)·b.
           -- We have h_carry_4a_pow · 2^qfNeg ≤ 4·a·2^qfNeg ≤ (2^1026-2^972)·b.
           -- So ((2^1026 - 2^972)·b)·2^qfNeg ≤ (2^1026-2^972)·b. So 2^qfNeg ≤ 1 (if b > 0 and difference > 0).
@@ -1161,36 +1154,32 @@ theorem isFiniteAbs_of_rv
             -- ((2^1026-2^972)·b)·2^qfNeg ≤ (2^1026-2^972)·b.
             have h_chain : ((2 : Int) ^ 1026 - (2 : Int) ^ 972) * (b : Int) * (2 : Int) ^ qfNeg
                             ≤ ((2 : Int) ^ 1026 - (2 : Int) ^ 972) * (b : Int) :=
-              le_trans h_combine h_lhs_le
+              Int.le_trans h_combine h_lhs_le
             -- Since b > 0 and diff > 0, divide.
             have h_lhs_pos : (0 : Int) < ((2 : Int) ^ 1026 - (2 : Int) ^ 972) * (b : Int) :=
-              mul_pos h_diff_pos hb_pos_Int
+              Int.mul_pos h_diff_pos hb_pos_Int
             have h_2qfNeg_le_one : (2 : Int) ^ qfNeg ≤ 1 := by
               -- From h_chain : ((2^1026-2^972)·b) · 2^qfNeg ≤ ((2^1026-2^972)·b).
               -- Rewrite as ((2^1026-2^972)·b) · 2^qfNeg ≤ ((2^1026-2^972)·b) · 1.
               have h_step : ((2 : Int) ^ 1026 - (2 : Int) ^ 972) * (b : Int) * (2 : Int) ^ qfNeg
                               ≤ ((2 : Int) ^ 1026 - (2 : Int) ^ 972) * (b : Int) * 1 := by
-                rw [mul_one]; exact h_chain
+                rw [Int.mul_one]; exact h_chain
               -- Cancel ((2^1026-2^972)·b) > 0 from left.
-              have := Int.le_of_mul_le_mul_left
-                (a := ((2 : Int) ^ 1026 - (2 : Int) ^ 972) * (b : Int)) (b := (2 : Int) ^ qfNeg) (c := 1)
-                ?_ h_lhs_pos
-              · exact this
-              · convert h_step using 1
+              exact Int.le_of_mul_le_mul_left h_step h_lhs_pos
 
             -- 2^qfNeg ≤ 1 and 2^qfNeg ≥ 1. So = 1. So qfNeg = 0.
             have h_eq_one : (2 : Int) ^ qfNeg = 1 := le_antisymm h_2qfNeg_le_one h_2qfNeg_ge_one
             by_contra h_ne
             have h_pos_q : 0 < qfNeg := Nat.pos_of_ne_zero h_ne
             have h_ge_two : (2 : Int) ≤ (2 : Int) ^ qfNeg := by
-              calc (2 : Int) = (2 : Int) ^ 1 := by ring
+              calc (2 : Int) = (2 : Int) ^ 1 := by grind
                 _ ≤ (2 : Int) ^ qfNeg := pow_le_pow_right₀ (by decide) h_pos_q
-            linarith
-          rw [h_qfNeg_zero, pow_zero, mul_one] at h_lhs_le
+            grind
+          rw [h_qfNeg_zero, Int.pow_zero, Int.mul_one] at h_lhs_le
           -- Clean up h_combine: ... * 2^qfNeg → ... * 1 = ...
           have h_combine' : ((2 : Int) ^ 1026 - (2 : Int) ^ 972) * (b : Int) ≤ 4 * (a : Int) := by
             have h_step := h_combine
-            rw [h_qfNeg_zero, pow_zero, mul_one, mul_one] at h_step
+            rw [h_qfNeg_zero, Int.pow_zero, Int.mul_one, Int.mul_one] at h_step
             exact h_step
           -- Now: 4·a ≤ (2^1026 - 2^972)·b AND (2^1026 - 2^972)·b ≤ 4·a.
           -- So equality. With h_bracket' (strict if m_f odd, eq if even),
@@ -1202,7 +1191,7 @@ theorem isFiniteAbs_of_rv
           -- We have: LO ≤ MID (from h_combine'), MID ≤ LO (from h_lhs_le), HI ≤ LO (from h_rhs_b_le).
           rcases h_bracket' with h_strict | ⟨h_eq, h_m_even⟩
           · -- Strict case. With qfNeg = 0: 4·a < HI, i.e., MID < HI.
-            rw [h_qfNeg_zero, pow_zero, mul_one] at h_strict
+            rw [h_qfNeg_zero, Int.pow_zero, Int.mul_one] at h_strict
             -- MID < HI ≤ LO, MID ≥ LO. Contradiction.
             change MID < HI at h_strict
             change MID ≤ LO at h_lhs_le
@@ -1210,7 +1199,7 @@ theorem isFiniteAbs_of_rv
             change LO ≤ MID at h_combine'
             omega
           · -- Equality case with m_f even.
-            rw [h_qfNeg_zero, pow_zero, mul_one] at h_eq
+            rw [h_qfNeg_zero, Int.pow_zero, Int.mul_one] at h_eq
             -- h_eq: MID = HI.
             change MID = HI at h_eq
             change MID ≤ LO at h_lhs_le
@@ -1221,15 +1210,15 @@ theorem isFiniteAbs_of_rv
             set EVENB : Int := ((2 : Int) ^ 55 - 6) * (2 : Int) ^ 971 * (b : Int) with hEVENB_def
             have h_rhs_even_b : HI ≤ EVENB := by
               rw [hHI_def, hEVENB_def]
-              exact mul_le_mul_of_nonneg_right h_rhs_even h_b_nn
+              exact Int.mul_le_mul_of_nonneg_right h_rhs_even h_b_nn
             have h_strict_b : EVENB < LO := by
               rw [hEVENB_def, hLO_def]
-              exact mul_lt_mul_of_pos_right pow_identity_strict hb_pos_Int
+              exact Int.mul_lt_mul_of_pos_right pow_identity_strict hb_pos_Int
             -- MID = HI ≤ EVENB < LO and MID ≥ LO. Contradiction.
             omega
         · -- e + 1 ≤ 1023.
           push_neg at h_carry_over
-          simp only [if_neg (by linarith : ¬ e + 1 > 1023)]
+          simp only [if_neg (by grind : ¬ e + 1 > 1023)]
           show e + 1 - 52 ≤ 971
           omega
       · simp only [if_neg h_carry]
@@ -1237,7 +1226,7 @@ theorem isFiniteAbs_of_rv
         omega
     · -- Subnormal branch.
       push_neg at h_normal_range
-      simp only [if_neg (by linarith : ¬ e > 1023), if_neg (by linarith : ¬ e ≥ -1022)]
+      simp only [if_neg (by grind : ¬ e > 1023), if_neg (by grind : ¬ e ≥ -1022)]
       by_cases h_m_zero : roundNearestEven (scaleByPow2 a b 1074).1 (scaleByPow2 a b 1074).2 = 0
       · simp only [if_pos h_m_zero]; decide
       · by_cases h_m_52 : roundNearestEven (scaleByPow2 a b 1074).1 (scaleByPow2 a b 1074).2 ≥ 2 ^ 52
@@ -1286,7 +1275,7 @@ theorem ofDecimal_eq_bits_of_rv
         unfold decode; rw [if_neg he]
       rw [h_q_def] at h_dec_q
       have h_be_le : (biasedExpBits (Clinger.ofDecimal c) : Int) ≤ 2046 := by omega
-      have h_be_le_nat : biasedExpBits (Clinger.ofDecimal c) ≤ 2046 := by exact_mod_cast h_be_le
+      have h_be_le_nat : biasedExpBits (Clinger.ofDecimal c) ≤ 2046 := by omega
       have : biasedExpBits (Clinger.ofDecimal c) < 2047 := by omega
       simpa using this
   have h_decoded_clinger_legal : LegalIEEE (decode (Clinger.ofDecimal c)).m

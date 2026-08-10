@@ -17,9 +17,6 @@ jobs:
             | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
-      - name: Get mathlib cache
-        run: lake exe cache get
-
       # Srtfp is the library; SrtfpAxiomCheck fails the build on any axiom
       # outside the audited budget (propext, Quot.sound, Classical.choice,
       # Float.toBits_ofBits).

@@ -10,6 +10,7 @@
    product) and the `q+h` biased windows at the `k` entry. -/
 
 import Srtfp.Schubfach.Perf.KernelV11
+import Srtfp.Tactics
 
 namespace Srtfp.Schubfach
 
@@ -28,11 +29,11 @@ theorem shr1_192_toNat (hi mid lo : UInt64) :
   have hone : (1 : UInt64) = UInt64.ofNat 1 := rfl
   have h63 : (63 : UInt64) = UInt64.ofNat 63 := rfl
   have e1 : (hi >>> (1 : UInt64)).toNat = hi.toNat / 2 := by
-    rw [hone, UInt64_shr_toNat_lt hi 1 (by omega), pow_one]
+    rw [hone, UInt64_shr_toNat_lt hi 1 (by omega), Nat.pow_one]
   have e2 : (mid >>> (1 : UInt64)).toNat = mid.toNat / 2 := by
-    rw [hone, UInt64_shr_toNat_lt mid 1 (by omega), pow_one]
+    rw [hone, UInt64_shr_toNat_lt mid 1 (by omega), Nat.pow_one]
   have e3 : (lo >>> (1 : UInt64)).toNat = lo.toNat / 2 := by
-    rw [hone, UInt64_shr_toNat_lt lo 1 (by omega), pow_one]
+    rw [hone, UInt64_shr_toNat_lt lo 1 (by omega), Nat.pow_one]
   have a1 : (hi &&& 1).toNat = hi.toNat % 2 := by
     rw [UInt64.toNat_and, show ((1 : UInt64)).toNat = 1 from rfl, Nat.and_one_is_mod]
   have a2 : (mid &&& 1).toNat = mid.toNat % 2 := by
@@ -187,7 +188,7 @@ theorem pickNearer_u64_flipped_some_eq
     have h3 : 2 * m * (gHi.toNat * 2 ^ 64 + gLo.toNat) ≤ 2 ^ 60 * 2 ^ 128 :=
       Nat.mul_le_mul (by omega) (by omega)
     have h4 : (2 : Nat) ^ 60 * 2 ^ 128 < 2 ^ 192 := by
-      rw [← pow_add]
+      rw [← Nat.pow_add]
       exact Nat.pow_lt_pow_right (by omega) (by omega)
     omega
   have hmid_id := cmpScaledMixed_u64_flipped_eq gHi gLo w8 ((sU <<< 1) + 1) (mU <<< 1)
@@ -530,7 +531,7 @@ theorem shortestUnsigned_u64_opt_flip2_some_eq_packed
       have h3 : b * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat) ≤ 2 ^ 60 * 2 ^ 128 :=
         Nat.mul_le_mul (by omega) (by omega)
       have h4 : (2 : Nat) ^ 60 * 2 ^ 128 < 2 ^ 192 := by
-        rw [← pow_add]
+        rw [← Nat.pow_add]
         exact Nat.pow_lt_pow_right (by omega) (by omega)
       omega
     have htrip0G : triple192Nat 0 gT.1 gT.2.1
@@ -690,7 +691,7 @@ theorem shortestUnsigned_u64_opt_flip2_some_eq_packed
       have h3 : b * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat) ≤ 2 ^ 60 * 2 ^ 128 :=
         Nat.mul_le_mul (by omega) (by omega)
       have h4 : (2 : Nat) ^ 60 * 2 ^ 128 < 2 ^ 192 := by
-        rw [← pow_add]
+        rw [← Nat.pow_add]
         exact Nat.pow_lt_pow_right (by omega) (by omega)
       omega
     have htrip0G2 : triple192Nat 0 gT2.1 gT2.2.1
@@ -737,7 +738,7 @@ theorem shortestUnsigned_u64_opt_flip2_some_eq_packed
         = 2 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat) := by
       rw [hmH2, shr1_192_toNat, hP2_val,
           show 4 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat)
-              = 2 * (2 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat)) from by ring,
+              = 2 * (2 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat)) from by grind,
           Nat.mul_div_cancel_left _ (by omega)]
     have hk_lo2 : pow10Table128_kMin ≤ -(kOfMQ m q) := by omega
     have hk_hi2 : -(kOfMQ m q) ≤ pow10Table128_kMax := by omega
@@ -803,7 +804,7 @@ theorem shortestUnsigned_u64_opt_flip2_some_eq_packed
       have h3 : b * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat) ≤ 2 ^ 60 * 2 ^ 128 :=
         Nat.mul_le_mul (by omega) (by omega)
       have h4 : (2 : Nat) ^ 60 * 2 ^ 128 < 2 ^ 192 := by
-        rw [← pow_add]
+        rw [← Nat.pow_add]
         exact Nat.pow_lt_pow_right (by omega) (by omega)
       omega
     have htrip0G2 : triple192Nat 0 gT2.1 gT2.2.1
@@ -850,7 +851,7 @@ theorem shortestUnsigned_u64_opt_flip2_some_eq_packed
         = 2 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat) := by
       rw [hmH2, shr1_192_toNat, hP2_val,
           show 4 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat)
-              = 2 * (2 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat)) from by ring,
+              = 2 * (2 * m * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat)) from by grind,
           Nat.mul_div_cancel_left _ (by omega)]
     have hk_lo2 : pow10Table128_kMin ≤ -(kOfMQ m q) := by omega
     have hk_hi2 : -(kOfMQ m q) ≤ pow10Table128_kMax := by omega

@@ -13,8 +13,6 @@
    (Schubfach §9.6–9.8 multiply-shift correctness) extract the invariant
    for the specific `(gHi, gLo, h) = pow10Lookup128 k` they need. -/
 import Srtfp.Schubfach.Pow10Table128
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
 
 namespace Srtfp.Schubfach
 
@@ -72,7 +70,7 @@ theorem pow10Lookup128_in_range (k : Int)
     (hLo : pow10Table128_kMin ≤ k) (hHi : k ≤ pow10Table128_kMax) :
     pow10Lookup128 k = pow10Table128[tableIdx k]! := by
   unfold pow10Lookup128 tableIdx
-  have hLo' : ¬ k < pow10Table128_kMin := not_lt.mpr hLo
+  have hLo' : ¬ k < pow10Table128_kMin := Int.not_lt.mpr hLo
   simp only [hLo', if_false]
   have hidx_lt : (k + 324).toNat < pow10Table128.size := by
     have : k + 324 ≤ 648 := by

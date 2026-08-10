@@ -116,7 +116,6 @@ private theorem scaleByPow2_denom_clear_at (_sig : Nat) (exp : Int) (k q : Int)
     rw [if_pos hexp]
     have h_exp_not_lt : ¬ exp < 0 := by omega
     rw [if_neg h_exp_not_lt]
-    rfl
   · show (if exp ≥ 0 then 1 else 10 ^ (-exp).toNat)
             * (2 ^ (if q ≥ 0 then q.toNat else 0))
         = (10 ^ (if exp < 0 then (-exp).toNat else 0))

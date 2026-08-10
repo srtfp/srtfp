@@ -4,6 +4,10 @@ open Lake DSL
 package srtfp where
   version := v!"0.1.0"
   testDriver := "test"
+  -- A bare unknown identifier in a signature must be an error, never a
+  -- silently auto-bound implicit: with Mathlib gone, a stray `ℚ` would
+  -- otherwise generalize a theorem statement without complaint.
+  leanOptions := #[⟨`autoImplicit, false⟩]
   -- Per-process build memory guard (`lean -M`, in MB). This counts Lean's
   -- allocator accounting, which runs ~1.5x resident RSS: the heaviest module
   -- (KernelV13) peaks ~4.5 GB RSS / needs ~8 GB here, the rest far less. 10 GB
@@ -15,10 +19,7 @@ package srtfp where
   weakLeanArgs := #["-M", "10240"]
 
 require LSpec from git
-  "https://github.com/argumentcomputer/LSpec.git" @ "main"
-
-require mathlib from git
-  "https://github.com/leanprover-community/mathlib4.git" @ "v4.27.0"
+  "https://github.com/argumentcomputer/LSpec.git" @ "8e6ddb17c2b7e2bbb63585aa4225c5b0701b8ad2"
 
 @[default_target]
 lean_lib Srtfp where

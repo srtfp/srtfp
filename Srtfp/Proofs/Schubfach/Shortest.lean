@@ -66,6 +66,7 @@ theorem decDigitLength_ge_10 {n : Nat} (h : 10 ≤ n) :
 theorem decDigitLength_pos (n : Nat) : 1 ≤ decDigitLength n := by
   by_cases h : n < 10
   · rw [decDigitLength_lt_10 h]
+    omega
   · have h' : 10 ≤ n := Nat.le_of_not_lt h
     rw [decDigitLength_ge_10 h']
     omega

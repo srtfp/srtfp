@@ -13,6 +13,7 @@
 import Srtfp.Proofs.Clinger.Base
 import Srtfp.Proofs.Clinger.FindBinaryExp
 import Srtfp.Float.RuntimeAxiom
+import Srtfp.Tactics
 
 namespace Srtfp.Clinger
 
@@ -509,7 +510,7 @@ private theorem overflow_AB
           rw [if_neg h_over, if_neg h_normal, if_pos h_zero]
         rw [h_eq]
         show (-1074 : Int) ≤ 971
-        norm_num
+        omega
       · by_cases h_nb : roundNearestEven (scaleByPow2 a b 1074).1 (scaleByPow2 a b 1074).2 ≥ 2 ^ 52
         · have h_eq : decodedAbsAB sign a b
               = (⟨sign, roundNearestEven (scaleByPow2 a b 1074).1 (scaleByPow2 a b 1074).2,
@@ -518,7 +519,7 @@ private theorem overflow_AB
             rw [if_neg h_over, if_neg h_normal, if_neg h_zero, if_pos h_nb]
           rw [h_eq]
           show (-1074 : Int) ≤ 971
-          norm_num
+          omega
         · have h_eq : decodedAbsAB sign a b
               = (⟨sign, roundNearestEven (scaleByPow2 a b 1074).1 (scaleByPow2 a b 1074).2,
                   -1074⟩ : Decoded) := by
@@ -526,7 +527,7 @@ private theorem overflow_AB
             rw [if_neg h_over, if_neg h_normal, if_neg h_zero, if_neg h_nb]
           rw [h_eq]
           show (-1074 : Int) ≤ 971
-          norm_num
+          omega
 
 /-- Overflowing inputs produce exactly `±∞`. -/
 theorem decimalToFloat_overflow_inf (sign : Bool) (sig : Nat) (exp : Int)

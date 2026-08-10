@@ -18,8 +18,6 @@
    `pow10Lookup128_invariant`).
 -/
 import Srtfp.Schubfach.Perf.Pow10Table192
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
 
 namespace Srtfp.Schubfach
 
@@ -72,7 +70,7 @@ theorem pow10Lookup192_in_range (k : Int)
     (hLo : pow10Table192_kMin ≤ k) (hHi : k ≤ pow10Table192_kMax) :
     pow10Lookup192 k = pow10Table192[tableIdx192 k]! := by
   unfold pow10Lookup192 tableIdx192
-  have hLo' : ¬ k < pow10Table192_kMin := not_lt.mpr hLo
+  have hLo' : ¬ k < pow10Table192_kMin := Int.not_lt.mpr hLo
   simp only [hLo', if_false]
   have hidx_lt : (k + 324).toNat < pow10Table192.size := by
     have : k + 324 ≤ 648 := by

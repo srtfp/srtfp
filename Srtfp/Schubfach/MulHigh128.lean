@@ -27,8 +27,6 @@
    can treat `mulHigh128` as exact.
 
 -/
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Linarith
 
 namespace Srtfp.Schubfach
 
@@ -151,18 +149,18 @@ theorem mulHi64Nat_eq (α β : Nat) (hα : α < 2 ^ 64) (hβ : β < 2 ^ 64) :
     show α * β = (α/2^32) * (β/2^32) * 2 ^ 64
                + ((α/2^32) * (β % 2^32) + (α % 2^32) * (β/2^32)) * 2 ^ 32
                + (α % 2^32) * (β % 2^32)
-    conv_lhs => rw [hα_split, hβ_split]
+    conv => lhs; rw [hα_split, hβ_split]
     rw [show (2 : Nat) ^ 64 = 2 ^ 32 * 2 ^ 32 from by decide]
-    ring
+    grind
   -- Reduce α · β / 2⁶⁴.
   rw [hexpand]
   rw [show αH * βH * 2 ^ 64 + (αH * βL + αL * βH) * 2 ^ 32 + αL * βL
-       = ((αH * βL + αL * βH) * 2 ^ 32 + αL * βL) + 2 ^ 64 * (αH * βH) from by ring]
+       = ((αH * βL + αL * βH) * 2 ^ 32 + αL * βL) + 2 ^ 64 * (αH * βH) from by grind]
   rw [Nat.add_mul_div_left _ _ (by decide : 0 < 2 ^ 64)]
   -- Goal: αH·βH + mid1/2³² + mid2/2³² = ((αH·βL + αL·βH)·2³² + αL·βL)/2⁶⁴ + αH·βH
   -- Subtract αH·βH from both sides via omega-style cancellation.
   rw [show αH * βH + mid1 / 2 ^ 32 + mid2 / 2 ^ 32
-       = (mid1 / 2 ^ 32 + mid2 / 2 ^ 32) + αH * βH from by ring]
+       = (mid1 / 2 ^ 32 + mid2 / 2 ^ 32) + αH * βH from by grind]
   congr 1
   -- Now show: mid1/2³² + mid2/2³² = ((αH·βL + αL·βH)·2³² + αL·βL)/2⁶⁴
   have hll_split : ll = (ll / 2 ^ 32) * 2 ^ 32 + ll % 2 ^ 32 := by
@@ -178,14 +176,13 @@ theorem mulHi64Nat_eq (α β : Nat) (hα : α < 2 ^ 64) (hβ : β < 2 ^ 64) :
       (αH * βL + αL * βH) * 2 ^ 32 + αL * βL
         = (mid1 / 2 ^ 32 + mid2 / 2 ^ 32) * 2 ^ 64
           + ((mid2 % 2 ^ 32) * 2 ^ 32 + ll % 2 ^ 32) := by
-    nlinarith [hll_split, hmid1_split, hmid2_split, hmid1_def, hmid2_def,
-               h264', hll_def]
+    grind
   rw [hR_eq]
   -- Goal: mid1/2³² + mid2/2³² = ((mid1/2³² + mid2/2³²)·2⁶⁴ + tail)/2⁶⁴
   rw [Nat.add_comm ((mid1 / 2 ^ 32 + mid2 / 2 ^ 32) * 2 ^ 64) _,
       Nat.add_mul_div_right _ _ (by decide : 0 < 2 ^ 64)]
   rw [Nat.div_eq_of_lt h_tail]
-  ring
+  grind
 
 /-! ## UInt64 to Nat mirror
 
@@ -310,10 +307,10 @@ theorem mulHigh128_toNat (a gHi gLo : UInt64) :
   --     = (a.toNat * (gHi.toNat * 2 ^ 64 + gLo.toNat)) / 2 ^ 64 % 2 ^ 64
   -- Rewrite the RHS: a·(gHi·2⁶⁴ + gLo) / 2⁶⁴ = a·gHi + a·gLo/2⁶⁴.
   have h_expand : a.toNat * (gHi.toNat * 2 ^ 64 + gLo.toNat)
-      = a.toNat * gLo.toNat + 2 ^ 64 * (a.toNat * gHi.toNat) := by ring
+      = a.toNat * gLo.toNat + 2 ^ 64 * (a.toNat * gHi.toNat) := by grind
   rw [h_expand, Nat.add_mul_div_left _ _ (by decide : 0 < 2 ^ 64)]
   rw [Nat.add_comm (a.toNat * gLo.toNat / 2 ^ 64)]
-  conv_rhs => rw [Nat.add_mod]
+  conv => rhs; rw [Nat.add_mod]
   simp
 
 end Srtfp.Schubfach

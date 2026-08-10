@@ -60,14 +60,14 @@ theorem roundNearestEven_eq_floor_or_ceil (a b : Nat) :
 theorem roundNearestEven_ge_floor (a b : Nat) :
     a / b ≤ roundNearestEven a b := by
   rcases roundNearestEven_eq_floor_or_ceil a b with h | h
-  · rw [h]
-  · rw [h]; omega
+  · omega
+  · omega
 
 theorem roundNearestEven_le_ceil (a b : Nat) :
     roundNearestEven a b ≤ a / b + 1 := by
   rcases roundNearestEven_eq_floor_or_ceil a b with h | h
-  · rw [h]; omega
-  · rw [h]
+  · omega
+  · omega
 
 /-! ## When does `roundNearestEven` pick floor vs ceil?
 
@@ -262,8 +262,10 @@ theorem scaleByPow2_denom_pos {a b : Nat} {k : Int} (hb : 0 < b) :
   by_cases hk : k ≥ 0
   · simp [hk]; exact hb
   · simp [hk]
-    -- Goal after Mathlib simp may be `0 < b` or `0 < b * 2^n`.
-    exact hb
+    -- Goal shape depends on the simp normal form: `0 < b` or `0 < b * 2^n`.
+    first
+    | exact hb
+    | exact Nat.mul_pos hb (Nat.two_pow_pos _)
 
 /-! ## Abstract decoded form of `Clinger.ofDecimal`
 

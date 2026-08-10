@@ -11,6 +11,7 @@
 import Srtfp.Schubfach
 import Srtfp.Schubfach.Perf.Orchestration
 import Srtfp.Schubfach.Perf.Uint64Kernel
+import Srtfp.Tactics
 
 namespace Srtfp.Schubfach
 
@@ -22,7 +23,7 @@ For inputs `m, s` arising from a binary64 `Float`, we have
 of small constants.  All of these are overflow-free under those bounds. -/
 
 /-- `x <<< 2 = 4 * x` as UInt64 (always — wraparound matches both sides). -/
-lemma uint64_shiftLeft_2 (x : UInt64) : x <<< 2 = 4 * x := by
+theorem uint64_shiftLeft_2 (x : UInt64) : x <<< 2 = 4 * x := by
   apply UInt64.toNat_inj.mp
   simp only [UInt64.toNat_shiftLeft, UInt64.toNat_mul]
   have h2 : ((2 : UInt64).toNat % 64) = 2 := by decide
@@ -31,7 +32,7 @@ lemma uint64_shiftLeft_2 (x : UInt64) : x <<< 2 = 4 * x := by
   simp [Nat.shiftLeft_eq, Nat.mul_comm]
 
 /-- `x <<< 1 = 2 * x` as UInt64. -/
-lemma uint64_shiftLeft_1 (x : UInt64) : x <<< 1 = 2 * x := by
+theorem uint64_shiftLeft_1 (x : UInt64) : x <<< 1 = 2 * x := by
   apply UInt64.toNat_inj.mp
   simp only [UInt64.toNat_shiftLeft, UInt64.toNat_mul]
   have h1 : ((1 : UInt64).toNat % 64) = 1 := by decide
@@ -40,7 +41,7 @@ lemma uint64_shiftLeft_1 (x : UInt64) : x <<< 1 = 2 * x := by
   simp [Nat.shiftLeft_eq, Nat.mul_comm]
 
 /-- For `m < 2^64`, `(UInt64.ofNat m).toNat = m`. -/
-lemma toNat_ofNat_of_lt {m : Nat} (h : m < (1 <<< 64 : Nat)) :
+theorem toNat_ofNat_of_lt {m : Nat} (h : m < (1 <<< 64 : Nat)) :
     (UInt64.ofNat m).toNat = m := by
   rw [UInt64.toNat_ofNat']
   apply Nat.mod_eq_of_lt
@@ -49,39 +50,39 @@ lemma toNat_ofNat_of_lt {m : Nat} (h : m < (1 <<< 64 : Nat)) :
   omega
 
 /-- `UInt64.ofNat (4 * m) = UInt64.ofNat m <<< 2` (unconditionally). -/
-private lemma ofNat_4_mul_eq_shiftLeft_2 (m : Nat) :
+private theorem ofNat_4_mul_eq_shiftLeft_2 (m : Nat) :
     UInt64.ofNat (4 * m) = (UInt64.ofNat m) <<< 2 := by
   rw [uint64_shiftLeft_2, UInt64.ofNat_mul]
   rfl
 
 /-- `UInt64.ofNat (2 * m) = UInt64.ofNat m <<< 1` (unconditionally). -/
-private lemma ofNat_2_mul_eq_shiftLeft_1 (m : Nat) :
+private theorem ofNat_2_mul_eq_shiftLeft_1 (m : Nat) :
     UInt64.ofNat (2 * m) = (UInt64.ofNat m) <<< 1 := by
   rw [uint64_shiftLeft_1, UInt64.ofNat_mul]
   rfl
 
 /-- For `m ≥ 1`, `(4·m - 2 : Int).toNat = 4*m - 2`. -/
-lemma toNat_4m_sub_2_eq {m : Nat} (hm_pos : m ≥ 1) :
+theorem toNat_4m_sub_2_eq {m : Nat} (hm_pos : m ≥ 1) :
     (4 * (m : Int) - 2).toNat = 4 * m - 2 := by
   omega
 
 /-- For `m ≥ 1`, `(4·m - 1 : Int).toNat = 4*m - 1`. -/
-lemma toNat_4m_sub_1_eq {m : Nat} (hm_pos : m ≥ 1) :
+theorem toNat_4m_sub_1_eq {m : Nat} (hm_pos : m ≥ 1) :
     (4 * (m : Int) - 1).toNat = 4 * m - 1 := by
   omega
 
 /-- `(4·m + 2 : Int).toNat = 4*m + 2`. -/
-lemma toNat_4m_add_2_eq (m : Nat) : (4 * (m : Int) + 2).toNat = 4 * m + 2 := by
+theorem toNat_4m_add_2_eq (m : Nat) : (4 * (m : Int) + 2).toNat = 4 * m + 2 := by
   omega
 
 /-- `(4·s : Int).toNat = 4*s`. -/
-lemma toNat_4s_eq (s : Nat) : (4 * (s : Int)).toNat = 4 * s := by omega
+theorem toNat_4s_eq (s : Nat) : (4 * (s : Int)).toNat = 4 * s := by omega
 
 /-- `(2·m : Int).toNat = 2*m`. -/
-lemma toNat_2m_eq (m : Nat) : (2 * (m : Int)).toNat = 2 * m := by omega
+theorem toNat_2m_eq (m : Nat) : (2 * (m : Int)).toNat = 2 * m := by omega
 
 /-- `(2·s + 1 : Int).toNat = 2*s + 1`. -/
-lemma toNat_2s_add_1_eq (s : Nat) : (2 * (s : Int) + 1).toNat = 2 * s + 1 := by omega
+theorem toNat_2s_add_1_eq (s : Nat) : (2 * (s : Int) + 1).toNat = 2 * s + 1 := by omega
 
 /-! ## UInt64-Int correspondence lemmas
 
@@ -90,12 +91,12 @@ These show that the `Int → UInt64` boundary conversions used by
 expressions used by `inRoundingInterval_u64_opt` and friends. -/
 
 /-- `UInt64.ofNat (4m - 2) = (UInt64.ofNat m) <<< 2 - 2` when `m ≥ 1`. -/
-lemma ofNat_4m_sub_2 {m : Nat} (hm_pos : m ≥ 1) :
+theorem ofNat_4m_sub_2 {m : Nat} (hm_pos : m ≥ 1) :
     UInt64.ofNat (4 * m - 2) = (UInt64.ofNat m) <<< 2 - 2 := by
   rw [uint64_shiftLeft_2]
   have h1 : 4 * m = (4 * m - 2) + 2 := by omega
   have h2 : UInt64.ofNat (4 * m) = UInt64.ofNat (4 * m - 2) + UInt64.ofNat 2 := by
-    conv_lhs => rw [h1]
+    conv => lhs; rw [h1]
     rw [UInt64.ofNat_add]
   rw [UInt64.ofNat_mul] at h2
   have h3 : (UInt64.ofNat 4 : UInt64) = 4 := rfl
@@ -105,17 +106,17 @@ lemma ofNat_4m_sub_2 {m : Nat} (hm_pos : m ≥ 1) :
   -- Goal: UInt64.ofNat (4 * m - 2) = 4 * UInt64.ofNat m - 2
   rw [h2]
   -- Goal: UInt64.ofNat (4 * m - 2) = UInt64.ofNat (4 * m - 2) + 2 - 2
-  -- Use BitVec underlying ring structure: (x + 2) - 2 = x.
+  -- Use BitVec underlying grind structure: (x + 2) - 2 = x.
   apply UInt64.toBitVec_inj.mp
   simp []
 
 /-- `UInt64.ofNat (4m - 1) = (UInt64.ofNat m) <<< 2 - 1` when `m ≥ 1`. -/
-lemma ofNat_4m_sub_1 {m : Nat} (hm_pos : m ≥ 1) :
+theorem ofNat_4m_sub_1 {m : Nat} (hm_pos : m ≥ 1) :
     UInt64.ofNat (4 * m - 1) = (UInt64.ofNat m) <<< 2 - 1 := by
   rw [uint64_shiftLeft_2]
   have h1 : 4 * m = (4 * m - 1) + 1 := by omega
   have h2 : UInt64.ofNat (4 * m) = UInt64.ofNat (4 * m - 1) + UInt64.ofNat 1 := by
-    conv_lhs => rw [h1]
+    conv => lhs; rw [h1]
     rw [UInt64.ofNat_add]
   rw [UInt64.ofNat_mul] at h2
   have h3 : (UInt64.ofNat 4 : UInt64) = 4 := rfl
@@ -126,26 +127,26 @@ lemma ofNat_4m_sub_1 {m : Nat} (hm_pos : m ≥ 1) :
   simp []
 
 /-- `UInt64.ofNat (4m + 2) = (UInt64.ofNat m) <<< 2 + 2`. -/
-lemma ofNat_4m_add_2 (m : Nat) :
+theorem ofNat_4m_add_2 (m : Nat) :
     UInt64.ofNat (4 * m + 2) = (UInt64.ofNat m) <<< 2 + 2 := by
   rw [uint64_shiftLeft_2]
   rw [UInt64.ofNat_add, UInt64.ofNat_mul]
   rfl
 
 /-- `UInt64.ofNat (4s) = (UInt64.ofNat s) <<< 2`. -/
-lemma ofNat_4s (s : Nat) :
+theorem ofNat_4s (s : Nat) :
     UInt64.ofNat (4 * s) = (UInt64.ofNat s) <<< 2 := by
   rw [uint64_shiftLeft_2, UInt64.ofNat_mul]
   rfl
 
 /-- `UInt64.ofNat (2m) = (UInt64.ofNat m) <<< 1`. -/
-lemma ofNat_2m (m : Nat) :
+theorem ofNat_2m (m : Nat) :
     UInt64.ofNat (2 * m) = (UInt64.ofNat m) <<< 1 := by
   rw [uint64_shiftLeft_1, UInt64.ofNat_mul]
   rfl
 
 /-- `UInt64.ofNat (2s + 1) = (UInt64.ofNat s) <<< 1 + 1`. -/
-lemma ofNat_2s_add_1 (s : Nat) :
+theorem ofNat_2s_add_1 (s : Nat) :
     UInt64.ofNat (2 * s + 1) = (UInt64.ofNat s) <<< 1 + 1 := by
   rw [uint64_shiftLeft_1, UInt64.ofNat_add, UInt64.ofNat_mul]
   rfl
@@ -234,12 +235,12 @@ theorem inRoundingInterval_u64_opt_some_eq_packed
   -- Packed leftN/rightN/s4 facts.
   have hleftN_nn_reg : (0 : Int) ≤ 4 * (m : Int) - 2 := by
     have : (1 : Int) ≤ (m : Int) := by exact_mod_cast hm_pos
-    linarith
+    grind
   have hleftN_nn_irr : (0 : Int) ≤ 4 * (m : Int) - 1 := by
     have : (1 : Int) ≤ (m : Int) := by exact_mod_cast hm_pos
-    linarith
-  have hrightN_nn : (0 : Int) ≤ 4 * (m : Int) + 2 := by positivity
-  have hs4_nn : (0 : Int) ≤ 4 * (s : Int) := by positivity
+    grind
+  have hrightN_nn : (0 : Int) ≤ 4 * (m : Int) + 2 := by omega
+  have hs4_nn : (0 : Int) ≤ 4 * (s : Int) := by omega
   have hs4_pos : 4 * (s : Int) ≠ 0 := by
     have : (1 : Int) ≤ (s : Int) := by exact_mod_cast hs_pos
     omega
@@ -352,12 +353,12 @@ theorem inRoundingInterval_u64_opt_some_eq_packed
 /-! ## pickNearer bridge -/
 
 /-- Helper: `UInt64.ofNat (s + 1) = UInt64.ofNat s + 1`. -/
-lemma ofNat_succ (s : Nat) :
+theorem ofNat_succ (s : Nat) :
     UInt64.ofNat (s + 1) = UInt64.ofNat s + 1 := by
   rw [UInt64.ofNat_add]; rfl
 
 /-- For `s < 2^58`, `(UInt64.ofNat s + 1).toNat = s + 1`. -/
-lemma toNat_sU_add_1 {s : Nat} (hs_lt : s < (1 <<< 58 : Nat)) :
+theorem toNat_sU_add_1 {s : Nat} (hs_lt : s < (1 <<< 58 : Nat)) :
     (UInt64.ofNat s + 1).toNat = s + 1 := by
   rw [← ofNat_succ, UInt64.toNat_ofNat']
   apply Nat.mod_eq_of_lt
@@ -365,7 +366,7 @@ lemma toNat_sU_add_1 {s : Nat} (hs_lt : s < (1 <<< 58 : Nat)) :
   omega
 
 /-- `(UInt64.ofNat s).toNat = s` when `s < 2^64`. -/
-lemma toNat_sU_eq {s : Nat} (hs_lt : s < (1 <<< 58 : Nat)) :
+theorem toNat_sU_eq {s : Nat} (hs_lt : s < (1 <<< 58 : Nat)) :
     (UInt64.ofNat s).toNat = s := by
   rw [UInt64.toNat_ofNat']
   apply Nat.mod_eq_of_lt
@@ -444,10 +445,10 @@ theorem pickNearer_u64_opt_some_eq_packed
           show UInt64.ofNat (2 * s + 1) = sU <<< 1 + 1
           rw [hsU_def, uint64_shiftLeft_1, UInt64.ofNat_add, UInt64.ofNat_mul]
           rfl
-        have h2m_nn : (0 : Int) ≤ 2 * (m : Int) := by positivity
+        have h2m_nn : (0 : Int) ≤ 2 * (m : Int) := by omega
         have h2s1_nn : (0 : Int) ≤ 2 * (s : Int) + 1 := by
           have : (0 : Int) ≤ (s : Int) := Int.natCast_nonneg _
-          linarith
+          grind
         have h2s1_ne : 2 * (s : Int) + 1 ≠ 0 := by
           have : (0 : Int) ≤ (s : Int) := Int.natCast_nonneg _
           omega
@@ -523,12 +524,12 @@ on the `s ≥ 10` dispatch.  These helper lemmas factor out the
 recurring UInt64 arithmetic needed by the top-level proof. -/
 
 /-- `shiftedSig 0 q k = 0`. -/
-lemma shiftedSig_zero (q k : Int) : shiftedSig 0 q k = 0 := by
+theorem shiftedSig_zero (q k : Int) : shiftedSig 0 q k = 0 := by
   unfold shiftedSig
   simp
 
 /-- `UInt64.ofNat (s/10) = UInt64.ofNat s / 10` when `s < 2^57`. -/
-lemma uint64_div_10 {s : Nat} (hs : s < (1 <<< 57 : Nat)) :
+theorem uint64_div_10 {s : Nat} (hs : s < (1 <<< 57 : Nat)) :
     UInt64.ofNat s / 10 = UInt64.ofNat (s / 10) := by
   apply UInt64.toNat_inj.mp
   rw [UInt64.toNat_div]
@@ -545,7 +546,7 @@ lemma uint64_div_10 {s : Nat} (hs : s < (1 <<< 57 : Nat)) :
   rw [Nat.mod_eq_of_lt h10_lt]
 
 /-- For `n < 2^64`, `(UInt64.ofNat n).toNat = n`. -/
-lemma toNat_ofNat_bounded {n : Nat} (h : n < 2^64) :
+theorem toNat_ofNat_bounded {n : Nat} (h : n < 2^64) :
     (UInt64.ofNat n).toNat = n := by
   rw [UInt64.toNat_ofNat']
   exact Nat.mod_eq_of_lt h
@@ -822,12 +823,12 @@ significand `s` is held as `UInt64` throughout, avoiding the
 boundary.  -/
 
 /-- UInt64 / Nat comparison: `sU ≥ 10 ↔ sU.toNat ≥ 10`. -/
-lemma uint64_ge_10 (sU : UInt64) :
+theorem uint64_ge_10 (sU : UInt64) :
     sU ≥ (10 : UInt64) ↔ sU.toNat ≥ 10 := by
   constructor <;> (intro h; simpa [GE.ge] using h)
 
 /-- UInt64 / Nat equality: `sU = 0 ↔ sU.toNat = 0`. -/
-lemma uint64_eq_0 (sU : UInt64) :
+theorem uint64_eq_0 (sU : UInt64) :
     sU = 0 ↔ sU.toNat = 0 := by
   constructor
   · intro h; rw [h]; rfl
@@ -836,12 +837,12 @@ lemma uint64_eq_0 (sU : UInt64) :
 
 /-- `UInt64.ofNat n = UInt64.ofNat m → n.toNat = m.toNat` when both fit.
     Specialised for our needs: `(UInt64.ofNat s).toNat = s` when `s < 2^64`. -/
-lemma uint64_ofNat_toNat_self {s : Nat} (h : s < 2^64) :
+theorem uint64_ofNat_toNat_self {s : Nat} (h : s < 2^64) :
     (UInt64.ofNat s).toNat = s := by
   rw [UInt64.toNat_ofNat']; exact Nat.mod_eq_of_lt h
 
 /-- Round-trip the other way: `UInt64.ofNat sU.toNat = sU`. -/
-lemma uint64_ofNat_toNat (sU : UInt64) :
+theorem uint64_ofNat_toNat (sU : UInt64) :
     UInt64.ofNat sU.toNat = sU := UInt64.ofNat_toNat
 
 /-- Helper: when both inRoundingInterval-paths agree, the s≥10 branches
@@ -915,7 +916,8 @@ private theorem v1_v2_inner_eq_at_high (_m : Nat) (q : Int) (k : Int)
              | none => none
              | some chosen => some (chosen, k)).map (fun p => (p.1.toNat, p.2)) := by
   simp only []
-  split_ifs <;> simp only [Option.map] ;
+  split_ifs <;> simp only [Option.map]
+  all_goals
     first
     | rfl
     | (cases pickNearer_u64_opt _ _ _ _ _ _ <;> rfl)
@@ -948,7 +950,8 @@ private theorem v1_v2_inner_eq_at_low (_m : Nat) (q : Int) (k : Int)
        | none => none
        | some chosen => some (chosen, k)).map (fun p => (p.1.toNat, p.2)) := by
   simp only []
-  split_ifs <;> simp only [Option.map] ;
+  split_ifs <;> simp only [Option.map]
+  all_goals
     first
     | rfl
     | (cases pickNearer_u64_opt _ _ _ _ _ _ <;> rfl)

@@ -59,7 +59,7 @@ re-traversing the if-expression. -/
     twoPosPow q = 1 := by
   unfold twoPosPow
   have : ¬ (0 ≤ q) := Int.not_le.mpr h
-  rw [if_neg this]; rfl
+  rw [if_neg this]
 
 @[simp] theorem twoNegPow_neg {q : Int} (h : q < 0) :
     twoNegPow q = 2 ^ (-q).toNat := by
@@ -69,7 +69,7 @@ re-traversing the if-expression. -/
     twoNegPow q = 1 := by
   unfold twoNegPow
   have : ¬ (q < 0) := Int.not_lt.mpr h
-  rw [if_neg this]; rfl
+  rw [if_neg this]
 
 @[simp] theorem tenPosPow_nonneg {k : Int} (h : 0 ≤ k) :
     tenPosPow k = 10 ^ k.toNat := by
@@ -79,7 +79,7 @@ re-traversing the if-expression. -/
     tenPosPow k = 1 := by
   unfold tenPosPow
   have : ¬ (0 ≤ k) := Int.not_le.mpr h
-  rw [if_neg this]; rfl
+  rw [if_neg this]
 
 @[simp] theorem tenNegPow_neg {k : Int} (h : k < 0) :
     tenNegPow k = 10 ^ (-k).toNat := by
@@ -89,7 +89,7 @@ re-traversing the if-expression. -/
     tenNegPow k = 1 := by
   unfold tenNegPow
   have : ¬ (k < 0) := Int.not_lt.mpr h
-  rw [if_neg this]; rfl
+  rw [if_neg this]
 
 /-- Positivity of any `twoPosPow` factor (always non-zero). -/
 theorem twoPosPow_pos (q : Int) : 0 < twoPosPow q :=

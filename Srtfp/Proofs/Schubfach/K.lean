@@ -41,6 +41,7 @@
 import Srtfp.Schubfach
 import Srtfp.Proofs.Schubfach.R14R15
 import Srtfp.Proofs.Schubfach.RoundingInterval
+import Srtfp.Tactics
 
 namespace Srtfp.Schubfach
 
@@ -263,17 +264,19 @@ theorem shiftedSig_ge_one (m : Nat) (q : Int)
     -- Resolve the `if`s on the signs of `q` and `kj`.  In two sign-combos the
     -- inequality is linear in the power atoms (`4X ≤ 3Y ⟹ X ≤ Y`, `omega`);
     -- in a third the goal is `1 ≤ positive` (positivity); the fourth has a
-    -- contradictory `4·(≥1) ≤ 3` hypothesis (`nlinarith`).
-    rcases le_or_gt 0 q with hq | hq <;> rcases le_or_gt 0 kj with hkz | hkz <;>
-      simp only [ge_iff_le, hq, hkz, if_pos, if_neg, Int.not_le, Int.not_lt,
-        pow_zero, Nat.mul_one, Nat.one_mul] at h1 ⊢ <;>
+    -- contradictory `4·(≥1) ≤ 3` hypothesis (`grind`).
+    rcases Int.lt_or_le q 0 with hq | hq <;> rcases Int.lt_or_le kj 0 with hkz | hkz <;>
+      (repeat' split at h1) <;> (repeat' split) <;>
+      simp only [Nat.pow_zero, Nat.mul_one, Nat.one_mul] at h1 ⊢ <;>
       first
       | omega
-      | exact Nat.one_le_iff_ne_zero.mpr (by positivity)
+      | exact Nat.mul_pos (Nat.pow_pos (by omega)) (Nat.pow_pos (by omega))
       | (exfalso
          have hpos : (1 : Nat) ≤ 10 ^ kj.toNat * 2 ^ (-q).toNat :=
-           Nat.one_le_iff_ne_zero.mpr (by positivity)
-         nlinarith [h1, hpos])
+           Nat.mul_pos (Nat.pow_pos (by omega)) (Nat.pow_pos (by omega))
+         have hexp : (4 * 10 ^ kj.toNat) * (2 ^ (-q).toNat)
+             = 4 * (10 ^ kj.toNat * 2 ^ (-q).toNat) := by grind
+         omega)
   · -- regular: k = floorLog10Pow2 q, use R15 first conjunct.
     have hk : k = floorLog10Pow2 q := by rw [hk_def, kOfMQ, if_neg hirr]
     obtain ⟨h1, _⟩ := R15HoldsAt_in_binary64_range q hq_lo hq_hi
@@ -283,9 +286,17 @@ theorem shiftedSig_ge_one (m : Nat) (q : Int)
     rw [hq_abs, hk_abs] at h1
     -- Here R15's first conjunct is exactly the goal (no `4/3` factor), so
     -- `omega` closes every sign-combo directly.
-    rcases le_or_gt 0 q with hq | hq <;> rcases le_or_gt 0 kj with hkz | hkz <;>
-      simp only [ge_iff_le, hq, hkz, if_pos, if_neg, Int.not_le, Int.not_lt,
-        pow_zero, Nat.mul_one, Nat.one_mul] at h1 ⊢ <;>
-      omega
+    rcases Int.lt_or_le q 0 with hq | hq <;> rcases Int.lt_or_le kj 0 with hkz | hkz <;>
+      (repeat' split at h1) <;> (repeat' split) <;>
+      simp only [Nat.pow_zero, Nat.mul_one, Nat.one_mul] at h1 ⊢ <;>
+      first
+      | omega
+      | exact Nat.mul_pos (Nat.pow_pos (by omega)) (Nat.pow_pos (by omega))
+      | (exfalso
+         have hpos : (1 : Nat) ≤ 10 ^ kj.toNat * 2 ^ (-q).toNat :=
+           Nat.mul_pos (Nat.pow_pos (by omega)) (Nat.pow_pos (by omega))
+         have hexp : (4 * 10 ^ kj.toNat) * (2 ^ (-q).toNat)
+             = 4 * (10 ^ kj.toNat * 2 ^ (-q).toNat) := by grind
+         omega)
 
 end Srtfp.Schubfach

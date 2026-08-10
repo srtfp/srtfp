@@ -27,6 +27,7 @@
 import Srtfp.Schubfach.R20BandSweep
 import Srtfp.Schubfach.KernelCorrectness
 import Srtfp.Schubfach.Perf.Kernel128
+import Srtfp.Tactics
 
 namespace Srtfp.Schubfach
 
@@ -57,7 +58,7 @@ theorem floorLog10ThreeQuartersPow2_le_self (q : Int) (hq : 0 ≤ q) :
   rw [Int.fdiv_eq_ediv_of_nonneg _ (by decide)]
   have hle : q * 661971961083 + (-274743187321) ≤ q * 2 ^ 41 := by
     have : (661971961083 : Int) ≤ 2 ^ 41 := by decide
-    nlinarith [hq, this]
+    grind
   calc (q * 661971961083 + (-274743187321)) / 2 ^ 41 ≤ q * 2 ^ 41 / 2 ^ 41 :=
         Int.ediv_le_ediv (by decide) hle
     _ = q := Int.mul_ediv_cancel _ (by decide)
@@ -84,7 +85,7 @@ theorem self_le_floorLog10Pow2 (q : Int) (hq : q < 0) : q ≤ floorLog10Pow2 q :
   rw [Int.fdiv_eq_ediv_of_nonneg _ (by decide)]
   have hle : q * 2 ^ 41 ≤ q * 661971961083 := by
     have : (661971961083 : Int) ≤ 2 ^ 41 := by decide
-    nlinarith [hq, this]
+    grind
   calc q = q * 2 ^ 41 / 2 ^ 41 := (Int.mul_ediv_cancel _ (by decide)).symm
     _ ≤ q * 661971961083 / 2 ^ 41 := Int.ediv_le_ediv (by decide) hle
 
@@ -95,7 +96,7 @@ theorem self_le_floorLog10ThreeQuartersPow2 (q : Int) (hq : q < 0) :
   rw [Int.fdiv_eq_ediv_of_nonneg _ (by decide)]
   have hle : q * 2 ^ 41 ≤ q * 661971961083 + (-274743187321) := by
     have : (661971961083 : Int) ≤ 2 ^ 41 := by decide
-    nlinarith [hq, this]
+    grind
   calc q = q * 2 ^ 41 / 2 ^ 41 := (Int.mul_ediv_cancel _ (by decide)).symm
     _ ≤ (q * 661971961083 + (-274743187321)) / 2 ^ 41 := Int.ediv_le_ediv (by decide) hle
 
@@ -175,7 +176,7 @@ theorem residueR20Cond_decode_binary64
       have hk_not : ¬ k < 0 := by omega
       have hk_ge : k ≥ 0 := hk0
       rw [if_pos hk_ge, if_neg hk_not]
-      simp only [pow_zero, Nat.mul_one, Nat.one_mul]
+      simp only [Nat.pow_zero, Nat.mul_one, Nat.one_mul]
       -- B = 10^k.toNat, N = m * 2^q.toNat.
       have hqcast : ((q.toNat : Nat) : Int) = q := Int.toNat_of_nonneg hq0
       have hkq : k.toNat ≤ q.toNat := by
@@ -193,12 +194,12 @@ theorem residueR20Cond_decode_binary64
       have hk_lt : k < 0 := hk0
       have hk_ge_not : ¬ k ≥ 0 := by omega
       rw [if_neg hk_ge_not, if_pos hk_lt]
-      simp only [pow_zero, Nat.one_mul]
+      simp only [Nat.pow_zero, Nat.one_mul]
       -- B = 1, residue trivial.
-      apply residueR20Cond_of_safe m 1 s _ (by norm_num)
+      apply residueR20Cond_of_safe m 1 s _ (by grind)
       rw [Nat.mul_one]
       calc m ≤ 2 ^ 53 := by omega
-        _ ≤ 2 ^ s := Nat.pow_le_pow_right (by norm_num) (by omega)
+        _ ≤ 2 ^ s := Nat.pow_le_pow_right (by grind) (by omega)
   · -- q < 0:  qNeg = -q.toNat, qPos = 0, and k < 0 → band 1.
     push_neg at hq0
     have hq_lt : q < 0 := hq0
@@ -206,7 +207,7 @@ theorem residueR20Cond_decode_binary64
     have hk_lt : k < 0 := by rw [hk_def]; exact kOfMQ_neg_of_neg m q hq_lt
     have hk_ge_not : ¬ k ≥ 0 := by omega
     rw [if_pos hq_lt, if_neg hq_ge_not, if_neg hk_ge_not, if_pos hk_lt]
-    simp only [pow_zero, Nat.mul_one]
+    simp only [Nat.pow_zero, Nat.mul_one]
     -- B = 2^qNeg, N = m * 10^kNeg with qNeg = (-q).toNat, kNeg = (-k).toNat.
     set qNeg : Nat := (-q).toNat with hqNeg_def
     set kNeg : Nat := (-k).toNat with hkNeg_def
@@ -416,7 +417,7 @@ theorem shiftedSig_fast2_w_eq_binary64
     have h2 : (2 ^ 64 - 1) * 2 ^ 64 + 2 ^ 64 = 2 ^ 64 * 2 ^ 64 := by
       have hpow_pos : (0 : Nat) < 2 ^ 64 := Nat.two_pow_pos _
       have : (2 ^ 64 - 1) * 2 ^ 64 = 2 ^ 64 * 2 ^ 64 - 2 ^ 64 := by
-        rw [Nat.sub_mul]; ring_nf
+        rw [Nat.sub_mul]
       omega
     have h128 : (2 : Nat) ^ 128 = 2 ^ 64 * 2 ^ 64 := by decide
     omega
@@ -505,7 +506,7 @@ theorem shiftedSig_fast2_w_eq_binary64
           have : 124 ≤ h_t - q := hsLo; omega
         have hh_neg : ¬ h_t < 0 := by omega
         have hhtoNat : (h_t.toNat : Int) = h_t := Int.toNat_of_nonneg hh_nn
-        rw [if_pos hh_nn, if_neg hh_neg, hqtoNat, hhtoNat]; ring
+        rw [if_pos hh_nn, if_neg hh_neg, hqtoNat, hhtoNat]; grind
       · push_neg at hq
         have hq_lt : q < 0 := hq
         have hq_nn : ¬ q ≥ 0 := by omega
@@ -514,11 +515,11 @@ theorem shiftedSig_fast2_w_eq_binary64
         by_cases hh : h_t ≥ 0
         · have hh_neg : ¬ h_t < 0 := by omega
           have hhtoNat : (h_t.toNat : Int) = h_t := Int.toNat_of_nonneg hh
-          rw [if_pos hh, if_neg hh_neg, hhtoNat]; push_cast; ring
+          rw [if_pos hh, if_neg hh_neg, hhtoNat]; push_cast; grind
         · push_neg at hh
           have hh_nn : ¬ h_t ≥ 0 := by omega
           have hhtoNat : ((-h_t).toNat : Int) = -h_t := Int.toNat_of_nonneg (by omega)
-          rw [if_neg hh_nn, if_pos hh, hhtoNat]; push_cast; ring
+          rw [if_neg hh_nn, if_pos hh, hhtoNat]; push_cast; grind
     have hL : ((shiftAmt.toNat + qPos + hNeg : Nat) : Int)
                 = ((qNeg + hPos : Nat) : Int) := by push_cast; omega
     exact_mod_cast hL
@@ -531,7 +532,7 @@ theorem shiftedSig_fast2_w_eq_binary64
     by_cases hk_nn : k ≥ 0
     · by_cases hk_pos : k = 0
       · rw [hk_pos]; simp
-      · have hk_pos' : k > 0 := lt_of_le_of_ne hk_nn (Ne.symm hk_pos)
+      · have hk_pos' : k > 0 := by omega
         have h_neg_k_not_nn : ¬ (-k : Int) ≥ 0 := by omega
         have h_k_not_lt_0 : ¬ k < 0 := by omega
         rw [if_neg h_neg_k_not_nn, if_neg h_k_not_lt_0]
@@ -544,11 +545,11 @@ theorem shiftedSig_fast2_w_eq_binary64
     by_cases hk_nn : k ≥ 0
     · by_cases hk_zero : k = 0
       · rw [hk_zero]; simp
-      · have hk_pos : k > 0 := lt_of_le_of_ne hk_nn (Ne.symm hk_zero)
+      · have hk_pos : k > 0 := by omega
         have h_neg_k_lt : (-k : Int) < 0 := by omega
         have hk_nn' : k ≥ 0 := hk_nn
         rw [if_pos h_neg_k_lt, if_pos hk_nn']
-        have : -(-k) = k := by ring
+        have : -(-k) = k := by grind
         rw [this]
     · push_neg at hk_nn
       have h_neg_k_nn : ¬ (-k : Int) < 0 := by omega
@@ -582,7 +583,9 @@ theorem shiftedSig_fast2_w_eq_binary64
     rw [hB_def, hN_def, hqNeg_def, hkPos_def, hqPos_def, hkNeg_def]
     -- align `kOfMQ m q ≥ 0` vs `k ≥ 0` etc.
     rw [hk_def] at *
-    convert hr using 3
+    first
+    | exact hr
+    | grind
   -- Floor equality.
   have hFloor := shiftedSig_floor_of_residue m G B shiftAmt.toNat N hB_pos hSandwich hResidue
   exact hFloor.symm

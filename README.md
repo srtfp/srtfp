@@ -21,10 +21,12 @@ build time. No `sorry`.
 Factored out of QuadParsers, a biparser library with proven
 round-trip properties.
 
+Zero dependencies beyond the Lean toolchain — no mathlib — except
+[LSpec](https://github.com/argumentcomputer/LSpec) for the test suite.
+
 ## Build
 
 ```
-lake exe cache get   # download the prebuilt mathlib (skip only for a multi-hour from-source build)
 lake build           # the library
 lake test            # build, axiom-check, and run the test suite
 make                 # helper binaries (benchmarks, difftest)

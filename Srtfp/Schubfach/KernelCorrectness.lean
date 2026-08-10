@@ -43,9 +43,9 @@
    strictly and `a · 2^q < b · 10^k`.
 -/
 import Srtfp.Schubfach
+import Srtfp.Tactics
 import Srtfp.Schubfach.Kernel192
 import Srtfp.Schubfach.TableInvariant
-import Mathlib.Tactic.Linarith
 
 namespace Srtfp.Schubfach
 
@@ -100,7 +100,7 @@ theorem gt192_iff (hi₁ mid₁ lo₁ hi₂ mid₂ lo₂ : UInt64) :
         have : mid₁.toNat * 2 ^ 64 + 2 ^ 64 ≤ mid₂.toNat * 2 ^ 64 := by
           have h1 : (mid₁.toNat + 1) * 2 ^ 64 ≤ mid₂.toNat * 2 ^ 64 :=
             Nat.mul_le_mul_right _ (by omega)
-          linarith
+          omega
         omega
   · -- hi different
     have hHi_ne : hi₁.toNat ≠ hi₂.toNat := by
@@ -112,11 +112,11 @@ theorem gt192_iff (hi₁ mid₁ lo₁ hi₂ mid₂ lo₂ : UInt64) :
       have hLoSum_lt : mid₂.toNat * 2 ^ 64 + lo₂.toNat < 2 ^ 128 := by
         have h1 : mid₂.toNat * 2 ^ 64 ≤ (2 ^ 64 - 1) * 2 ^ 64 := by
           apply Nat.mul_le_mul_right; omega
-        rw [h128]; nlinarith [h1, hLo₂]
+        rw [h128]; grind
       have hHi_step : hi₁.toNat ≥ hi₂.toNat + 1 := by omega
       have hHi_mul : hi₁.toNat * 2 ^ 128 ≥ (hi₂.toNat + 1) * 2 ^ 128 :=
         Nat.mul_le_mul_right _ hHi_step
-      have : hi₁.toNat * 2 ^ 128 ≥ hi₂.toNat * 2 ^ 128 + 2 ^ 128 := by linarith
+      have : hi₁.toNat * 2 ^ 128 ≥ hi₂.toNat * 2 ^ 128 + 2 ^ 128 := by omega
       omega
     · intro hGt
       by_contra hContra
@@ -126,11 +126,11 @@ theorem gt192_iff (hi₁ mid₁ lo₁ hi₂ mid₂ lo₂ : UInt64) :
       have hLoSum_lt : mid₁.toNat * 2 ^ 64 + lo₁.toNat < 2 ^ 128 := by
         have h1 : mid₁.toNat * 2 ^ 64 ≤ (2 ^ 64 - 1) * 2 ^ 64 := by
           apply Nat.mul_le_mul_right; omega
-        rw [h128]; nlinarith [h1, hLo₁]
+        rw [h128]; grind
       have hHi_step : hi₂.toNat ≥ hi₁.toNat + 1 := by omega
       have hHi_mul : hi₂.toNat * 2 ^ 128 ≥ (hi₁.toNat + 1) * 2 ^ 128 :=
         Nat.mul_le_mul_right _ hHi_step
-      have : hi₂.toNat * 2 ^ 128 ≥ hi₁.toNat * 2 ^ 128 + 2 ^ 128 := by linarith
+      have : hi₂.toNat * 2 ^ 128 ≥ hi₁.toNat * 2 ^ 128 + 2 ^ 128 := by omega
       omega
 
 /-- `le192` matches `≤` on `triple192Nat`. -/
@@ -165,7 +165,7 @@ theorem le192_iff (hi₁ mid₁ lo₁ hi₂ mid₂ lo₂ : UInt64) :
         have h2 : mid₁.toNat + 1 ≤ mid₂.toNat := by omega
         have h3 : (mid₁.toNat + 1) * 2 ^ 64 ≤ mid₂.toNat * 2 ^ 64 :=
           Nat.mul_le_mul_right _ h2
-        linarith
+        omega
       · intro hLe
         by_contra hContra
         push_neg at hContra
@@ -174,7 +174,7 @@ theorem le192_iff (hi₁ mid₁ lo₁ hi₂ mid₂ lo₂ : UInt64) :
         have hMid_step : mid₁.toNat ≥ mid₂.toNat + 1 := by omega
         have : (mid₂.toNat + 1) * 2 ^ 64 ≤ mid₁.toNat * 2 ^ 64 :=
           Nat.mul_le_mul_right _ hMid_step
-        linarith
+        omega
   · have hHi_ne : hi₁.toNat ≠ hi₂.toNat := by
       intro h; exact hHi (UInt64.toNat_inj.mp h)
     simp only [hHi, ne_eq, not_false_eq_true, ↓reduceIte, decide_eq_true_eq]
@@ -184,11 +184,11 @@ theorem le192_iff (hi₁ mid₁ lo₁ hi₂ mid₂ lo₂ : UInt64) :
       have hLoSum_lt : mid₁.toNat * 2 ^ 64 + lo₁.toNat < 2 ^ 128 := by
         have h1 : mid₁.toNat * 2 ^ 64 ≤ (2 ^ 64 - 1) * 2 ^ 64 := by
           apply Nat.mul_le_mul_right; omega
-        rw [h128]; nlinarith [h1, hLo₁]
+        rw [h128]; grind
       have hHi_step : hi₂.toNat ≥ hi₁.toNat + 1 := by omega
       have : (hi₁.toNat + 1) * 2 ^ 128 ≤ hi₂.toNat * 2 ^ 128 :=
         Nat.mul_le_mul_right _ hHi_step
-      linarith
+      omega
     · intro hLe
       by_contra hContra
       push_neg at hContra
@@ -197,11 +197,11 @@ theorem le192_iff (hi₁ mid₁ lo₁ hi₂ mid₂ lo₂ : UInt64) :
       have hLoSum_lt : mid₂.toNat * 2 ^ 64 + lo₂.toNat < 2 ^ 128 := by
         have h1 : mid₂.toNat * 2 ^ 64 ≤ (2 ^ 64 - 1) * 2 ^ 64 := by
           apply Nat.mul_le_mul_right; omega
-        rw [h128]; nlinarith [h1, hLo₂]
+        rw [h128]; grind
       have hHi_step : hi₁.toNat ≥ hi₂.toNat + 1 := by omega
       have : (hi₂.toNat + 1) * 2 ^ 128 ≤ hi₁.toNat * 2 ^ 128 :=
         Nat.mul_le_mul_right _ hHi_step
-      linarith
+      omega
 
 /-! ## Abstract verdict correctness (Schubfach §9.6–9.8 inner bound)
 
@@ -232,14 +232,14 @@ theorem table_invariant_scaled (g b kPos kNeg hPos hNeg : Nat)
   · have := Nat.mul_le_mul_left b hLo
     calc b * (10 ^ kPos * 2 ^ hPos)
         ≤ b * (g * 10 ^ kNeg * 2 ^ hNeg) := this
-      _ = b * g * 10 ^ kNeg * 2 ^ hNeg := by ring
+      _ = b * g * 10 ^ kNeg * 2 ^ hNeg := by grind
   · have hmul : b * (g * 10 ^ kNeg * 2 ^ hNeg)
                   < b * (10 ^ kPos * 2 ^ hPos + 10 ^ kNeg * 2 ^ hNeg) :=
       Nat.mul_lt_mul_left hb_pos |>.mpr hHi
     calc b * g * 10 ^ kNeg * 2 ^ hNeg
-        = b * (g * 10 ^ kNeg * 2 ^ hNeg) := by ring
+        = b * (g * 10 ^ kNeg * 2 ^ hNeg) := by grind
       _ < b * (10 ^ kPos * 2 ^ hPos + 10 ^ kNeg * 2 ^ hNeg) := hmul
-      _ = b * (10 ^ kPos * 2 ^ hPos) + b * (10 ^ kNeg * 2 ^ hNeg) := by ring
+      _ = b * (10 ^ kPos * 2 ^ hPos) + b * (10 ^ kNeg * 2 ^ hNeg) := by grind
 
 /-- Verdict `+1` correctness: if `L > R` (where `L = a · 2^(q+h)` and
     `R = b · g`), and the table invariant holds, then
@@ -263,7 +263,7 @@ theorem verdict_plus_one_correct
     Nat.mul_le_mul_right (2 ^ hNeg)
       (Nat.mul_le_mul_right (10 ^ kNeg) (by omega : b * g + 1 ≤ a * 2 ^ s))
   have hExpand : (b * g + 1) * 10 ^ kNeg * 2 ^ hNeg
-                  = b * g * 10 ^ kNeg * 2 ^ hNeg + 10 ^ kNeg * 2 ^ hNeg := by ring
+                  = b * g * 10 ^ kNeg * 2 ^ hNeg + 10 ^ kNeg * 2 ^ hNeg := by grind
   omega
 
 /-- Verdict `-1` correctness: if `L + b ≤ R = b · g`, and the table
@@ -310,8 +310,8 @@ theorem verdict_minus_one_correct
     have h2 : (b * (g - 1) + b) * (10 ^ kNeg * 2 ^ hNeg)
                 = b * g * (10 ^ kNeg * 2 ^ hNeg) := by rw [h1]
     have h3 : b * (g - 1) * 10 ^ kNeg * 2 ^ hNeg + b * (10 ^ kNeg * 2 ^ hNeg)
-                = (b * (g - 1) + b) * (10 ^ kNeg * 2 ^ hNeg) := by ring
-    have h4 : b * g * (10 ^ kNeg * 2 ^ hNeg) = b * g * 10 ^ kNeg * 2 ^ hNeg := by ring
+                = (b * (g - 1) + b) * (10 ^ kNeg * 2 ^ hNeg) := by grind
+    have h4 : b * g * (10 ^ kNeg * 2 ^ hNeg) = b * g * 10 ^ kNeg * 2 ^ hNeg := by grind
     rw [h3, h2, h4]
   omega
 
@@ -359,25 +359,8 @@ theorem cmpScaledMixed_of_nonneg (a b : Int) (q k : Int)
   set lhsN : Nat := a.toNat * 2 ^ qPos * 10 ^ kNeg
   set rhsN : Nat := b.toNat * 10 ^ kPos * 2 ^ qNeg
   rw [hlhsI_eq, hrhsI_eq]
-  by_cases hlt : lhsN < rhsN
-  · have hltI : (lhsN : Int) < (rhsN : Int) := Int.ofNat_lt.mpr hlt
-    have hne : ¬ ((lhsN : Int) = (rhsN : Int)) := by omega
-    simp only [if_pos hltI, if_pos hlt]
-  · push_neg at hlt
-    by_cases heq : lhsN = rhsN
-    · have heqI : (lhsN : Int) = (rhsN : Int) := by rw [heq]
-      have hnLtI : ¬ ((lhsN : Int) < (rhsN : Int)) := by omega
-      have hnLt : ¬ lhsN < rhsN := by omega
-      simp only [if_neg hnLtI, if_pos heqI, if_neg hnLt, if_pos heq]
-    · -- lhsN > rhsN
-      have hgt : rhsN < lhsN := by omega
-      have hnLtI : ¬ ((lhsN : Int) < (rhsN : Int)) := by omega
-      have hneI : ¬ ((lhsN : Int) = (rhsN : Int)) := by
-        intro h
-        have : lhsN = rhsN := by exact_mod_cast h
-        omega
-      have hnLt : ¬ lhsN < rhsN := by omega
-      simp only [if_neg hnLtI, if_neg hneI, if_neg hnLt, if_neg heq]
+  repeat' split
+  all_goals omega
 
 /-! ## Power regrouping
 
@@ -410,7 +393,7 @@ theorem two_pow_regroup_of_eq (q h s : Int) (hsum : s = q + h) :
     by_cases hq : q ≥ 0
     · have hnotneg : ¬ q < 0 := by omega
       simp only [if_pos hq, if_neg hnotneg]
-      rw [Int.toNat_of_nonneg hq]; ring
+      rw [Int.toNat_of_nonneg hq]; grind
     · push_neg at hq
       have hnotpos : ¬ q ≥ 0 := by omega
       simp only [if_neg hnotpos, if_pos hq]
@@ -420,7 +403,7 @@ theorem two_pow_regroup_of_eq (q h s : Int) (hsum : s = q + h) :
     by_cases hh : h ≥ 0
     · have hnotneg : ¬ h < 0 := by omega
       simp only [if_pos hh, if_neg hnotneg]
-      rw [Int.toNat_of_nonneg hh]; ring
+      rw [Int.toNat_of_nonneg hh]; grind
     · push_neg at hh
       have hnotpos : ¬ h ≥ 0 := by omega
       simp only [if_neg hnotpos, if_pos hh]
@@ -430,7 +413,7 @@ theorem two_pow_regroup_of_eq (q h s : Int) (hsum : s = q + h) :
     by_cases hs : s ≥ 0
     · have hnotneg : ¬ s < 0 := by omega
       simp only [if_pos hs, if_neg hnotneg]
-      rw [Int.toNat_of_nonneg hs]; ring
+      rw [Int.toNat_of_nonneg hs]; grind
     · push_neg at hs
       have hnotpos : ¬ s ≥ 0 := by omega
       simp only [if_neg hnotpos, if_pos hs]
@@ -443,10 +426,11 @@ theorem two_pow_regroup_of_eq (q h s : Int) (hsum : s = q + h) :
                 + ((if h ≥ 0 then (h.toNat : Int) else 0)
                   - (if h < 0 then ((-h).toNat : Int) else 0)) := by
     rw [← h_s_split, ← h_q_split, ← h_h_split]; exact hsum
-  -- Push to Nat equation.
-  zify
-  -- Goal involves intCast of the Nats; rewrite using heq.
-  linarith
+  -- Push to Nat: eliminate every `if` (in `hsum` and the goal) by case
+  -- splitting; omega closes each branch, pruning the contradictory ones.
+  repeat' split at hsum
+  all_goals repeat' split
+  all_goals omega
 
 /-! ## Nat verdict ⇒ Int comparison
 
@@ -502,12 +486,12 @@ theorem cmpScaledMixed_plus_one
     -- a · 2^qPos · 2^hPos = a · (2^s · 2^qNeg · 2^hNeg)
     have h1 : 2 ^ qPos * 2 ^ hPos = 2 ^ s * 2 ^ qNeg * 2 ^ hNeg := hRegroup.symm
     calc a * 2 ^ qPos * 10 ^ kNeg * (2 ^ hPos * 2 ^ hNeg)
-        = a * (2 ^ qPos * 2 ^ hPos) * 10 ^ kNeg * 2 ^ hNeg := by ring
+        = a * (2 ^ qPos * 2 ^ hPos) * 10 ^ kNeg * 2 ^ hNeg := by grind
       _ = a * (2 ^ s * 2 ^ qNeg * 2 ^ hNeg) * 10 ^ kNeg * 2 ^ hNeg := by rw [h1]
-      _ = a * 2 ^ s * 10 ^ kNeg * 2 ^ hNeg * (2 ^ qNeg * 2 ^ hNeg) := by ring
+      _ = a * 2 ^ s * 10 ^ kNeg * 2 ^ hNeg * (2 ^ qNeg * 2 ^ hNeg) := by grind
   -- Rewrite RHS.
   have hRHS_rw : b * 10 ^ kPos * 2 ^ qNeg * (2 ^ hPos * 2 ^ hNeg)
-                  = b * (10 ^ kPos * 2 ^ hPos) * (2 ^ qNeg * 2 ^ hNeg) := by ring
+                  = b * (10 ^ kPos * 2 ^ hPos) * (2 ^ qNeg * 2 ^ hNeg) := by grind
   rw [hLHS_rw, hRHS_rw] at hMul
   -- a · 2^s · 10^kNeg · 2^hNeg · X ≤ b · (10^kPos · 2^hPos) · X
   -- where X = 2^qNeg · 2^hNeg > 0.  Cancel X.
@@ -539,11 +523,11 @@ theorem cmpScaledMixed_minus_one
                   = a * 2 ^ s * 10 ^ kNeg * 2 ^ hNeg * (2 ^ qNeg * 2 ^ hNeg) := by
     have h1 : 2 ^ qPos * 2 ^ hPos = 2 ^ s * 2 ^ qNeg * 2 ^ hNeg := hRegroup.symm
     calc a * 2 ^ qPos * 10 ^ kNeg * (2 ^ hPos * 2 ^ hNeg)
-        = a * (2 ^ qPos * 2 ^ hPos) * 10 ^ kNeg * 2 ^ hNeg := by ring
+        = a * (2 ^ qPos * 2 ^ hPos) * 10 ^ kNeg * 2 ^ hNeg := by grind
       _ = a * (2 ^ s * 2 ^ qNeg * 2 ^ hNeg) * 10 ^ kNeg * 2 ^ hNeg := by rw [h1]
-      _ = a * 2 ^ s * 10 ^ kNeg * 2 ^ hNeg * (2 ^ qNeg * 2 ^ hNeg) := by ring
+      _ = a * 2 ^ s * 10 ^ kNeg * 2 ^ hNeg * (2 ^ qNeg * 2 ^ hNeg) := by grind
   have hRHS_rw : b * 10 ^ kPos * 2 ^ qNeg * (2 ^ hPos * 2 ^ hNeg)
-                  = b * (10 ^ kPos * 2 ^ hPos) * (2 ^ qNeg * 2 ^ hNeg) := by ring
+                  = b * (10 ^ kPos * 2 ^ hPos) * (2 ^ qNeg * 2 ^ hNeg) := by grind
   rw [hLHS_rw, hRHS_rw] at hMul
   have hX_pos : 0 < 2 ^ qNeg * 2 ^ hNeg := Nat.mul_pos h2qNeg_pos h2hNeg_pos
   have hcontra2 : a * 2 ^ s * 10 ^ kNeg * 2 ^ hNeg ≥ b * (10 ^ kPos * 2 ^ hPos) :=
@@ -584,7 +568,7 @@ theorem kernel_R_eq (bU gHi gLo : UInt64)
     have h2 : (2 ^ 64 - 1) * 2 ^ 64 + 2 ^ 64 = 2 ^ 64 * 2 ^ 64 := by
       have hpow_pos : (0 : Nat) < 2 ^ 64 := Nat.two_pow_pos _
       have : (2 ^ 64 - 1) * 2 ^ 64 = 2 ^ 64 * 2 ^ 64 - 2 ^ 64 := by
-        rw [Nat.sub_mul]; ring_nf
+        rw [Nat.sub_mul]
       omega
     omega
   have hprod_lt : bU.toNat * (gHi.toNat * 2 ^ 64 + gLo.toNat) < 2 ^ 192 := by
@@ -678,14 +662,14 @@ theorem shiftedSig_sandwich
     have h := Nat.mul_le_mul_right (2 ^ s) hLo_m
     have hLHS :
         m * 2 ^ qPos * (10 ^ kNeg * 2 ^ hPos) * 2 ^ s
-          = (m * 2 ^ qPos * 10 ^ kNeg) * 2 ^ s * 2 ^ hPos := by ring
+          = (m * 2 ^ qPos * 10 ^ kNeg) * 2 ^ s * 2 ^ hPos := by grind
     have hRHS :
         m * 2 ^ qPos * (g * 10 ^ kPos * 2 ^ hNeg) * 2 ^ s
-          = m * g * 10 ^ kPos * (2 ^ s * 2 ^ qPos * 2 ^ hNeg) := by ring
+          = m * g * 10 ^ kPos * (2 ^ s * 2 ^ qPos * 2 ^ hNeg) := by grind
     have hRHS' :
         m * g * 10 ^ kPos * (2 ^ s * 2 ^ qPos * 2 ^ hNeg)
           = m * g * (2 ^ qNeg * 10 ^ kPos) * 2 ^ hPos := by
-      rw [hRegroup]; ring
+      rw [hRegroup]; grind
     rw [hLHS, hRHS, hRHS'] at h
     exact h
   have hLowerBound :
@@ -700,20 +684,20 @@ theorem shiftedSig_sandwich
       (Nat.mul_lt_mul_right (Nat.two_pow_pos s)).mpr hHi_m
     have hLHS' :
         m * 2 ^ qPos * (g * 10 ^ kPos * 2 ^ hNeg) * 2 ^ s
-          = m * g * 10 ^ kPos * (2 ^ s * 2 ^ qPos * 2 ^ hNeg) := by ring
+          = m * g * 10 ^ kPos * (2 ^ s * 2 ^ qPos * 2 ^ hNeg) := by grind
     have hLHS'_eq :
         m * g * 10 ^ kPos * (2 ^ s * 2 ^ qPos * 2 ^ hNeg)
           = m * g * (2 ^ qNeg * 10 ^ kPos) * 2 ^ hPos := by
-      rw [hRegroup]; ring
+      rw [hRegroup]; grind
     have hRHS' :
         m * 2 ^ qPos * (10 ^ kNeg * 2 ^ hPos + 10 ^ kPos * 2 ^ hNeg) * 2 ^ s
           = (m * 2 ^ qPos * 10 ^ kNeg) * 2 ^ s * 2 ^ hPos
-            + m * 10 ^ kPos * (2 ^ s * 2 ^ qPos * 2 ^ hNeg) := by ring
+            + m * 10 ^ kPos * (2 ^ s * 2 ^ qPos * 2 ^ hNeg) := by grind
     have hRHS'_eq :
         (m * 2 ^ qPos * 10 ^ kNeg) * 2 ^ s * 2 ^ hPos
           + m * 10 ^ kPos * (2 ^ s * 2 ^ qPos * 2 ^ hNeg)
           = ((m * 2 ^ qPos * 10 ^ kNeg) * 2 ^ s + m * (2 ^ qNeg * 10 ^ kPos)) * 2 ^ hPos := by
-      rw [hRegroup]; ring
+      rw [hRegroup]; grind
     rw [hLHS', hLHS'_eq, hRHS', hRHS'_eq] at h
     exact h
   have hUpperBound :
@@ -723,12 +707,12 @@ theorem shiftedSig_sandwich
   refine ⟨?_, ?_⟩
   · -- Goal: m · 2^qPos · 10^kNeg · 2^s ≤ m · g · B.
     calc m * 2 ^ qPos * 10 ^ kNeg * 2 ^ s
-        = (m * 2 ^ qPos * 10 ^ kNeg) * 2 ^ s := by ring
+        = (m * 2 ^ qPos * 10 ^ kNeg) * 2 ^ s := by grind
       _ ≤ m * g * (2 ^ qNeg * 10 ^ kPos) := hLowerBound
   · -- Goal: m · g · B < m · 2^qPos · 10^kNeg · 2^s + m · B.
     calc m * g * (2 ^ qNeg * 10 ^ kPos)
         < (m * 2 ^ qPos * 10 ^ kNeg) * 2 ^ s + m * (2 ^ qNeg * 10 ^ kPos) := hUpperBound
-      _ = m * 2 ^ qPos * 10 ^ kNeg * 2 ^ s + m * (2 ^ qNeg * 10 ^ kPos) := by ring
+      _ = m * 2 ^ qPos * 10 ^ kNeg * 2 ^ s + m * (2 ^ qNeg * 10 ^ kPos) := by grind
 
 /-! ### Floor-extraction: upper bound `N/B ≤ K` always holds
 
@@ -752,7 +736,7 @@ theorem shiftedSig_quotient_upper
     omega
   -- Cancel B: (N/B) · 2^s ≤ m · g.
   have h2 : (N / B) * 2 ^ s ≤ m * g := by
-    have hrw : (N / B) * B * 2 ^ s = (N / B) * 2 ^ s * B := by ring
+    have hrw : (N / B) * B * 2 ^ s = (N / B) * 2 ^ s * B := by grind
     rw [hrw] at h1
     exact Nat.le_of_mul_le_mul_right h1 hB_pos
   -- Divide both sides by 2^s: (N/B) ≤ ⌊m · g / 2^s⌋.
@@ -794,11 +778,11 @@ theorem shiftedSig_floor_safe
   -- Hence K · B · 2^s < (N + 1) · 2^s, so K · B < N + 1, i.e., K · B ≤ N.
   have h2 : K * B * 2 ^ s < (N + 1) * 2 ^ s := by
     calc K * B * 2 ^ s
-        = K * 2 ^ s * B := by ring
+        = K * 2 ^ s * B := by grind
       _ ≤ m * g * B := h1
       _ < N * 2 ^ s + m * B := hHi
       _ ≤ N * 2 ^ s + 2 ^ s := by omega
-      _ = (N + 1) * 2 ^ s := by ring
+      _ = (N + 1) * 2 ^ s := by grind
   have h3 : K * B < N + 1 :=
     Nat.lt_of_mul_lt_mul_right h2
   have hKB_le_N : K * B ≤ N := by omega
@@ -855,11 +839,11 @@ theorem shiftedSig_floor_disagreement_le_one
   have hN_decomp : B * Ks + N % B = N := Nat.div_add_mod N B
   have h_mod_lt : N % B < B := Nat.mod_lt N hB_pos
   have hN_lt : N < (Ks + 1) * B := by
-    have heq : (Ks + 1) * B = B * Ks + B := by ring
+    have heq : (Ks + 1) * B = B * Ks + B := by grind
     omega
   have h2 : N * 2 ^ s < (Ks + 1) * B * 2 ^ s :=
     (Nat.mul_lt_mul_right h2s_pos).mpr hN_lt
-  have h3 : K * 2 ^ s * B < (Ks + 1) * B * 2 ^ s + m * B := by linarith
+  have h3 : K * 2 ^ s * B < (Ks + 1) * B * 2 ^ s + m * B := by omega
   by_contra hContra
   push_neg at hContra
   have hK_ge : Ks + 2 ≤ K := by omega
@@ -871,8 +855,8 @@ theorem shiftedSig_floor_disagreement_le_one
     calc (Ks + 2) * 2 ^ s * B ≤ K * 2 ^ s * B := h4
       _ < (Ks + 1) * B * 2 ^ s + m * B := h3
   have h6 : 2 ^ s * B < m * B := by
-    have h_diff : (Ks + 2) * 2 ^ s * B = (Ks + 1) * 2 ^ s * B + 2 ^ s * B := by ring
-    have h_rearrange : (Ks + 1) * B * 2 ^ s = (Ks + 1) * 2 ^ s * B := by ring
+    have h_diff : (Ks + 2) * 2 ^ s * B = (Ks + 1) * 2 ^ s * B + 2 ^ s * B := by grind
+    have h_rearrange : (Ks + 1) * B * 2 ^ s = (Ks + 1) * 2 ^ s * B := by grind
     omega
   have : 2 ^ s < m := Nat.lt_of_mul_lt_mul_right h6
   omega
@@ -927,7 +911,7 @@ theorem residueR20Cond_of_dist (m B s N a : Nat)
   unfold residueR20Cond
   -- m · B ≤ m · ((B − ρ) · 2^a) = (B − ρ) · (m · 2^a) ≤ (B − ρ) · 2^s.
   calc m * B ≤ m * ((B - N % B) * 2 ^ a) := Nat.mul_le_mul_left _ hDist
-    _ = (B - N % B) * (m * 2 ^ a) := by ring
+    _ = (B - N % B) * (m * 2 ^ a) := by grind
     _ ≤ (B - N % B) * 2 ^ s := Nat.mul_le_mul_left _ hSlack
 
 /-- R20 residue holds whenever `B` divides `N` (residue 0, the spec
@@ -940,7 +924,7 @@ theorem residueR20Cond_of_dvd (m B s N : Nat)
   unfold residueR20Cond
   have hmod : N % B = 0 := Nat.mod_eq_zero_of_dvd hDvd
   rw [hmod, Nat.sub_zero]
-  calc m * B = B * m := by ring
+  calc m * B = B * m := by grind
     _ ≤ B * 2 ^ s := Nat.mul_le_mul_left _ hSlack
 
 /-- R20 residue holds in the *safe regime* `m · B ≤ 2^s`.  Since
@@ -959,7 +943,7 @@ theorem residueR20Cond_of_safe (m B s N : Nat)
   have hmod : N % B < B := Nat.mod_lt N hB_pos
   have hge1 : 1 ≤ B - N % B := by omega
   calc m * B ≤ 2 ^ s := hSafe
-    _ = 1 * 2 ^ s := by ring
+    _ = 1 * 2 ^ s := by grind
     _ ≤ (B - N % B) * 2 ^ s := Nat.mul_le_mul_right _ hge1
 
 /-! ### Band 1 (`q < 0, k < 0`): reduction to a 2-adic distance bound
@@ -1004,8 +988,8 @@ theorem residueR20Cond_band1_of_twoAdic
   have h10 : (10 : Nat) ^ kNeg = 2 ^ kNeg * 5 ^ kNeg := by
     rw [show (10 : Nat) = 2 * 5 from rfl, Nat.mul_pow]
   have hsplit : (2 : Nat) ^ qNeg = 2 ^ kNeg * 2 ^ e := by
-    rw [he, ← pow_add]; congr 1; omega
-  have hN : m * 10 ^ kNeg = (m * 5 ^ kNeg) * 2 ^ kNeg := by rw [h10]; ring
+    rw [he, ← Nat.pow_add]; congr 1; omega
+  have hN : m * 10 ^ kNeg = (m * 5 ^ kNeg) * 2 ^ kNeg := by rw [h10]; grind
   have hmod : (m * 10 ^ kNeg) % 2 ^ qNeg = 2 ^ kNeg * ((m * 5 ^ kNeg) % 2 ^ e) := by
     rw [hN, hsplit, Nat.mul_comm (m * 5 ^ kNeg) (2 ^ kNeg),
         Nat.mul_mod_mul_left (2 ^ kNeg) (m * 5 ^ kNeg) (2 ^ e)]
@@ -1013,12 +997,12 @@ theorem residueR20Cond_band1_of_twoAdic
   have hgap : 2 ^ qNeg - (m * 10 ^ kNeg) % 2 ^ qNeg = 2 ^ kNeg * (2 ^ e - r) := by
     rw [hmod, hsplit, Nat.mul_sub]
   rw [hgap, hsplit]
-  have hcancel : m * (2 ^ kNeg * 2 ^ e) = 2 ^ kNeg * (m * 2 ^ e) := by ring
-  have hRHS : 2 ^ kNeg * (2 ^ e - r) * 2 ^ s = 2 ^ kNeg * ((2 ^ e - r) * 2 ^ s) := by ring
+  have hcancel : m * (2 ^ kNeg * 2 ^ e) = 2 ^ kNeg * (m * 2 ^ e) := by grind
+  have hRHS : 2 ^ kNeg * (2 ^ e - r) * 2 ^ s = 2 ^ kNeg * ((2 ^ e - r) * 2 ^ s) := by grind
   rw [hcancel, hRHS]
   apply Nat.mul_le_mul_left
   rw [Nat.mul_comm (2 ^ e - r) (2 ^ s)] at hDist ⊢
-  linarith [hDist]
+  omega
 
 /-! ### Band 2 (`q ≥ 0, k ≥ 0`): reduction to a 5-adic distance bound
 
@@ -1061,9 +1045,9 @@ theorem residueR20Cond_band2_of_fiveAdic
   have h10 : (10 : Nat) ^ k = 2 ^ k * 5 ^ k := by
     rw [show (10 : Nat) = 2 * 5 from rfl, Nat.mul_pow]
   have hsplit : (2 : Nat) ^ q = 2 ^ k * 2 ^ j := by
-    rw [hj, ← pow_add]; congr 1; omega
+    rw [hj, ← Nat.pow_add]; congr 1; omega
   -- N = m·2^q = 2^k · (m·2^j)
-  have hN : m * 2 ^ q = 2 ^ k * (m * 2 ^ j) := by rw [hsplit]; ring
+  have hN : m * 2 ^ q = 2 ^ k * (m * 2 ^ j) := by rw [hsplit]; grind
   -- residue factors the common 2^k out of the (composite) modulus 10^k
   have hmod : (m * 2 ^ q) % 10 ^ k = 2 ^ k * ((m * 2 ^ j) % 5 ^ k) := by
     rw [hN, h10, Nat.mul_mod_mul_left (2 ^ k) (m * 2 ^ j) (5 ^ k)]
@@ -1072,12 +1056,12 @@ theorem residueR20Cond_band2_of_fiveAdic
     rw [hmod, h10, Nat.mul_sub]
   rw [hgap, h10]
   -- m · (2^k · 5^k) = 2^k · (m · 5^k)
-  have hcancel : m * (2 ^ k * 5 ^ k) = 2 ^ k * (m * 5 ^ k) := by ring
-  have hRHS : 2 ^ k * (5 ^ k - r) * 2 ^ s = 2 ^ k * ((5 ^ k - r) * 2 ^ s) := by ring
+  have hcancel : m * (2 ^ k * 5 ^ k) = 2 ^ k * (m * 5 ^ k) := by grind
+  have hRHS : 2 ^ k * (5 ^ k - r) * 2 ^ s = 2 ^ k * ((5 ^ k - r) * 2 ^ s) := by grind
   rw [hcancel, hRHS]
   apply Nat.mul_le_mul_left
   rw [Nat.mul_comm (5 ^ k - r) (2 ^ s)] at hDist ⊢
-  linarith [hDist]
+  omega
 
 /-- Elementary closure of the band-2 5-adic distance bound `(‡)` in the
     *small-exponent* regime `m · 5^k ≤ 2^s`.  Since the residue
@@ -1098,11 +1082,11 @@ theorem residueR20Cond_band2_elementary
     residueR20Cond m (10 ^ k) s (m * 2 ^ q) := by
   apply residueR20Cond_band2_of_fiveAdic m q k s hkle
   set j := q - k with hj
-  have h5_pos : 0 < 5 ^ k := by positivity
+  have h5_pos : 0 < 5 ^ k := Nat.pow_pos (by omega)
   have hmod_lt : (m * 2 ^ j) % 5 ^ k < 5 ^ k := Nat.mod_lt _ h5_pos
   have hge1 : 1 ≤ 5 ^ k - (m * 2 ^ j) % 5 ^ k := by omega
   calc m * 5 ^ k ≤ 2 ^ s := hSlack
-    _ = 1 * 2 ^ s := by ring
+    _ = 1 * 2 ^ s := by grind
     _ ≤ (5 ^ k - (m * 2 ^ j) % 5 ^ k) * 2 ^ s := Nat.mul_le_mul_right _ hge1
 
 /-- Elementary closure of the band-1 2-adic distance bound `(†)` in the
@@ -1125,7 +1109,7 @@ theorem residueR20Cond_band1_elementary
   have hmod_lt : (m * 5 ^ kNeg) % 2 ^ e < 2 ^ e := Nat.mod_lt _ h2_pos
   have hge1 : 1 ≤ 2 ^ e - (m * 5 ^ kNeg) % 2 ^ e := by omega
   calc m * 2 ^ e ≤ 2 ^ s := hSlack
-    _ = 1 * 2 ^ s := by ring
+    _ = 1 * 2 ^ s := by grind
     _ ≤ (2 ^ e - (m * 5 ^ kNeg) % 2 ^ e) * 2 ^ s := Nat.mul_le_mul_right _ hge1
 
 /-! ### The unified analytic core: a normalised "modular distance" bound
@@ -1182,7 +1166,8 @@ theorem farFromMultipleBelow_of_dvd (M u m : Nat)
     farFromMultipleBelow M u m 0 := by
   unfold farFromMultipleBelow
   have hmod : (m * u) % M = 0 := Nat.mod_eq_zero_of_dvd hDvd
-  rw [hmod, Nat.sub_zero, pow_zero, Nat.mul_one]
+  rw [hmod, Nat.sub_zero, Nat.pow_zero, Nat.mul_one]
+  exact Nat.le_refl M
 
 /-- Band 2 closed *from the analytic core*: given the binary64 slack
     (`m < 2^53`, `s ≥ 124` ⟹ pick `a ≤ 71`) and the normalised
@@ -1226,7 +1211,7 @@ theorem shiftedSig_floor_of_residue
   have hK_lo : K * 2 ^ s ≤ m * g := Nat.div_mul_le_self _ _
   -- K · B · 2^s ≤ m · g · B < N · 2^s + m · B.
   have hKBs : K * B * 2 ^ s < N * 2 ^ s + m * B := by
-    calc K * B * 2 ^ s = K * 2 ^ s * B := by ring
+    calc K * B * 2 ^ s = K * 2 ^ s * B := by grind
       _ ≤ m * g * B := Nat.mul_le_mul_right B hK_lo
       _ < N * 2 ^ s + m * B := hHi
   -- Decompose N = B · Ks + ρ with ρ = N mod B < B.
@@ -1237,12 +1222,12 @@ theorem shiftedSig_floor_of_residue
   have hres : m * B ≤ (B - N % B) * 2 ^ s := hResidue
   -- N + (B − ρ) = B · (Ks + 1).
   have hsum : N + (B - N % B) = B * (Ks + 1) := by
-    have hexp : B * (Ks + 1) = B * Ks + B := by ring
+    have hexp : B * (Ks + 1) = B * Ks + B := by grind
     omega
   -- K · B · 2^s < B · (Ks + 1) · 2^s.
   have hKBs2 : K * B * 2 ^ s < B * (Ks + 1) * 2 ^ s := by
     have hstep : N * 2 ^ s + m * B ≤ N * 2 ^ s + (B - N % B) * 2 ^ s := by omega
-    have hcomb : N * 2 ^ s + (B - N % B) * 2 ^ s = (N + (B - N % B)) * 2 ^ s := by ring
+    have hcomb : N * 2 ^ s + (B - N % B) * 2 ^ s = (N + (B - N % B)) * 2 ^ s := by grind
     rw [hcomb, hsum] at hstep
     omega
   -- Cancel 2^s: K · B < B · (Ks + 1).
@@ -1253,7 +1238,7 @@ theorem shiftedSig_floor_of_residue
     · omega
     · exfalso
       have hge : B * (Ks + 1) ≤ K * B := by
-        calc B * (Ks + 1) = (Ks + 1) * B := by ring
+        calc B * (Ks + 1) = (Ks + 1) * B := by grind
           _ ≤ K * B := Nat.mul_le_mul_right B h
       omega
   -- And Ks ≤ K always (lower sandwich).
@@ -1321,7 +1306,7 @@ theorem table_high_precision_strict
   have h1 : 2 ^ 127 * (10 ^ kPos * 2 ^ hNeg) ≤ g * 10 ^ kPos * 2 ^ hNeg := by
     have := Nat.mul_le_mul_right (10 ^ kPos * 2 ^ hNeg) hg
     -- `this` : 2^127 * (10^kPos * 2^hNeg) ≤ g * (10^kPos * 2^hNeg)
-    have hrw2 : g * (10 ^ kPos * 2 ^ hNeg) = g * 10 ^ kPos * 2 ^ hNeg := by ring
+    have hrw2 : g * (10 ^ kPos * 2 ^ hNeg) = g * 10 ^ kPos * 2 ^ hNeg := by grind
     rw [hrw2] at this
     exact this
   -- 2^127 · X ≤ g · X < 10^kNeg · 2^hPos + X.  Subtract X: (2^127 - 1) · X < 10^kNeg · 2^hPos.
@@ -1383,7 +1368,7 @@ theorem shiftedSig_slack_bound
     Nat.mul_le_mul_left _ hHP
   -- LHS = m · 2^qNeg · 2^126 · 10^kPos · 2^hNeg = m · B · 2^126 · 2^hNeg.
   have hLHS : m * 2 ^ qNeg * (2 ^ 126 * (10 ^ kPos * 2 ^ hNeg))
-              = m * (2 ^ qNeg * 10 ^ kPos) * 2 ^ 126 * 2 ^ hNeg := by ring
+              = m * (2 ^ qNeg * 10 ^ kPos) * 2 ^ 126 * 2 ^ hNeg := by grind
   -- RHS = m · 2^qNeg · 10^kNeg · 2^hPos.  Using regroup
   -- 2^qNeg · 2^hPos = 2^s · 2^qPos · 2^hNeg:
   -- RHS = m · 10^kNeg · (2^qNeg · 2^hPos) = m · 10^kNeg · 2^s · 2^qPos · 2^hNeg
@@ -1392,8 +1377,8 @@ theorem shiftedSig_slack_bound
               = m * 2 ^ qPos * 10 ^ kNeg * 2 ^ s * 2 ^ hNeg := by
     have hR := hRegroup
     have hMul : m * 2 ^ qNeg * (10 ^ kNeg * 2 ^ hPos)
-                  = m * 10 ^ kNeg * (2 ^ qNeg * 2 ^ hPos) := by ring
-    rw [hMul, ← hR]; ring
+                  = m * 10 ^ kNeg * (2 ^ qNeg * 2 ^ hPos) := by grind
+    rw [hMul, ← hR]; grind
   rw [hLHS, hRHS] at h1
   -- Cancel 2^hNeg.
   have h2hNeg_pos : 0 < 2 ^ hNeg := Nat.two_pow_pos _
@@ -1429,7 +1414,7 @@ theorem shiftedSig_floor_gap_bound
   -- K · B · 2^s ≤ m · g · B < N · 2^s + m · B.
   have h1 : K * B * 2 ^ s < N * 2 ^ s + m * B := by
     calc K * B * 2 ^ s
-        = K * 2 ^ s * B := by ring
+        = K * 2 ^ s * B := by grind
       _ ≤ m * g * B := Nat.mul_le_mul_right B hK_lo
       _ < N * 2 ^ s + m * B := hHi
   -- Multiply both sides by 2^126.
@@ -1440,25 +1425,25 @@ theorem shiftedSig_floor_gap_bound
   have h2 : K * B * 2 ^ s * 2 ^ 126 < N * 2 ^ s * (2 ^ 126 + 1) := by
     have hStep : (N * 2 ^ s + m * B) * 2 ^ 126 ≤ N * 2 ^ s * (2 ^ 126 + 1) := by
       have hExpand : (N * 2 ^ s + m * B) * 2 ^ 126
-                      = N * 2 ^ s * 2 ^ 126 + m * B * 2 ^ 126 := by ring
+                      = N * 2 ^ s * 2 ^ 126 + m * B * 2 ^ 126 := by grind
       have hSlack' : m * B * 2 ^ 126 ≤ N * 2 ^ s := hSlack
-      have hRHS : N * 2 ^ s * (2 ^ 126 + 1) = N * 2 ^ s * 2 ^ 126 + N * 2 ^ s := by ring
+      have hRHS : N * 2 ^ s * (2 ^ 126 + 1) = N * 2 ^ s * 2 ^ 126 + N * 2 ^ s := by grind
       omega
     calc K * B * 2 ^ s * 2 ^ 126
         < (N * 2 ^ s + m * B) * 2 ^ 126 := by
           have := Nat.mul_lt_mul_right h2_126_pos |>.mpr h1
           have hrw : (N * 2 ^ s + m * B) * 2 ^ 126
-                      = N * 2 ^ s * 2 ^ 126 + m * B * 2 ^ 126 := by ring
+                      = N * 2 ^ s * 2 ^ 126 + m * B * 2 ^ 126 := by grind
           have hrw' : K * B * 2 ^ s * 2 ^ 126
-                      = (K * B * 2 ^ s) * 2 ^ 126 := by ring
+                      = (K * B * 2 ^ s) * 2 ^ 126 := by grind
           omega
       _ ≤ N * 2 ^ s * (2 ^ 126 + 1) := hStep
   -- Divide both sides by 2^s · 2^126 in Nat.
   -- K · B · 2^126 < N · (2^126 + 1) (after cancelling 2^s).
   have hCancel_s : K * B * 2 ^ 126 < N * (2 ^ 126 + 1) := by
     -- From h2 with 2^s factored out.
-    have hLHS : K * B * 2 ^ s * 2 ^ 126 = K * B * 2 ^ 126 * 2 ^ s := by ring
-    have hRHS : N * 2 ^ s * (2 ^ 126 + 1) = N * (2 ^ 126 + 1) * 2 ^ s := by ring
+    have hLHS : K * B * 2 ^ s * 2 ^ 126 = K * B * 2 ^ 126 * 2 ^ s := by grind
+    have hRHS : N * 2 ^ s * (2 ^ 126 + 1) = N * (2 ^ 126 + 1) * 2 ^ s := by grind
     rw [hLHS, hRHS] at h2
     exact Nat.lt_of_mul_lt_mul_right h2
   -- N · (2^126 + 1) = N · 2^126 + N.  So K · B · 2^126 ≤ N · 2^126 + N - 1 ≤ N · 2^126 + N.
@@ -1467,7 +1452,7 @@ theorem shiftedSig_floor_gap_bound
   -- Cleaner: K · B · 2^126 < N · 2^126 + N ≤ (N + N/2^126 + 1) · 2^126 ... need care.
   -- Use:  K · B · 2^126 < N · 2^126 + N, so K · B · 2^126 ≤ N · 2^126 + N - 1.
   -- Then K · B ≤ N + (N - 1) / 2^126 ≤ N + N / 2^126.
-  have hExpand : N * (2 ^ 126 + 1) = N * 2 ^ 126 + N := by ring
+  have hExpand : N * (2 ^ 126 + 1) = N * 2 ^ 126 + N := by grind
   rw [hExpand] at hCancel_s
   -- K · B · 2^126 < N · 2^126 + N.
   -- So K · B · 2^126 ≤ N · 2^126 + N - 1 (Nat).  Hence K · B ≤ N + (N-1)/2^126 ≤ N + N/2^126.
@@ -1512,7 +1497,7 @@ theorem shiftedSig_floor_gap_bound
         Nat.div_le_div_right h_sub_le
       have h_split : (N * 2 ^ 126 + N) / 2 ^ 126 = N + N / 2 ^ 126 := by
         -- (N · 2^126 + N) / 2^126: split via Nat.add_mul_div_right (a + b*c)/c = a/c + b.
-        have hrw : N * 2 ^ 126 + N = N + N * 2 ^ 126 := by ring
+        have hrw : N * 2 ^ 126 + N = N + N * 2 ^ 126 := by grind
         rw [hrw, Nat.add_mul_div_right N N h2_126_pos]
         omega
       omega
@@ -1554,7 +1539,7 @@ theorem shiftedSig_floor_strict_precision
   -- K · B · 2^s ≤ m · g · B < N · 2^s + m · B (strict).
   have h_sandwich' : K * B * 2 ^ s ≤ N * 2 ^ s + m * B - 1 := by
     calc K * B * 2 ^ s
-        = K * 2 ^ s * B := by ring
+        = K * 2 ^ s * B := by grind
       _ ≤ m * g * B := Nat.mul_le_mul_right B hK_lo
       _ ≤ N * 2 ^ s + m * B - 1 := by omega
   -- Suppose K · B > N (contradiction goal).
@@ -1574,7 +1559,7 @@ theorem shiftedSig_floor_strict_precision
       Nat.mul_le_mul_right _ hContra
     -- (N + 1) · 2^s = N · 2^s + 2^s.
     have h1 : N * 2 ^ s + 2 ^ s ≤ N * 2 ^ s + m * B - 1 := by
-      have : (N + 1) * 2 ^ s = N * 2 ^ s + 2 ^ s := by ring
+      have : (N + 1) * 2 ^ s = N * 2 ^ s + 2 ^ s := by grind
       omega
     -- So 2^s ≤ m · B - 1, i.e., m · B ≥ 2^s + 1.
     have hmB_ge : 2 ^ s + 1 ≤ m * B := by omega
@@ -1587,7 +1572,7 @@ theorem shiftedSig_floor_strict_precision
     have hExpand : (2 ^ s + 1) * (2 ^ 127 - 1) = 2 ^ s * 2 ^ 127 + 2 ^ 127 - 2 ^ s - 1 := by
       have h2_127_pos : (1 : Nat) ≤ 2 ^ 127 := Nat.one_le_two_pow
       have h2_s_pos : (1 : Nat) ≤ 2 ^ s := Nat.one_le_two_pow
-      have : (2 ^ s + 1) * (2 ^ 127 - 1) = 2 ^ s * (2 ^ 127 - 1) + (2 ^ 127 - 1) := by ring
+      have : (2 ^ s + 1) * (2 ^ 127 - 1) = 2 ^ s * (2 ^ 127 - 1) + (2 ^ 127 - 1) := by grind
       rw [this]
       have ha : 2 ^ s * (2 ^ 127 - 1) = 2 ^ s * 2 ^ 127 - 2 ^ s := by
         rw [Nat.mul_sub_one]
@@ -1623,18 +1608,18 @@ theorem shiftedSig_floor_strict_precision
     --
     -- Cleaner formulation in Nat: directly compute.
     have hSum_Nat : 2 ^ s * (2 ^ 127 - 1) + (2 ^ 127 - 1) = (2 ^ s + 1) * (2 ^ 127 - 1) := by
-      ring
+      grind
     have hRHSbd_Nat : N * 2 ^ s + 2 ^ s ≤ (2 ^ 127 - 1) * 2 ^ s := by
       have : N + 1 ≤ 2 ^ 127 - 1 := by omega
       have h := Nat.mul_le_mul_right (2 ^ s) this
-      have : (N + 1) * 2 ^ s = N * 2 ^ s + 2 ^ s := by ring
+      have : (N + 1) * 2 ^ s = N * 2 ^ s + 2 ^ s := by grind
       omega
     have h2 : (2 ^ s + 1) * (2 ^ 127 - 1) ≤ m * B * (2 ^ 127 - 1) :=
       Nat.mul_le_mul_right _ hmB_ge
     have h3 : (2 ^ s + 1) * (2 ^ 127 - 1) < N * 2 ^ s :=
       Nat.lt_of_le_of_lt h2 hStrictSlack
     -- Expand: (2^s + 1)(2^127 - 1) = 2^s · (2^127 - 1) + (2^127 - 1).
-    have h_expand : (2 ^ s + 1) * (2 ^ 127 - 1) = 2 ^ s * (2 ^ 127 - 1) + (2 ^ 127 - 1) := by ring
+    have h_expand : (2 ^ s + 1) * (2 ^ 127 - 1) = 2 ^ s * (2 ^ 127 - 1) + (2 ^ 127 - 1) := by grind
     rw [h_expand] at h3
     -- N * 2^s ≤ (2^127 - 2) · 2^s.
     have hN_le : N ≤ 2 ^ 127 - 2 := by omega
@@ -1658,7 +1643,7 @@ theorem shiftedSig_floor_strict_precision
     -- 2^127 - 1 < -2^s.  In Nat: LHS ≥ 0, RHS = 0 (since 2^s > 0).  So 0 < 0.  Contradiction.
     have h2s_pos_2 : 0 < 2 ^ s := Nat.two_pow_pos s
     have h_calc : 2 ^ s * (2 ^ 127 - 1) = 2 ^ s * 2 ^ 127 - 2 ^ s := by
-      rw [Nat.mul_sub]; ring_nf
+      rw [Nat.mul_sub]; grind
     rw [h_calc] at h3
     rw [h5] at h4
     -- h3: 2^s · 2^127 - 2^s + (2^127 - 1) < N · 2^s
@@ -1666,7 +1651,7 @@ theorem shiftedSig_floor_strict_precision
     -- So 2^s · 2^127 - 2^s + (2^127 - 1) < 2^127 · 2^s - 2 · 2^s.
     -- Simplify: 2^s · 2^127 = 2^127 · 2^s. Cancel.
     -- (2^127 - 1) - 2^s < -2 · 2^s, i.e., 2^127 - 1 < -2^s.  Contradiction.
-    have h_comm : 2 ^ s * 2 ^ 127 = 2 ^ 127 * 2 ^ s := by ring
+    have h_comm : 2 ^ s * 2 ^ 127 = 2 ^ 127 * 2 ^ s := by grind
     -- Combine via Nat.add_lt_of_lt_sub_left or just omega.
     -- Need to ensure all subs are well-formed.
     -- 2^s · 2^127 ≥ 2^s, so 2^s · 2^127 - 2^s ≥ 0.
@@ -1703,7 +1688,7 @@ theorem shiftedSig_slack_bound_strict
                 = g * (10 ^ kPos * 2 ^ hNeg) := by
       have hsub : (g - 1) * (10 ^ kPos * 2 ^ hNeg)
                     = g * (10 ^ kPos * 2 ^ hNeg) - (10 ^ kPos * 2 ^ hNeg) := by
-        rw [Nat.sub_mul]; ring_nf
+        rw [Nat.sub_mul]; grind
       have h10_pos : 0 < 10 ^ kPos := Nat.pow_pos (by decide)
       have hY_pos : 0 < 10 ^ kPos * 2 ^ hNeg :=
         Nat.mul_pos h10_pos (Nat.two_pow_pos _)
@@ -1713,7 +1698,7 @@ theorem shiftedSig_slack_bound_strict
           Nat.mul_le_mul_right _ this
         omega
       omega
-    have h2 : g * (10 ^ kPos * 2 ^ hNeg) = g * 10 ^ kPos * 2 ^ hNeg := by ring
+    have h2 : g * (10 ^ kPos * 2 ^ hNeg) = g * 10 ^ kPos * 2 ^ hNeg := by grind
     have h3 : g * 10 ^ kPos * 2 ^ hNeg < 10 ^ kNeg * 2 ^ hPos + 10 ^ kPos * 2 ^ hNeg := hHi
     omega
   have h_127_strict : (2 ^ 127 - 1) * (10 ^ kPos * 2 ^ hNeg) < 10 ^ kNeg * 2 ^ hPos := by
@@ -1727,13 +1712,13 @@ theorem shiftedSig_slack_bound_strict
     (Nat.mul_lt_mul_left hm_qNeg_pos).mpr h_127_strict
   -- LHS = m · B · (2^127 - 1) · 2^hNeg.
   have hLHS_eq : m * 2 ^ qNeg * ((2 ^ 127 - 1) * (10 ^ kPos * 2 ^ hNeg))
-                  = m * (2 ^ qNeg * 10 ^ kPos) * (2 ^ 127 - 1) * 2 ^ hNeg := by ring
+                  = m * (2 ^ qNeg * 10 ^ kPos) * (2 ^ 127 - 1) * 2 ^ hNeg := by grind
   -- RHS = m · 2^qNeg · 10^kNeg · 2^hPos.  Use regroup to convert.
   have hRHS_eq : m * 2 ^ qNeg * (10 ^ kNeg * 2 ^ hPos)
                   = m * 2 ^ qPos * 10 ^ kNeg * 2 ^ s * 2 ^ hNeg := by
     have hMul : m * 2 ^ qNeg * (10 ^ kNeg * 2 ^ hPos)
-                  = m * 10 ^ kNeg * (2 ^ qNeg * 2 ^ hPos) := by ring
-    rw [hMul, ← hRegroup]; ring
+                  = m * 10 ^ kNeg * (2 ^ qNeg * 2 ^ hPos) := by grind
+    rw [hMul, ← hRegroup]; grind
   rw [hLHS_eq, hRHS_eq] at h_mul
   -- Cancel 2^hNeg.
   exact Nat.lt_of_mul_lt_mul_right h_mul
@@ -1767,7 +1752,7 @@ theorem shiftedSig_floor_strict_precision_param
   have h2P_pos : 1 ≤ 2 ^ P := Nat.one_le_two_pow
   have h2P_ge_2 : 2 ≤ 2 ^ P := by
     have : (2 : Nat) ^ P = 2 ^ (P - 1) * 2 := by
-      conv_lhs => rw [show P = (P - 1) + 1 from by omega]
+      conv => lhs; rw [show P = (P - 1) + 1 from by omega]
       rw [Nat.pow_succ]
     have h_inner : 1 ≤ 2 ^ (P - 1) := Nat.one_le_two_pow
     omega
@@ -1777,11 +1762,11 @@ theorem shiftedSig_floor_strict_precision_param
     have hKB_ge : K * B * 2 ^ s ≥ (N + 1) * 2 ^ s :=
       Nat.mul_le_mul_right _ hContra
     have hKBs_lt : K * B * 2 ^ s < N * 2 ^ s + m * B := by
-      calc K * B * 2 ^ s = K * 2 ^ s * B := by ring
+      calc K * B * 2 ^ s = K * 2 ^ s * B := by grind
         _ ≤ m * g * B := Nat.mul_le_mul_right B hK_lo
         _ < N * 2 ^ s + m * B := hHi
     have hmB_ge : 2 ^ s + 1 ≤ m * B := by
-      have : (N + 1) * 2 ^ s = N * 2 ^ s + 2 ^ s := by ring
+      have : (N + 1) * 2 ^ s = N * 2 ^ s + 2 ^ s := by grind
       omega
     -- (2^s + 1) · (2^P - 1) ≤ m · B · (2^P - 1) < N · 2^s.
     have h2 : (2 ^ s + 1) * (2 ^ P - 1) ≤ m * B * (2 ^ P - 1) :=
@@ -1797,7 +1782,7 @@ theorem shiftedSig_floor_strict_precision_param
       have h_geq : 2 * 2 ^ s ≤ 2 ^ P * 2 ^ s := Nat.mul_le_mul_right _ h2P_ge_2
       have hsub : (2 ^ P - 2) * 2 ^ s = 2 ^ P * 2 ^ s - 2 * 2 ^ s := by
         rw [Nat.sub_mul]
-      have hcomm : 2 ^ P * 2 ^ s = Q := by rw [hQ_eq]; ring
+      have hcomm : 2 ^ P * 2 ^ s = Q := by rw [hQ_eq]; grind
       omega
     -- Rewriting h3: (2^s + 1)(2^P - 1) = 2^s * 2^P - 2^s + 2^P - 1 = Q - 2^s + 2^P - 1.
     have h6 : (2 ^ s + 1) * (2 ^ P - 1) + 2 ^ s + 1 = Q + 2 ^ P := by
@@ -1807,7 +1792,7 @@ theorem shiftedSig_floor_strict_precision_param
       have h_lhs_pos : 2 ^ s + 1 ≤ (2 ^ s + 1) * 2 ^ P := by
         have : (2 ^ s + 1) * 1 ≤ (2 ^ s + 1) * 2 ^ P := Nat.mul_le_mul_left _ h2P_pos
         omega
-      have h_expand : (2 ^ s + 1) * 2 ^ P = 2 ^ s * 2 ^ P + 2 ^ P := by ring
+      have h_expand : (2 ^ s + 1) * 2 ^ P = 2 ^ s * 2 ^ P + 2 ^ P := by grind
       omega
     -- h3: 2^s * 2^P + 2^P - 2^s - 1 < N * 2^s. h4: N * 2^s + 2 * 2^s ≤ 2^P * 2^s = Q.
     -- Hence h3+h4: 2^s * 2^P + 2^P - 2^s - 1 + 2 * 2^s < Q + 0 = Q.
@@ -1837,13 +1822,13 @@ theorem shiftedSig_slack_bound_strict_param
                 = g * (10 ^ kPos * 2 ^ hNeg) := by
       have hsub : (g - 1) * (10 ^ kPos * 2 ^ hNeg)
                     = g * (10 ^ kPos * 2 ^ hNeg) - (10 ^ kPos * 2 ^ hNeg) := by
-        rw [Nat.sub_mul]; ring_nf
+        rw [Nat.sub_mul]; grind
       have hgY_ge : 10 ^ kPos * 2 ^ hNeg ≤ g * (10 ^ kPos * 2 ^ hNeg) := by
         have h_mul : 1 * (10 ^ kPos * 2 ^ hNeg) ≤ g * (10 ^ kPos * 2 ^ hNeg) :=
           Nat.mul_le_mul_right _ hg_pos
         omega
       omega
-    have h2 : g * (10 ^ kPos * 2 ^ hNeg) = g * 10 ^ kPos * 2 ^ hNeg := by ring
+    have h2 : g * (10 ^ kPos * 2 ^ hNeg) = g * 10 ^ kPos * 2 ^ hNeg := by grind
     omega
   have h_P_strict : (2 ^ P - 1) * (10 ^ kPos * 2 ^ hNeg) < 10 ^ kNeg * 2 ^ hPos := by
     have h1 : (2 ^ P - 1) * (10 ^ kPos * 2 ^ hNeg) ≤ (g - 1) * (10 ^ kPos * 2 ^ hNeg) :=
@@ -1854,12 +1839,12 @@ theorem shiftedSig_slack_bound_strict_param
                 < m * 2 ^ qNeg * (10 ^ kNeg * 2 ^ hPos) :=
     (Nat.mul_lt_mul_left hm_qNeg_pos).mpr h_P_strict
   have hLHS_eq : m * 2 ^ qNeg * ((2 ^ P - 1) * (10 ^ kPos * 2 ^ hNeg))
-                  = m * (2 ^ qNeg * 10 ^ kPos) * (2 ^ P - 1) * 2 ^ hNeg := by ring
+                  = m * (2 ^ qNeg * 10 ^ kPos) * (2 ^ P - 1) * 2 ^ hNeg := by grind
   have hRHS_eq : m * 2 ^ qNeg * (10 ^ kNeg * 2 ^ hPos)
                   = m * 2 ^ qPos * 10 ^ kNeg * 2 ^ s * 2 ^ hNeg := by
     have hMul : m * 2 ^ qNeg * (10 ^ kNeg * 2 ^ hPos)
-                  = m * 10 ^ kNeg * (2 ^ qNeg * 2 ^ hPos) := by ring
-    rw [hMul, ← hRegroup]; ring
+                  = m * 10 ^ kNeg * (2 ^ qNeg * 2 ^ hPos) := by grind
+    rw [hMul, ← hRegroup]; grind
   rw [hLHS_eq, hRHS_eq] at h_mul
   exact Nat.lt_of_mul_lt_mul_right h_mul
 

@@ -22,8 +22,8 @@ import Srtfp.Proofs.CorrectnessSpec
 import Srtfp.Proofs.RoundTrip
 import Srtfp.Proofs.Schubfach.Minimal
 import Srtfp.Proofs.Schubfach.TieBreak
-import Mathlib.Data.Nat.Prime.Basic
-import Mathlib.Data.Nat.Log
+import Srtfp.NatLog
+import Srtfp.Tactics
 
 namespace Srtfp
 
@@ -57,21 +57,24 @@ private theorem toRat_zero (d : Decimal) (h : d.significand = 0) :
   unfold Decimal.toRat
   rw [h]
   push_cast
-  ring
+  grind
 
 private theorem floatVal_zero (f : _root_.Float) (h : (decode f).m = 0) :
     Schubfach.floatVal f = 0 := by
   unfold Schubfach.floatVal Schubfach.magVal
   rw [h]
   push_cast
-  ring
+  grind
 
 private theorem toRat_ne_zero (d : Decimal) (h : d.significand ≠ 0) :
     Decimal.toRat d ≠ 0 := by
   unfold Decimal.toRat
   have h1 : ((d.significand : ℚ)) ≠ 0 := by exact_mod_cast h
-  have h2 : (10 : ℚ) ^ d.exponent ≠ 0 := zpow_ne_zero _ (by norm_num)
-  by_cases hs : d.sign <;> simp [hs, h1, h2]
+  have h2 : (10 : ℚ) ^ d.exponent ≠ 0 := Rat.ne_of_gt (Rat.zpow_pos (by decide))
+  by_cases hs : d.sign <;> simp only [hs, if_true, if_false, Bool.false_eq_true] <;>
+    intro hcon <;>
+    rcases Rat.mul_eq_zero.mp (by grind : (d.significand : ℚ) * (10:ℚ) ^ d.exponent = 0) with
+      h0 | h0 <;> first | exact h1 h0 | exact h2 h0
 
 /-- `IsSpecOutput` with the competitor clauses split into two `∀`s (the
 proofs build and consume them separately). -/
@@ -346,7 +349,7 @@ private theorem output_le_dist_at_outexp
               n (shortestUnsigned m q).2 rfl h_mem
   simp only at h
   rcases h with h_eq | h_lt | ⟨h_eqd, _⟩
-  · rw [h_eq]
+  · rw [h_eq]; exact le_refl _
   · exact le_of_lt h_lt
   · exact le_of_eq h_eqd
 
@@ -395,7 +398,7 @@ private theorem shortestUnsigned_clause3_same_len_ge
     -- cs * 10^t = out_sig, ce = out_exp + t, so shifting cs up to out_sig.
     have hshift := inRoundingInterval_mul10pow_shift_down cs t (out_exp + t) m q (isIrregular m q)
     -- inRI (cs * 10^t) ((out_exp+t) - t) = inRI cs (out_exp+t)
-    have he : (out_exp + (t : Int)) - (t : Int) = out_exp := by ring
+    have he : (out_exp + (t : Int)) - (t : Int) = out_exp := by grind
     rw [he] at hshift
     rw [← h_out_sig] at hshift
     -- hshift : inRI out_sig out_exp = inRI cs (out_exp + t)
@@ -414,7 +417,7 @@ private theorem shortestUnsigned_clause3_same_len_ge
   set j : Nat := (exp' - out_exp).toNat with hj
   have hj_eq : (j : Int) = exp' - out_exp := by
     apply Int.toNat_of_nonneg; omega
-  have h_shift_exp : exp' - (j : Int) = out_exp := by rw [hj_eq]; ring
+  have h_shift_exp : exp' - (j : Int) = out_exp := by rw [hj_eq]; grind
   have h_mem_shift :
       inRoundingInterval (sig' * 10 ^ j) out_exp m q (isIrregular m q) = true := by
     have hs := inRoundingInterval_mul10pow_shift_down sig' j exp' m q (isIrregular m q)
@@ -422,7 +425,7 @@ private theorem shortestUnsigned_clause3_same_len_ge
     rw [hs]; exact h_mem
   have h_grid_shift : gridVal (sig' * 10 ^ j) out_exp = gridVal sig' exp' := by
     rw [gridVal_mul_pow10 sig' j out_exp, hj_eq]
-    congr 1; ring
+    congr 1; grind
   -- Apply the scale-out_exp tie-break to sig''.
   have h3 := shortestUnsigned_clause3_same_exp m q hm_pos hm_lt hq_lo hq_hi
                (sig' * 10 ^ j) out_exp rfl h_mem_shift
@@ -439,7 +442,7 @@ private theorem shortestUnsigned_clause3_same_len_ge
                     h_sig'_canon h_cs_canon h_eq2
     refine ⟨huniq.1, ?_⟩
     rw [h_ce]
-    have : exp' = out_exp + (j : Int) := by rw [hj_eq]; ring
+    have : exp' = out_exp + (j : Int) := by rw [hj_eq]; grind
     rw [this, huniq.2]
   · exact Or.inr (Or.inl h_lt)
   · -- tie; the output significand `out_sig = (shortestUnsigned m q).1` is even.
@@ -538,7 +541,7 @@ private theorem shortestUnsigned_clause3_same_len_boundary
         have h_div : 10 ^ (L - 1) % 10 = 0 := by
           have : 1 ≤ L - 1 := by omega
           obtain ⟨j, hj⟩ : ∃ j, L - 1 = j + 1 := ⟨L - 2, by omega⟩
-          rw [hj, pow_succ]; omega
+          rw [hj, Nat.pow_succ]; omega
         have h_ne : out_sig ≠ 10 ^ (L - 1) := fun h => h_out_canon (by rw [h]; exact h_div)
         have : 10 ^ (L - 1) + 1 ≤ out_sig := by omega
         rw [h_ceil] at this; omega
@@ -546,8 +549,8 @@ private theorem shortestUnsigned_clause3_same_len_boundary
   have h_sig'_lt_10n : sig' < 10 * n := by
     have h1 : 10 ^ L ≤ 10 * n := by
       have h2 : 10 ^ L = 10 * 10 ^ (L - 1) := by
-        conv_lhs => rw [show L = (L - 1) + 1 from by omega]
-        rw [pow_succ]; ring
+        conv => lhs; rw [show L = (L - 1) + 1 from by omega]
+        rw [Nat.pow_succ]; grind
       rw [h2]; exact Nat.mul_le_mul_left 10 h_n_lo
     omega
   -- Geometry.  Floor bracket at scale out_exp.
@@ -555,13 +558,13 @@ private theorem shortestUnsigned_clause3_same_len_boundary
   obtain ⟨h_floor_le, h_lt_succ⟩ := h_bracket
   -- gridVal n out_exp = gridVal (10*n) e.
   have h_grid_shift : gridVal n out_exp = gridVal (10 * n) e := by
-    rw [show (10 * n) = n * 10 ^ 1 from by ring, gridVal_mul_pow10 n 1 e]
-    congr 1; rw [he]; push_cast; ring
+    rw [show (10 * n) = n * 10 ^ 1 from by grind, gridVal_mul_pow10 n 1 e]
+    congr 1; rw [he]; push_cast; grind
   -- Monotonicity of gridVal in the significand (fixed scale).
   have gridVal_mono : ∀ (a b : Nat) (kk : Int), a < b → gridVal a kk < gridVal b kk := by
     intro a b kk hab
     unfold gridVal
-    have hpos : (0 : ℚ) < (10 : ℚ) ^ kk := zpow_pos (by norm_num) kk
+    have hpos : (0 : ℚ) < (10 : ℚ) ^ kk := Rat.zpow_pos (by decide)
     have : (a : ℚ) < (b : ℚ) := by exact_mod_cast hab
     exact (mul_lt_mul_iff_of_pos_right hpos).mpr this
   -- C := gridVal sig' e  <  gridVal n out_exp.
@@ -570,7 +573,7 @@ private theorem shortestUnsigned_clause3_same_len_boundary
   -- O := gridVal out_sig out_exp  ≥  gridVal n out_exp.
   have h_O_ge_floor : gridVal n out_exp ≤ gridVal out_sig out_exp := by
     rcases h_out_cand with h | h
-    · rw [h]
+    · rw [h]; exact le_refl _
     · rw [h]; exact le_of_lt (gridVal_lt_succ n out_exp)
   -- C < O.
   have h_C_lt_O : gridVal sig' e < gridVal out_sig out_exp :=
@@ -579,12 +582,12 @@ private theorem shortestUnsigned_clause3_same_len_boundary
   rw [abs_gt_abs_iff_two_gt (magVal m q) (gridVal sig' e) (gridVal out_sig out_exp) h_C_lt_O]
   -- Suffices:  gridVal n out_exp + O ≤ 2v, then add C < gridVal n out_exp.
   have h_finish : gridVal sig' e + gridVal out_sig out_exp
-      < gridVal n out_exp + gridVal out_sig out_exp := by linarith [h_C_lt_floor]
+      < gridVal n out_exp + gridVal out_sig out_exp := by grind
   refine lt_of_lt_of_le h_finish ?_
   -- Now:  gridVal n out_exp + O ≤ 2 * v.
   rcases h_out_cand with h_floor | h_ceil
   · -- FLOOR: out_sig = n, so O = gridVal n out_exp ≤ v.
-    rw [h_floor]; linarith [h_floor_le]
+    rw [h_floor]; grind
   · -- CEIL: out_sig = n + 1.
     by_cases h_n_mem : inRoundingInterval n out_exp m q (isIrregular m q) = true
     · -- n ∈ R_v: the output is no farther from v than the floor grid point n.
@@ -592,12 +595,12 @@ private theorem shortestUnsigned_clause3_same_len_boundary
       -- h_le : |v - O| ≤ |v - gridVal n out_exp|, with gridVal n < O.
       have h_lt_no : ¬ (|magVal m q - gridVal n out_exp|
           < |magVal m q - gridVal out_sig out_exp|) := by
-        intro hcontra; exact absurd h_le (not_le.mpr hcontra)
+        intro hcontra; exact absurd h_le (Rat.not_le.mpr hcontra)
       have h_floor_lt_O : gridVal n out_exp < gridVal out_sig out_exp := by
         rw [h_ceil]; exact gridVal_lt_succ n out_exp
       rw [abs_lt_abs_iff_two_lt (magVal m q) (gridVal n out_exp)
             (gridVal out_sig out_exp) h_floor_lt_O] at h_lt_no
-      linarith [not_lt.mp h_lt_no]
+      grind
     · -- n ∉ R_v (single-sided ceil): vacuous, derive False.
       exfalso
       have h_n_false : inRoundingInterval n out_exp m q (isIrregular m q) = false :=
@@ -605,8 +608,8 @@ private theorem shortestUnsigned_clause3_same_len_boundary
       -- Shift n up to scale e:  inRI (10*n) e = inRI n out_exp = false.
       have h_10n_false : inRoundingInterval (10 * n) e m q (isIrregular m q) = false := by
         have hshift := inRoundingInterval_mul10pow_shift_down n 1 out_exp m q (isIrregular m q)
-        rw [show out_exp - (1 : Nat) = e from by rw [he]; push_cast; ring] at hshift
-        rw [show n * 10 ^ 1 = 10 * n from by ring] at hshift
+        rw [show out_exp - (1 : Nat) = e from by rw [he]; push_cast; grind] at hshift
+        rw [show n * 10 ^ 1 = 10 * n from by grind] at hshift
         rw [hshift]; exact h_n_false
       -- fourU monotonicity in the significand at fixed scale.
       have fourU_mono : ∀ (a b : Nat), a ≤ b → fourU a q e ≤ fourU b q e := by
@@ -615,19 +618,21 @@ private theorem shortestUnsigned_clause3_same_len_boundary
         have hsc : (0 : Int) ≤ (tenPosPow e : Int) * (twoNegPow q : Int) := by
           have := twoNeg_tenPos_pos q e
           have h2 : (0 : Int) < (tenPosPow e : Int) * (twoNegPow q : Int) := by
-            have := tenPosPow_pos e; have := twoNegPow_pos q; positivity
-          exact le_of_lt h2
+            have h1 := tenPosPow_pos e
+            have h2 := twoNegPow_pos q
+            exact Int.mul_pos (by exact_mod_cast h1) (by exact_mod_cast h2)
+          exact Int.le_of_lt h2
         have h4 : (4 * (a : Int)) ≤ (4 * (b : Int)) := by
           have : (a : Int) ≤ (b : Int) := by exact_mod_cast hab
           omega
         calc 4 * (a : Int) * (tenPosPow e : Int) * (twoNegPow q : Int)
-            = (4 * (a : Int)) * ((tenPosPow e : Int) * (twoNegPow q : Int)) := by ring
+            = (4 * (a : Int)) * ((tenPosPow e : Int) * (twoNegPow q : Int)) := by grind
           _ ≤ (4 * (b : Int)) * ((tenPosPow e : Int) * (twoNegPow q : Int)) :=
-              mul_le_mul_of_nonneg_right h4 hsc
-          _ = 4 * (b : Int) * (tenPosPow e : Int) * (twoNegPow q : Int) := by ring
+              Int.mul_le_mul_of_nonneg_right h4 hsc
+          _ = 4 * (b : Int) * (tenPosPow e : Int) * (twoNegPow q : Int) := by grind
       -- 10*n ≤ s_e := shiftedSig m q e  (since n = s_e / 10).
       have h_n_div : n = shiftedSig m q e / 10 := by
-        rw [hn, show out_exp = e + 1 from by rw [he]; ring]
+        rw [hn, show out_exp = e + 1 from by rw [he]; grind]
         exact shiftedSig_succ m q e
       have h_10n_le_se : 10 * n ≤ shiftedSig m q e := by
         rw [h_n_div]; omega
@@ -655,15 +660,17 @@ private theorem shortestUnsigned_clause3_same_len_boundary
       have h_sig'_lt : fourU sig' q e < fourU (10 * n) q e := by
         rw [fourU_eq, fourU_eq]
         have hsc : (0 : Int) < (tenPosPow e : Int) * (twoNegPow q : Int) := by
-          have := tenPosPow_pos e; have := twoNegPow_pos q; positivity
+          have h1 := tenPosPow_pos e
+          have h2 := twoNegPow_pos q
+          exact Int.mul_pos (by exact_mod_cast h1) (by exact_mod_cast h2)
         have h4 : (4 * (sig' : Int)) < (4 * ((10 * n : Nat) : Int)) := by
           have : (sig' : Int) < ((10 * n : Nat) : Int) := by exact_mod_cast h_sig'_lt_10n
           omega
         calc 4 * (sig' : Int) * (tenPosPow e : Int) * (twoNegPow q : Int)
-            = (4 * (sig' : Int)) * ((tenPosPow e : Int) * (twoNegPow q : Int)) := by ring
+            = (4 * (sig' : Int)) * ((tenPosPow e : Int) * (twoNegPow q : Int)) := by grind
           _ < (4 * ((10 * n : Nat) : Int)) * ((tenPosPow e : Int) * (twoNegPow q : Int)) :=
-              mul_lt_mul_of_pos_right h4 hsc
-          _ = 4 * ((10 * n : Nat) : Int) * (tenPosPow e : Int) * (twoNegPow q : Int) := by ring
+              Int.mul_lt_mul_of_pos_right h4 hsc
+          _ = 4 * ((10 * n : Nat) : Int) * (tenPosPow e : Int) * (twoNegPow q : Int) := by grind
       omega
 
 /-- **Unsigned clause (3) at the same digit length (full).** Combines
@@ -700,7 +707,7 @@ private theorem shortestUnsigned_clause3_same_len
     -- Canonical output in R_v (to invoke samelen_exp_diff_le_one).
     have h_cs_mem : inRoundingInterval cs ce m q (isIrregular m q) = true := by
       have hshift := inRoundingInterval_mul10pow_shift_down cs t (out_exp + t) m q (isIrregular m q)
-      have he2 : (out_exp + (t : Int)) - (t : Int) = out_exp := by ring
+      have he2 : (out_exp + (t : Int)) - (t : Int) = out_exp := by grind
       rw [he2] at hshift
       rw [← h_out_sig] at hshift
       rw [h_ce, ← hshift]
@@ -967,13 +974,13 @@ private theorem samelen_even_tie_false
   · -- exp' ≥ out_exp: shift competitor down to out_exp and use tie_at_outexp_consecutive.
     set j : Nat := (exp' - out_exp).toNat with hj
     have hj_eq : (j : Int) = exp' - out_exp := Int.toNat_of_nonneg (by omega)
-    have h_shift_exp : exp' - (j : Int) = out_exp := by rw [hj_eq]; ring
+    have h_shift_exp : exp' - (j : Int) = out_exp := by rw [hj_eq]; grind
     have h_mem_shift :
         inRoundingInterval (sig' * 10 ^ j) out_exp m q (isIrregular m q) = true := by
       have hs := inRoundingInterval_mul10pow_shift_down sig' j exp' m q (isIrregular m q)
       rw [h_shift_exp] at hs; rw [hs]; exact h_mem
     have h_grid_shift : gridVal (sig' * 10 ^ j) out_exp = gridVal sig' exp' := by
-      rw [gridVal_mul_pow10 sig' j out_exp, hj_eq]; congr 1; ring
+      rw [gridVal_mul_pow10 sig' j out_exp, hj_eq]; congr 1; grind
     -- The shifted competitor is equidistant with out_sig at scale out_exp.
     have h_eqd_shift :
         |magVal m q - gridVal out_sig out_exp|
@@ -988,7 +995,7 @@ private theorem samelen_even_tie_false
                       h_sig'_canon h_cs_canon h_eq2
       refine h_distinct ⟨huniq.1, ?_⟩
       rw [h_ce]
-      have : exp' = out_exp + (j : Int) := by rw [hj_eq]; ring
+      have : exp' = out_exp + (j : Int) := by rw [hj_eq]; grind
       rw [this, huniq.2]
     · -- sig' * 10^j ≠ out_sig: a genuine tie ⇒ consecutive ⇒ opposite parity.
       have h_cons := tie_at_outexp_consecutive m q hm_pos hm_lt hq_lo hq_hi
@@ -1007,21 +1014,21 @@ private theorem samelen_even_tie_false
       have h_j0 : j = 0 := by
         by_contra hj0
         have : 10 ^ j % 2 = 0 := by
-          have : 2 ∣ 10 ^ j := Dvd.dvd.pow (by norm_num) hj0
+          have : 2 ∣ 10 ^ j := Nat.dvd_pow' (by decide) hj0
           omega
         have : (sig' * 10 ^ j) % 2 = 0 := by
-          have h2 : 2 ∣ 10 ^ j := Dvd.dvd.pow (by norm_num) hj0
-          have : 2 ∣ sig' * 10 ^ j := Dvd.dvd.mul_left h2 sig'
+          have h2 : 2 ∣ 10 ^ j := Nat.dvd_pow' (by decide) hj0
+          have : 2 ∣ sig' * 10 ^ j := Nat.dvd_trans h2 (Nat.dvd_mul_left _ _)
           omega
         omega
-      rw [h_j0, pow_zero, Nat.mul_one] at h_shift_odd
+      rw [h_j0, Nat.pow_zero, Nat.mul_one] at h_shift_odd
       omega
   · -- exp' < out_exp: boundary case ⇒ STRICT closer ⇒ contradicts equidistance.
     push_neg at h_ge
     -- mirror shortestUnsigned_clause3_same_len: force exp' = out_exp - 1, t = 0.
     have h_cs_mem : inRoundingInterval cs ce m q (isIrregular m q) = true := by
       have hshift := inRoundingInterval_mul10pow_shift_down cs t (out_exp + t) m q (isIrregular m q)
-      have he2 : (out_exp + (t : Int)) - (t : Int) = out_exp := by ring
+      have he2 : (out_exp + (t : Int)) - (t : Int) = out_exp := by grind
       rw [he2] at hshift; rw [← h_out_sig] at hshift
       rw [h_ce, ← hshift]
       exact shortestUnsigned_mem_rv m q hm_pos hm_lt hq_lo hq_hi
@@ -1088,7 +1095,7 @@ private theorem tie_nine_ten_impossible
     have h2 : cmpScaledMixed.rhs (2 * ((9 : Nat) : Int) + 1) q e
         = 19 * T * N := by
       rw [hT, hN]; unfold cmpScaledMixed.rhs tenPosPow twoNegPow
-      norm_num
+      grind
     unfold Equidistant at h_eqd
     rw [h1, h2] at h_eqd
     exact h_eqd
@@ -1104,54 +1111,70 @@ private theorem tie_nine_ten_impossible
     by_cases h_irr : isIrregular m q = true
     · rw [fourVL_eq_irregular m q e h_irr, hP, hM]
       have : (0 : Int) ≤ (twoPosPow q : Int) * (tenNegPow e : Int) := by
-        positivity
-      nlinarith [this]
+        grind
+      grind
     · rw [fourVL_eq_regular m q e h_irr, hP, hM]
+      grind
   -- Width condition: grid step `4·T·N ≤ 4·P·M`.
   have h_u9 : fourU 9 q e = 36 * T * N := by
-    rw [fourU_eq, hT, hN]; norm_num
+    rw [fourU_eq, hT, hN]; grind
   have h_u10 : fourU 10 q e = 40 * T * N := by
-    rw [fourU_eq, hT, hN]; norm_num
+    rw [fourU_eq, hT, hN]; grind
   have h_vr : fourVR m q e = (4 * (m : Int) + 2) * P * M := by
     rw [fourVR_eq, hP, hM]
   -- From `(4m-2)PM ≤ 36TN`, `40TN ≤ (4m+2)PM`, `2mPM = 19TN`:  `TN ≤ PM`.
-  have h_TN_le_PM : T * N ≤ P * M := by nlinarith [h_left, h_right]
+  have h_TN_le_PM : T * N ≤ P * M := by grind
   -- `2m·PM = 19·TN ≤ 19·PM` ⇒ `2m ≤ 19` ⇒ `m ≤ 9`.
   have h_m_le : (m : Int) ≤ 9 := by
-    nlinarith [h_eq, h_TN_le_PM, mul_pos hP_pos hM_pos, mul_pos hT_pos hN_pos]
+    have hPM_pos : (0 : Int) < P * M := by
+      rw [hP, hM]
+      have h1 := twoPosPow_pos q
+      have h2 := tenNegPow_pos e
+      exact Int.mul_pos (by exact_mod_cast h1) (by exact_mod_cast h2)
+    have h19 : (19 : Int) * (T * N) ≤ 19 * (P * M) := by omega
+    have hprod : (2 * (m : Int)) * (P * M) ≤ 19 * (P * M) := by
+      have he : (2 * (m : Int)) * (P * M) = 19 * (T * N) := by grind
+      omega
+    have := Int.le_of_mul_le_mul_right hprod hPM_pos
+    omega
   have h_m_le9 : m ≤ 9 := by exact_mod_cast h_m_le
   -- LegalIEEE: `m ≤ 9 < 2^52` rules out the normal branch ⇒ `q = -1074`.
   have h_q : q = -1074 := by
     rcases h_legal with ⟨_, _, hq⟩ | ⟨h52, _, _, _⟩
     · exact hq
-    · exfalso; have : (2 : Nat) ^ 52 ≤ 9 := le_trans h52 h_m_le9
-      norm_num at this
+    · exfalso
+      have : (2 : Nat) ^ 52 ≤ 9 := Nat.le_trans h52 h_m_le9
+      omega
   subst h_q
   -- `P = 1`, `N = 2^1074`.
-  have hP1 : P = 1 := by rw [hP]; unfold twoPosPow; norm_num
-  rw [hP1, mul_one] at h_eq
+  have hP1 : P = 1 := by rw [hP]; unfold twoPosPow; grind
+  rw [hP1, Int.mul_one] at h_eq
   -- Split on the sign of `e`.
   by_cases h_e : 0 ≤ e
   · -- `M = 1`, so `2m = 19·T·2^1074 ≥ 38 > 18`.
     have hM1 : M = 1 := by
       rw [hM]; unfold tenNegPow
-      have : ¬ (e < 0) := not_lt.mpr h_e
+      have : ¬ (e < 0) := Int.not_lt.mpr h_e
       simp [this]
-    rw [hM1, mul_one] at h_eq
+    rw [hM1, Int.mul_one] at h_eq
     have hT1 : 1 ≤ T := hT_pos
     have hN2' : (2 : Int) ≤ N := by
       have h : (2 : Nat) ≤ twoNegPow (-1074) := by
         unfold twoNegPow
-        norm_num
-        exact Nat.one_lt_two_pow_iff.mpr (by norm_num)
+        rw [if_pos (by decide : (-1074 : Int) < 0)]
+        exact Nat.one_lt_two_pow_iff.mpr (by decide)
       rw [hN]
-      exact_mod_cast h
-    nlinarith [h_eq, hT1, hN2', h_m_le]
+      exact Int.ofNat_le.mpr h
+    have hTN : (2 : Int) ≤ T * N := by
+      have hmul := Int.mul_le_mul hT1 hN2' (by omega) (by omega)
+      omega
+    have hbridge : 19 * T * N = 19 * (T * N) := Int.mul_assoc 19 T N
+    omega
   · -- `e < 0`: `T = 1`, `M = 10^j` with `j ≥ 1`; 5-adic contradiction.
     push_neg at h_e
     have hT1 : T = 1 := by
       rw [hT]; unfold tenPosPow
-      have : ¬ (e ≥ 0) := not_le.mpr h_e
+      have : ¬ (e ≥ 0) := Int.not_le.mpr h_e
       simp [this]
     rw [hT1] at h_eq
     -- Pass to ℕ, keeping `twoNegPow (-1074) = 2^1074` *folded* (its
@@ -1159,7 +1182,7 @@ private theorem tie_nine_ten_impossible
     set j : Nat := (-e).toNat with hj
     have hj_pos : 1 ≤ j := by
       rw [hj]; omega
-    have h_eq2 : 2 * (m : Int) * M = 19 * N := by linarith [h_eq]
+    have h_eq2 : 2 * (m : Int) * M = 19 * N := by grind
     have h_nat : 2 * m * tenNegPow e = 19 * twoNegPow (-1074) := by
       rw [hM, hN] at h_eq2
       -- Hide `twoNegPow (-1074)` behind a fresh variable so the cast
@@ -1171,13 +1194,16 @@ private theorem tie_nine_ten_impossible
       rw [if_pos h_e, hj]
     have h5 : (5 : Nat) ∣ 19 * twoNegPow (-1074) := by
       rw [← h_nat, h_ten]
-      exact Dvd.dvd.mul_left (dvd_pow (by norm_num) (by omega)) (2 * m)
-    have hp5 : Nat.Prime 5 := by decide
-    rcases (Nat.Prime.dvd_mul hp5).mp h5 with h19 | hpow
-    · omega
-    · unfold twoNegPow at hpow
-      have h52 : (5 : Nat) ∣ 2 := Nat.Prime.dvd_of_dvd_pow hp5 hpow
-      omega
+      exact Nat.dvd_trans (Nat.dvd_pow' (by decide) (by omega)) (Nat.dvd_mul_left _ _)
+    -- 5 is coprime to both 19 and 2^1074: contradiction with the divisibility.
+    have hco : Nat.Coprime 5 (19 * twoNegPow (-1074)) := by
+      apply Nat.Coprime.mul_right
+      · decide
+      · unfold twoNegPow
+        rw [if_pos (by decide : (-1074 : Int) < 0)]
+        exact Nat.Coprime.pow_right _ (by decide)
+    have h51 : (5 : Nat) = 1 := Nat.Coprime.eq_one_of_dvd hco h5
+    omega
 
 set_option maxHeartbeats 800000 in
 /-- **Tie parity in canonical (output) vocabulary.**  In the same-length
@@ -1204,7 +1230,7 @@ private theorem samelen_tie_canonical_even
   by_cases h_t0 : t = 0
   · -- `t = 0`: the raw output IS the canonical significand.
     subst h_t0
-    rw [pow_zero, Nat.mul_one] at h_out_sig
+    rw [Nat.pow_zero, Nat.mul_one] at h_out_sig
     rw [← h_out_sig]
     exact h_out_even
   · -- `t ≥ 1`: the tie configuration is impossible.
@@ -1217,13 +1243,13 @@ private theorem samelen_tie_canonical_even
     · -- Shift the competitor down to `out_exp`.
       set j : Nat := (exp' - out_exp).toNat with hj
       have hj_eq : (j : Int) = exp' - out_exp := Int.toNat_of_nonneg (by omega)
-      have h_shift_exp : exp' - (j : Int) = out_exp := by rw [hj_eq]; ring
+      have h_shift_exp : exp' - (j : Int) = out_exp := by rw [hj_eq]; grind
       have h_mem_shift :
           inRoundingInterval (sig' * 10 ^ j) out_exp m q (isIrregular m q) = true := by
         have hs := inRoundingInterval_mul10pow_shift_down sig' j exp' m q (isIrregular m q)
         rw [h_shift_exp] at hs; rw [hs]; exact h_mem
       have h_grid_shift : gridVal (sig' * 10 ^ j) out_exp = gridVal sig' exp' := by
-        rw [gridVal_mul_pow10 sig' j out_exp, hj_eq]; congr 1; ring
+        rw [gridVal_mul_pow10 sig' j out_exp, hj_eq]; congr 1; grind
       have h_eqd_shift :
           |magVal m q - gridVal out_sig out_exp|
             = |magVal m q - gridVal (sig' * 10 ^ j) out_exp| := by
@@ -1236,7 +1262,7 @@ private theorem samelen_tie_canonical_even
                         h_sig'_canon h_cs_canon h_eq2
         refine h_distinct ⟨huniq.1, ?_⟩
         rw [h_ce]
-        have : exp' = out_exp + (j : Int) := by rw [hj_eq]; ring
+        have : exp' = out_exp + (j : Int) := by rw [hj_eq]; grind
         rw [this, huniq.2]
       · -- Genuine tie ⇒ consecutive at the output scale.
         have h_cons := tie_at_outexp_consecutive m q hm_pos hm_lt hq_lo hq_hi
@@ -1246,16 +1272,16 @@ private theorem samelen_tie_canonical_even
         have h_out_mod : out_sig % 10 = 0 := by
           rw [h_out_sig]
           have : (10 : Nat) ∣ cs * 10 ^ t :=
-            Dvd.dvd.mul_left (dvd_pow_self 10 h_t0) cs
+            Nat.dvd_trans (dvd_pow_self 10 h_t0) (Nat.dvd_mul_left _ _)
           omega
         have h_j0 : j = 0 := by
           by_contra h_jne
           have h_shift_mod : (sig' * 10 ^ j) % 10 = 0 := by
             have : (10 : Nat) ∣ sig' * 10 ^ j :=
-              Dvd.dvd.mul_left (dvd_pow_self 10 h_jne) sig'
+              Nat.dvd_trans (dvd_pow_self 10 h_jne) (Nat.dvd_mul_left _ _)
             omega
           rcases h_cons with h | h <;> omega
-        rw [h_j0, pow_zero, Nat.mul_one] at h_cons h_mem_shift h_eqd_shift
+        rw [h_j0, Nat.pow_zero, Nat.mul_one] at h_cons h_mem_shift h_eqd_shift
         have h_exp'_eq : exp' = out_exp := by omega
         -- Digit-length forcing: only `(cs, out_sig, sig') = (1, 10, 9)` fits.
         set L := decDigitLength cs with hL
@@ -1263,7 +1289,7 @@ private theorem samelen_tie_canonical_even
           rw [h_out_sig]; exact decDigitLength_mul_pow10 cs t h_cs_pos
         have h_out_pos : 1 ≤ out_sig := by
           rw [h_out_sig]
-          exact Nat.mul_pos h_cs_pos (Nat.pow_pos (by norm_num))
+          exact Nat.mul_pos h_cs_pos (Nat.pow_pos (by grind))
         have h_sig'_hi : sig' < 10 ^ L := by
           have := lt_pow10_decDigitLength sig' h_sig'_pos
           rw [h_len] at this; exact this
@@ -1271,7 +1297,7 @@ private theorem samelen_tie_canonical_even
           have := pow10_decDigitLength_pred_le out_sig h_out_pos
           rw [h_dl_out] at this; exact this
         have h_pow_mono : 10 ^ L ≤ 10 ^ (L + t - 1) :=
-          Nat.pow_le_pow_right (by norm_num) (by omega)
+          Nat.pow_le_pow_right (by grind) (by omega)
         rcases h_cons with h_up | h_down
         · -- `sig' = out_sig + 1 ≥ 10^(L+t-1) + 1 > 10^L`: too many digits.
           omega
@@ -1281,14 +1307,14 @@ private theorem samelen_tie_canonical_even
             by_contra h_t1
             have h_t2 : 2 ≤ t := by omega
             have : 10 ^ (L + 1) ≤ 10 ^ (L + t - 1) :=
-              Nat.pow_le_pow_right (by norm_num) (by omega)
+              Nat.pow_le_pow_right (by grind) (by omega)
             have h_strict : 10 ^ L < 10 ^ (L + 1) :=
-              Nat.pow_lt_pow_right (by norm_num) (by omega)
+              Nat.pow_lt_pow_right (by grind) (by omega)
             omega
           subst h_t1
           have h_out_eq : out_sig = 10 ^ L := by omega
           have h_cs10 : cs * 10 = 10 ^ L := by
-            rw [← h_out_eq, h_out_sig, pow_one]
+            rw [← h_out_eq, h_out_sig, Nat.pow_one]
           have hL_pos : 1 ≤ L := decDigitLength_pos cs
           have h_L1 : L = 1 := by
             by_contra h_L1
@@ -1297,17 +1323,17 @@ private theorem samelen_tie_canonical_even
             have h_cs_eq : cs = 10 ^ (L - 1) := by
               have : cs * 10 = 10 ^ (L - 1) * 10 := by
                 rw [h_cs10]
-                conv_lhs => rw [show L = (L - 1) + 1 from by omega]
-                rw [pow_succ]
+                conv => lhs; rw [show L = (L - 1) + 1 from by omega]
+                rw [Nat.pow_succ]
               omega
             have : 10 ^ (L - 1) % 10 = 0 := by
               obtain ⟨i, hi⟩ : ∃ i, L - 1 = i + 1 := ⟨L - 2, by omega⟩
-              rw [hi, pow_succ]; omega
+              rw [hi, Nat.pow_succ]; omega
             rw [h_cs_eq] at h_cs_canon
             exact h_cs_canon this
           have h_cs1 : cs = 1 := by
             rw [h_L1] at h_cs10; omega
-          have h_out10 : out_sig = 10 := by rw [h_out_eq, h_L1]; norm_num
+          have h_out10 : out_sig = 10 := by rw [h_out_eq, h_L1]
           have h_sig'9 : sig' = 9 := by omega
           -- Both `9, 10 ∈ R_v` at `out_exp`, exactly equidistant: impossible.
           have h_mem9 : inRoundingInterval 9 out_exp m q (isIrregular m q) = true := by
@@ -1327,7 +1353,7 @@ private theorem samelen_tie_canonical_even
       push_neg at h_ge
       have h_cs_mem : inRoundingInterval cs ce m q (isIrregular m q) = true := by
         have hshift := inRoundingInterval_mul10pow_shift_down cs t (out_exp + t) m q (isIrregular m q)
-        have he2 : (out_exp + (t : Int)) - (t : Int) = out_exp := by ring
+        have he2 : (out_exp + (t : Int)) - (t : Int) = out_exp := by grind
         rw [he2] at hshift; rw [← h_out_sig] at hshift
         rw [h_ce, ← hshift]
         exact shortestUnsigned_mem_rv m q hm_pos hm_lt hq_lo hq_hi
@@ -1382,7 +1408,7 @@ private theorem Schubfach.correctness_fin_aux (f : _root_.Float)
   rw [← h_d_eq] at h_mk_sign h_mk_sig_ne h_mk_canon h_mk_exp_le h_mk_decomp
   set t : Nat := (d.exponent - out_exp).toNat with h_t
   have h_ce : d.exponent = out_exp + (t : Int) := by
-    rw [h_t, Int.toNat_of_nonneg (by omega)]; ring
+    rw [h_t, Int.toNat_of_nonneg (by omega)]; grind
   have h_out_decomp : out_sig = d.significand * 10 ^ t := h_mk_decomp.symm
   have h_cs_pos : 1 ≤ d.significand := Nat.one_le_iff_ne_zero.mpr h_mk_sig_ne
   -- Shared competitor analysis: any canonical round-tripper `d'` has a
@@ -1601,7 +1627,7 @@ private theorem Schubfach.specOutput_eq_output_nz (f : _root_.Float)
   rw [← h_d_eq] at h_mk_sign h_mk_sig_ne h_mk_canon h_mk_exp_le h_mk_decomp
   set t : Nat := (d.exponent - out_exp).toNat with h_t
   have h_ce : d.exponent = out_exp + (t : Int) := by
-    rw [h_t, Int.toNat_of_nonneg (by omega)]; ring
+    rw [h_t, Int.toNat_of_nonneg (by omega)]; grind
   have h_out_decomp : out_sig = d.significand * 10 ^ t := h_mk_decomp.symm
   have h_cs_pos : 1 ≤ d.significand := Nat.one_le_iff_ne_zero.mpr h_mk_sig_ne
   -- d_star has a nonzero canonical significand (round-trips to nonzero f).
@@ -1631,7 +1657,7 @@ private theorem Schubfach.specOutput_eq_output_nz (f : _root_.Float)
   have h_le2 : decDigitLength d_star.significand ≤ decDigitLength d.significand :=
     h_short d h_canon_d h_rt_d
   have h_len_eq : decDigitLength d.significand = decDigitLength d_star.significand :=
-    le_antisymm h_le1 h_le2
+    Nat.le_antisymm h_le1 h_le2
   -- Step 2: mutual tie-break.
   have h_tb_d := h_tie_d d_star h_canon h_rt h_len_eq.symm
   have h_tb_s := h_tie d h_canon_d h_rt_d h_len_eq
@@ -1649,7 +1675,7 @@ private theorem Schubfach.specOutput_eq_output_nz (f : _root_.Float)
   · -- |d - f| < |d_star - f|.  Combine with h_tb_s.
     exfalso
     rcases h_tb_s with h_eqs' | h_lt_s | ⟨h_eqdist_s, _⟩
-    · exact h_lt_d.ne (by rw [h_eqs'])
+    · exact Rat.ne_of_lt h_lt_d (by rw [h_eqs'])
     · exact absurd (lt_trans h_lt_d h_lt_s) (lt_irrefl _)
     · rw [h_eqdist_s] at h_lt_d; exact lt_irrefl _ h_lt_d
   · -- |d - f| = |d_star - f| and d.significand even.  Combine with h_tb_s.
@@ -1670,9 +1696,9 @@ private theorem Schubfach.specOutput_eq_output_nz (f : _root_.Float)
       -- The raw output parity, from the canonical parity.
       have h_out_even_int : out_sig % 2 = 0 := by
         rcases Nat.eq_zero_or_pos t with ht0 | ht1
-        · rw [h_out_decomp, ht0, pow_zero, Nat.mul_one]; exact h_even_out
-        · have h2 : (2 : Nat) ∣ 10 ^ t := dvd_pow (by norm_num) (by omega)
-          have hY : (2 : Nat) ∣ d.significand * 10 ^ t := Dvd.dvd.mul_left h2 _
+        · rw [h_out_decomp, ht0, Nat.pow_zero, Nat.mul_one]; exact h_even_out
+        · have h2 : (2 : Nat) ∣ 10 ^ t := Nat.dvd_pow' (by decide) (by omega)
+          have hY : (2 : Nat) ∣ d.significand * 10 ^ t := Nat.dvd_trans h2 (Nat.dvd_mul_left _ _)
           rw [h_out_decomp]
           omega
       -- Reduce equidistance to unsigned grid distances.

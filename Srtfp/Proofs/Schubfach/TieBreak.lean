@@ -24,10 +24,7 @@ import Srtfp.Proofs.CorrectnessSpec
 import Srtfp.Proofs.Schubfach.PickNearer
 import Srtfp.Proofs.Schubfach.Minimal
 import Srtfp.Proofs.Clinger
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Algebra.Order.AbsoluteValue.Basic
-import Mathlib.Algebra.Order.Ring.Abs
+import Srtfp.Tactics
 
 namespace Srtfp
 
@@ -55,7 +52,7 @@ private noncomputable def clearFactor (q k : Int) : ℚ :=
 
 private theorem clearFactor_pos (q k : Int) : 0 < clearFactor q k := by
   unfold clearFactor
-  apply mul_pos <;> positivity
+  apply Rat.mul_pos <;> (apply Rat.pow_pos; decide)
 
 /-- `b^q · b^{max(-q,0)} = b^{max(q,0)}` as rationals, for nonzero `b`. -/
 private theorem zpow_split_gen (b : ℚ) (hb : b ≠ 0) (q : Int) :
@@ -63,24 +60,25 @@ private theorem zpow_split_gen (b : ℚ) (hb : b ≠ 0) (q : Int) :
       = b ^ (if q ≥ 0 then q.toNat else 0) := by
   by_cases hq : q < 0
   · rw [if_pos hq, if_neg (by omega : ¬ q ≥ 0)]
-    rw [← zpow_natCast b (-q).toNat, Int.toNat_of_nonneg (by omega : (0:Int) ≤ -q),
-        ← zpow_add₀ hb]
-    simp
+    rw [← Rat.zpow_natCast b (-q).toNat, Int.toNat_of_nonneg (by omega : (0:Int) ≤ -q),
+        ← Rat.zpow_add hb]
+    rw [show q + -q = 0 from by omega, Rat.zpow_zero]
+    exact (Rat.pow_zero b).symm
   · rw [if_neg hq, if_pos (by omega : q ≥ 0)]
-    rw [← zpow_natCast b q.toNat, Int.toNat_of_nonneg (by omega : (0:Int) ≤ q)]
+    rw [← Rat.zpow_natCast b q.toNat, Int.toNat_of_nonneg (by omega : (0:Int) ≤ q)]
     simp
 
 /-- `2^q · 2^{max(-q,0)} = 2^{max(q,0)}` as rationals. -/
 private theorem zpow_two_split (q : Int) :
     (2 : ℚ) ^ q * (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
       = (2 : ℚ) ^ (if q ≥ 0 then q.toNat else 0) :=
-  zpow_split_gen 2 (by norm_num) q
+  zpow_split_gen 2 (by grind) q
 
 /-- `10^k · 10^{max(-k,0)} = 10^{max(k,0)}` as rationals. -/
 private theorem zpow_ten_split (k : Int) :
     (10 : ℚ) ^ k * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)
       = (10 : ℚ) ^ (if k ≥ 0 then k.toNat else 0) :=
-  zpow_split_gen 10 (by norm_num) k
+  zpow_split_gen 10 (by grind) k
 
 /-- Multiplying `(a:ℚ)·2^q` by the clearing factor yields `(lhs : ℚ)`. -/
 private theorem lhs_eq_clear (a : Int) (q k : Int) :
@@ -95,7 +93,7 @@ private theorem lhs_eq_clear (a : Int) (q k : Int) :
           * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0) := by rw [h2]
     _ = (a : ℚ) * (2 : ℚ) ^ q
           * ((2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
-             * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)) := by ring
+             * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)) := by grind
 
 /-- Multiplying `(b:ℚ)·10^k` by the clearing factor yields `(rhs : ℚ)`. -/
 private theorem rhs_eq_clear (b : Int) (q k : Int) :
@@ -110,7 +108,7 @@ private theorem rhs_eq_clear (b : Int) (q k : Int) :
           * (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0) := by rw [h10]
     _ = (b : ℚ) * (10 : ℚ) ^ k
           * ((2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
-             * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)) := by ring
+             * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)) := by grind
 
 /-- **(A) ℚ bridge, `<` direction.** The integer cleared comparison equals
 the rational comparison `(a:ℚ)·2^q < (b:ℚ)·10^k`. -/
@@ -131,7 +129,7 @@ theorem cmpScaledMixed_lhs_eq_rhs_iff_rat (a : Int) (q : Int) (b : Int) (k : Int
         ↔ (cmpScaledMixed.lhs a q k : ℚ) = (cmpScaledMixed.rhs b q k : ℚ) from
         Int.cast_inj.symm]
   rw [lhs_eq_clear, rhs_eq_clear]
-  exact mul_left_inj' (ne_of_gt (clearFactor_pos q k))
+  exact mul_left_inj' (Rat.ne_of_gt (clearFactor_pos q k))
 
 /-- **(A) ℚ bridge, `>` direction.** -/
 theorem cmpScaledMixed_lhs_gt_rhs_iff_rat (a : Int) (q : Int) (b : Int) (k : Int) :
@@ -159,9 +157,9 @@ def gridVal (s : Nat) (k : Int) : ℚ := (s : ℚ) * (10 : ℚ) ^ k
 
 theorem gridVal_lt_succ (s : Nat) (k : Int) : gridVal s k < gridVal (s + 1) k := by
   unfold gridVal
-  have hpos : (0 : ℚ) < (10 : ℚ) ^ k := zpow_pos (by norm_num) k
+  have hpos : (0 : ℚ) < (10 : ℚ) ^ k := Rat.zpow_pos (by decide)
   push_cast
-  have : (s : ℚ) < (s : ℚ) + 1 := by linarith
+  have : (s : ℚ) < (s : ℚ) + 1 := by grind
   exact (mul_lt_mul_iff_of_pos_right hpos).mpr this
 
 /-- **Scale-shift of a grid point.** Multiplying the significand by `10^j` and
@@ -171,49 +169,66 @@ theorem gridVal_mul_pow10 (s : Nat) (j : Nat) (k : Int) :
     gridVal (s * 10 ^ j) k = gridVal s (k + (j : Int)) := by
   unfold gridVal
   push_cast
-  rw [zpow_add₀ (by norm_num : (10 : ℚ) ≠ 0) k (j : Int), zpow_natCast]
-  ring
+  rw [Rat.zpow_add (by grind : (10 : ℚ) ≠ 0) k (j : Int), Rat.zpow_natCast]
+  grind
 
 /-- Midpoint identity: `gridVal s k + gridVal (s+1) k = (2s+1)·10^k`. -/
 private theorem gridVal_add_succ (s : Nat) (k : Int) :
     gridVal s k + gridVal (s + 1) k = ((2 * (s : Int) + 1 : Int) : ℚ) * (10 : ℚ) ^ k := by
-  unfold gridVal; push_cast; ring
+  unfold gridVal; push_cast; grind
 
 /-- `2·magVal = (2m)·2^q` as the bridge's left-hand side. -/
 private theorem two_magVal_eq (m : Nat) (q : Int) :
     2 * magVal m q = ((2 * (m : Int) : Int) : ℚ) * (2 : ℚ) ^ q := by
-  unfold magVal; push_cast; ring
+  unfold magVal; push_cast; grind
 
 /-- **Elementary closeness fact.** For `u < w`, `v` is strictly closer to
 `u` than to `w` iff `v` is strictly below the midpoint, i.e. `2v < u + w`. -/
 theorem abs_lt_abs_iff_two_lt (v u w : ℚ) (h : u < w) :
     |v - u| < |v - w| ↔ 2 * v < u + w := by
   rw [abs_lt_iff_mul_self_lt]
+  have hkey : (v - w) * (v - w) - (v - u) * (v - u) = (w - u) * ((u + w) - 2 * v) := by
+    grind
+  have hwu : (0 : ℚ) < w - u := by grind
   constructor
-  · intro hsq; nlinarith [hsq, sub_pos.mpr h]
-  · intro hmid; nlinarith [hmid, sub_pos.mpr h]
+  · intro hsq
+    have hpos : 0 < (w - u) * ((u + w) - 2 * v) := by grind
+    have := (Rat.mul_pos_iff_of_pos_left hwu).mp hpos
+    grind
+  · intro hmid
+    have hX : (0 : ℚ) < (u + w) - 2 * v := by grind
+    have := Rat.mul_pos hwu hX
+    grind
 
 /-- Symmetric: closer to `w` iff above the midpoint. -/
 theorem abs_gt_abs_iff_two_gt (v u w : ℚ) (h : u < w) :
     |v - w| < |v - u| ↔ u + w < 2 * v := by
   rw [abs_lt_iff_mul_self_lt]
+  have hkey : (v - u) * (v - u) - (v - w) * (v - w) = (w - u) * (2 * v - (u + w)) := by
+    grind
+  have hwu : (0 : ℚ) < w - u := by grind
   constructor
-  · intro hsq; nlinarith [hsq, sub_pos.mpr h]
-  · intro hmid; nlinarith [hmid, sub_pos.mpr h]
+  · intro hsq
+    have hpos : 0 < (w - u) * (2 * v - (u + w)) := by grind
+    have := (Rat.mul_pos_iff_of_pos_left hwu).mp hpos
+    grind
+  · intro hmid
+    have hX : (0 : ℚ) < 2 * v - (u + w) := by grind
+    have := Rat.mul_pos hwu hX
+    grind
 
 /-- Equidistance iff exactly at the midpoint. -/
 theorem abs_eq_abs_iff_two_eq (v u w : ℚ) (h : u < w) :
     |v - u| = |v - w| ↔ 2 * v = u + w := by
   rw [abs_eq_iff_mul_self_eq]
+  have hwu : w - u ≠ 0 := by grind
   constructor
   · intro hsq
-    have hwu : w - u ≠ 0 := ne_of_gt (sub_pos.mpr h)
-    have : (2 * v - (u + w)) * (w - u) = 0 := by ring_nf; nlinarith [hsq]
-    have := mul_eq_zero.mp this
-    rcases this with h1 | h1
-    · linarith
+    have hfact : (2 * v - (u + w)) * (w - u) = 0 := by grind
+    rcases Rat.mul_eq_zero.mp hfact with h1 | h1
+    · grind
     · exact absurd h1 hwu
-  · intro hmid; nlinarith [hmid]
+  · intro hmid; grind
 
 /-- **(B) CloserToLower bridge.** `v = magVal m q` is strictly closer to
 `gridVal s k` than to `gridVal (s+1) k` iff `CloserToLower s k m q`. -/
@@ -303,13 +318,11 @@ private theorem gridVal_le_magVal_iff (s : Nat) (k : Int) (m : Nat) (q : Int) :
     -- ¬((4m)·2^q < (4s)·10^k) ⇒ (4s)·10^k ≤ (4m)·2^q ⇒ s·10^k ≤ m·2^q
     rw [not_lt] at h
     push_cast at h
-    nlinarith [h, zpow_pos (show (0:ℚ) < 10 by norm_num) k,
-               zpow_pos (show (0:ℚ) < 2 by norm_num) q]
+    grind
   · intro h
     rw [not_lt]
     push_cast
-    nlinarith [h, zpow_pos (show (0:ℚ) < 10 by norm_num) k,
-               zpow_pos (show (0:ℚ) < 2 by norm_num) q]
+    grind
 
 /-- The value `v = magVal m q` is bracketed by its floor neighbour:
 `gridVal s k ≤ v < gridVal (s+1) k` for `s = shiftedSig m q k`. -/
@@ -322,7 +335,7 @@ theorem magVal_bracket (m : Nat) (q : Int) (k : Int) (s : Nat)
     have h := fourV_lt_fourW s m q k hs
     -- fourV < fourW s = fourU (s+1).
     have hfw : fourW s q k = fourU (s + 1) q k := by
-      rw [fourW_eq, fourU_eq]; push_cast; ring
+      rw [fourW_eq, fourU_eq]; push_cast; grind
     rw [hfw] at h
     -- fourV < fourU (s+1) ⇒ ¬ (fourU(s+1) ≤ fourV) ⇒ ¬ (gridVal(s+1) ≤ magVal) ⇒ magVal < gridVal(s+1).
     have h2 : ¬ (gridVal (s + 1) k ≤ magVal m q) := by
@@ -338,41 +351,45 @@ theorem grid_far_of_outside (m : Nat) (q : Int) (k : Int) (s sig' : Nat)
     (sig' + 1 ≤ s → |magVal m q - gridVal s k| < |magVal m q - gridVal sig' k|)
       ∧ (s + 2 ≤ sig' → |magVal m q - gridVal (s + 1) k| < |magVal m q - gridVal sig' k|) := by
   obtain ⟨h_lo, h_hi⟩ := magVal_bracket m q k s hs
-  have hstep_pos : (0 : ℚ) < (10 : ℚ) ^ k := zpow_pos (by norm_num) k
+  have hstep_pos : (0 : ℚ) < (10 : ℚ) ^ k := Rat.zpow_pos (by decide)
   refine ⟨?_, ?_⟩
   · intro h_below
     -- sig' ≤ s - 1, so gridVal sig' k ≤ gridVal s k - 10^k.
     have h_sig_le : gridVal sig' k ≤ gridVal s k - (10 : ℚ) ^ k := by
       have h1 : gridVal s k - gridVal sig' k = ((s : ℚ) - (sig' : ℚ)) * (10:ℚ)^k := by
-        unfold gridVal; ring
+        unfold gridVal; grind
       have hsig : (1 : ℚ) ≤ (s : ℚ) - (sig' : ℚ) := by
         have : (sig' : ℚ) + 1 ≤ (s : ℚ) := by exact_mod_cast h_below
-        linarith
-      nlinarith [h1, mul_le_mul_of_nonneg_right hsig (le_of_lt hstep_pos)]
+        grind
+      have hmono : 1 * (10:ℚ)^k ≤ ((s : ℚ) - (sig' : ℚ)) * (10:ℚ)^k :=
+        Rat.mul_le_mul_of_nonneg_right hsig (Rat.le_of_lt hstep_pos)
+      grind
     have h_abs_sig : |magVal m q - gridVal sig' k| = magVal m q - gridVal sig' k :=
-      abs_of_nonneg (by linarith)
+      abs_of_nonneg (by grind)
     have h_abs_s : |magVal m q - gridVal s k| = magVal m q - gridVal s k :=
-      abs_of_nonneg (by linarith)
-    rw [h_abs_s, h_abs_sig]; linarith
+      abs_of_nonneg (by grind)
+    rw [h_abs_s, h_abs_sig]; grind
   · intro h_above
     -- sig' ≥ s + 2, so gridVal sig' k ≥ gridVal (s+1) k + 10^k.
     have h_sig_ge : gridVal (s + 1) k + (10 : ℚ) ^ k ≤ gridVal sig' k := by
       have h1 : gridVal sig' k - gridVal (s + 1) k
           = ((sig' : ℚ) - ((s : ℚ) + 1)) * (10:ℚ)^k := by
-        unfold gridVal; push_cast; ring
+        unfold gridVal; push_cast; grind
       have hsig : (1 : ℚ) ≤ (sig' : ℚ) - ((s : ℚ) + 1) := by
         have : ((s : ℚ) + 1) + 1 ≤ (sig' : ℚ) := by exact_mod_cast h_above
-        linarith
-      nlinarith [h1, mul_le_mul_of_nonneg_right hsig (le_of_lt hstep_pos)]
+        grind
+      have hmono : 1 * (10:ℚ)^k ≤ ((sig' : ℚ) - ((s : ℚ) + 1)) * (10:ℚ)^k :=
+        Rat.mul_le_mul_of_nonneg_right hsig (Rat.le_of_lt hstep_pos)
+      grind
     have h_s1_val : gridVal (s + 1) k = gridVal s k + (10:ℚ)^k := by
-      unfold gridVal; push_cast; ring
-    have h_v_lt_sig : magVal m q < gridVal sig' k := by linarith
+      unfold gridVal; push_cast; grind
+    have h_v_lt_sig : magVal m q < gridVal sig' k := by grind
     have h_v_lt_s1 : magVal m q < gridVal (s + 1) k := h_hi
     have h_abs_sig : |magVal m q - gridVal sig' k| = gridVal sig' k - magVal m q := by
-      rw [abs_of_nonpos (by linarith)]; ring
+      rw [abs_of_nonpos (by grind)]; grind
     have h_abs_s1 : |magVal m q - gridVal (s + 1) k| = gridVal (s + 1) k - magVal m q := by
-      rw [abs_of_nonpos (by linarith)]; ring
-    rw [h_abs_s1, h_abs_sig]; linarith
+      rw [abs_of_nonpos (by grind)]; grind
+    rw [h_abs_s1, h_abs_sig]; grind
 
 /-! ## (C+E) Scale-K tie-break: the unsigned clause (3)
 
@@ -559,7 +576,7 @@ def signFactor (s : Bool) : ℚ := if s then -1 else 1
 
 theorem toRat_eq_signFactor_gridVal (d : Decimal) :
     d.toRat = signFactor d.sign * gridVal d.significand d.exponent := by
-  unfold Decimal.toRat signFactor gridVal; ring
+  unfold Decimal.toRat signFactor gridVal; grind
 
 /-- The exact value is unchanged by canonicalisation: for `sig ≠ 0`,
 `(mk' sign sig exp).toRat = signFactor sign · gridVal sig exp`. -/
@@ -573,15 +590,15 @@ theorem toRat_mk' (sign : Bool) (sig : Nat) (exp : Int) (h : sig ≠ 0) :
   -- h_val : d.significand * 10 ^ (d.exponent - exp).toNat = sig
   set j : Nat := (d.exponent - exp).toNat with hj
   have h_j_cast : (j : Int) = d.exponent - exp := Int.toNat_of_nonneg (by omega)
-  have h_exp_split : d.exponent = (j : Int) + exp := by rw [h_j_cast]; ring
+  have h_exp_split : d.exponent = (j : Int) + exp := by rw [h_j_cast]; grind
   -- gridVal d.sig d.exp = (d.sig : ℚ)·10^(j+exp) = (d.sig·10^j : ℚ)·10^exp = sig·10^exp.
   unfold gridVal
   have hcast : ((sig : Nat) : ℚ) = ((d.significand * 10 ^ j : Nat) : ℚ) := by
     rw [h_val]
   rw [hcast, h_exp_split]
   push_cast
-  rw [zpow_add₀ (by norm_num : (10:ℚ) ≠ 0), zpow_natCast]
-  ring
+  rw [Rat.zpow_add (by grind : (10:ℚ) ≠ 0), Rat.zpow_natCast]
+  grind
 
 /-! ## (F) Sign handling
 
@@ -639,7 +656,7 @@ theorem abs_signFactor_sub (sgn : Bool) (a b : ℚ) :
   · simp
   · -- (-1)*a - (-1)*b = -(a-b); |-(a-b)| = |a-b|.
     rw [show ((if true then -1 else 1 : ℚ)) = -1 from rfl]
-    rw [show (-1 : ℚ) * a - (-1) * b = -(a - b) from by ring, abs_neg]
+    rw [show (-1 : ℚ) * a - (-1) * b = -(a - b) from by grind, abs_neg]
 
 /-- **Signed-distance reduction.** For a decimal `d'` whose sign matches
 `(decode f).sign`, the signed clause-(3) distance reduces to the unsigned
@@ -657,13 +674,13 @@ theorem toRat_dist_eq_grid_dist (d' : Decimal) (f : _root_.Float)
         = signFactor (Srtfp.Float.decode f).sign
             * (gridVal d'.significand d'.exponent
                - magVal (Srtfp.Float.decode f).m (Srtfp.Float.decode f).q) from by
-        ring]
+        grind]
   rw [show signFactor (Srtfp.Float.decode f).sign
             * (gridVal d'.significand d'.exponent
                - magVal (Srtfp.Float.decode f).m (Srtfp.Float.decode f).q)
         = signFactor (Srtfp.Float.decode f).sign * gridVal d'.significand d'.exponent
           - signFactor (Srtfp.Float.decode f).sign
-            * magVal (Srtfp.Float.decode f).m (Srtfp.Float.decode f).q from by ring]
+            * magVal (Srtfp.Float.decode f).m (Srtfp.Float.decode f).q from by grind]
   rw [abs_signFactor_sub, abs_sub_comm]
 
 end Schubfach

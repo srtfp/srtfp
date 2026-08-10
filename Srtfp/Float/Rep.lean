@@ -253,7 +253,7 @@ theorem Equiv.symm {a b : FloatRep} (h : Equiv a b) : Equiv b a := by
     ⇒ n_a · 2^d_c · 2^d_b = n_c · 2^d_a · 2^d_b
     ⇒ n_a · 2^d_c = n_c · 2^d_a            (cancel 2^d_b ≠ 0).
 
-   Without `ring`, we chain the rearrangements as a `calc` block. -/
+   Without `grind`, we chain the rearrangements as a `calc` block. -/
 theorem Equiv.trans {a b c : FloatRep}
     (hab : Equiv a b) (hbc : Equiv b c) : Equiv a c := by
   unfold Equiv at hab hbc ⊢

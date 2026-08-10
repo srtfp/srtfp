@@ -21,6 +21,7 @@ import Srtfp.Schubfach.Perf.Uint64Kernel
 import Srtfp.Schubfach.Perf.Uint64Bridge
 import Srtfp.Schubfach.KernelCorrectness
 import Srtfp.Schubfach.Perf.TableInvariant192
+import Srtfp.Tactics
 
 namespace Srtfp.Schubfach
 
@@ -43,8 +44,7 @@ theorem quad256Nat_lt (hi midHi midLo lo : UInt64) :
   have h192 : (2 : Nat) ^ 192 = 2 ^ 64 * (2 ^ 64 * 2 ^ 64) := by decide
   have h128 : (2 : Nat) ^ 128 = 2 ^ 64 * 2 ^ 64 := by decide
   have h256 : (2 : Nat) ^ 256 = 2 ^ 64 * (2 ^ 64 * (2 ^ 64 * 2 ^ 64)) := by decide
-  nlinarith [hHi, hMH, hML, hLo, Nat.two_pow_pos 64,
-              h192, h128, h256]
+  grind
 
 /-! ## 4-limb mul correctness via `mul192_b_g_toNat` + shift
 
@@ -274,7 +274,7 @@ theorem shiftedSig_u192_kernel_mul_eq
   have hMG_eq : mU.toNat * (gHi.toNat * 2 ^ 128 + gMid.toNat * 2 ^ 64 + gLo.toNat)
                   = γ * 2 ^ 128 + β * 2 ^ 64 + α := by
     show mU.toNat * (gHi.toNat * 2 ^ 128 + gMid.toNat * 2 ^ 64 + gLo.toNat) = _
-    ring
+    grind
   -- Goal: quad256Nat qHi qMidHi qMidLo qLo
   --        = (γHi · 2^64 + γLo) · 2^128 + (βHi · 2^64 + βLo) · 2^64 + (αHi · 2^64 + αLo)
   -- Drive everything to a quad256Nat in concrete UInt64 toNat form.
@@ -298,24 +298,18 @@ theorem shiftedSig_u192_kernel_mul_eq
   have hcMid1_pow : cMid1 * 2 ^ 64 = c1.toNat * 2 ^ 128 := by
     rw [hcMid1_def, hc1_eq']
     by_cases h : αHi + βLo < 2 ^ 64
-    · rw [if_pos h, if_pos h]; ring
+    · rw [if_pos h, if_pos h]
     · rw [if_neg h, if_neg h]
-      have : (2 : Nat) ^ 64 * 2 ^ 64 = 2 ^ 128 := by decide
-      linarith
   have hcMid2a_pow : cMid2a * 2 ^ 128 = c2a.toNat * 2 ^ 192 := by
     rw [hcMid2a_def, hc2a_eq']
     by_cases h : βHi + γLo < 2 ^ 64
-    · rw [if_pos h, if_pos h]; ring
+    · rw [if_pos h, if_pos h]
     · rw [if_neg h, if_neg h]
-      have : (2 : Nat) ^ 64 * 2 ^ 128 = 2 ^ 192 := by decide
-      linarith
   have hcMid2b_pow : cMid2b * 2 ^ 128 = c2b.toNat * 2 ^ 192 := by
     rw [hcMid2b_def, hc2b_eq]
     by_cases h : s2a.toNat + c1.toNat < 2 ^ 64
-    · rw [if_pos h, if_pos h]; ring
+    · rw [if_pos h, if_pos h]
     · rw [if_neg h, if_neg h]
-      have : (2 : Nat) ^ 64 * 2 ^ 128 = 2 ^ 192 := by decide
-      linarith
   -- qMidLo = s1; qMidHi = s2b.
   have hqML_eq : qMidLo.toNat = s1.toNat := rfl
   have hqMH_eq : qMidHi.toNat = s2b.toNat := rfl
@@ -331,19 +325,19 @@ theorem shiftedSig_u192_kernel_mul_eq
     rw [hs2a_toNat_eq]
   have eq3 : (s2b.toNat + cMid2b) * 2 ^ 128 = (s2a.toNat + c1.toNat) * 2 ^ 128 := by
     rw [hs2b_toNat_eq]
-  -- Expand eq2, eq3 using ring distribution, then chain.
+  -- Expand eq2, eq3 using grind distribution, then chain.
   have eq2' : s2a.toNat * 2 ^ 128 + cMid2a * 2 ^ 128 = βHi * 2 ^ 128 + γLo * 2 ^ 128 := by
-    have h1 : (s2a.toNat + cMid2a) * 2 ^ 128 = s2a.toNat * 2 ^ 128 + cMid2a * 2 ^ 128 := by ring
-    have h2 : (βHi + γLo) * 2 ^ 128 = βHi * 2 ^ 128 + γLo * 2 ^ 128 := by ring
+    have h1 : (s2a.toNat + cMid2a) * 2 ^ 128 = s2a.toNat * 2 ^ 128 + cMid2a * 2 ^ 128 := by grind
+    have h2 : (βHi + γLo) * 2 ^ 128 = βHi * 2 ^ 128 + γLo * 2 ^ 128 := by grind
     rw [h1] at eq2; rw [h2] at eq2; exact eq2
   have eq3' : s2b.toNat * 2 ^ 128 + cMid2b * 2 ^ 128
                 = s2a.toNat * 2 ^ 128 + c1.toNat * 2 ^ 128 := by
-    have h1 : (s2b.toNat + cMid2b) * 2 ^ 128 = s2b.toNat * 2 ^ 128 + cMid2b * 2 ^ 128 := by ring
-    have h2 : (s2a.toNat + c1.toNat) * 2 ^ 128 = s2a.toNat * 2 ^ 128 + c1.toNat * 2 ^ 128 := by ring
+    have h1 : (s2b.toNat + cMid2b) * 2 ^ 128 = s2b.toNat * 2 ^ 128 + cMid2b * 2 ^ 128 := by grind
+    have h2 : (s2a.toNat + c1.toNat) * 2 ^ 128 = s2a.toNat * 2 ^ 128 + c1.toNat * 2 ^ 128 := by grind
     rw [h1] at eq3; rw [h2] at eq3; exact eq3
   have eq1' : s1.toNat * 2 ^ 64 + cMid1 * 2 ^ 64 = αHi * 2 ^ 64 + βLo * 2 ^ 64 := by
-    have h1 : (s1.toNat + cMid1) * 2 ^ 64 = s1.toNat * 2 ^ 64 + cMid1 * 2 ^ 64 := by ring
-    have h2 : (αHi + βLo) * 2 ^ 64 = αHi * 2 ^ 64 + βLo * 2 ^ 64 := by ring
+    have h1 : (s1.toNat + cMid1) * 2 ^ 64 = s1.toNat * 2 ^ 64 + cMid1 * 2 ^ 64 := by grind
+    have h2 : (αHi + βLo) * 2 ^ 64 = αHi * 2 ^ 64 + βLo * 2 ^ 64 := by grind
     rw [h1] at eq1; rw [h2] at eq1; exact eq1
   -- Substitute power-aligned carries.
   rw [hcMid2a_pow] at eq2'
@@ -365,22 +359,22 @@ theorem shiftedSig_u192_kernel_mul_eq
   -- omega closes given the three equalities.
   have hPow1 : (γHi * 2 ^ 64 + γLo) * 2 ^ 128 = γHi * 2 ^ 192 + γLo * 2 ^ 128 := by
     have : (γHi * 2 ^ 64) * 2 ^ 128 = γHi * 2 ^ 192 := by
-      have : (γHi * 2 ^ 64) * 2 ^ 128 = γHi * (2 ^ 64 * 2 ^ 128) := by ring
+      have : (γHi * 2 ^ 64) * 2 ^ 128 = γHi * (2 ^ 64 * 2 ^ 128) := by grind
       rw [this, show (2 : Nat) ^ 64 * 2 ^ 128 = 2 ^ 192 from by decide]
-    linarith
+    grind
   have hPow2 : (βHi * 2 ^ 64 + βLo) * 2 ^ 64 = βHi * 2 ^ 128 + βLo * 2 ^ 64 := by
     have : (βHi * 2 ^ 64) * 2 ^ 64 = βHi * 2 ^ 128 := by
-      have : (βHi * 2 ^ 64) * 2 ^ 64 = βHi * (2 ^ 64 * 2 ^ 64) := by ring
+      have : (βHi * 2 ^ 64) * 2 ^ 64 = βHi * (2 ^ 64 * 2 ^ 64) := by grind
       rw [this, show (2 : Nat) ^ 64 * 2 ^ 64 = 2 ^ 128 from by decide]
-    linarith
+    grind
   have hPow3 : (γHi + (c2a.toNat + c2b.toNat)) * 2 ^ 192
-                = γHi * 2 ^ 192 + c2a.toNat * 2 ^ 192 + c2b.toNat * 2 ^ 192 := by ring
+                = γHi * 2 ^ 192 + c2a.toNat * 2 ^ 192 + c2b.toNat * 2 ^ 192 := by grind
   rw [hPow1, hPow2, hPow3]
   -- Goal:
   --   γHi · 2^192 + c2a·2^192 + c2b·2^192 + s2b·2^128 + s1·2^64 + αLo
   --   = γHi · 2^192 + γLo · 2^128 + βHi · 2^128 + βLo · 2^64 + αHi · 2^64 + αLo
   -- With eq1', eq2', eq3' as linear equations, omega closes.
-  linarith [eq1', eq2', eq3']
+  grind
 
 /-! ## 256-bit right-shift extraction
 
@@ -398,7 +392,7 @@ triple part.
 theorem quad256Nat_split (qHi qMidHi qMidLo qLo : UInt64) :
     quad256Nat qHi qMidHi qMidLo qLo
       = qHi.toNat * 2 ^ 192 + triple192Nat qMidHi qMidLo qLo := by
-  unfold quad256Nat triple192Nat; ring
+  unfold quad256Nat triple192Nat; grind
 
 /-- Hi-branch (`s ∈ [192, 256)`): the kernel's `qHi >>> (s - 192)` equals
     `quad256Nat / 2^s.toNat`, provided `qHi.toNat < 2^(256 - s)`. -/
@@ -420,7 +414,7 @@ theorem shift_kernel256_hi_eq
       have h264 : UInt64.size = 2 ^ 64 := rfl
       rw [h264]; omega]
   have hqHi_shr : (qHi >>> s64).toNat = qHi.toNat / 2 ^ s64.toNat := by
-    conv_lhs => rw [hs64_inj]
+    conv => lhs; rw [hs64_inj]
     exact UInt64_shr_toNat_lt qHi s64.toNat hs64_lt_64
   rw [hqHi_shr, hs64_toNat]
   rw [quad256Nat_split]
@@ -431,7 +425,7 @@ theorem shift_kernel256_hi_eq
   rw [hs_eq, ← Nat.div_div_eq_div_mul]
   -- Goal: qHi.toNat / 2^(s-192) = ((qHi · 2^192 + triple) / 2^192) / 2^(s-192)
   rw [show qHi.toNat * 2 ^ 192 + triple192Nat qMidHi qMidLo qLo
-        = triple192Nat qMidHi qMidLo qLo + qHi.toNat * 2 ^ 192 from by ring]
+        = triple192Nat qMidHi qMidLo qLo + qHi.toNat * 2 ^ 192 from by grind]
   rw [Nat.add_mul_div_right _ _ (Nat.two_pow_pos 192)]
   rw [Nat.div_eq_of_lt hTriple_lt, Nat.zero_add]
 
@@ -500,7 +494,7 @@ theorem shift_kernel256_mid_eq
   -- Cleaner: use that the only relevant bits for / 2^sLift are bits at positions ≥ sLift,
   -- which only depend on qHi, qMidHi (since sLift ≥ 64).
   rw [hPow_s]
-  rw [show (2 ^ sLift.toNat * 2 ^ 64 : Nat) = 2 ^ 64 * 2 ^ sLift.toNat by ring]
+  rw [show (2 ^ sLift.toNat * 2 ^ 64 : Nat) = 2 ^ 64 * 2 ^ sLift.toNat by grind]
   rw [← Nat.div_div_eq_div_mul]
   -- LHS: (qHi · 2^128 + qMidHi · 2^64 + qLo) / 2^sLift.toNat
   -- RHS: (qHi · 2^192 + qMidHi · 2^128 + qMidLo · 2^64 + qLo) / 2^64 / 2^sLift.toNat
@@ -514,8 +508,8 @@ theorem shift_kernel256_mid_eq
     have h64_64 : (2 : Nat) ^ 64 * 2 ^ 64 = 2 ^ 128 := by decide
     have : (qHi.toNat * 2 ^ 128 + qMidHi.toNat * 2 ^ 64 + qMidLo.toNat) * 2 ^ 64
             = qHi.toNat * (2 ^ 128 * 2 ^ 64) + qMidHi.toNat * (2 ^ 64 * 2 ^ 64)
-                + qMidLo.toNat * 2 ^ 64 := by ring
-    rw [this, h128_64, h64_64]; ring
+                + qMidLo.toNat * 2 ^ 64 := by grind
+    rw [this, h128_64, h64_64]; grind
   rw [hRearr_inner]
   rw [Nat.add_mul_div_right _ _ (Nat.two_pow_pos 64)]
   rw [Nat.div_eq_of_lt hQLo_lt, Nat.zero_add]
@@ -537,13 +531,13 @@ theorem shift_kernel256_mid_eq
         = qLo.toNat + M * 2 ^ 64 := by
     rw [hM_def]
     have h128_64 : (2 : Nat) ^ 128 = 2 ^ 64 * 2 ^ 64 := by decide
-    rw [h128_64]; ring
+    rw [h128_64]; grind
   have hRHS_eq :
       qHi.toNat * 2 ^ 128 + qMidHi.toNat * 2 ^ 64 + qMidLo.toNat
         = qMidLo.toNat + M * 2 ^ 64 := by
     rw [hM_def]
     have h128_64 : (2 : Nat) ^ 128 = 2 ^ 64 * 2 ^ 64 := by decide
-    rw [h128_64]; ring
+    rw [h128_64]; grind
   rw [hLHS_eq, hRHS_eq]
   -- Now: (qLo + M · 2^64) / 2^sLift = (qMidLo + M · 2^64) / 2^sLift.
   -- 2^sLift = 2^64 · 2^(sLift - 64).  Divide twice.
@@ -578,7 +572,7 @@ theorem shiftedSig_slack_bound_192
   -- Hence (2^191 - 1) · 10^kPos · 2^hNeg < 10^kNeg · 2^hPos.  Then 2^190 ≤ 2^191 - 1.
   have h1 : 2 ^ 191 * (10 ^ kPos * 2 ^ hNeg) ≤ g * 10 ^ kPos * 2 ^ hNeg := by
     have := Nat.mul_le_mul_right (10 ^ kPos * 2 ^ hNeg) hg
-    have hrw2 : g * (10 ^ kPos * 2 ^ hNeg) = g * 10 ^ kPos * 2 ^ hNeg := by ring
+    have hrw2 : g * (10 ^ kPos * 2 ^ hNeg) = g * 10 ^ kPos * 2 ^ hNeg := by grind
     rw [hrw2] at this; exact this
   have h2 : 2 ^ 191 * (10 ^ kPos * 2 ^ hNeg) < 10 ^ kNeg * 2 ^ hPos + 10 ^ kPos * 2 ^ hNeg :=
     Nat.lt_of_le_of_lt h1 hHi
@@ -602,12 +596,12 @@ theorem shiftedSig_slack_bound_192
                 ≤ m * 2 ^ qNeg * (10 ^ kNeg * 2 ^ hPos) :=
     Nat.mul_le_mul_left _ hWeak
   have hLHS_eq : m * 2 ^ qNeg * (2 ^ 190 * (10 ^ kPos * 2 ^ hNeg))
-                  = m * (2 ^ qNeg * 10 ^ kPos) * 2 ^ 190 * 2 ^ hNeg := by ring
+                  = m * (2 ^ qNeg * 10 ^ kPos) * 2 ^ 190 * 2 ^ hNeg := by grind
   have hRHS_eq : m * 2 ^ qNeg * (10 ^ kNeg * 2 ^ hPos)
                   = m * 2 ^ qPos * 10 ^ kNeg * 2 ^ s * 2 ^ hNeg := by
     have hMul' : m * 2 ^ qNeg * (10 ^ kNeg * 2 ^ hPos)
-                  = m * 10 ^ kNeg * (2 ^ qNeg * 2 ^ hPos) := by ring
-    rw [hMul', ← hRegroup]; ring
+                  = m * 10 ^ kNeg * (2 ^ qNeg * 2 ^ hPos) := by grind
+    rw [hMul', ← hRegroup]; grind
   rw [hLHS_eq, hRHS_eq] at hMul
   exact Nat.le_of_mul_le_mul_right hMul (Nat.two_pow_pos _)
 
@@ -749,7 +743,7 @@ theorem shiftedSig_v4_eq_widened_core
         have hh_neg : ¬ h_t < 0 := by omega
         have hhtoNat : (h_t.toNat : Int) = h_t := Int.toNat_of_nonneg hh_nn
         rw [if_pos hh_nn, if_neg hh_neg]
-        rw [hqtoNat, hhtoNat]; ring
+        rw [hqtoNat, hhtoNat]; grind
       · push_neg at hq
         have hq_lt : q < 0 := hq
         have hq_nn : ¬ q ≥ 0 := by omega
@@ -760,12 +754,12 @@ theorem shiftedSig_v4_eq_widened_core
         · have hh_neg : ¬ h_t < 0 := by omega
           have hhtoNat : (h_t.toNat : Int) = h_t := Int.toNat_of_nonneg hh
           rw [if_pos hh, if_neg hh_neg]
-          rw [hhtoNat]; push_cast; ring
+          rw [hhtoNat]; push_cast; grind
         · push_neg at hh
           have hh_nn : ¬ h_t ≥ 0 := by omega
           have hhtoNat : ((-h_t).toNat : Int) = -h_t := Int.toNat_of_nonneg (by omega)
           rw [if_neg hh_nn, if_pos hh]
-          rw [hhtoNat]; push_cast; ring
+          rw [hhtoNat]; push_cast; grind
     have hL : ((shiftAmt.toNat + qPos + hNeg : Nat) : Int)
                 = ((qNeg + hPos : Nat) : Int) := by push_cast; omega
     exact_mod_cast hL
@@ -780,7 +774,7 @@ theorem shiftedSig_v4_eq_widened_core
     by_cases hk_nn : k ≥ 0
     · by_cases hk_pos : k = 0
       · subst hk_pos; simp
-      · have hk_pos' : k > 0 := lt_of_le_of_ne hk_nn (Ne.symm hk_pos)
+      · have hk_pos' : k > 0 := (by omega)
         have h_neg_k_lt : -k < 0 := by omega
         have h_neg_k_not_nn : ¬ (-k : Int) ≥ 0 := by omega
         have h_k_not_lt_0 : ¬ k < 0 := by omega
@@ -794,11 +788,11 @@ theorem shiftedSig_v4_eq_widened_core
     by_cases hk_nn : k ≥ 0
     · by_cases hk_zero : k = 0
       · subst hk_zero; simp
-      · have hk_pos : k > 0 := lt_of_le_of_ne hk_nn (Ne.symm hk_zero)
+      · have hk_pos : k > 0 := (by omega)
         have h_neg_k_lt : (-k : Int) < 0 := by omega
         have hk_nn' : k ≥ 0 := hk_nn
         rw [if_pos h_neg_k_lt, if_pos hk_nn']
-        have : -(-k) = k := by ring
+        have : -(-k) = k := by grind
         rw [this]
     · push_neg at hk_nn
       have h_neg_k_nn : ¬ (-k : Int) < 0 := by omega
@@ -834,7 +828,9 @@ theorem shiftedSig_v4_eq_widened_core
     rw [← hk] at hr
     -- Rewrite hr (keyed by the same sign-splits) to B, N.
     rw [hB_def, hN_def, hqNeg_def, hkPos_def, hqPos_def, hkNeg_def]
-    convert hr using 3
+    first
+    | exact hr
+    | grind
   -- Floor equality via the widened (residue-based) closing step.
   have hFloor := shiftedSig_floor_of_residue m G B shiftAmt.toNat N hB_pos hSandwich hResidue
   exact hFloor.symm
@@ -871,7 +867,7 @@ theorem shiftedSig_v4_eq (m : Nat) (q k : Int) :
             (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr hDom)))))
   -- Stage 2: all width guards passed and the binary64-domain predicate holds.
   push_neg at hm60 hk hs
-  rw [not_not] at hDom
+  rw [Decidable.not_not] at hDom
   obtain ⟨hkLo, hkHi⟩ := hk
   obtain ⟨hsLo, hsHi⟩ := hs
   obtain ⟨hm_dom, hm53_dom, hq_lo_dom, hq_hi_dom, hk_dom⟩ := hDom
@@ -988,9 +984,9 @@ theorem shiftedSig_v4_eq (m : Nat) (q k : Int) :
       have h2 : gMid.toNat * 2 ^ 64 ≤ (2 ^ 64 - 1) * 2 ^ 64 := by
         apply Nat.mul_le_mul_right; omega
       have hA : (2 ^ 64 - 1) * 2 ^ 128 = 2 ^ 64 * 2 ^ 128 - 2 ^ 128 := by
-        rw [Nat.sub_mul]; ring_nf
+        rw [Nat.sub_mul]
       have hB : (2 ^ 64 - 1) * 2 ^ 64 = 2 ^ 64 * 2 ^ 64 - 2 ^ 64 := by
-        rw [Nat.sub_mul]; ring_nf
+        rw [Nat.sub_mul]
       have h64_128 : (2 : Nat) ^ 64 * 2 ^ 128 = 2 ^ 192 := by decide
       have h64_64 : (2 : Nat) ^ 64 * 2 ^ 64 = 2 ^ 128 := by decide
       have h_128_le : (2 : Nat) ^ 128 ≤ 2 ^ 192 := Nat.pow_le_pow_right (by decide) (by decide)

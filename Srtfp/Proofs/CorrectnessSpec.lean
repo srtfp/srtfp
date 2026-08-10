@@ -5,12 +5,11 @@
    which restates everything below inline; the kernel certifies the two
    spellings agree.  Proof bodies: `Srtfp/Proofs/Correctness.lean`. -/
 
+import Srtfp.Rat
 import Srtfp.Decimal
 import Srtfp.Float.Bits
 import Srtfp.Schubfach
 import Srtfp.Clinger
-import Mathlib.Algebra.Order.Field.Rat
-import Mathlib.Algebra.Order.AbsoluteValue.Basic
 
 namespace Srtfp
 

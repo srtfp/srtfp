@@ -35,7 +35,7 @@ def IsCanonical (d : Decimal) : Prop :=
   (d.significand = 0 ∧ d.exponent = 0) ∨
   (d.significand ≠ 0 ∧ d.significand % 10 ≠ 0)
 
-instance : Decidable (IsCanonical d) := by
+instance (d : Decimal) : Decidable (IsCanonical d) := by
   unfold IsCanonical; exact inferInstance
 
 /-- Helper: strip trailing decimal zeros from a (significand, exponent) pair.

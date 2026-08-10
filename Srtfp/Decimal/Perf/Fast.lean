@@ -14,8 +14,6 @@
    `Nat` reference implementation. -/
 
 import Srtfp.Decimal
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Linarith
 
 namespace Srtfp.Decimal
 
@@ -96,14 +94,14 @@ private theorem canonicaliseAuxU64_eq
             Nat.div_le_div_left (by decide) (by decide)
           have h_div2 : s.toNat / 2 ≤ 2^n := by
             have : s.toNat ≤ 2 * 2^n := by
-              have h2p : 2^(n+1) = 2 * 2^n := by ring
+              have h2p : 2^(n+1) = 2 * 2^n := by grind
               omega
             omega
           omega
         simp only [hs0, hmod, hs0n, hmodNat, if_false, if_true]
         have := ih (s / 10) (e + 1) hbound_dec
         rw [hdiv] at this
-        convert this using 2
+        exact this
       · have hmodNat : s.toNat % 10 ≠ 0 := fun h => hmod ((UInt64_mod10_eq_zero_iff s).mpr h)
         simp [hs0, hs0n, hmod, hmodNat]
 
@@ -121,7 +119,7 @@ theorem canonicaliseAux_eq_fast (s : Nat) (e : Int) :
   · rw [if_pos hsmod_ne]
     unfold canonicaliseAux
     simp [hs0, hsmod_ne]
-  push_neg at hsmod_ne
+  have hsmod_ne : s % 10 = 0 := by omega
   rw [if_neg (by simp [hsmod_ne])]
   -- Main path: dispatch on UInt64 fit
   split

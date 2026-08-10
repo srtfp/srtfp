@@ -12,7 +12,7 @@
 
 import Srtfp.Proofs.Correctness
 import Srtfp.Proofs.ReaderCorrectness
-import Mathlib.Data.Nat.Log
+import Srtfp.NatLog
 
 namespace Srtfp.Spec
 
@@ -29,7 +29,7 @@ def floatVal (f : Float) : ℚ := val 2 (decode f).sign (decode f).m (decode f).
 
 /-- Number of base-10 digits -/
 def digits (n : Nat) : Nat := Nat.log 10 n + 1
-example : digits 0 = 1 := by simp [digits]
+example : digits 0 = 1 := by unfold digits; rw [Nat.log_eq_zero_of_not (by omega)]
 
 
 /-! ## referenced definitions, displayed here for convenience -/

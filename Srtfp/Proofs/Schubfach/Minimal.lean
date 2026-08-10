@@ -23,6 +23,7 @@
 
 import Srtfp.Proofs.Schubfach.Shortest
 import Srtfp.Proofs.Decimal
+import Srtfp.Tactics
 
 namespace Srtfp.Schubfach
 
@@ -615,9 +616,9 @@ theorem Schubfach_K1_candidates (m : Nat) (q : Int)
       show (4 * ((sig' : Int) + 1)) * (tenPosPow (k + 1) : Int) * (twoNegPow q : Int)
             = 4 * (sig' : Int) * (tenPosPow (k + 1) : Int) * (twoNegPow q : Int)
               + 4 * (tenPosPow (k + 1) : Int) * (twoNegPow q : Int)
-      have : (4 * ((sig' : Int) + 1)) = 4 * (sig' : Int) + 4 := by ring
+      have : (4 * ((sig' : Int) + 1)) = 4 * (sig' : Int) + 4 := by grind
       rw [this]
-      ring
+      grind
     have h_U_plus_step : fourU sig' q (k + 1) + step ≤ fourVR m q (k + 1) := by
       rw [← h_step_sig]
       exact Int.le_trans h_fourU_succ_le h_uT_lt_VR
@@ -645,7 +646,7 @@ theorem Schubfach_K1_candidates (m : Nat) (q : Int)
         show (4 * ((s / 10 : Nat) : Int) + 8) * (tenPosPow (k + 1) : Int) * (twoNegPow q : Int)
               = (4 * ((s / 10 : Nat) : Int) + 4) * (tenPosPow (k + 1) : Int) * (twoNegPow q : Int)
                 + 4 * (tenPosPow (k + 1) : Int) * (twoNegPow q : Int)
-        ring
+        grind
       have h_fourU_sig_ge : fourU (s / 10 + 2) q (k + 1) ≤ fourU sig' q (k + 1) := by
         rw [fourU_eq, fourU_eq]
         have h_cast : ((s / 10 + 2 : Nat) : Int) ≤ (sig' : Int) := by exact_mod_cast h_ge2
@@ -675,7 +676,7 @@ theorem Schubfach_K1_candidates (m : Nat) (q : Int)
 /-! ## Phase C: digit count for high-scale competitors
 
 For a competitor `(sig', exp')` at exp' ≥ k+1, the lifted K+1 candidates
-lemma forces `sig' * 10^(exp'-k-1) ∈ {s/10, s/10+1}`. We use this to
+theorem forces `sig' * 10^(exp'-k-1) ∈ {s/10, s/10+1}`. We use this to
 bound `decDigitLength sig'`. -/
 
 /-- For any positive Nat `sig'` and `j ≥ 0`, if `sig' * 10^j ≥ 1`, then
@@ -902,7 +903,7 @@ theorem canonical_pow10_unique (a b i j : Nat)
       have h_cancel : a * 10 ^ (i - j) = b := by
         have hpos : 0 < 10 ^ j := Nat.pow_pos (a := 10) (by decide)
         have h_rearr : a * (10 ^ j * 10 ^ (i - j)) = a * 10 ^ (i - j) * 10 ^ j := by
-          ring
+          grind
         rw [h_rearr] at heq
         exact Nat.eq_of_mul_eq_mul_right hpos heq
       apply hb_canon
@@ -928,7 +929,7 @@ theorem canonical_pow10_unique (a b i j : Nat)
       have h_cancel : a = b * 10 ^ (j - i) := by
         have hpos : 0 < 10 ^ i := Nat.pow_pos (a := 10) (by decide)
         have h_rearr : b * (10 ^ i * 10 ^ (j - i)) = b * 10 ^ (j - i) * 10 ^ i := by
-          ring
+          grind
         rw [h_rearr] at heq
         exact Nat.eq_of_mul_eq_mul_right hpos heq
       -- a = b * 10^(j-i), j-i ≥ 1, so a % 10 = 0. Contradicts a canonical.
@@ -1124,7 +1125,7 @@ private theorem strict_low_scale_digit_bound (m : Nat) (q : Int)
   -- Combine. (4m+2) ≤ 3*(4m-2) for m ≥ 1.
   have h_3 : (4 * (m : Int) + 2) ≤ 3 * (4 * (m : Int) - 2) := by
     have : (1 : Int) ≤ (m : Int) := by exact_mod_cast hm_pos
-    linarith
+    grind
   have h_tenP_qN_pos : (0 : Int) < (tenPosPow exp_a : Int) * (twoNegPow q : Int) :=
     tenPos_twoNeg_pos_Int q exp_a
   have h_qP_tenN_pos : (0 : Int) < (twoPosPow q : Int) * (tenNegPow exp_a : Int) :=
@@ -1136,12 +1137,12 @@ private theorem strict_low_scale_digit_bound (m : Nat) (q : Int)
     have h_mul := Int.mul_le_mul_of_nonneg_right h_3 (Int.le_of_lt h_qP_tenN_pos)
     have h_assoc1 : (4 * (m : Int) + 2) * ((twoPosPow q : Int) * (tenNegPow exp_a : Int))
                     = (4 * (m : Int) + 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int) := by
-      ring
+      grind
     have h_assoc2 : 3 * (4 * (m : Int) - 2) * ((twoPosPow q : Int) * (tenNegPow exp_a : Int))
                     = 3 * (4 * (m : Int) - 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int) := by
-      ring
+      grind
     rw [h_assoc1, h_assoc2] at h_mul
-    linarith
+    grind
   -- And 3*(4m-2)*qP*tenN < 12 * 10^L_a * tenP * qN.
   have h_chain2 :
       3 * (4 * (m : Int) - 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int)
@@ -1150,16 +1151,16 @@ private theorem strict_low_scale_digit_bound (m : Nat) (q : Int)
                 < 3 * (4 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int)) :=
       Int.mul_lt_mul_of_pos_left h_lower (by decide)
     have e1 : 3 * ((4 * (m : Int) - 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int))
-              = 3 * (4 * (m : Int) - 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int) := by ring
+              = 3 * (4 * (m : Int) - 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int) := by grind
     have e2 : 3 * (4 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int))
-              = 12 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int) := by ring
+              = 12 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int) := by grind
     rw [e1, e2] at h_a
     exact h_a
   -- 4 * 10^(L_b + h_nat - 1) * tenP * qN < 12 * 10^L_a * tenP * qN.
   have h_chain3 :
       4 * (10 : Int)^(L_b + h_nat - 1) * (tenPosPow exp_a : Int) * (twoNegPow q : Int)
         < 12 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int) := by
-    linarith
+    grind
   -- Cancel 4 * tenP * qN > 0 to get 10^(L_b + h_nat - 1) < 3 * 10^L_a.
   have h_pos_factor : 0 < 4 * ((tenPosPow exp_a : Int) * (twoNegPow q : Int)) :=
     Int.mul_pos (by decide) h_tenP_qN_pos
@@ -1171,9 +1172,9 @@ private theorem strict_low_scale_digit_bound (m : Nat) (q : Int)
           < 4 * ((tenPosPow exp_a : Int) * (twoNegPow q : Int)) * (3 * (10 : Int)^L_a) := by
       have e1 : 4 * ((tenPosPow exp_a : Int) * (twoNegPow q : Int)) * (10 : Int)^(L_b + h_nat - 1)
                 = 4 * (10 : Int)^(L_b + h_nat - 1) * (tenPosPow exp_a : Int) * (twoNegPow q : Int) := by
-        ring
+        grind
       have e2 : 4 * ((tenPosPow exp_a : Int) * (twoNegPow q : Int)) * (3 * (10 : Int)^L_a)
-                = 12 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int) := by ring
+                = 12 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int) := by grind
       rw [e1, e2]
       exact h_chain3
     exact (Int.mul_lt_mul_left h_pos_factor).mp h_re
@@ -1215,9 +1216,9 @@ theorem inRoundingInterval_connected (a c b : Nat) (k : Int) (m : Nat) (q : Int)
     intro x y hxy
     unfold fourU cmpScaledMixed.rhs
     have hcast : (x : Int) ≤ (y : Int) := by exact_mod_cast hxy
-    have h4 : 4 * (x : Int) ≤ 4 * (y : Int) := by linarith
-    have htP_nn : (0 : Int) ≤ (10 : Int) ^ (if k ≥ 0 then k.toNat else 0) := by positivity
-    have htN_nn : (0 : Int) ≤ (2 : Int) ^ (if q < 0 then (-q).toNat else 0) := by positivity
+    have h4 : 4 * (x : Int) ≤ 4 * (y : Int) := by grind
+    have htP_nn : (0 : Int) ≤ (10 : Int) ^ (if k ≥ 0 then k.toNat else 0) := by (first | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | exact Nat.mul_pos (Nat.pow_pos (by omega)) (Nat.pow_pos (by omega)) | grind)
+    have htN_nn : (0 : Int) ≤ (2 : Int) ^ (if q < 0 then (-q).toNat else 0) := by (first | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | exact Nat.mul_pos (Nat.pow_pos (by omega)) (Nat.pow_pos (by omega)) | grind)
     have h1 : 4 * (x : Int) * (10 : Int) ^ (if k ≥ 0 then k.toNat else 0)
                 ≤ 4 * (y : Int) * (10 : Int) ^ (if k ≥ 0 then k.toNat else 0) :=
       Int.mul_le_mul_of_nonneg_right h4 htP_nn
@@ -1421,7 +1422,7 @@ theorem toDecimal_minimal_high_scale
   rw [hresult_eq]
   -- Use shortestUnsigned_length_relation to identify the case.
   have h_rel := shortestUnsigned_length_relation d.m d.q
-  -- Sig' positivity.
+  -- Sig' (first | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | exact Nat.mul_pos (Nat.pow_pos (by omega)) (Nat.pow_pos (by omega)) | grind).
   have h_sig_pos : 1 ≤ sig' := Nat.one_le_iff_ne_zero.mpr h_sig_ne
   rcases h_rel with ⟨hs_big, h_exp_eq, h_or⟩ | ⟨h_exp_eq, h_sig_eq⟩
   · -- Case 1: short-form (uIn or wIn). out_exp = k+1, out_sig = s/10 or s/10+1.
@@ -1572,7 +1573,7 @@ theorem toDecimal_minimal_high_scale
         have h_one_canon : (1 : Nat) % 10 ≠ 0 := by decide
         have ⟨h_sig_eq', h_j_eq⟩ := canonical_pow10_unique sig' 1 (exp' - (k + 1)).toNat 0
                                     h_sig_pos h_one_pos h_canon h_one_canon
-                                    (by rw [h_branch]; simp)
+                                    (by rw [h_branch])
         subst h_sig_eq'
         -- Now goal: decDigitLength 1 = decDigitLength (Decimal.mk' d.sign (pickNearer s k m q) k).significand
         have h_dl_1 : decDigitLength 1 = 1 := decDigitLength_lt_10 (by decide : (1:Nat) < 10)
@@ -1721,6 +1722,7 @@ theorem toDecimal_minimal_low_scale
         rw [h_exp_eq]; omega
       · show (shortestUnsigned d.m d.q).2 ≥ k
         rw [h_exp_eq]
+        exact Int.le_refl _
     have h_res_exp_ge_k : result.exponent ≥ k := by
       rw [hresult_eq]
       exact Int.le_trans h_out_exp_ge_k h_out_exp_le_res_exp
@@ -1754,7 +1756,7 @@ theorem toDecimal_minimal_low_scale
           have h1 : result.exponent = out_exp := by
             rw [h_oe_eq]; exact h_res_exp_eq_k
           have h2 : (Decimal.mk' d.sign out_sig out_exp).exponent = out_exp := by
-            conv_lhs => rw [← hresult_eq]
+            conv => lhs; rw [← hresult_eq]
             exact h1
           rw [h2]; simp
         -- result.significand = out_sig.
@@ -1795,15 +1797,15 @@ theorem toDecimal_minimal_low_scale
             · exact hF
           -- 10*(s/10) ∉ R_v at K (shift to K+1 where s/10 ∉ R_v).
           have h_10sd10_not_in : inRoundingInterval (10 * (s / 10)) k d.m d.q (isIrregular d.m d.q) = false := by
-            have hk_eq : k + 1 - 1 = k := by ring
+            have hk_eq : k + 1 - 1 = k := by grind
             have heq := inRoundingInterval_mul10_shift_down (s / 10) (k + 1) d.m d.q (isIrregular d.m d.q)
             rw [hk_eq] at heq
             rw [heq]; exact h_uIn_false
           -- 10*(s/10)+10 = 10*(s/10+1) ∉ R_v at K.
           have h_10sd10p_not_in : inRoundingInterval (10 * (s / 10) + 10) k d.m d.q (isIrregular d.m d.q) = false := by
-            have hsum : 10 * (s / 10) + 10 = 10 * (s / 10 + 1) := by ring
+            have hsum : 10 * (s / 10) + 10 = 10 * (s / 10 + 1) := by grind
             rw [hsum]
-            have hk_eq : k + 1 - 1 = k := by ring
+            have hk_eq : k + 1 - 1 = k := by grind
             have heq := inRoundingInterval_mul10_shift_down (s / 10 + 1) (k + 1) d.m d.q (isIrregular d.m d.q)
             rw [hk_eq] at heq
             rw [heq]; exact h_wIn_false
@@ -2010,6 +2012,7 @@ theorem toDecimal_minimal
       rcases h_rel with ⟨_, h_exp_eq, _⟩ | ⟨h_exp_eq, _⟩
       · rw [h_exp_eq]; omega
       · rw [h_exp_eq]
+        exact Int.le_refl _
     have h_res_exp_ge_k : result.exponent ≥ k := by
       rw [hresult_eq]
       exact Int.le_trans h_out_exp_ge_k h_out_exp_le_res_exp
@@ -2065,7 +2068,7 @@ theorem strict_low_scale_digit_bound_sharp (m : Nat) (q : Int)
   rw [← hLa] at h_lower
   have h_3 : (4 * (m : Int) + 2) ≤ 3 * (4 * (m : Int) - 2) := by
     have : (1 : Int) ≤ (m : Int) := by exact_mod_cast hm_pos
-    linarith
+    grind
   have h_tenP_qN_pos : (0 : Int) < (tenPosPow exp_a : Int) * (twoNegPow q : Int) :=
     tenPos_twoNeg_pos_Int q exp_a
   have h_qP_tenN_pos : (0 : Int) < (twoPosPow q : Int) * (tenNegPow exp_a : Int) :=
@@ -2075,11 +2078,11 @@ theorem strict_low_scale_digit_bound_sharp (m : Nat) (q : Int)
         ≤ 3 * (4 * (m : Int) - 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int) := by
     have h_mul := Int.mul_le_mul_of_nonneg_right h_3 (Int.le_of_lt h_qP_tenN_pos)
     have h_assoc1 : (4 * (m : Int) + 2) * ((twoPosPow q : Int) * (tenNegPow exp_a : Int))
-                    = (4 * (m : Int) + 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int) := by ring
+                    = (4 * (m : Int) + 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int) := by grind
     have h_assoc2 : 3 * (4 * (m : Int) - 2) * ((twoPosPow q : Int) * (tenNegPow exp_a : Int))
-                    = 3 * (4 * (m : Int) - 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int) := by ring
+                    = 3 * (4 * (m : Int) - 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int) := by grind
     rw [h_assoc1, h_assoc2] at h_mul
-    linarith
+    grind
   have h_chain2 :
       3 * (4 * (m : Int) - 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int)
         < 12 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int) := by
@@ -2087,15 +2090,15 @@ theorem strict_low_scale_digit_bound_sharp (m : Nat) (q : Int)
                 < 3 * (4 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int)) :=
       Int.mul_lt_mul_of_pos_left h_lower (by decide)
     have e1 : 3 * ((4 * (m : Int) - 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int))
-              = 3 * (4 * (m : Int) - 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int) := by ring
+              = 3 * (4 * (m : Int) - 2) * (twoPosPow q : Int) * (tenNegPow exp_a : Int) := by grind
     have e2 : 3 * (4 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int))
-              = 12 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int) := by ring
+              = 12 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int) := by grind
     rw [e1, e2] at h_a
     exact h_a
   have h_chain3 :
       4 * (10 : Int)^(L_b + h_nat - 1) * (tenPosPow exp_a : Int) * (twoNegPow q : Int)
         < 12 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int) := by
-    linarith
+    grind
   have h_pos_factor : 0 < 4 * ((tenPosPow exp_a : Int) * (twoNegPow q : Int)) :=
     Int.mul_pos (by decide) h_tenP_qN_pos
   have h_cancel :
@@ -2104,9 +2107,9 @@ theorem strict_low_scale_digit_bound_sharp (m : Nat) (q : Int)
         4 * ((tenPosPow exp_a : Int) * (twoNegPow q : Int)) * (10 : Int)^(L_b + h_nat - 1)
           < 4 * ((tenPosPow exp_a : Int) * (twoNegPow q : Int)) * (3 * (10 : Int)^L_a) := by
       have e1 : 4 * ((tenPosPow exp_a : Int) * (twoNegPow q : Int)) * (10 : Int)^(L_b + h_nat - 1)
-                = 4 * (10 : Int)^(L_b + h_nat - 1) * (tenPosPow exp_a : Int) * (twoNegPow q : Int) := by ring
+                = 4 * (10 : Int)^(L_b + h_nat - 1) * (tenPosPow exp_a : Int) * (twoNegPow q : Int) := by grind
       have e2 : 4 * ((tenPosPow exp_a : Int) * (twoNegPow q : Int)) * (3 * (10 : Int)^L_a)
-                = 12 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int) := by ring
+                = 12 * (10 : Int)^L_a * (tenPosPow exp_a : Int) * (twoNegPow q : Int) := by grind
       rw [e1, e2]
       exact h_chain3
     exact (Int.mul_lt_mul_left h_pos_factor).mp h_re

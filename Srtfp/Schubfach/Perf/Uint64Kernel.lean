@@ -22,6 +22,7 @@ from `decode : Float → Decoded`, since binary64 fixes
 -/
 import Srtfp.Schubfach
 import Srtfp.Schubfach.Perf.Orchestration
+import Srtfp.Tactics
 
 namespace Srtfp.Schubfach
 

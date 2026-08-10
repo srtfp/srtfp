@@ -32,6 +32,7 @@ import Srtfp.Proofs.Schubfach.PickNearer
 import Srtfp.Proofs.Schubfach.RoundingInterval
 import Srtfp.Proofs.Schubfach.ToDecimal
 import Srtfp.Proofs.Clinger
+import Srtfp.Tactics
 
 namespace Srtfp
 
@@ -89,7 +90,7 @@ theorem decode_legalIEEE (f : _root_.Float)
       have : (1 : Int) ≤ (biasedExpBits f : Int) := by exact_mod_cast h_be_pos
       omega
     · rw [hq]
-      have : (biasedExpBits f : Int) ≤ 2046 := by exact_mod_cast h_be_le
+      have : (biasedExpBits f : Int) ≤ 2046 := by omega
       omega
 
 /-! ## Canonicalization-invariance of `inRoundingInterval` (deferred)
@@ -108,7 +109,7 @@ private theorem cmpScaledMixed_scale10
     (a : Int) (q : Int) (s : Nat) (exp : Int) :
     cmpScaledMixed a q (4 * (10 * (s : Int))) (exp - 1)
       = cmpScaledMixed a q (4 * (s : Int)) exp := by
-  -- Establish positivity factors.
+  -- Establish (first | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | exact Nat.mul_pos (Nat.pow_pos (by omega)) (Nat.pow_pos (by omega)) | grind) factors.
   have h10 : (0 : Int) < 10 := by decide
   -- Unfold cmpScaledMixed into cleared form and case-split on exp's sign.
   unfold cmpScaledMixed
@@ -139,8 +140,8 @@ private theorem cmpScaledMixed_scale10
                   = (4 * (s : Int)) * ((10 : Int) ^ exp.toNat) * (2 ^ qN : Int) := by
       rw [h_eN_toN]
       have hexp_eq : exp.toNat = (exp.toNat - 1) + 1 := by omega
-      conv_rhs => rw [hexp_eq, pow_succ]
-      ring
+      conv => rhs; rw [hexp_eq, Int.pow_succ]
+      grind
     rw [h_RHS_eq]
   · -- exp ≤ 0.
     have h_exp_le0 : exp ≤ 0 := by omega
@@ -166,28 +167,28 @@ private theorem cmpScaledMixed_scale10
       -- Use the int comparison invariance.
       by_cases hlt : a * (2 ^ qP : Int) < (4 * (s : Int)) * (2 ^ qN : Int)
       · have h10lt : a * (2 ^ qP : Int) * 10 < (4 * (10 * (s : Int))) * (2 ^ qN : Int) := by
-          have hX_eq : a * (2 ^ qP : Int) * 10 = 10 * (a * (2 ^ qP : Int)) := by ring
+          have hX_eq : a * (2 ^ qP : Int) * 10 = 10 * (a * (2 ^ qP : Int)) := by grind
           have hY_eq : (4 * (10 * (s : Int))) * (2 ^ qN : Int)
-                     = 10 * ((4 * (s : Int)) * (2 ^ qN : Int)) := by ring
+                     = 10 * ((4 * (s : Int)) * (2 ^ qN : Int)) := by grind
           rw [hX_eq, hY_eq]
           exact Int.mul_lt_mul_of_pos_left hlt h10
         simp [hlt, h10lt]
       · by_cases heq : a * (2 ^ qP : Int) = (4 * (s : Int)) * (2 ^ qN : Int)
         · have h10eq : a * (2 ^ qP : Int) * 10 = (4 * (10 * (s : Int))) * (2 ^ qN : Int) := by
-            have hX_eq : a * (2 ^ qP : Int) * 10 = 10 * (a * (2 ^ qP : Int)) := by ring
+            have hX_eq : a * (2 ^ qP : Int) * 10 = 10 * (a * (2 ^ qP : Int)) := by grind
             have hY_eq : (4 * (10 * (s : Int))) * (2 ^ qN : Int)
-                       = 10 * ((4 * (s : Int)) * (2 ^ qN : Int)) := by ring
+                       = 10 * ((4 * (s : Int)) * (2 ^ qN : Int)) := by grind
             rw [hX_eq, hY_eq, heq]
           have h_no_lt : ¬ (4 * (s : Int) * (2 ^ qN : Int) * 10 < (4 * (10 * (s : Int))) * (2 ^ qN : Int)) := by
-            linarith
+            grind
           have h_eq : 4 * (s : Int) * (2 ^ qN : Int) * 10 = (4 * (10 * (s : Int))) * (2 ^ qN : Int) := by
-            linarith
+            grind
           simp [h_eq, heq]
         · have hgt : a * (2 ^ qP : Int) > (4 * (s : Int)) * (2 ^ qN : Int) := by omega
           have h10gt : a * (2 ^ qP : Int) * 10 > (4 * (10 * (s : Int))) * (2 ^ qN : Int) := by
-            have hX_eq : a * (2 ^ qP : Int) * 10 = 10 * (a * (2 ^ qP : Int)) := by ring
+            have hX_eq : a * (2 ^ qP : Int) * 10 = 10 * (a * (2 ^ qP : Int)) := by grind
             have hY_eq : (4 * (10 * (s : Int))) * (2 ^ qN : Int)
-                       = 10 * ((4 * (s : Int)) * (2 ^ qN : Int)) := by ring
+                       = 10 * ((4 * (s : Int)) * (2 ^ qN : Int)) := by grind
             rw [hX_eq, hY_eq]
             exact Int.mul_lt_mul_of_pos_left hgt h10
           have h10nlt : ¬ a * (2 ^ qP : Int) * 10 < (4 * (10 * (s : Int))) * (2 ^ qN : Int) := by
@@ -202,18 +203,18 @@ private theorem cmpScaledMixed_scale10
       have h_exp_new_not_ge : ¬ (exp - 1 ≥ 0) := by omega
       have h_pow_new_pos : ((10 : Int) ^ ((exp - 1).toNat)) = 1 := by
         have : (exp - 1).toNat = 0 := by omega
-        rw [this, pow_zero]
+        rw [this, Int.pow_zero]
       have h_pow_old_pos : ((10 : Int) ^ (exp.toNat)) = 1 := by
         have : exp.toNat = 0 := by omega
-        rw [this, pow_zero]
+        rw [this, Int.pow_zero]
       have h_toN_new : (-(exp - 1)).toNat = (-exp).toNat + 1 := by
-        have h1 : (-(exp - 1) : Int) = -exp + 1 := by ring
+        have h1 : (-(exp - 1) : Int) = -exp + 1 := by grind
         rw [h1]
         have h2 : (-exp : Int) ≥ 1 := by omega
         omega
       have h_pow_lhs_new : ((10 : Int) ^ ((-(exp - 1)).toNat))
                          = 10 * ((10 : Int) ^ ((-exp).toNat)) := by
-        rw [h_toN_new, pow_succ]; ring
+        rw [h_toN_new, Int.pow_succ]; grind
       simp only [h_exp_neg, h_exp_new_neg, h_exp_not_ge, h_exp_new_not_ge,
                  if_true, if_false, h_pow_lhs_new]
       -- Goal should now have factors of 10 visible.
@@ -226,9 +227,9 @@ private theorem cmpScaledMixed_scale10
       · have h10lt : a * (2 ^ qP : Int) * (10 * ((10 : Int) ^ ((-exp).toNat)))
                     < (4 * (10 * (s : Int))) * (2 ^ qN : Int) := by
           have hX_eq : a * (2 ^ qP : Int) * (10 * ((10 : Int) ^ ((-exp).toNat)))
-                     = 10 * (a * (2 ^ qP : Int) * ((10 : Int) ^ ((-exp).toNat))) := by ring
+                     = 10 * (a * (2 ^ qP : Int) * ((10 : Int) ^ ((-exp).toNat))) := by grind
           have hY_eq : (4 * (10 * (s : Int))) * (2 ^ qN : Int)
-                     = 10 * ((4 * (s : Int)) * (2 ^ qN : Int)) := by ring
+                     = 10 * ((4 * (s : Int)) * (2 ^ qN : Int)) := by grind
           rw [hX_eq, hY_eq]
           exact Int.mul_lt_mul_of_pos_left hlt h10
         simp [hlt, h10lt]
@@ -237,9 +238,9 @@ private theorem cmpScaledMixed_scale10
         · have h10eq : a * (2 ^ qP : Int) * (10 * ((10 : Int) ^ ((-exp).toNat)))
                      = (4 * (10 * (s : Int))) * (2 ^ qN : Int) := by
             have hX_eq : a * (2 ^ qP : Int) * (10 * ((10 : Int) ^ ((-exp).toNat)))
-                       = 10 * (a * (2 ^ qP : Int) * ((10 : Int) ^ ((-exp).toNat))) := by ring
+                       = 10 * (a * (2 ^ qP : Int) * ((10 : Int) ^ ((-exp).toNat))) := by grind
             have hY_eq : (4 * (10 * (s : Int))) * (2 ^ qN : Int)
-                       = 10 * ((4 * (s : Int)) * (2 ^ qN : Int)) := by ring
+                       = 10 * ((4 * (s : Int)) * (2 ^ qN : Int)) := by grind
             rw [hX_eq, hY_eq, heq]
           simp [heq, h10eq]
         · have hgt : a * (2 ^ qP : Int) * ((10 : Int) ^ ((-exp).toNat))
@@ -247,9 +248,9 @@ private theorem cmpScaledMixed_scale10
           have h10gt : a * (2 ^ qP : Int) * (10 * ((10 : Int) ^ ((-exp).toNat)))
                        > (4 * (10 * (s : Int))) * (2 ^ qN : Int) := by
             have hX_eq : a * (2 ^ qP : Int) * (10 * ((10 : Int) ^ ((-exp).toNat)))
-                       = 10 * (a * (2 ^ qP : Int) * ((10 : Int) ^ ((-exp).toNat))) := by ring
+                       = 10 * (a * (2 ^ qP : Int) * ((10 : Int) ^ ((-exp).toNat))) := by grind
             have hY_eq : (4 * (10 * (s : Int))) * (2 ^ qN : Int)
-                       = 10 * ((4 * (s : Int)) * (2 ^ qN : Int)) := by ring
+                       = 10 * ((4 * (s : Int)) * (2 ^ qN : Int)) := by grind
             rw [hX_eq, hY_eq]
             exact Int.mul_lt_mul_of_pos_left hgt h10
           have h10nlt : ¬ a * (2 ^ qP : Int) * (10 * ((10 : Int) ^ ((-exp).toNat)))
@@ -263,7 +264,7 @@ theorem inRoundingInterval_scale10 (sig : Nat) (exp : Int) (m : Nat) (q : Int) (
     inRoundingInterval (10 * sig) (exp - 1) m q irreg
       = inRoundingInterval sig exp m q irreg := by
   unfold inRoundingInterval
-  have hcast : ((10 * sig : Nat) : Int) = 10 * (sig : Int) := by push_cast; ring
+  have hcast : ((10 * sig : Nat) : Int) = 10 * (sig : Int) := by push_cast; grind
   have hL := cmpScaledMixed_scale10
     (if irreg then 4 * (m : Int) - 1 else 4 * (m : Int) - 2) q sig exp
   have hR := cmpScaledMixed_scale10 (4 * (m : Int) + 2) q sig exp
@@ -277,8 +278,8 @@ theorem inRoundingInterval_scale10_pow (sig : Nat) (exp : Int) (m : Nat) (q : In
   induction k with
   | zero => simp
   | succ k ih =>
-    have hrw : sig * 10 ^ (k + 1) = 10 * (sig * 10 ^ k) := by ring
-    have hexp : exp - (k + 1 : Nat) = exp - k - 1 := by push_cast; ring
+    have hrw : sig * 10 ^ (k + 1) = 10 * (sig * 10 ^ k) := by grind
+    have hexp : exp - (k + 1 : Nat) = exp - k - 1 := by push_cast; grind
     rw [hrw, hexp, inRoundingInterval_scale10, ih]
 
 /-! ## Bracketing of `4·sig·10^exp` from `inRoundingInterval`
@@ -326,11 +327,11 @@ private theorem legalIEEE_unique
   · -- Case: m₁ subnormal (q₁ = -1074)
     subst hq1
     have hk1 : ((-1074 : Int) - (-1074)).toNat = 0 := by decide
-    rw [hk1, pow_zero, Int.mul_one] at h_val
+    rw [hk1, Int.pow_zero, Int.mul_one] at h_val
     rcases h₂ with ⟨hm2_pos, hm2_lt, hq2⟩ | ⟨hm2_ge, hm2_lt, hq2_lo, hq2_hi⟩
     · -- (sub, sub): q₂ = -1074 too; m₁ = m₂.
       subst hq2
-      rw [hk1, pow_zero, Int.mul_one] at h_val
+      rw [hk1, Int.pow_zero, Int.mul_one] at h_val
       have hm_eq : m₁ = m₂ := by exact_mod_cast h_val
       exact ⟨hm_eq, rfl⟩
     · -- (sub, norm): m₁ < 2^52 ≤ m₂. m₁ · 1 = m₂ · 2^(q₂+1074). RHS ≥ 2^52, LHS < 2^52. ⊥
@@ -338,13 +339,15 @@ private theorem legalIEEE_unique
       have hk2 : ((q₂ - (-1074)).toNat : Int) = q₂ + 1074 := by
         have := Int.toNat_of_nonneg (a := q₂ - -1074) (by omega)
         omega
-      have hpow_pos : (0 : Int) ≤ (2 : Int) ^ (q₂ - (-1074)).toNat := by positivity
+      have hpow_pos : (0 : Int) ≤ (2 : Int) ^ (q₂ - (-1074)).toNat := Int.pow_nonneg (by omega)
       have h_rhs_ge : (m₂ : Int) * (2 : Int) ^ (q₂ - (-1074)).toNat ≥ ((2^52 : Nat) : Int) := by
         have : ((2^52 : Nat) : Int) ≤ (m₂ : Int) := by exact_mod_cast hm2_ge
         have h_pp : (1 : Int) ≤ (2 : Int) ^ (q₂ - (-1074)).toNat := by
-          have : (1 : Int) = (2 : Int) ^ 0 := by decide
-          rw [this]; exact pow_le_pow_right₀ (by decide) (Nat.zero_le _)
-        nlinarith
+          have := Int.pow_pos (n := 2) (m := (q₂ - (-1074)).toNat) (by omega)
+          omega
+        have hmul : (m₂ : Int) * 1 ≤ (m₂ : Int) * (2 : Int) ^ (q₂ - (-1074)).toNat :=
+          Int.mul_le_mul_of_nonneg_left h_pp (by omega)
+        omega
       have h_lhs_lt : (m₁ : Int) < ((2^52 : Nat) : Int) := by exact_mod_cast hm1_lt
       omega
   · -- Case: m₁ normal
@@ -353,17 +356,19 @@ private theorem legalIEEE_unique
       exfalso
       subst hq2
       have hk2 : ((-1074 : Int) - (-1074)).toNat = 0 := by decide
-      rw [hk2, pow_zero, Int.mul_one] at h_val
+      rw [hk2, Int.pow_zero, Int.mul_one] at h_val
       have hk1 : ((q₁ - (-1074)).toNat : Int) = q₁ + 1074 := by
         have := Int.toNat_of_nonneg (a := q₁ - -1074) (by omega)
         omega
-      have hpow_pos : (0 : Int) ≤ (2 : Int) ^ (q₁ - (-1074)).toNat := by positivity
+      have hpow_pos : (0 : Int) ≤ (2 : Int) ^ (q₁ - (-1074)).toNat := by (first | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | exact Nat.mul_pos (Nat.pow_pos (by omega)) (Nat.pow_pos (by omega)) | grind)
       have h_lhs_ge : (m₁ : Int) * (2 : Int) ^ (q₁ - (-1074)).toNat ≥ ((2^52 : Nat) : Int) := by
         have : ((2^52 : Nat) : Int) ≤ (m₁ : Int) := by exact_mod_cast hm1_ge
         have h_pp : (1 : Int) ≤ (2 : Int) ^ (q₁ - (-1074)).toNat := by
-          have : (1 : Int) = (2 : Int) ^ 0 := by decide
-          rw [this]; exact pow_le_pow_right₀ (by decide) (Nat.zero_le _)
-        nlinarith
+          have := Int.pow_pos (n := 2) (m := (q₁ - (-1074)).toNat) (by omega)
+          omega
+        have hmul : (m₁ : Int) * 1 ≤ (m₁ : Int) * (2 : Int) ^ (q₁ - (-1074)).toNat :=
+          Int.mul_le_mul_of_nonneg_left h_pp (by omega)
+        omega
       have h_rhs_lt : (m₂ : Int) < ((2^52 : Nat) : Int) := by exact_mod_cast hm2_lt
       omega
     · -- (norm, norm): both in [2^52, 2^53), so log2 determines q.
@@ -372,10 +377,10 @@ private theorem legalIEEE_unique
       --   q₁ + log2 m₁ = q₂ + log2 m₂. With log2 m_i ∈ [52, 53), need m₁ ≥ 2·m₂ or vice versa,
       -- or q₁ = q₂.
       have hk1 : (q₁ - (-1074)).toNat = (q₁ + 1074).toNat := by
-        have : q₁ - (-1074) = q₁ + 1074 := by ring
+        have : q₁ - (-1074) = q₁ + 1074 := by grind
         rw [this]
       have hk2 : (q₂ - (-1074)).toNat = (q₂ + 1074).toNat := by
-        have : q₂ - (-1074) = q₂ + 1074 := by ring
+        have : q₂ - (-1074) = q₂ + 1074 := by grind
         rw [this]
       rw [hk1, hk2] at h_val
       have hq1' : 0 ≤ q₁ + 1074 := by omega
@@ -387,22 +392,22 @@ private theorem legalIEEE_unique
       · -- q₁ ≤ q₂. m₁ · 2^(q₁+1074) = m₂ · 2^(q₂+1074) ⇒ m₁ = m₂ · 2^(q₂ - q₁).
         have hk : (q₂ + 1074).toNat = (q₁ + 1074).toNat + (q₂ - q₁).toNat := by
           omega
-        rw [hk, pow_add] at h_val
+        rw [hk, Int.pow_add] at h_val
         -- h_val : m₁ * 2^(q₁+1074).toNat = m₂ * (2^(q₁+1074).toNat * 2^(q₂-q₁).toNat)
-        have hpow_pos : (0 : Int) < (2 : Int) ^ (q₁ + 1074).toNat := by positivity
+        have hpow_pos : (0 : Int) < (2 : Int) ^ (q₁ + 1074).toNat := by (first | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | exact Nat.mul_pos (Nat.pow_pos (by omega)) (Nat.pow_pos (by omega)) | grind)
         have hcancel : (m₁ : Int) = (m₂ : Int) * (2 : Int) ^ (q₂ - q₁).toNat := by
           have hreshape : (m₂ : Int) * ((2 : Int) ^ (q₁ + 1074).toNat
                             * (2 : Int) ^ (q₂ - q₁).toNat)
                           = ((m₂ : Int) * (2 : Int) ^ (q₂ - q₁).toNat)
-                            * (2 : Int) ^ (q₁ + 1074).toNat := by ring
+                            * (2 : Int) ^ (q₁ + 1074).toNat := by grind
           rw [hreshape] at h_val
-          have := mul_right_cancel₀ (ne_of_gt hpow_pos) h_val
+          have := mul_right_cancel₀ (Int.ne_of_gt hpow_pos) h_val
           exact this
         rcases (eq_or_lt_of_le hq_le) with hq_eq | hq_lt
         · -- q₁ = q₂: m₁ = m₂.
           subst hq_eq
           have hktz : (q₁ - q₁).toNat = 0 := by simp
-          rw [hktz, pow_zero, Int.mul_one] at hcancel
+          rw [hktz, Int.pow_zero, Int.mul_one] at hcancel
           have hm_eq : m₁ = m₂ := by exact_mod_cast hcancel
           exact ⟨hm_eq, rfl⟩
         · -- q₁ < q₂: m₁ = m₂ · 2^k with k ≥ 1. But m₁ < 2^53 and m₂ ≥ 2^52, so m₁ ≥ 2^53. ⊥
@@ -415,10 +420,13 @@ private theorem legalIEEE_unique
               pow_le_pow_right₀ (by decide) hk_pos
             simpa using this
           have h_m1_ge : (m₁ : Int) ≥ 2 * ((2 ^ 52 : Nat) : Int) := by
-            have : ((2 ^ 52 : Nat) : Int) ≤ (m₂ : Int) := by exact_mod_cast hm2_ge
-            nlinarith
+            have h52 : ((2 ^ 52 : Nat) : Int) ≤ (m₂ : Int) := by exact_mod_cast hm2_ge
+            have hmul : ((2 ^ 52 : Nat) : Int) * 2
+                ≤ (m₂ : Int) * (2 : Int) ^ (q₂ - q₁).toNat :=
+              Int.mul_le_mul h52 h2pow_ge2 (by omega) (by omega)
+            omega
           have h_m1_lt : (m₁ : Int) < ((2 ^ 53 : Nat) : Int) := by exact_mod_cast hm1_lt
-          have h_pow53 : ((2 ^ 53 : Nat) : Int) = 2 * ((2 ^ 52 : Nat) : Int) := by push_cast
+          have h_pow53 : ((2 ^ 53 : Nat) : Int) = 2 * ((2 ^ 52 : Nat) : Int) := by omega
           omega
       · -- q₁ > q₂: symmetric.
         have hq_lt : q₂ < q₁ := by omega
@@ -426,28 +434,32 @@ private theorem legalIEEE_unique
                       = (m₁ : Int) * (2 : Int) ^ (q₁ + 1074).toNat := h_val.symm
         have hk : (q₁ + 1074).toNat = (q₂ + 1074).toNat + (q₁ - q₂).toNat := by
           omega
-        rw [hk, pow_add] at h_val'
-        have hpow_pos : (0 : Int) < (2 : Int) ^ (q₂ + 1074).toNat := by positivity
+        rw [hk, Int.pow_add] at h_val'
+        have hpow_pos : (0 : Int) < (2 : Int) ^ (q₂ + 1074).toNat := by (first | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | exact Nat.mul_pos (Nat.pow_pos (by omega)) (Nat.pow_pos (by omega)) | grind)
         have hcancel : (m₂ : Int) = (m₁ : Int) * (2 : Int) ^ (q₁ - q₂).toNat := by
           have hreshape : (m₁ : Int) * ((2 : Int) ^ (q₂ + 1074).toNat
                             * (2 : Int) ^ (q₁ - q₂).toNat)
                           = ((m₁ : Int) * (2 : Int) ^ (q₁ - q₂).toNat)
-                            * (2 : Int) ^ (q₂ + 1074).toNat := by ring
+                            * (2 : Int) ^ (q₂ + 1074).toNat := by grind
           rw [hreshape] at h_val'
-          have := mul_right_cancel₀ (ne_of_gt hpow_pos) h_val'
+          have := mul_right_cancel₀ (Int.ne_of_gt hpow_pos) h_val'
           exact this
         exfalso
         have hk_pos : (q₁ - q₂).toNat ≥ 1 := by
           have : (1 : Int) ≤ q₁ - q₂ := by omega
           omega
-        have h2pow_ge2 : (2 : Int) ^ (q₁ - q₂).toNat ≥ 2 :=
-          le_trans (le_of_eq (by simp [pow_one]))
-                   (pow_le_pow_right₀ (by decide) hk_pos)
+        have h2pow_ge2 : (2 : Int) ^ (q₁ - q₂).toNat ≥ 2 := by
+          have : (2 : Int) ^ 1 ≤ (2 : Int) ^ (q₁ - q₂).toNat :=
+            pow_le_pow_right₀ (by decide) hk_pos
+          simpa using this
         have h_m2_ge : (m₂ : Int) ≥ 2 * ((2 ^ 52 : Nat) : Int) := by
-          have : ((2 ^ 52 : Nat) : Int) ≤ (m₁ : Int) := by exact_mod_cast hm1_ge
-          nlinarith
+          have h52 : ((2 ^ 52 : Nat) : Int) ≤ (m₁ : Int) := by exact_mod_cast hm1_ge
+          have hmul : ((2 ^ 52 : Nat) : Int) * 2
+              ≤ (m₁ : Int) * (2 : Int) ^ (q₁ - q₂).toNat :=
+            Int.mul_le_mul h52 h2pow_ge2 (by omega) (by omega)
+          omega
         have h_m2_lt : (m₂ : Int) < ((2 ^ 53 : Nat) : Int) := by exact_mod_cast hm2_lt
-        have h_pow53 : ((2 ^ 53 : Nat) : Int) = 2 * ((2 ^ 52 : Nat) : Int) := by push_cast
+        have h_pow53 : ((2 ^ 53 : Nat) : Int) = 2 * ((2 ^ 52 : Nat) : Int) := by omega
         omega
 
 /-! ## The disjointness theorem -/
@@ -508,28 +520,28 @@ private theorem inRoundingInterval_uniq_lt
         = leftN₂ * ((twoPosPow q₂ : Int) * (tenNegPow exp : Int))
     show leftN₂ * ((twoPosPow q₂ : Nat) : Int) * ((tenNegPow exp : Nat) : Int)
           = leftN₂ * ((twoPosPow q₂ : Int) * (tenNegPow exp : Int))
-    ring
+    grind
   have hR1_eq :
       fourVR m₁ q₁ exp =
         rightN₁ * ((twoPosPow q₁ : Int) * (tenNegPow exp : Int)) := by
     unfold fourVR cmpScaledMixed.lhs
     show rightN₁ * ((twoPosPow q₁ : Nat) : Int) * ((tenNegPow exp : Nat) : Int)
           = rightN₁ * ((twoPosPow q₁ : Int) * (tenNegPow exp : Int))
-    ring
+    grind
   have hU1_eq :
       fourU sig q₁ exp =
         4 * (sig : Int) * ((tenPosPow exp : Int) * (twoNegPow q₁ : Int)) := by
     unfold fourU cmpScaledMixed.rhs
     show (4 * (sig : Int)) * ((tenPosPow exp : Nat) : Int) * ((twoNegPow q₁ : Nat) : Int)
           = 4 * (sig : Int) * ((tenPosPow exp : Int) * (twoNegPow q₁ : Int))
-    ring
+    grind
   have hU2_eq :
       fourU sig q₂ exp =
         4 * (sig : Int) * ((tenPosPow exp : Int) * (twoNegPow q₂ : Int)) := by
     unfold fourU cmpScaledMixed.rhs
     show (4 * (sig : Int)) * ((tenPosPow exp : Nat) : Int) * ((twoNegPow q₂ : Nat) : Int)
           = 4 * (sig : Int) * ((tenPosPow exp : Int) * (twoNegPow q₂ : Int))
-    ring
+    grind
   -- Bracket inequalities (`≤` versions; equality cases held separately).
   have h_l2_le_u2 :
       leftN₂ * ((twoPosPow q₂ : Int) * (tenNegPow exp : Int))
@@ -581,7 +593,7 @@ private theorem inRoundingInterval_uniq_lt
   have hMid :
       4 * (sig : Int) * ((tenPosPow exp : Int) * (twoNegPow q₂ : Int)) * (twoNegPow q₁ : Int)
         = 4 * (sig : Int) * ((tenPosPow exp : Int) * (twoNegPow q₁ : Int)) * (twoNegPow q₂ : Int) := by
-    ring
+    grind
   -- Chain.
   have hChain :
       leftN₂ * ((twoPosPow q₂ : Int) * (tenNegPow exp : Int)) * (twoNegPow q₁ : Int)
@@ -600,15 +612,15 @@ private theorem inRoundingInterval_uniq_lt
         ≤ rightN₁ * ((twoPosPow q₁ : Int) * (twoNegPow q₂ : Int)) * (tenNegPow exp : Int) := by
     have hLHS_eq :
         leftN₂ * ((twoPosPow q₂ : Int) * (tenNegPow exp : Int)) * (twoNegPow q₁ : Int)
-          = leftN₂ * ((twoPosPow q₂ : Int) * (twoNegPow q₁ : Int)) * (tenNegPow exp : Int) := by ring
+          = leftN₂ * ((twoPosPow q₂ : Int) * (twoNegPow q₁ : Int)) * (tenNegPow exp : Int) := by grind
     have hRHS_eq :
         rightN₁ * ((twoPosPow q₁ : Int) * (tenNegPow exp : Int)) * (twoNegPow q₂ : Int)
-          = rightN₁ * ((twoPosPow q₁ : Int) * (twoNegPow q₂ : Int)) * (tenNegPow exp : Int) := by ring
+          = rightN₁ * ((twoPosPow q₁ : Int) * (twoNegPow q₂ : Int)) * (tenNegPow exp : Int) := by grind
     rw [← hLHS_eq, ← hRHS_eq]; exact hChain
   have hChain_no_tk :
       leftN₂ * ((twoPosPow q₂ : Int) * (twoNegPow q₁ : Int))
         ≤ rightN₁ * ((twoPosPow q₁ : Int) * (twoNegPow q₂ : Int)) :=
-    Int.le_of_mul_le_mul_right (by linarith) hTk_pos
+    Int.le_of_mul_le_mul_right (by grind) hTk_pos
   -- Now show twoPosPow q₂ · twoNegPow q₁ = 2^α · (twoPosPow q₁ · twoNegPow q₂)
   -- where α = (q₂ - q₁).toNat.
   -- Key fact: (max(q, 0) + max(-q', 0)) - (max(q', 0) + max(-q, 0)) = q - q' (cross identity).
@@ -645,7 +657,7 @@ private theorem inRoundingInterval_uniq_lt
   have he_id : e2Pos + e1Neg = e1Pos + e2Neg + α := by
     -- Coerce to Int and use he1, he2.
     have h : ((e2Pos : Int) + (e1Neg : Int)) = ((e1Pos : Int) + (e2Neg : Int)) + (α : Int) := by
-      rw [hα_int]; linarith
+      rw [hα_int]; grind
     exact_mod_cast h
   -- Now derive: twoPosPow q₂ · twoNegPow q₁ = 2^α · (twoPosPow q₁ · twoNegPow q₂).
   have hExp_id :
@@ -653,10 +665,10 @@ private theorem inRoundingInterval_uniq_lt
         = (2 : Int) ^ α * ((twoPosPow q₁ : Int) * (twoNegPow q₂ : Int)) := by
     rw [h_S_eq, h_S'_eq, h_T_eq, h_T'_eq]
     rw [show (2 : Int) ^ e2Pos * (2 : Int) ^ e1Neg
-              = (2 : Int) ^ (e2Pos + e1Neg) by rw [pow_add]]
+              = (2 : Int) ^ (e2Pos + e1Neg) by rw [Int.pow_add]]
     rw [show (2 : Int) ^ α * ((2 : Int) ^ e1Pos * (2 : Int) ^ e2Neg)
               = (2 : Int) ^ (e1Pos + e2Neg + α) by
-            rw [pow_add, pow_add]; ring]
+            rw [Int.pow_add, Int.pow_add]; grind]
     rw [he_id]
   rw [hExp_id] at hChain_no_tk
   -- Cancel the common positive factor (twoPosPow q₁ · twoNegPow q₂).
@@ -664,10 +676,10 @@ private theorem inRoundingInterval_uniq_lt
   have hR_pos : 0 < R := Int.mul_pos hS_pos hT₂_pos
   have hChain_red : leftN₂ * (2 : Int) ^ α ≤ rightN₁ := by
     have h_step : leftN₂ * (2 : Int) ^ α * R ≤ rightN₁ * R := by
-      have hLHS : leftN₂ * ((2 : Int) ^ α * R) = leftN₂ * (2 : Int) ^ α * R := by ring
+      have hLHS : leftN₂ * ((2 : Int) ^ α * R) = leftN₂ * (2 : Int) ^ α * R := by grind
       rw [hLHS] at hChain_no_tk
       exact hChain_no_tk
-    exact Int.le_of_mul_le_mul_right (by linarith) hR_pos
+    exact Int.le_of_mul_le_mul_right (by grind) hR_pos
   -- Now derive the contradiction from hChain_red.
   -- Step 1: q₂ > -1074 (since q₂ ≥ q₁ + 1 ≥ -1074 + 1 = -1073).
   have h_q₂_norm : -1074 < q₂ := by
@@ -695,11 +707,11 @@ private theorem inRoundingInterval_uniq_lt
     show (if isIrregular m₂ q₂ = true then 4 * (m₂ : Int) - 1 else 4 * (m₂ : Int) - 2)
           ≥ 4 * ((2 : Nat) ^ 52 : Int) - 2
     by_cases hirr : isIrregular m₂ q₂ = true
-    · rw [if_pos hirr]; linarith
-    · rw [if_neg hirr]; linarith
+    · rw [if_pos hirr]; grind
+    · rw [if_neg hirr]; grind
   have h_rightN₁_le : rightN₁ ≤ 4 * ((2 : Nat) ^ 53 : Int) - 2 := by
     show 4 * (m₁ : Int) + 2 ≤ 4 * ((2 : Nat) ^ 53 : Int) - 2
-    linarith
+    grind
   -- Case-split on α.
   by_cases hα_ge2 : α ≥ 2
   · -- α ≥ 2: leftN₂ · 2^α ≥ leftN₂ · 4 ≥ 4 · (2^54 - 2) = 2^56 - 8 > 2^55 - 2 ≥ rightN₁.
@@ -708,21 +720,21 @@ private theorem inRoundingInterval_uniq_lt
       have : (2 : Int) ^ 2 ≤ (2 : Int) ^ α :=
         pow_le_pow_right₀ (by decide) hα_ge2
       have h4 : (2 : Int) ^ 2 = 4 := by decide
-      linarith
+      grind
     have h_leftN₂_pos : leftN₂ > 0 := by
       have h2_pos : ((2 : Nat) ^ 52 : Int) > 0 := by decide
-      linarith
+      grind
     have h_step : leftN₂ * (2 : Int) ^ α ≥ leftN₂ * 4 := by
-      have := Int.mul_le_mul_of_nonneg_left h_pow_α (by linarith : (0 : Int) ≤ leftN₂)
-      linarith
+      have := Int.mul_le_mul_of_nonneg_left h_pow_α (by grind : (0 : Int) ≤ leftN₂)
+      grind
     have h_pow52 : ((2 : Nat) ^ 52 : Int) = 4503599627370496 := by decide
     have h_pow53 : ((2 : Nat) ^ 53 : Int) = 9007199254740992 := by decide
-    linarith
+    grind
   · -- α = 1 case (since α ≥ 1 and ¬ α ≥ 2).
     have hα_eq : α = 1 := by omega
     rw [hα_eq] at hChain_red
     -- 2^1 = 2:
-    have hpow1 : (2 : Int) ^ 1 = 2 := by norm_num
+    have hpow1 : (2 : Int) ^ 1 = 2 := by grind
     rw [hpow1] at hChain_red
     -- hChain_red : leftN₂ * 2 ≤ rightN₁
     -- Now split on irreg₂:
@@ -743,16 +755,16 @@ private theorem inRoundingInterval_uniq_lt
         show 2 * (m₂ : Int) ≤ (m₁ : Int) + 1
         have hrn1 : rightN₁ = 4 * (m₁ : Int) + 2 := rfl
         rw [hrn1] at hChain_red
-        linarith
+        grind
       -- m₁ < 2^53 ⟹ m₁ ≤ 2^53 - 1. So 2m₂ ≤ 2^53.
       have h_m₂_le_2pow52 : (m₂ : Int) ≤ ((2 : Nat) ^ 52 : Int) := by
         have : 2 * (m₂ : Int) ≤ 2 * ((2 : Nat) ^ 52 : Int) := by
           have h53 : (2 : Int) * ((2 : Nat) ^ 52 : Int) = ((2 : Nat) ^ 53 : Int) := by
-            rw [h_pow52, h_pow53]; ring
-          linarith
-        linarith
-      have hm₂_eq : (m₂ : Int) = ((2 : Nat) ^ 52 : Int) := by linarith
-      have hm₁_eq : (m₁ : Int) = ((2 : Nat) ^ 53 : Int) - 1 := by linarith
+            rw [h_pow52, h_pow53]; grind
+          grind
+        grind
+      have hm₂_eq : (m₂ : Int) = ((2 : Nat) ^ 52 : Int) := by grind
+      have hm₁_eq : (m₁ : Int) = ((2 : Nat) ^ 53 : Int) - 1 := by grind
       -- Now we have hChain_red equality:
       -- leftN₂ · 2 = (4·2^52 - 1)·2 = 2^55 - 2 = 4·(2^53 - 1) + 2 = rightN₁.
       have hChain_eq : leftN₂ * 2 = rightN₁ := by
@@ -760,8 +772,8 @@ private theorem inRoundingInterval_uniq_lt
         have hrn1 : rightN₁ = 4 * (m₁ : Int) + 2 := rfl
         rw [hrn1, hm₁_eq]
         have hp53_eq : ((2 : Nat) ^ 53 : Int) = 2 * ((2 : Nat) ^ 52 : Int) := by
-          rw [h_pow52, h_pow53]; ring
-        linarith
+          rw [h_pow52, h_pow53]; grind
+        grind
       -- So h_l2_le_u2 and h_u1_le_r1 are both equalities (since they chain to equality
       -- when multiplied by positive factors). Extract equalities.
       -- From hChain_red as equality (chain becomes equality):
@@ -775,7 +787,7 @@ private theorem inRoundingInterval_uniq_lt
             leftN₂ * ((2 : Int) ^ α * ((twoPosPow q₁ : Int) * (twoNegPow q₂ : Int)))
               * (tenNegPow exp : Int)
               = (leftN₂ * (2 : Int) ^ α) * ((twoPosPow q₁ : Int) * (twoNegPow q₂ : Int))
-                  * (tenNegPow exp : Int) := by ring
+                  * (tenNegPow exp : Int) := by grind
         rw [h_eq_unrwap, h_eq_red]
       -- From hChain (the un-cancelled-Tk version) being squeezed equality:
       have hChain_eq_full :
@@ -783,10 +795,10 @@ private theorem inRoundingInterval_uniq_lt
             = rightN₁ * ((twoPosPow q₁ : Int) * (tenNegPow exp : Int)) * (twoNegPow q₂ : Int) := by
         have hLHS_eq :
             leftN₂ * ((twoPosPow q₂ : Int) * (tenNegPow exp : Int)) * (twoNegPow q₁ : Int)
-              = leftN₂ * ((twoPosPow q₂ : Int) * (twoNegPow q₁ : Int)) * (tenNegPow exp : Int) := by ring
+              = leftN₂ * ((twoPosPow q₂ : Int) * (twoNegPow q₁ : Int)) * (tenNegPow exp : Int) := by grind
         have hRHS_eq :
             rightN₁ * ((twoPosPow q₁ : Int) * (tenNegPow exp : Int)) * (twoNegPow q₂ : Int)
-              = rightN₁ * ((twoPosPow q₁ : Int) * (twoNegPow q₂ : Int)) * (tenNegPow exp : Int) := by ring
+              = rightN₁ * ((twoPosPow q₁ : Int) * (twoNegPow q₂ : Int)) * (tenNegPow exp : Int) := by grind
         rw [hLHS_eq, hRHS_eq]; exact hChain'_eq
       -- Squeeze h_l2_scaled = h_u1_scaled = chain via hChain_eq_full.
       -- h_l2_scaled: LHS_scaled ≤ MID_scaled.
@@ -805,12 +817,12 @@ private theorem inRoundingInterval_uniq_lt
         have h_l2_scaled_eq :
             leftN₂ * ((twoPosPow q₂ : Int) * (tenNegPow exp : Int)) * (twoNegPow q₁ : Int)
               = 4 * (sig : Int) * ((tenPosPow exp : Int) * (twoNegPow q₂ : Int)) * (twoNegPow q₁ : Int) := by
-          linarith
+          omega
         -- Cancel twoNegPow q₁.
         have hLHS_eq :
             leftN₂ * ((twoPosPow q₂ : Int) * (tenNegPow exp : Int)) * (twoNegPow q₁ : Int)
               = leftN₂ * ((twoPosPow q₂ : Int) * (tenNegPow exp : Int)) * (twoNegPow q₁ : Int) := rfl
-        exact mul_right_cancel₀ (ne_of_gt hT₁_pos) h_l2_scaled_eq
+        exact mul_right_cancel₀ (Int.ne_of_gt hT₁_pos) h_l2_scaled_eq
       -- Similarly, h_u1_le_r1 is an equality.
       have h_u1_eq_r1 :
           4 * (sig : Int) * ((tenPosPow exp : Int) * (twoNegPow q₁ : Int))
@@ -828,7 +840,7 @@ private theorem inRoundingInterval_uniq_lt
           -- Chain: MID_scaled' = MID_scaled (by hMid.symm) = LHS_scaled (by h_LHS_eq_MID.symm)
           --                     = RHS_scaled (by hChain_eq_full).
           rw [← hMid, ← h_LHS_eq_MID, hChain_eq_full]
-        exact mul_right_cancel₀ (ne_of_gt hT₂_pos) h_u1_scaled_eq
+        exact mul_right_cancel₀ (Int.ne_of_gt hT₂_pos) h_u1_scaled_eq
       -- Now use h_u1_eq_r1 (fourU = fourVR for pair 1) and h₁'s right bracket structure
       -- which requires m₁ % 2 = 0 in the equality case.
       have h_fourU1_eq_fourVR1 : fourU sig q₁ exp = fourVR m₁ q₁ exp := by
@@ -837,7 +849,7 @@ private theorem inRoundingInterval_uniq_lt
       have ⟨_, hright⟩ := h₁
       rcases hright with hlt | ⟨_, hm1_even⟩
       · -- Strict: contradicts h_fourU1_eq_fourVR1.
-        exact absurd h_fourU1_eq_fourVR1 (ne_of_lt hlt)
+        exact absurd h_fourU1_eq_fourVR1 (Int.ne_of_lt hlt)
       · -- Equality + m₁ even. But m₁ = 2^53 - 1 (odd).
         -- m₁ = 2^53 - 1; (2^53 - 1) % 2 = 1.
         have h_m₁_nat : m₁ = (2 : Nat) ^ 53 - 1 := by
@@ -846,7 +858,7 @@ private theorem inRoundingInterval_uniq_lt
           have h_2pow53_pos : 1 ≤ (2 : Nat) ^ 53 := by decide
           omega
         have h_odd : m₁ % 2 = 1 := by
-          rw [h_m₁_nat]; decide
+          rw [h_m₁_nat]
         omega
     · -- Regular case: leftN₂ = 4m₂ - 2. m₂ ≠ 2^52 (since isIrregular false and q₂ > -1074).
       have hirr2_def : isIrregular m₂ q₂ = false := by
@@ -882,7 +894,7 @@ private theorem inRoundingInterval_uniq_lt
       rw [hleftN₂_val] at hChain_red
       have hrn1 : rightN₁ = 4 * (m₁ : Int) + 2 := rfl
       rw [hrn1] at hChain_red
-      linarith
+      grind
 
 /-- **Disjointness of `inRoundingInterval` for distinct LegalIEEE pairs.**
 
@@ -929,23 +941,23 @@ theorem inRoundingInterval_uniq
               * ((2 ^ if q₁ ≥ 0 then q₁.toNat else 0 : Nat) : Int))
             * ((10 ^ if exp < 0 then (-exp).toNat else 0 : Nat) : Int) = leftN₁ * P
       show leftN₁ * ((twoPosPow q₁ : Nat) : Int) * ((tenNegPow exp : Nat) : Int) = leftN₁ * P
-      ring
+      grind
     have hL2_eq : fourVL m₂ q₁ exp (isIrregular m₂ q₁) = leftN₂ * P := by
       unfold fourVL cmpScaledMixed.lhs
       show leftN₂ * ((twoPosPow q₁ : Nat) : Int) * ((tenNegPow exp : Nat) : Int) = leftN₂ * P
-      ring
+      grind
     have hR1_eq : fourVR m₁ q₁ exp = rightN₁ * P := by
       unfold fourVR cmpScaledMixed.lhs
       show rightN₁ * ((twoPosPow q₁ : Nat) : Int) * ((tenNegPow exp : Nat) : Int) = rightN₁ * P
-      ring
+      grind
     have hR2_eq : fourVR m₂ q₁ exp = rightN₂ * P := by
       unfold fourVR cmpScaledMixed.lhs
       show rightN₂ * ((twoPosPow q₁ : Nat) : Int) * ((tenNegPow exp : Nat) : Int) = rightN₂ * P
-      ring
+      grind
     have hU_eq_clear : fourU sig q₁ exp = U := by
       unfold fourU cmpScaledMixed.rhs
       show (4 * (sig : Int)) * ((tenPosPow exp : Nat) : Int) * ((twoNegPow q₁ : Nat) : Int) = U
-      ring
+      grind
     -- Positivity.
     have hP_pos : 0 < P := twoPos_tenNeg_pos_Int q₁ exp
     -- Extract bounds: l_i · P ≤ U ≤ r_i · P, plus parity at equality.
@@ -973,10 +985,10 @@ theorem inRoundingInterval_uniq
     -- And l_1 · P ≤ U ≤ r_2 · P, so leftN₁ ≤ rightN₂.
     have h_l2_le_r1 : leftN₂ ≤ rightN₁ := by
       have h_step : leftN₂ * P ≤ rightN₁ * P := Int.le_trans h_l2_le h_u_le_r1
-      exact (Int.le_of_mul_le_mul_right (by linarith) hP_pos)
+      exact (Int.le_of_mul_le_mul_right (by grind) hP_pos)
     have h_l1_le_r2 : leftN₁ ≤ rightN₂ := by
       have h_step : leftN₁ * P ≤ rightN₂ * P := Int.le_trans h_l1_le h_u_le_r2
-      exact (Int.le_of_mul_le_mul_right (by linarith) hP_pos)
+      exact (Int.le_of_mul_le_mul_right (by grind) hP_pos)
     -- Unfold leftN_i: |m₁ - m₂| ≤ 1 (since leftN_i ∈ {4m_i - 2, 4m_i - 1}, rightN_i = 4m_i + 2).
     -- We show m₁ = m₂ by ruling out m₁ ≠ m₂ via a parity argument.
     by_contra hm_ne
@@ -1043,20 +1055,20 @@ theorem inRoundingInterval_uniq
           rw [h_leftN1_val] at h_l1_le; exact h_l1_le
         have h_RHS : U ≤ (4 * (m₂ : Int) + 2) * P := by
           rw [h_rightN2_val] at h_u_le_r2; exact h_u_le_r2
-        linarith
+        grind
       -- From hU_eq and h₂ right bracket (= case requires m₂ even):
       have hm2_even : m₂ % 2 = 0 := by
         have ⟨_, h_r⟩ := h₂
         rcases h_r with hlt | ⟨_, heven⟩
         · rw [hU_eq_clear, hU_eq, hR2_eq, h_rightN2_val] at hlt
-          exfalso; linarith
+          exfalso; grind
         · exact heven
       -- From hU_eq and h₁ left bracket (= case requires m₁ even):
       have hm1_even : m₁ % 2 = 0 := by
         have ⟨h_l, _⟩ := h₁
         rcases h_l with hlt | ⟨_, heven⟩
         · rw [hU_eq_clear, hU_eq, hL1_eq, h_leftN1_val] at hlt
-          exfalso; linarith
+          exfalso; grind
         · exact heven
       -- m₁ = m₂ + 1 with both even: impossible.
       omega
@@ -1081,18 +1093,18 @@ theorem inRoundingInterval_uniq
           rw [h_leftN2_val] at h_l2_le; exact h_l2_le
         have h_RHS : U ≤ (4 * (m₁ : Int) + 2) * P := by
           rw [h_rightN1_val] at h_u_le_r1; exact h_u_le_r1
-        linarith
+        grind
       have hm1_even : m₁ % 2 = 0 := by
         have ⟨_, h_r⟩ := h₁
         rcases h_r with hlt | ⟨_, heven⟩
         · rw [hU_eq_clear, hU_eq, hR1_eq, h_rightN1_val] at hlt
-          exfalso; linarith
+          exfalso; grind
         · exact heven
       have hm2_even : m₂ % 2 = 0 := by
         have ⟨h_l, _⟩ := h₂
         rcases h_l with hlt | ⟨_, heven⟩
         · rw [hU_eq_clear, hU_eq, hL2_eq, h_leftN2_val] at hlt
-          exfalso; linarith
+          exfalso; grind
         · exact heven
       omega
   · -- q₁ ≠ q₂ case: WLOG q₁ < q₂ (handle q₁ > q₂ by swapping the pairs).
