@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install elan
+        run: |
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf \
+            | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Get mathlib cache
+        run: lake exe cache get
+
+      # Srtfp is the library; SrtfpAxiomCheck fails the build on any axiom
+      # outside the audited budget (propext, Quot.sound, Classical.choice,
+      # Float.toBits_ofBits).
+      - name: Build
+        run: lake build Srtfp SrtfpAxiomCheck
+
+      - name: Test
+        run: lake test

@@ -43,7 +43,6 @@ import Srtfp.Schubfach.KernelCorrectness
 import Srtfp.Schubfach
 import Srtfp.Schubfach.MulHigh128
 import Srtfp.Schubfach.Perf.CsimpPin
-import Srtfp.Schubfach.Perf.dead.PackedB64
 import Srtfp.Schubfach.Perf.DigitsFast
 import Srtfp.Schubfach.Perf.Kernel128
 import Srtfp.Schubfach.Perf.Kernel192Correctness
