@@ -11,17 +11,17 @@
    suspenders runtime witness over the corpus. -/
 
 import LSpec
-import Srtfp.Numeric.Schubfach
-import Srtfp.Numeric.Schubfach.Perf.Uint64Kernel
-import Srtfp.Numeric.Schubfach.Perf.KernelV13
-import Srtfp.Numeric.Float.Bits
+import Srtfp.Schubfach
+import Srtfp.Schubfach.Perf.Uint64Kernel
+import Srtfp.Schubfach.Perf.KernelV13
+import Srtfp.Float.Bits
 import SrtfpTest.Ryu
 
-namespace PP.Numeric.Tests.KernelV13
+namespace Srtfp.Tests.KernelV13
 
-open LSpec PP.Numeric PP.Numeric.Schubfach PP.Numeric.Float
+open LSpec Srtfp Srtfp.Schubfach Srtfp.Float
 
-open PP.Numeric.Tests.Ryu in
+open Srtfp.Tests.Ryu in
 /-- The full Ryu corpus, flattened. -/
 private def allRyuFloats : Array Float :=
   (d2sBasic ++ d2sSwitchToSubnormal ++ d2sMinAndMax ++ d2sLotsOfTrailingZeros
@@ -55,4 +55,4 @@ def runTests : TestSeq :=
   test s!"shortestUnsigned_v13 = shortestUnsigned_v2 (corpus of {crossCheckCorpus.size})"
     findMismatches.isEmpty
 
-end PP.Numeric.Tests.KernelV13
+end Srtfp.Tests.KernelV13

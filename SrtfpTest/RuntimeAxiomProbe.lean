@@ -15,13 +15,13 @@ patterns do not transfer to the running system. The printer rejects
 NaN before any bit-level reasoning, so `correct_iff_toDecimal` needs
 the axiom only on non-NaN patterns, where this probe shows it exact.
 
-DONE (2026-07-02): the axiom (`PP/Numeric/Float/RuntimeAxiom.lean`) is
+DONE (2026-07-02): the axiom (`Srtfp/Float/RuntimeAxiom.lean`) is
 now restricted to `isNaNPattern x = false`, and every use site threads
 the corresponding side condition. `isNaNPattern` (biased exponent
 `0x7FF` and mantissa nonzero) is checked below to agree exactly with
 the empirical NaN/non-NaN split observed above. -/
 
-import Srtfp.Numeric.Float.RuntimeAxiom
+import Srtfp.Float.RuntimeAxiom
 
 open Float (isNaNPattern)
 

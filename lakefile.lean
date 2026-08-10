@@ -8,7 +8,7 @@ package srtfp where
   -- allocator accounting, which runs ~1.5x resident RSS: the heaviest module
   -- (KernelV13) peaks ~4.5 GB RSS / needs ~8 GB here, the rest far less. 10 GB
   -- leaves margin yet aborts a runaway proof (e.g. an un-chunked `decide` over
-  -- a big table — see Srtfp/Numeric/Schubfach/Perf/KernelV13.lean) with
+  -- a big table — see Srtfp/Schubfach/Perf/KernelV13.lean) with
   -- `memory_exception` instead of OOM-ing the machine. By RSS the library
   -- builds on a 16 GB (even 8 GB) box. `weakLeanArgs` so the limit applies on
   -- every build but never enters the trace hash (tuning it forces no rebuild).

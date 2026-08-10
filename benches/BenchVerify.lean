@@ -1,9 +1,9 @@
 /- Verify cmpScaledMixed_fast2 and shiftedSig_fast2 agree with reference paths. -/
 
-import Srtfp.Numeric.Schubfach
-import Srtfp.Numeric.Float.Bits
-open PP.Numeric.Schubfach
-open PP.Numeric.Float
+import Srtfp.Schubfach
+import Srtfp.Float.Bits
+open Srtfp.Schubfach
+open Srtfp.Float
 
 def testInputs : Array Float :=
   #[

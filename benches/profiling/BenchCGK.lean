@@ -1,10 +1,10 @@
-import Srtfp.Numeric.Schubfach
-import Srtfp.Numeric.Schubfach.Perf.Orchestration
-import Srtfp.Numeric.Schubfach.Perf.KernelV6
-import Srtfp.Numeric.Schubfach.Perf.Kernel192Correctness
-import Srtfp.Numeric.Schubfach.Perf.StringFast
+import Srtfp.Schubfach
+import Srtfp.Schubfach.Perf.Orchestration
+import Srtfp.Schubfach.Perf.KernelV6
+import Srtfp.Schubfach.Perf.Kernel192Correctness
+import Srtfp.Schubfach.Perf.StringFast
 import Corpora
-open PP.Numeric PP.Numeric.Schubfach PP.Numeric.Float
+open Srtfp Srtfp.Schubfach Srtfp.Float
 def main : IO Unit := do
   let c := Corpora.uniform
   let mut sink : Nat := 0

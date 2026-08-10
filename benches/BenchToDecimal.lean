@@ -4,12 +4,12 @@
      lake exe benchToDecimal
 -/
 
-import Srtfp.Numeric.Schubfach
-import Srtfp.Numeric.Schubfach.Perf.Orchestration
-import Srtfp.Numeric.Schubfach.Perf.Uint64Bridge
-import Srtfp.Numeric.Schubfach.Perf.Kernel192Correctness
-import Srtfp.Numeric.Schubfach.Perf.KernelV6 -- live toDecimal @[csimp]
-open PP.Numeric.Schubfach
+import Srtfp.Schubfach
+import Srtfp.Schubfach.Perf.Orchestration
+import Srtfp.Schubfach.Perf.Uint64Bridge
+import Srtfp.Schubfach.Perf.Kernel192Correctness
+import Srtfp.Schubfach.Perf.KernelV6 -- live toDecimal @[csimp]
+open Srtfp.Schubfach
 
 /-- 23 representative `Float` inputs spanning normals, subnormals, edges,
     and irregular cases. Same set used in the dispatch plan. -/

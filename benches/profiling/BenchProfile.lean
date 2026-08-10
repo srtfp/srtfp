@@ -1,18 +1,18 @@
 /- Stage-breakdown profiler for the Schubfach Float→String pipeline.
    Isolates: decode | kernel (shortestUnsigned) | canonicalise (toDecimal)
    | int→string (toString sig) | emit/append | full.  Run: lake exe benchProfile -/
-import Srtfp.Numeric.Schubfach
-import Srtfp.Numeric.Schubfach.Perf.Orchestration
-import Srtfp.Numeric.Schubfach.Perf.Uint64Bridge
-import Srtfp.Numeric.Schubfach.Perf.Kernel192Correctness
-import Srtfp.Numeric.Schubfach.Perf.DigitsFast
-import Srtfp.Numeric.Schubfach.Perf.KernelV9
-import Srtfp.Numeric.Schubfach.Perf.KernelV10
-import Srtfp.Numeric.Schubfach.Perf.KernelV11
-import Srtfp.Numeric.Schubfach.Perf.KernelV12
-import Srtfp.Numeric.Schubfach.Perf.KernelV13
+import Srtfp.Schubfach
+import Srtfp.Schubfach.Perf.Orchestration
+import Srtfp.Schubfach.Perf.Uint64Bridge
+import Srtfp.Schubfach.Perf.Kernel192Correctness
+import Srtfp.Schubfach.Perf.DigitsFast
+import Srtfp.Schubfach.Perf.KernelV9
+import Srtfp.Schubfach.Perf.KernelV10
+import Srtfp.Schubfach.Perf.KernelV11
+import Srtfp.Schubfach.Perf.KernelV12
+import Srtfp.Schubfach.Perf.KernelV13
 import Corpora
-open PP.Numeric PP.Numeric.Schubfach PP.Numeric.Float
+open Srtfp Srtfp.Schubfach Srtfp.Float
 
 /-- Time `g` over `xs`, `N` outer reps, median of 5. -/
 def timeIt (label : String) (N : Nat) (sz : Nat) (body : Unit → Nat) : IO Unit := do

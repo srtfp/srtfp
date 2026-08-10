@@ -6,9 +6,9 @@
    Schubfach string printer (the `@[csimp]` chain selects the v13 kernel via
    `KernelV13`).  Paired with `benches/difftest_ryu.cpp` by
    `benches/difftest_ryu.py`. -/
-import Srtfp.Numeric.Schubfach.Perf.KernelV13  -- live floatToStrRef @[csimp] (v13)
+import Srtfp.Schubfach.Perf.KernelV13  -- live floatToStrRef @[csimp] (v13)
 
-open PP.Numeric.Schubfach (floatToStrRef)
+open Srtfp.Schubfach (floatToStrRef)
 
 partial def loop (stdin : IO.FS.Stream) : IO Unit := do
   let line ← stdin.getLine

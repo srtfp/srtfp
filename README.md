@@ -9,18 +9,17 @@ A Lean 4 library providing, for IEEE-754 binary64:
   `Float.toBits` level.
 
 The specification and top-level correctness theorems are in
-[`Srtfp/Numeric/Correctness.lean`](Srtfp/Numeric/Correctness.lean).
+[`Srtfp/Correctness.lean`](Srtfp/Correctness.lean).
 
 Axiom budget: `propext`, `Quot.sound`, `Classical.choice`, plus one
 quarantined runtime axiom about the `Float.toBits`/`Float.ofBits`
-intrinsics ([`Srtfp/Numeric/Float/RuntimeAxiom.lean`](Srtfp/Numeric/Float/RuntimeAxiom.lean));
+intrinsics ([`Srtfp/Float/RuntimeAxiom.lean`](Srtfp/Float/RuntimeAxiom.lean));
 the round-trip theorem is stated at the `.toBits` level so the
 bit-level results are axiom-free. Enforced by `SrtfpAxiomCheck.lean` at
 build time. No `sorry`.
 
 Factored out of QuadParsers, a biparser library with proven
-round-trip properties; declarations currently live in the `PP.Numeric`
-namespace pending a rename.
+round-trip properties.
 
 ## Build
 

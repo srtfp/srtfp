@@ -34,13 +34,13 @@
    are commented inline with both Ryu's f32 string and our f64 value. -/
 
 import LSpec
-import Srtfp.Numeric.Schubfach
-import Srtfp.Numeric.Schubfach.Perf.StringFast
-import Srtfp.Numeric.Clinger
+import Srtfp.Schubfach
+import Srtfp.Schubfach.Perf.StringFast
+import Srtfp.Clinger
 
-namespace PP.Numeric.Tests.Ryu
+namespace Srtfp.Tests.Ryu
 
-open LSpec PP.Numeric
+open LSpec Srtfp
 
 /-! ## Helpers -/
 
@@ -503,4 +503,4 @@ def ryuTests : TestSeq :=
   runGroup "f2s LooksLikePow5" f2sLooksLikePow5 ++
   runGroup "f2s OutputLength" f2sOutputLength
 
-end PP.Numeric.Tests.Ryu
+end Srtfp.Tests.Ryu

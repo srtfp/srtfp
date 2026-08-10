@@ -2,7 +2,7 @@
    disallowed axiom.  To reuse in another project, change the two
    lines marked CONFIGURE below.
 
-   PERFORMANCE: rather than calling `Lean.collectAxioms` once per `PP.*`
+   PERFORMANCE: rather than calling `Lean.collectAxioms` once per `Srtfp.*`
    decl (each call re-walks that decl's entire transitive cone with a
    call-local visited set → O(N·M)), we build a SINGLE memoized
    transitive-axiom map over the reachable constant graph. Each constant
@@ -18,13 +18,13 @@
 
 -- CONFIGURE: import the project root module
 import Srtfp
-import Srtfp.Numeric.Schubfach.Perf.CsimpPin -- build-time pin of live @[csimp] kernels
+import Srtfp.Schubfach.Perf.CsimpPin -- build-time pin of live @[csimp] kernels
 import Lean.Elab.Command
 
 open Lean
 
 -- CONFIGURE: namespace roots to scan, and permitted axioms
-private def roots : Array Lean.Name := #[`PP]
+private def roots : Array Lean.Name := #[`Srtfp]
 private def allowedAxioms : Array Lean.Name :=
   #[`propext, `Quot.sound, `Classical.choice,
     -- IEEE-754 binary64 runtime intrinsic axiom (`Float.toBits ∘ Float.ofBits = id`).
@@ -216,7 +216,7 @@ end AxiomMemo
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
-  -- Collect all PP.* roots once.
+  -- Collect all Srtfp.* roots once.
   let seeds : Array Name := env.constants.fold (init := #[]) fun acc n _ =>
     if roots.any (· == n.getRoot) then acc.push n else acc
   -- Single memoized transitive-axiom computation over the whole reachable cone.

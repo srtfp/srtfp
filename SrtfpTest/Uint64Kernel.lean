@@ -3,21 +3,21 @@
    on the entire Ryu corpus + other Schubfach-edge inputs.
 
    This serves as a correctness witness pending the formal equivalence
-   proof (see `PP/Numeric/Schubfach/Uint64Kernel.lean` TODO). -/
+   proof (see `Srtfp/Schubfach/Uint64Kernel.lean` TODO). -/
 
 import LSpec
-import Srtfp.Numeric.Schubfach
-import Srtfp.Numeric.Schubfach.Perf.Orchestration
-import Srtfp.Numeric.Schubfach.Perf.Uint64Kernel
-import Srtfp.Numeric.Schubfach.Perf.Uint64Bridge
-import Srtfp.Numeric.Float.Bits
+import Srtfp.Schubfach
+import Srtfp.Schubfach.Perf.Orchestration
+import Srtfp.Schubfach.Perf.Uint64Kernel
+import Srtfp.Schubfach.Perf.Uint64Bridge
+import Srtfp.Float.Bits
 import SrtfpTest.Ryu
 
-namespace PP.Numeric.Tests.Uint64Kernel
+namespace Srtfp.Tests.Uint64Kernel
 
-open LSpec PP.Numeric PP.Numeric.Schubfach PP.Numeric.Float
+open LSpec Srtfp Srtfp.Schubfach Srtfp.Float
 
-open PP.Numeric.Tests.Ryu in
+open Srtfp.Tests.Ryu in
 /-- The full Ryu corpus, flattened. -/
 private def allRyuFloats : Array Float :=
   (d2sBasic ++ d2sSwitchToSubnormal ++ d2sMinAndMax ++ d2sLotsOfTrailingZeros
@@ -103,4 +103,4 @@ def runFloorLogTests : TestSeq :=
   test s!"kOfMQ_fast = kOfMQ on corpus"
     findKOfMQMismatches.isEmpty
 
-end PP.Numeric.Tests.Uint64Kernel
+end Srtfp.Tests.Uint64Kernel

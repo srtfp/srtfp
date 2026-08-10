@@ -7,18 +7,18 @@
    equivalence proof. -/
 
 import LSpec
-import Srtfp.Numeric.Schubfach
-import Srtfp.Numeric.Schubfach.Perf.Orchestration
-import Srtfp.Numeric.Schubfach.Perf.Uint64Kernel
-import Srtfp.Numeric.Schubfach.Perf.Uint64Kernel192
-import Srtfp.Numeric.Float.Bits
+import Srtfp.Schubfach
+import Srtfp.Schubfach.Perf.Orchestration
+import Srtfp.Schubfach.Perf.Uint64Kernel
+import Srtfp.Schubfach.Perf.Uint64Kernel192
+import Srtfp.Float.Bits
 import SrtfpTest.Ryu
 
-namespace PP.Numeric.Tests.Uint64Kernel192
+namespace Srtfp.Tests.Uint64Kernel192
 
-open LSpec PP.Numeric PP.Numeric.Schubfach PP.Numeric.Float
+open LSpec Srtfp Srtfp.Schubfach Srtfp.Float
 
-open PP.Numeric.Tests.Ryu in
+open Srtfp.Tests.Ryu in
 /-- The full Ryu corpus, flattened. -/
 private def allRyuFloats : Array Float :=
   (d2sBasic ++ d2sSwitchToSubnormal ++ d2sMinAndMax ++ d2sLotsOfTrailingZeros
@@ -153,4 +153,4 @@ def runEndToEndTests : TestSeq :=
   test s!"shortestUnsigned_v4 = shortestUnsigned_v2 (corpus of {crossCheckCorpus.size})"
     findEndToEndMismatches.isEmpty
 
-end PP.Numeric.Tests.Uint64Kernel192
+end Srtfp.Tests.Uint64Kernel192

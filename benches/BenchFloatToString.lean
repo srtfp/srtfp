@@ -1,21 +1,21 @@
-import Srtfp.Numeric.Schubfach
-import Srtfp.Numeric.Decimal
-import Srtfp.Numeric.Schubfach.Perf.Orchestration
-import Srtfp.Numeric.Schubfach.Perf.Uint64Bridge
-import Srtfp.Numeric.Schubfach.Perf.Kernel192Correctness
-import Srtfp.Numeric.Schubfach.Perf.DigitsFast
-import Srtfp.Numeric.Schubfach.Perf.KernelV9
-import Srtfp.Numeric.Schubfach.Perf.KernelV10
-import Srtfp.Numeric.Schubfach.Perf.KernelV11
-import Srtfp.Numeric.Schubfach.Perf.KernelV12
-import Srtfp.Numeric.Schubfach.Perf.KernelV13
+import Srtfp.Schubfach
+import Srtfp.Decimal
+import Srtfp.Schubfach.Perf.Orchestration
+import Srtfp.Schubfach.Perf.Uint64Bridge
+import Srtfp.Schubfach.Perf.Kernel192Correctness
+import Srtfp.Schubfach.Perf.DigitsFast
+import Srtfp.Schubfach.Perf.KernelV9
+import Srtfp.Schubfach.Perf.KernelV10
+import Srtfp.Schubfach.Perf.KernelV11
+import Srtfp.Schubfach.Perf.KernelV12
+import Srtfp.Schubfach.Perf.KernelV13
 import Corpora
 
-open PP.Numeric
+open Srtfp
 
 /-- Reference shape used by the bench; rewritten via `@[csimp]` to
-    `PP.Numeric.Schubfach.toStringFast` at compile time. -/
-def floatToStr (f : Float) : String := PP.Numeric.Schubfach.floatToStrRef f
+    `Srtfp.Schubfach.toStringFast` at compile time. -/
+def floatToStr (f : Float) : String := Srtfp.Schubfach.floatToStrRef f
 
 /-- Sum of IEEE bit patterns (mod 2^64). Lets `run.sh` verify that Lean,
     C++, and Python iterate over byte-identical arrays. -/

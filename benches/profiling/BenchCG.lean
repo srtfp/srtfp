@@ -1,15 +1,15 @@
-import Srtfp.Numeric.Schubfach
-import Srtfp.Numeric.Schubfach.Perf.Orchestration
-import Srtfp.Numeric.Schubfach.Perf.Uint64Bridge
-import Srtfp.Numeric.Schubfach.Perf.Kernel192Correctness
-import Srtfp.Numeric.Schubfach.Perf.DigitsFast
-import Srtfp.Numeric.Schubfach.Perf.KernelV9
-import Srtfp.Numeric.Schubfach.Perf.KernelV10
-import Srtfp.Numeric.Schubfach.Perf.KernelV11
-import Srtfp.Numeric.Schubfach.Perf.KernelV12
-import Srtfp.Numeric.Schubfach.Perf.KernelV13
+import Srtfp.Schubfach
+import Srtfp.Schubfach.Perf.Orchestration
+import Srtfp.Schubfach.Perf.Uint64Bridge
+import Srtfp.Schubfach.Perf.Kernel192Correctness
+import Srtfp.Schubfach.Perf.DigitsFast
+import Srtfp.Schubfach.Perf.KernelV9
+import Srtfp.Schubfach.Perf.KernelV10
+import Srtfp.Schubfach.Perf.KernelV11
+import Srtfp.Schubfach.Perf.KernelV12
+import Srtfp.Schubfach.Perf.KernelV13
 import Corpora
-open PP.Numeric PP.Numeric.Schubfach
+open Srtfp Srtfp.Schubfach
 def main : IO Unit := do
   let c := Corpora.uniform
   let mut sink : Nat := 0

@@ -1,6 +1,6 @@
 /- "Ours WITHOUT the @[csimp] kernel layer" bench.
 
-   Imports only the spec module `PP.Numeric.Schubfach` (and `Corpora`), NOT the
+   Imports only the spec module `Srtfp.Schubfach` (and `Corpora`), NOT the
    `Schubfach/Perf/*` kernel modules. The kernel `@[csimp]` redirects
    (`shiftedSig`→fast, `toDecimal`→v4, `floatToStrRef`→`toStringFast`, …) all
    live under `Perf/`, so they are out of scope here and the pure-Nat spec
@@ -13,10 +13,10 @@
    `Schubfach.floatToStrRef` / `decimalToStrRef`.
 
      lake exe benchSpec <adversarial|nice|uniform> [--checksum]   (BENCH_N env) -/
-import Srtfp.Numeric.Schubfach
+import Srtfp.Schubfach
 import Corpora
 
-open PP.Numeric PP.Numeric.Schubfach
+open Srtfp Srtfp.Schubfach
 
 /-- Verbatim copy of `Schubfach.decimalToStrRef`. -/
 def decimalToStrSpec (d : Decimal) : String :=
