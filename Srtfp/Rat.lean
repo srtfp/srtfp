@@ -41,18 +41,18 @@ protected theorem neg_nonneg {q : ℚ} : 0 ≤ -q ↔ q ≤ 0 := by
     have := (Rat.le_iff_sub_nonneg 0 (-q)).mp h
     simp only [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero] at this
     exact (Rat.le_iff_sub_nonneg q 0).mpr (by
-      simp only [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero, Rat.zero_add]
+      simp only [Rat.sub_eq_add_neg, Rat.zero_add]
       exact this)
   · intro h
     have := (Rat.le_iff_sub_nonneg q 0).mp h
-    simp only [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero, Rat.zero_add] at this
+    simp only [Rat.sub_eq_add_neg, Rat.zero_add] at this
     exact this
 
 protected theorem neg_lt_zero {q : ℚ} : -q < 0 ↔ 0 < q := by
   constructor
   · intro h
     have := (Rat.lt_iff_sub_pos (-q) 0).mp h
-    simp only [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero, Rat.zero_add, Rat.neg_neg] at this
+    simp only [Rat.sub_eq_add_neg, Rat.zero_add, Rat.neg_neg] at this
     exact this
   · intro h
     have := (Rat.lt_iff_sub_pos 0 q).mp h
