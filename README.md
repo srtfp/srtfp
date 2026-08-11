@@ -23,6 +23,10 @@ round-trip properties.
 
 Zero dependencies beyond the Lean toolchain — no mathlib — except
 [LSpec](https://github.com/argumentcomputer/LSpec) for the test suite.
+One caveat: the library vendors a few root-level compatibility lemmas
+(`abs_nonneg`, `Nat.log`, …) that Mathlib also declares, so a file
+cannot import both srtfp and Mathlib. Packages can depend on both as
+long as no single file imports both.
 
 ## Build
 

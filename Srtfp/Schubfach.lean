@@ -1,7 +1,7 @@
 /- Schubfach printer — Float → Decimal.
 
-   Full implementation of the Schubfach algorithm (Giulietti, 2021):
-   `~/acs/project/research/Schubfach-Giulietti-2021.pdf`. Produces the
+   Full implementation of the Schubfach algorithm (Raffaello Giulietti,
+   "The Schubfach way to render doubles", 2021). Produces the
    round-trip-shortest decimal representation of any binary64 input.
 
    Round-trip correctness (`Schubfach.toDecimal` followed by Clinger's
