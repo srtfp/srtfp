@@ -112,7 +112,7 @@ certification is stated against. `decimalToFloat_eq_bits` proves the
 `Float` API is exactly `Float.ofBits` of this word. -/
 
 /-- The `±∞` word of the given sign (biased exponent all-ones, mantissa 0). -/
-def infWord (sign : Bool) : UInt64 := Word.pack sign infBiasedExp 0
+def infWord (sign : Bool) : UInt64 := Word.pack sign 2047 0
 
 /-- The `±0.0` word of the given sign. -/
 def zeroWord (sign : Bool) : UInt64 := Word.pack sign 0 0

@@ -1,12 +1,15 @@
-/- Clinger Decimal→Float correctness — runtime bridge (M4).
+/- Clinger Decimal→Float correctness — decode/pack bridge (M4).
 
-   This module discharges `DecodeOfDecimalBridge`: for a non-overflow
-   nonzero `Decimal d`, `decode (ofDecimal d) = decodedAbs d.sign
-   d.significand d.exponent`.
+   This module discharges `DecodeOfDecimalBridgeBits`: for a non-overflow
+   nonzero `Decimal d`, `Word.decode (ofDecimalBits d) = decodedAbs d.sign
+   d.significand d.exponent` — pure word algebra, no axiom. The proof
+   case-splits on the same if-tree as `ofDecimalBits` (= `decodedAbs`)
+   and at each leaf applies `pack_proj` to recover the bit-field
+   projections of the packed word.
 
-   The proof case-splits on the same if-tree as `ofDecimal` (= `decodedAbs`)
-   and at each leaf applies the `fromBits_proj` axiom to recover the
-   bit-field projections after the `Float.toBits_ofBits` round-trip.
+   The Float-level counterparts (`decode_of_decimal_bridge` and friends)
+   are derived at the end across the restricted runtime axiom, via
+   `ofDecimal_toBits`.
 
    The case-split mirrors `decodedAbsAB`'s if-tree (see `Base.lean`). -/
 
@@ -24,31 +27,31 @@ open Srtfp
 
 private theorem zero_lt_2pow52 : (0 : Nat) < 2 ^ 52 := by decide
 
-/-! ## decode (fromBits ...) lemmas
+/-! ## Word.decode (Word.pack ...) lemmas
 
-These wrap the `fromBits_proj` axiom for the specific bit-field
-shapes that `decimalToFloat` produces. -/
+These wrap `pack_proj` for the specific bit-field shapes that
+`decimalToFloatBits` produces. -/
 
-/-- `decode (fromBits sign biasedExp mantissa) = ⟨sign, mantissa, -1074⟩`
+/-- `Word.decode (Word.pack sign biasedExp mantissa) = ⟨sign, mantissa, -1074⟩`
 when `biasedExp = 0` (subnormal/zero). -/
-private theorem decode_fromBits_zero
+private theorem decode_pack_zero
     (sign : Bool) (mantissa : Nat) (h_m : mantissa < 2 ^ 52) :
-    decode (fromBits sign 0 mantissa) = ⟨sign, mantissa, -1074⟩ := by
-  unfold decode
-  obtain ⟨h_sign, h_be, h_man⟩ := fromBits_proj sign 0 mantissa (by decide) h_m (by omega)
+    Word.decode (Word.pack sign 0 mantissa) = ⟨sign, mantissa, -1074⟩ := by
+  unfold Word.decode
+  obtain ⟨h_sign, h_be, h_man⟩ := pack_proj sign 0 mantissa (by decide) h_m
   rw [h_sign, h_be, h_man]
   rfl
 
-/-- `decode (fromBits sign biasedExp mantissa) = ⟨sign, mantissa + 2^52,
+/-- `Word.decode (Word.pack sign biasedExp mantissa) = ⟨sign, mantissa + 2^52,
 biasedExp - 1023 - 52⟩` when `biasedExp ≥ 1` (normal). -/
-private theorem decode_fromBits_normal
+private theorem decode_pack_normal
     (sign : Bool) (biasedExp : Nat) (mantissa : Nat)
     (h_be_lo : 1 ≤ biasedExp) (h_be_hi : biasedExp < 2048) (h_m : mantissa < 2 ^ 52)
-    (h_nan : biasedExp = 2047 → mantissa = 0) :
-    decode (fromBits sign biasedExp mantissa)
+    (_h_nan : biasedExp = 2047 → mantissa = 0) :
+    Word.decode (Word.pack sign biasedExp mantissa)
       = ⟨sign, mantissa + (1 <<< 52), (biasedExp : Int) - 1023 - 52⟩ := by
-  unfold decode
-  obtain ⟨h_sign, h_be, h_man⟩ := fromBits_proj sign biasedExp mantissa h_be_hi h_m h_nan
+  unfold Word.decode
+  obtain ⟨h_sign, h_be, h_man⟩ := pack_proj sign biasedExp mantissa h_be_hi h_m
   rw [h_sign, h_be, h_man]
   have h_ne : biasedExp ≠ 0 := by omega
   rw [if_neg h_ne]
@@ -62,7 +65,7 @@ After fixing concrete `(a, b)` via `exp ≥ 0`, each leaf of
 the corresponding `decodedAbsAB` leaf. -/
 
 /-- The normal no-carry leaf: `m < 2^53` and `decodedAbsAB` = `⟨sign, m,
-e - 52⟩`. The Float-side produces `fromBits sign (e + 1023).toNat (m -
+e - 52⟩`. The Float-side produces `Word.pack sign (e + 1023).toNat (m -
 2^52)`. Their decodes match when `m ≥ 2^52` (which is guaranteed by
 the rounding bounds — but we phrase the lemma to handle both regular
 and irregular sub-cases.
@@ -76,7 +79,7 @@ private theorem decode_normal_leaf_eq
     (sign : Bool) (e : Int) (m : Nat)
     (h_m_lo : 2 ^ 52 ≤ m) (h_m_hi : m < 2 ^ 53)
     (h_e_lo : e ≥ -1022) (h_e_hi : e ≤ 1023) :
-    decode (fromBits sign (e + 1023).toNat (m - 2 ^ 52))
+    Word.decode (Word.pack sign (e + 1023).toNat (m - 2 ^ 52))
       = ⟨sign, m, e - 52⟩ := by
   have h_be_lo : 1 ≤ (e + 1023).toNat := by
     have : 1 ≤ (e + 1023) := by omega
@@ -88,7 +91,7 @@ private theorem decode_normal_leaf_eq
   have h_m_diff : m - 2 ^ 52 < 2 ^ 52 := by
     have : 2 * 2 ^ 52 = 2 ^ 53 := by decide
     omega
-  rw [decode_fromBits_normal sign (e + 1023).toNat (m - 2 ^ 52) h_be_lo h_be_hi h_m_diff
+  rw [decode_pack_normal sign (e + 1023).toNat (m - 2 ^ 52) h_be_lo h_be_hi h_m_diff
       (by omega)]
   -- Need: ⟨sign, (m - 2^52) + 1 <<< 52, ((e + 1023).toNat : Int) - 1023 - 52⟩ = ⟨sign, m, e - 52⟩
   have h_m_eq : m - 2 ^ 52 + (1 <<< 52) = m := by
@@ -102,11 +105,11 @@ private theorem decode_normal_leaf_eq
     omega
   rw [h_m_eq, h_e_eq]
 
-/-- Carry leaf: `(2^52, e + 1 - 52)` via `fromBits sign (e' + 1023).toNat 0`. -/
+/-- Carry leaf: `(2^52, e + 1 - 52)` via `Word.pack sign (e' + 1023).toNat 0`. -/
 private theorem decode_carry_leaf_eq
     (sign : Bool) (e : Int)
     (h_e_lo : e ≥ -1022) (h_e_hi : e + 1 ≤ 1023) :
-    decode (fromBits sign ((e + 1) + 1023).toNat 0)
+    Word.decode (Word.pack sign ((e + 1) + 1023).toNat 0)
       = ⟨sign, 1 <<< 52, (e + 1) - 52⟩ := by
   have h_be_lo : 1 ≤ ((e + 1) + 1023).toNat := by
     have : 1 ≤ (e + 1 + 1023) := by omega
@@ -115,7 +118,7 @@ private theorem decode_carry_leaf_eq
     have h1 : (e + 1 + 1023) ≤ 2046 := by omega
     have h2 : (0 : Int) ≤ (e + 1 + 1023) := by omega
     omega
-  rw [decode_fromBits_normal sign ((e + 1) + 1023).toNat 0 h_be_lo h_be_hi zero_lt_2pow52
+  rw [decode_pack_normal sign ((e + 1) + 1023).toNat 0 h_be_lo h_be_hi zero_lt_2pow52
       (fun _ => rfl)]
   have h_e_eq : (((e + 1) + 1023).toNat : Int) - 1023 - 52 = (e + 1) - 52 := by
     have h1 : (((e + 1) + 1023).toNat : Int) = e + 1 + 1023 := by
@@ -125,16 +128,16 @@ private theorem decode_carry_leaf_eq
   rw [h_e_eq]
   simp []
 
-/-- Subnormal `m ≥ 2^52` leaf: `fromBits sign 1 (m - 2^52)` decodes to
+/-- Subnormal `m ≥ 2^52` leaf: `Word.pack sign 1 (m - 2^52)` decodes to
 `⟨sign, m, -1074⟩` (which is correct because the normal exponent
 `q = (1 : Int) - 1023 - 52 = -1074` matches the subnormal q). -/
 private theorem decode_subnormal_normal_boundary_eq
     (sign : Bool) (m : Nat) (h_lo : 2 ^ 52 ≤ m) (h_hi : m < 2 ^ 53) :
-    decode (fromBits sign 1 (m - 2 ^ 52)) = ⟨sign, m, -1074⟩ := by
+    Word.decode (Word.pack sign 1 (m - 2 ^ 52)) = ⟨sign, m, -1074⟩ := by
   have h_m_diff : m - 2 ^ 52 < 2 ^ 52 := by
     have : 2 * 2 ^ 52 = 2 ^ 53 := by decide
     omega
-  rw [decode_fromBits_normal sign 1 (m - 2 ^ 52) (by decide) (by decide) h_m_diff (by omega)]
+  rw [decode_pack_normal sign 1 (m - 2 ^ 52) (by decide) (by decide) h_m_diff (by omega)]
   -- ⟨sign, m - 2^52 + 1 <<< 52, 1 - 1023 - 52⟩ = ⟨sign, m, -1074⟩
   have h_m_eq : m - 2 ^ 52 + (1 <<< 52) = m := by
     have h_shl : (1 : Nat) <<< 52 = 2 ^ 52 := by decide
@@ -143,12 +146,12 @@ private theorem decode_subnormal_normal_boundary_eq
   have h_e_eq : ((1 : Nat) : Int) - 1023 - 52 = -1074 := by decide
   rw [h_m_eq, h_e_eq]
 
-/-- Subnormal `m < 2^52` leaf: `fromBits sign 0 m` decodes to `⟨sign, m,
+/-- Subnormal `m < 2^52` leaf: `Word.pack sign 0 m` decodes to `⟨sign, m,
 -1074⟩`. -/
 private theorem decode_subnormal_low_eq
     (sign : Bool) (m : Nat) (h_m : m < 2 ^ 52) :
-    decode (fromBits sign 0 m) = ⟨sign, m, -1074⟩ :=
-  decode_fromBits_zero sign m h_m
+    Word.decode (Word.pack sign 0 m) = ⟨sign, m, -1074⟩ :=
+  decode_pack_zero sign m h_m
 
 /-! ## Bound facts on `roundNearestEven` for the bridge
 
@@ -270,29 +273,30 @@ The bridge follows by walking the parallel if-trees in `decimalToFloat`
 applying the per-leaf `decode_*_eq` lemmas. -/
 
 set_option maxHeartbeats 800000 in
-/-- For nonzero `sig` and concrete `(a, b)`, `decode (decimalToFloat-body) =
-decodedAbsAB`, conditional on `IsFiniteAbs` ruling out overflows. -/
+/-- For nonzero `sig` and concrete `(a, b)`, `Word.decode
+(decimalToFloatBits-body) = decodedAbsAB`, conditional on `IsFiniteAbs`
+ruling out overflows. -/
 private theorem bridge_AB
     (sign : Bool) (_sig : Nat) (_exp : Int) (a b : Nat)
     (ha_pos : 0 < a) (hb_pos : 0 < b)
     (h_finite : (decodedAbsAB sign a b).q ≤ 971) :
-    decode
+    Word.decode
       (let e := findBinaryExp a b
-       if e > 1023 then fromBits sign 2047 0
+       if e > 1023 then Word.pack sign 2047 0
        else if e ≥ -1022 then
          let m := roundNearestEven (scaleByPow2 a b (52 - e)).1
                                     (scaleByPow2 a b (52 - e)).2
          if m ≥ 2 ^ 53 then
            let e' := e + 1
-           if e' > 1023 then fromBits sign 2047 0
-           else fromBits sign (e' + 1023).toNat 0
-         else fromBits sign (e + 1023).toNat (m - 2 ^ 52)
+           if e' > 1023 then Word.pack sign 2047 0
+           else Word.pack sign (e' + 1023).toNat 0
+         else Word.pack sign (e + 1023).toNat (m - 2 ^ 52)
        else
          let m := roundNearestEven (scaleByPow2 a b 1074).1
                                     (scaleByPow2 a b 1074).2
-         if m = 0 then fromBits sign 0 0
-         else if m ≥ 2 ^ 52 then fromBits sign 1 (m - 2 ^ 52)
-         else fromBits sign 0 m)
+         if m = 0 then Word.pack sign 0 0
+         else if m ≥ 2 ^ 52 then Word.pack sign 1 (m - 2 ^ 52)
+         else Word.pack sign 0 m)
     = decodedAbsAB sign a b := by
   -- Mirror the dispatch_AB structure.
   by_cases h_over : findBinaryExp a b > 1023
@@ -332,7 +336,7 @@ private theorem bridge_AB
           rw [if_neg h_over, if_pos h_normal, if_neg h_carry]
         rw [h_eq]
         simp only [if_neg h_over, if_pos h_normal, if_neg h_carry]
-        -- Need decode (fromBits sign (e + 1023).toNat (m - 2^52)) = ⟨sign, m, e - 52⟩
+        -- Need Word.decode (Word.pack sign (e + 1023).toNat (m - 2^52)) = ⟨sign, m, e - 52⟩
         -- where m = roundNearestEven _ _, m ∈ [2^52, 2^53).
         have h_m_lo : 2 ^ 52 ≤ roundNearestEven (scaleByPow2 a b (52 - findBinaryExp a b)).1
                                                 (scaleByPow2 a b (52 - findBinaryExp a b)).2 :=
@@ -351,7 +355,7 @@ private theorem bridge_AB
           rw [if_neg h_over, if_neg h_normal, if_pos h_zero]
         rw [h_eq]
         simp only [if_neg h_over, if_neg h_normal, if_pos h_zero]
-        exact decode_fromBits_zero sign 0 zero_lt_2pow52
+        exact decode_pack_zero sign 0 zero_lt_2pow52
       · by_cases h_nb : roundNearestEven (scaleByPow2 a b 1074).1
                                           (scaleByPow2 a b 1074).2 ≥ 2 ^ 52
         · -- m ≥ 2^52 leaf. From subnormal_round_le_2pow52, m_round ≤ 2^52, so m_round = 2^52.
@@ -384,18 +388,18 @@ private theorem bridge_AB
 
 /-! ## The bridge -/
 
-/-- **The runtime bridge** (`DecodeOfDecimalBridge`). -/
-theorem decode_of_decimal_bridge : DecodeOfDecimalBridge := by
+/-- **The bits-level bridge** (`DecodeOfDecimalBridgeBits`) — axiom-free. -/
+theorem decode_of_decimal_bridge_bits : DecodeOfDecimalBridgeBits := by
   intro d h_finite
-  unfold ofDecimal decimalToFloat
+  unfold ofDecimalBits decimalToFloatBits
   by_cases h_sig : d.significand = 0
   · -- Zero case.
     rw [if_pos h_sig]
     have h_decode : decodedAbs d.sign d.significand d.exponent = ⟨d.sign, 0, -1074⟩ := by
       rw [h_sig, decodedAbs_zero]
     rw [h_decode]
-    show decode (fromBits d.sign 0 0) = ⟨d.sign, 0, -1074⟩
-    exact decode_fromBits_zero d.sign 0 zero_lt_2pow52
+    show Word.decode (Word.pack d.sign 0 0) = ⟨d.sign, 0, -1074⟩
+    exact decode_pack_zero d.sign 0 zero_lt_2pow52
   · -- Nonzero case.
     rw [if_neg h_sig]
     -- Now we need to mirror decodedAbs structure on `bridge_AB`.
@@ -445,22 +449,22 @@ private theorem overflow_AB
     (sign : Bool) (a b : Nat)
     (h_not : ¬ ((decodedAbsAB sign a b).q ≤ 971)) :
     (let e := findBinaryExp a b
-     if e > 1023 then fromBits sign 2047 0
+     if e > 1023 then Word.pack sign 2047 0
      else if e ≥ -1022 then
        let m := roundNearestEven (scaleByPow2 a b (52 - e)).1
                                   (scaleByPow2 a b (52 - e)).2
        if m ≥ 2 ^ 53 then
          let e' := e + 1
-         if e' > 1023 then fromBits sign 2047 0
-         else fromBits sign (e' + 1023).toNat 0
-       else fromBits sign (e + 1023).toNat (m - 2 ^ 52)
+         if e' > 1023 then Word.pack sign 2047 0
+         else Word.pack sign (e' + 1023).toNat 0
+       else Word.pack sign (e + 1023).toNat (m - 2 ^ 52)
      else
        let m := roundNearestEven (scaleByPow2 a b 1074).1
                                   (scaleByPow2 a b 1074).2
-       if m = 0 then fromBits sign 0 0
-       else if m ≥ 2 ^ 52 then fromBits sign 1 (m - 2 ^ 52)
-       else fromBits sign 0 m)
-    = fromBits sign 2047 0 := by
+       if m = 0 then Word.pack sign 0 0
+       else if m ≥ 2 ^ 52 then Word.pack sign 1 (m - 2 ^ 52)
+       else Word.pack sign 0 m)
+    = Word.pack sign 2047 0 := by
   by_cases h_over : findBinaryExp a b > 1023
   · simp only [if_pos h_over]
   · by_cases h_normal : findBinaryExp a b ≥ -1022
@@ -516,13 +520,13 @@ private theorem overflow_AB
           show (-1074 : Int) ≤ 971
           omega
 
-/-- Overflowing inputs produce exactly `±∞`. -/
-theorem decimalToFloat_overflow_inf (sign : Bool) (sig : Nat) (exp : Int)
+/-- Overflowing inputs produce exactly the `±∞` word. -/
+theorem decimalToFloatBits_overflow_inf (sign : Bool) (sig : Nat) (exp : Int)
     (h_sig : sig ≠ 0)
     (h_not : ¬ IsFiniteAbs sign sig exp) :
-    decimalToFloat sign sig exp = fromBits sign 2047 0 := by
+    decimalToFloatBits sign sig exp = Word.pack sign 2047 0 := by
   unfold IsFiniteAbs at h_not
-  unfold decimalToFloat
+  unfold decimalToFloatBits
   rw [if_neg h_sig]
   by_cases hexp : exp ≥ 0
   · rw [decodedAbs_eq_decodedAbsAB_pos sign sig exp h_sig hexp] at h_not
@@ -536,12 +540,11 @@ theorem decimalToFloat_overflow_inf (sign : Bool) (sig : Nat) (exp : Int)
     rw [h_pair]
     exact overflow_AB sign _ _ h_not
 
-/-- `±∞` is not finite, at the bit level. -/
-theorem isFiniteBits_fromBits_inf (sign : Bool) :
-    isFiniteBits (fromBits sign 2047 0) = false := by
-  obtain ⟨_, h_be, _⟩ := fromBits_proj sign 2047 0 (by decide) (by decide) (fun _ => rfl)
-  unfold isFiniteBits
-  rw [h_be]
+/-- The `±∞` word is not a finite pattern. -/
+theorem word_isFinite_inf (sign : Bool) :
+    Word.isFinite (Word.pack sign 2047 0) = false := by
+  unfold Word.isFinite
+  rw [pack_biasedExp sign 2047 0 (by decide) (by decide)]
   decide
 
 /-- **`IsFiniteAbs` is implied by a bit-level round-trip to a finite float**:
@@ -549,66 +552,64 @@ if `Clinger.ofDecimal d` has the same bits as some finite `f`, the abstract
 decode cannot have overflowed (overflow produces `±∞`, whose biased exponent
 `2047` cannot match a finite bit pattern). This removes `IsFiniteAbs` side
 conditions from any statement that already assumes the round-trip. -/
-theorem isFiniteAbs_of_roundtrip (d : Decimal) (f : _root_.Float)
+theorem isFiniteAbs_of_roundtrip_bits (d : Decimal) (w : UInt64)
     (h_sig : d.significand ≠ 0)
-    (h_fin : isFiniteBits f = true)
-    (h_rt : (ofDecimal d).toBits = f.toBits) :
+    (h_fin : Word.isFinite w = true)
+    (h_rt : ofDecimalBits d = w) :
     IsFiniteAbs d.sign d.significand d.exponent := by
   by_contra h_not
-  have h_inf : ofDecimal d = fromBits d.sign 2047 0 :=
-    decimalToFloat_overflow_inf d.sign d.significand d.exponent h_sig h_not
-  have h_fb : isFiniteBits (ofDecimal d) = isFiniteBits f := by
-    unfold isFiniteBits biasedExpBits
-    rw [h_rt]
-  rw [h_inf, isFiniteBits_fromBits_inf, h_fin] at h_fb
+  have h_inf : ofDecimalBits d = Word.pack d.sign 2047 0 :=
+    decimalToFloatBits_overflow_inf d.sign d.significand d.exponent h_sig h_not
+  have h_fb : Word.isFinite (ofDecimalBits d) = Word.isFinite w := by rw [h_rt]
+  rw [h_inf, word_isFinite_inf, h_fin] at h_fb
   exact absurd h_fb (by decide)
 
-/-! ## `Clinger.ofDecimal` never produces a NaN bit pattern
+/-! ## `Clinger.ofDecimalBits` never produces a NaN bit pattern
 
-Every leaf of `decimalToFloat`'s if-tree is `fromBits sign be m` with either
-`m = 0` (zero / infinity / carry-overflow leaves) or `be < 2047` (normal /
-subnormal leaves), so none can encode a NaN payload
+Every leaf of `decimalToFloatBits`'s if-tree is `Word.pack sign be m` with
+either `m = 0` (zero / infinity / carry-overflow leaves) or `be < 2047`
+(normal / subnormal leaves), so none can encode a NaN payload
 (`be = 2047 ∧ m ≠ 0`). This lets `ofDecimal`'s output feed the restricted
 `Float.toBits_ofBits` axiom unconditionally, without any finiteness
-hypothesis. -/
+hypothesis (see `ofDecimal_toBits` below). -/
 
 /-- The `(a, b)`-body mirrored by `bridge_AB` / `overflow_AB` never produces
 a NaN bit pattern, for any positive `a, b` (no finiteness hypothesis
-needed: even the overflow leaf `fromBits sign 2047 0` has mantissa `0`,
+needed: even the overflow leaf `Word.pack sign 2047 0` has mantissa `0`,
 hence is `±∞`, not NaN). -/
 private theorem not_nanPattern_AB
     (sign : Bool) (a b : Nat) (ha_pos : 0 < a) (hb_pos : 0 < b) :
     _root_.Float.isNaNPattern
       ((let e := findBinaryExp a b
-        if e > 1023 then fromBits sign 2047 0
+        if e > 1023 then Word.pack sign 2047 0
         else if e ≥ -1022 then
           let m := roundNearestEven (scaleByPow2 a b (52 - e)).1
                                      (scaleByPow2 a b (52 - e)).2
           if m ≥ 2 ^ 53 then
             let e' := e + 1
-            if e' > 1023 then fromBits sign 2047 0
-            else fromBits sign (e' + 1023).toNat 0
-          else fromBits sign (e + 1023).toNat (m - 2 ^ 52)
+            if e' > 1023 then Word.pack sign 2047 0
+            else Word.pack sign (e' + 1023).toNat 0
+          else Word.pack sign (e + 1023).toNat (m - 2 ^ 52)
         else
           let m := roundNearestEven (scaleByPow2 a b 1074).1
                                      (scaleByPow2 a b 1074).2
-          if m = 0 then fromBits sign 0 0
-          else if m ≥ 2 ^ 52 then fromBits sign 1 (m - 2 ^ 52)
-          else fromBits sign 0 m).toBits) = false := by
+          if m = 0 then Word.pack sign 0 0
+          else if m ≥ 2 ^ 52 then Word.pack sign 1 (m - 2 ^ 52)
+          else Word.pack sign 0 m)) = false := by
   by_cases h_over : findBinaryExp a b > 1023
   · simp only [if_pos h_over]
-    exact fromBits_toBits_isNaNPattern_false sign 2047 0 (by decide) (by decide)
+    exact pack_isNaNPattern_false sign 2047 0 (by decide) (by decide)
       (fun _ => rfl)
   · by_cases h_normal : findBinaryExp a b ≥ -1022
     · by_cases h_carry : roundNearestEven (scaleByPow2 a b (52 - findBinaryExp a b)).1
                           (scaleByPow2 a b (52 - findBinaryExp a b)).2 ≥ 2 ^ 53
       · by_cases h_over2 : findBinaryExp a b + 1 > 1023
         · simp only [if_neg h_over, if_pos h_normal, if_pos h_carry, if_pos h_over2]
-          exact fromBits_toBits_isNaNPattern_false sign 2047 0 (by decide)
+          exact pack_isNaNPattern_false sign 2047 0 (by decide)
             (by decide) (fun _ => rfl)
         · simp only [if_neg h_over, if_pos h_normal, if_pos h_carry, if_neg h_over2]
           have h_be_hi : (findBinaryExp a b + 1 + 1023).toNat < 2048 := by omega
-          exact fromBits_toBits_isNaNPattern_false sign _ 0 h_be_hi
+          exact pack_isNaNPattern_false sign _ 0 h_be_hi
             zero_lt_2pow52 (fun _ => rfl)
       · simp only [if_neg h_over, if_pos h_normal, if_neg h_carry]
         have h_be_hi : (findBinaryExp a b + 1023).toNat < 2048 := by omega
@@ -616,11 +617,11 @@ private theorem not_nanPattern_AB
             roundNearestEven (scaleByPow2 a b (52 - findBinaryExp a b)).1
                               (scaleByPow2 a b (52 - findBinaryExp a b)).2 - 2 ^ 52 < 2 ^ 52 := by
           omega
-        exact fromBits_toBits_isNaNPattern_false sign _ _ h_be_hi h_m_diff
+        exact pack_isNaNPattern_false sign _ _ h_be_hi h_m_diff
           (fun _ => by omega)
     · by_cases h_zero : roundNearestEven (scaleByPow2 a b 1074).1 (scaleByPow2 a b 1074).2 = 0
       · simp only [if_neg h_over, if_neg h_normal, if_pos h_zero]
-        exact fromBits_toBits_isNaNPattern_false sign 0 0 (by decide) (by decide)
+        exact pack_isNaNPattern_false sign 0 0 (by decide) (by decide)
           (fun _ => rfl)
       · by_cases h_nb : roundNearestEven (scaleByPow2 a b 1074).1 (scaleByPow2 a b 1074).2 ≥ 2 ^ 52
         · simp only [if_neg h_over, if_neg h_normal, if_neg h_zero, if_pos h_nb]
@@ -630,24 +631,24 @@ private theorem not_nanPattern_AB
                 < 2 ^ 52 := by
             have h2 : 2 * 2 ^ 52 = 2 ^ 53 := by decide
             omega
-          exact fromBits_toBits_isNaNPattern_false sign 1 _ (by decide) h_m_diff
+          exact pack_isNaNPattern_false sign 1 _ (by decide) h_m_diff
             (fun _ => by omega)
         · simp only [if_neg h_over, if_neg h_normal, if_neg h_zero, if_neg h_nb]
           have h_m_lt : roundNearestEven (scaleByPow2 a b 1074).1 (scaleByPow2 a b 1074).2
               < 2 ^ 52 := by omega
-          exact fromBits_toBits_isNaNPattern_false sign 0 _ (by decide) h_m_lt
+          exact pack_isNaNPattern_false sign 0 _ (by decide) h_m_lt
             (fun _ => by omega)
 
-/-- **`Clinger.ofDecimal` never produces a NaN bit pattern**, for any
+/-- **`Clinger.ofDecimalBits` never produces a NaN pattern**, for any
 `Decimal` (zero, finite nonzero, or overflowing to `±∞` — none of the
-leaves of `decimalToFloat`'s if-tree can encode a NaN payload). -/
-theorem ofDecimal_toBits_not_nanPattern (d : Decimal) :
-    _root_.Float.isNaNPattern (ofDecimal d).toBits = false := by
-  show _root_.Float.isNaNPattern (decimalToFloat d.sign d.significand d.exponent).toBits = false
-  unfold decimalToFloat
+leaves of `decimalToFloatBits`'s if-tree can encode a NaN payload). -/
+theorem ofDecimalBits_not_nanPattern (d : Decimal) :
+    _root_.Float.isNaNPattern (ofDecimalBits d) = false := by
+  show _root_.Float.isNaNPattern (decimalToFloatBits d.sign d.significand d.exponent) = false
+  unfold decimalToFloatBits
   by_cases h_sig : d.significand = 0
   · rw [if_pos h_sig]
-    exact fromBits_toBits_isNaNPattern_false d.sign 0 0 (by decide) (by decide)
+    exact pack_isNaNPattern_false d.sign 0 0 (by decide) (by decide)
       (fun _ => rfl)
   · rw [if_neg h_sig]
     by_cases hexp : d.exponent ≥ 0
@@ -668,5 +669,59 @@ theorem ofDecimal_toBits_not_nanPattern (d : Decimal) :
       have hb_pos : 0 < (10 : Nat) ^ (-d.exponent).toNat :=
         Nat.pow_pos (by decide : 0 < (10 : Nat))
       exact not_nanPattern_AB d.sign _ _ (Nat.pos_of_ne_zero h_sig) hb_pos
+
+/-! ## Float tier — derived across the runtime axiom
+
+Everything below consumes `Float.toBits_ofBits` (exactly once, inside
+`ofDecimal_toBits`); the mathematical content is the word-level material
+above. -/
+
+/-- **The parser's master bridge**: `ofDecimal`'s runtime bits are exactly
+the word `ofDecimalBits` computes — unconditionally, since no leaf of the
+pipeline is a NaN pattern. The only axiom application on the parser side. -/
+theorem ofDecimal_toBits (d : Decimal) :
+    (ofDecimal d).toBits = ofDecimalBits d := by
+  rw [ofDecimal_eq_bits]
+  exact _root_.Float.toBits_ofBits _ (ofDecimalBits_not_nanPattern d)
+
+/-- `ofDecimal` never produces a NaN bit pattern (Float tier). -/
+theorem ofDecimal_toBits_not_nanPattern (d : Decimal) :
+    _root_.Float.isNaNPattern (ofDecimal d).toBits = false := by
+  rw [ofDecimal_toBits]
+  exact ofDecimalBits_not_nanPattern d
+
+/-- **The runtime bridge** (`DecodeOfDecimalBridge`), Float tier. -/
+theorem decode_of_decimal_bridge : DecodeOfDecimalBridge := by
+  intro d h_finite
+  rw [decode_word, ofDecimal_toBits]
+  exact decode_of_decimal_bridge_bits d h_finite
+
+/-- Overflowing inputs produce exactly `±∞` (Float tier). -/
+theorem decimalToFloat_overflow_inf (sign : Bool) (sig : Nat) (exp : Int)
+    (h_sig : sig ≠ 0)
+    (h_not : ¬ IsFiniteAbs sign sig exp) :
+    decimalToFloat sign sig exp = fromBits sign 2047 0 := by
+  rw [decimalToFloat_eq_bits,
+      decimalToFloatBits_overflow_inf sign sig exp h_sig h_not]
+  rfl
+
+/-- `±∞` is not finite, at the bit level (Float tier). -/
+theorem isFiniteBits_fromBits_inf (sign : Bool) :
+    isFiniteBits (fromBits sign 2047 0) = false := by
+  rw [fromBits_word,
+      isFiniteBits_ofBits _ (pack_isNaNPattern_false sign 2047 0 (by decide) (by decide)
+        (fun _ => rfl))]
+  exact word_isFinite_inf sign
+
+/-- `IsFiniteAbs` from a bit-level round-trip to a finite float (Float
+tier of `isFiniteAbs_of_roundtrip_bits`). -/
+theorem isFiniteAbs_of_roundtrip (d : Decimal) (f : _root_.Float)
+    (h_sig : d.significand ≠ 0)
+    (h_fin : isFiniteBits f = true)
+    (h_rt : (ofDecimal d).toBits = f.toBits) :
+    IsFiniteAbs d.sign d.significand d.exponent := by
+  refine isFiniteAbs_of_roundtrip_bits d f.toBits h_sig ?_ ?_
+  · rw [← isFiniteBits_word]; exact h_fin
+  · rw [← ofDecimal_toBits]; exact h_rt
 
 end Srtfp.Clinger

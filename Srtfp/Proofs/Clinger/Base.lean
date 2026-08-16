@@ -486,6 +486,14 @@ def DecodeOfDecimalBridge : Prop :=
     (decodedAbs d.sign d.significand d.exponent).q ≤ 971 →
     decode (ofDecimal d) = decodedAbs d.sign d.significand d.exponent
 
+/-- **Bits-level bridge predicate** — the same statement on the pure word
+pipeline (`Word.decode ∘ ofDecimalBits`); axiom-free to prove and to
+consume. -/
+def DecodeOfDecimalBridgeBits : Prop :=
+  ∀ (d : Decimal),
+    (decodedAbs d.sign d.significand d.exponent).q ≤ 971 →
+    Word.decode (ofDecimalBits d) = decodedAbs d.sign d.significand d.exponent
+
 /-! ## Abstract correctness and dispatch obligations -/
 
 /-- **Abstract correctness theorem.** For non-overflow nonzero

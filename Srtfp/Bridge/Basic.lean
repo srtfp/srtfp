@@ -36,6 +36,38 @@ theorem fromBits_proj (sign : Bool) (biasedExp : Nat) (mantissa : Nat)
   rw [fromBits_toBits sign biasedExp mantissa h_be h_m h_nan]
   exact pack_proj sign biasedExp mantissa h_be h_m
 
+/-- Transport: decoding the `Float` made from a non-NaN word is decoding
+the word. The generic bridge between the two tiers — every word-level
+`decode` fact becomes a `Float`-level one through this. -/
+theorem decode_ofBits (w : UInt64) (h : _root_.Float.isNaNPattern w = false) :
+    decode (_root_.Float.ofBits w) = Word.decode w := by
+  rw [decode_word, _root_.Float.toBits_ofBits w h]
+
+/-- Transport for the field readers, same shape. -/
+theorem signBit_ofBits (w : UInt64) (h : _root_.Float.isNaNPattern w = false) :
+    signBit (_root_.Float.ofBits w) = Word.signBit w := by
+  rw [signBit_word, _root_.Float.toBits_ofBits w h]
+
+theorem biasedExpBits_ofBits (w : UInt64) (h : _root_.Float.isNaNPattern w = false) :
+    biasedExpBits (_root_.Float.ofBits w) = Word.biasedExp w := by
+  rw [biasedExpBits_word, _root_.Float.toBits_ofBits w h]
+
+theorem mantissaBits_ofBits (w : UInt64) (h : _root_.Float.isNaNPattern w = false) :
+    mantissaBits (_root_.Float.ofBits w) = Word.mantissa w := by
+  rw [mantissaBits_word, _root_.Float.toBits_ofBits w h]
+
+theorem isNaNBits_ofBits (w : UInt64) (h : _root_.Float.isNaNPattern w = false) :
+    isNaNBits (_root_.Float.ofBits w) = Word.isNaN w := by
+  rw [isNaNBits_word, _root_.Float.toBits_ofBits w h]
+
+theorem isInfBits_ofBits (w : UInt64) (h : _root_.Float.isNaNPattern w = false) :
+    isInfBits (_root_.Float.ofBits w) = Word.isInf w := by
+  rw [isInfBits_word, _root_.Float.toBits_ofBits w h]
+
+theorem isFiniteBits_ofBits (w : UInt64) (h : _root_.Float.isNaNPattern w = false) :
+    isFiniteBits (_root_.Float.ofBits w) = Word.isFinite w := by
+  rw [isFiniteBits_word, _root_.Float.toBits_ofBits w h]
+
 /-- `(fromBits sign biasedExp mantissa).toBits` is never a NaN pattern,
 when the fields are in range and don't encode a NaN payload. -/
 theorem fromBits_toBits_isNaNPattern_false (sign : Bool) (biasedExp mantissa : Nat)
