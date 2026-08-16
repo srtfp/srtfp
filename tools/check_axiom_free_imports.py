@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 FORBIDDEN = re.compile(r"^Srtfp\.(Float\.RuntimeAxiom$|Bridge($|\.))")
-IMPORT_RE = re.compile(r"^import (Srtfp[\w.]*)", re.M)
+IMPORT_RE = re.compile(r"^(?:public |meta |public meta )?import (Srtfp[\w.]*)", re.M)
 
 
 def module_path(mod: str) -> Path:

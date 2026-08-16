@@ -1,3 +1,4 @@
+module
 /- IEEE-754 binary64 bit-level decomposition.
 
    This file has two layers:
@@ -31,7 +32,9 @@
    NaN and Infinity (`biasedExp = 2047`) are exposed via pattern
    predicates and are otherwise out of scope for the decomposition. -/
 
-import Srtfp.Decimal
+public import Srtfp.Decimal
+
+@[expose] public section
 
 /-- A `UInt64` bit pattern is a NaN pattern iff its biased exponent field
     (bits 62..52) is all-ones (`0x7FF`) and its mantissa field (bits 51..0)

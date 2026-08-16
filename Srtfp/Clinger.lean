@@ -1,3 +1,4 @@
+module
 /- Clinger reader — Decimal → Float (correctly rounded).
 
    M4 milestone. Given a canonical `Decimal` (`sign · sig · 10^exp`) produces
@@ -10,8 +11,10 @@
    introduce. The rounding is performed once, at the appropriate bit level
    for the result's binary exponent, to avoid double-rounding bugs. -/
 
-import Srtfp.Decimal
-import Srtfp.Float.Bits
+public import Srtfp.Decimal
+public import Srtfp.Float.Bits
+
+@[expose] public section
 
 namespace Srtfp.Clinger
 
@@ -56,14 +59,14 @@ def scaleByPow2 (a b : Nat) (k : Int) : Nat × Nat :=
 /-! ## Decimal → Float -/
 
 /-- The 11-bit "all-ones" biased exponent used for `±Inf` / NaN. -/
-private def infBiasedExp : Nat := 2047
+def infBiasedExp : Nat := 2047
 
 /-- Produce `±Infinity` according to `sign`. -/
-private def infOfSign (sign : Bool) : _root_.Float :=
+def infOfSign (sign : Bool) : _root_.Float :=
   fromBits sign infBiasedExp 0
 
 /-- Produce `±0.0` according to `sign`. -/
-private def zeroOfSign (sign : Bool) : _root_.Float :=
+def zeroOfSign (sign : Bool) : _root_.Float :=
   fromBits sign 0 0
 
 /-- Convert `(sign, sig, exp)` to the closest representable `Float`. -/

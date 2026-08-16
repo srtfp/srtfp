@@ -1,3 +1,4 @@
+module
 /- Decimal: exact base-10 representation for the numeric biparser
 
    A `Decimal` represents a signed rational of the form
@@ -10,6 +11,8 @@
    This type is the pivot between user syntax (`DecimalLiteral`, M2) and
    IEEE-754 `Float` (via Schubfach/Clinger, M3/M4). JSON and YAML both
    produce/consume `Decimal` so the JSON ↔ YAML numeric bridge is lossless. -/
+
+@[expose] public section
 
 namespace Srtfp
 
