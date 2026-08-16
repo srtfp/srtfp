@@ -43,7 +43,6 @@
    - M3.8.4/5/6: shifted significand, pickNearer, shortest-form check.
    - This file is *purely* about the binary-side rounding interval. -/
 
-import Srtfp.Float.Rep
 import Srtfp.Schubfach
 
 namespace Srtfp.Schubfach
@@ -58,7 +57,7 @@ signed `denPow2` suffice. -/
 
 /-- A dyadic rational `num · 2^(-denPow2)`. Negative `denPow2` is
 allowed — it represents multiplication by a positive power of two,
-matching the `q ≥ 0` branch of `FloatRep.value`. -/
+as needed for values `m · 2^q` with `q ≥ 0`. -/
 structure Midpoint where
   num     : Int
   denPow2 : Int

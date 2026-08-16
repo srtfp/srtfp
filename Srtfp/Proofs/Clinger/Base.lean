@@ -19,7 +19,6 @@ import Srtfp.Proofs.CorrectnessSpec
 import Srtfp.Clinger
 import Srtfp.Schubfach
 import Srtfp.Float.Bits
-import Srtfp.Float.Rep
 
 namespace Srtfp.Clinger
 
