@@ -655,6 +655,7 @@ theorem abs_toRat_eq_gridVal (d : Decimal) :
     cases d.sign <;> decide
   rw [h1, one_mul, abs_of_nonneg (gridVal_nonneg _ _)]
 
+set_option exponentiation.threshold 2048 in
 /-- Overflow at the `(a, b)` level: the quotient `a/b` is at least
 `(2^54 - 1)·2^970`, in cleared `Nat` form. -/
 private theorem overflow_bound_AB (sign : Bool) (a b : Nat) (ha : 0 < a) (hb : 0 < b)
@@ -740,6 +741,7 @@ private theorem overflow_bound_AB (sign : Bool) (a b : Nat) (ha : 0 < a) (hb : 0
         · rw [if_neg hm52] at h_not
           exact absurd (by grind : (-1074 : Int) ≤ 971) h_not
 
+set_option exponentiation.threshold 2048 in
 /-- **Boundary, overflow side.** A nonzero decimal the algorithm rejects
 as overflow has `|value| ≥ 2^1024 - 2^970`. -/
 theorem bound_le_gridVal_of_not_finite (sign : Bool) (sig : Nat) (exp : Int)
@@ -1242,6 +1244,7 @@ theorem exists_float_of_finShape (sign : Bool) (m : Nat) (q : Int)
       rw [h_be]
       omega
 
+set_option exponentiation.threshold 2048 in
 /-- The immediate grid successor: one step `2^q` up from a finite shape
 is again a finite-shape value, provided some legal value lies above. -/
 theorem succ_finShape (m : Nat) (q : Int) (m' : Nat) (q' : Int)

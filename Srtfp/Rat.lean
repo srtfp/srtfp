@@ -249,7 +249,7 @@ theorem zpow_le_zpow_right₀ {a : ℚ} (ha : 1 ≤ a) {m n : ℤ} (h : m ≤ n)
 
 /-! ### grind hints: ℚ order/monotonicity facts the proof stack leans on -/
 
-attribute [grind] Rat.mul_le_mul_of_nonneg_left Rat.mul_le_mul_of_nonneg_right
+attribute [grind .] Rat.mul_le_mul_of_nonneg_left Rat.mul_le_mul_of_nonneg_right
   Rat.mul_lt_mul_of_pos_left Rat.mul_lt_mul_of_pos_right
   Rat.mul_pos Rat.mul_nonneg Rat.natCast_nonneg
 

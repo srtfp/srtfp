@@ -189,6 +189,7 @@ private theorem normal_round_ge_2pow52
     (roundNearestEven_ge_floor (scaleByPow2 a b (52 - e)).1
                                 (scaleByPow2 a b (52 - e)).2)
 
+set_option exponentiation.threshold 2048 in
 /-- Subnormal-branch upper bound: `m_round ≤ 2^52`.
 
 In the subnormal branch (`e < -1022`), `findBinaryExp a b < -1022`,

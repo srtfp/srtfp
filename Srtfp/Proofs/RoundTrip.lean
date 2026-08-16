@@ -855,6 +855,9 @@ which contradicts the right-bracket bound
 `4·a·2^qfNeg ≤ (4 m_f + 2)·2^qfPos·b ≤ (2^1026 - 2^972)·b` since `b > 0` and
 either we have strict (m_f odd) or m_f even forces a tighter `(2^1026 -
 6·2^971)·b` bound. -/
+-- Emits one benign `exponentiation.threshold` warning (deduped from many sites in this proof).
+-- Do not silence by raising the threshold: `push_cast`/`simp` then evaluate `2^1024` literals
+-- and overflow the stack.
 theorem isFiniteAbs_of_rv
     (d : Decimal) (m_f : Nat) (q_f : Int)
     (h_legal_f : LegalIEEE m_f q_f)
