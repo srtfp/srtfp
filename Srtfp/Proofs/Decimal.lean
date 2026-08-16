@@ -1,6 +1,6 @@
 /- Pure `Decimal.mk'` / `canonicaliseAux` canonicalisation lemmas.
 
-   Factored from QuadParsers' `Srtfp/Proofs/Decimal.lean`: this is
+   Factored from QuadParsers' `PP/Proofs/Numeric/Decimal.lean`: this is
    the framework-independent slice used by the Schubfach/Clinger proof
    stack (`Schubfach.Minimal`, `RoundTrip`, `TieBreak`, `Correctness`). -/
 

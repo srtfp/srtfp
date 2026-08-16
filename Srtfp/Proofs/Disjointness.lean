@@ -20,12 +20,12 @@
    reduces to integer arithmetic over `(4m ± offset) · 2^q · 10^(-exp)`
    compared to `4·sig · 10^exp · 2^(-q)`.
 
-   ## Current status
+   ## Proof structure
 
-   The main disjointness theorem `inRoundingInterval_uniq` is stated
-   here but its proof is deferred (TODO). The proof requires a careful
-   case-analysis on the relative values `m₁·2^q₁` vs `m₂·2^q₂` and the
-   structure of the IEEE-754 canonical encoding. -/
+   The main disjointness theorem `inRoundingInterval_uniq` reduces, by a
+   WLOG symmetry on the order of `m₁·2^q₁` vs `m₂·2^q₂`, to the strict
+   half `inRoundingInterval_uniq_lt`, which case-analyses the structure
+   of the IEEE-754 canonical encoding. -/
 
 import Srtfp.Proofs.Schubfach.Shorter
 import Srtfp.Proofs.Schubfach.PickNearer

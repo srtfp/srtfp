@@ -317,9 +317,9 @@ theorem negZero_equiv_zero : Equiv negZero zero :=
 Pure definitional bridge — both directions reuse `Float/Bits.lean`'s
 `fromBits` / `decode`. No correctness lemma is proven here, by design:
 `toBits ∘ ofBits = id` (and the inverse direction) is a runtime
-property, not a derivable theorem in pure Lean 4. Downstream code
-will introduce that round-trip as a single named bridge axiom or
-`native_decide`d theorem; M3.8.0 stays first-principles. -/
+property, not a derivable theorem in pure Lean 4. That round-trip is
+the single (restricted) bridge axiom `Float.toBits_ofBits` in
+`Srtfp/Float/RuntimeAxiom.lean`; this file stays first-principles. -/
 
 /-- The biased-exponent encoding of `q`: `q + 1023 + 52` for normals,
 `0` for subnormals/zero. -/
@@ -507,24 +507,19 @@ def IsOddOrZero (r : FloatRep) : Prop :=
 instance (r : FloatRep) : Decidable (IsOddOrZero r) := by
   unfold IsOddOrZero; infer_instance
 
-/-! ## Notes for downstream milestones
+/-! ## How downstream code uses this
 
-  - M3.8.1 will likely add `canonicalise : FloatRep → FloatRep` that maps
-    any `FloatRep` to its `IsCanonicalRep` equivalent, plus the lemma
-    `Equiv r (canonicalise r)`.
-  - M3.8.2 will add the *runtime bridge* axiom — a single
-    `axiom toFloat_toFloatRep : ∀ r, IsCanonicalRep r → Float.toFloatRep
-    (toFloat r) = some r` — relying on the IEEE-754 spec of
-    `Float.toBits`/`Float.ofBits`. Pure-Lean proofs are not possible.
-  - M4 correctness proves
-    `Clinger.ofDecimal d = (some r).map toFloat` from a `FloatRep`-level
-    correct-rounding statement, exploiting `Equiv` to identify
-    candidates within the rounding interval.
-  - Schubfach correctness (M3.8.3+) will use the `IsOddOrZero` form
-    when arguing about minimal shortest decimals.
-
-These extensions stay clean because nothing in this file commits to one
-canonical form: callers pick whichever suits their proof. -/
+  - The runtime bridge is the single restricted axiom
+    `Float.toBits_ofBits` in `Srtfp/Float/RuntimeAxiom.lean`, stated on
+    bit patterns rather than on `FloatRep` (the IEEE-754 behaviour of
+    `Float.toBits`/`Float.ofBits` is not derivable in pure Lean 4).
+  - The correctness stack (`Srtfp/Correctness.lean`,
+    `Srtfp/Proofs/RoundTrip.lean`, `Srtfp/Proofs/Schubfach/`,
+    `Srtfp/Proofs/Clinger/`) likewise works at the `decode`/bits level.
+  - The alternative canonical forms defined here (`IsCanonicalRep`,
+    `IsOddOrZero`) ended up unused by those proofs; they remain because
+    nothing in this file commits to one canonical form — callers pick
+    whichever suits their proof. -/
 
 end FloatRep
 
