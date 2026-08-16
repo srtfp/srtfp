@@ -7,6 +7,19 @@ on:
 
 jobs:
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        # v4.27.0: QuadParsers consumes srtfp@main on this toolchain.
+        # v4.32.2: srtfp's own pin (lean-toolchain), VeIR's toolchain.
+        # v4.33.0: current latest; note core's Float.ofScientific changed
+        #   here (lean4#14110) — tests must never assert on core Float
+        #   parsing/printing, only on srtfp's own functions or hex bit
+        #   patterns.
+        toolchain:
+          - leanprover/lean4:v4.27.0
+          - leanprover/lean4:v4.32.2
+          - leanprover/lean4:v4.33.0
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,6 +29,19 @@ jobs:
           curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf \
             | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Select toolchain
+        run: echo "${{ matrix.toolchain }}" > lean-toolchain
+
+      - name: Cache toolchain and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.elan
+            .lake
+          key: lake-${{ matrix.toolchain }}-${{ hashFiles('lakefile.lean', 'lake-manifest.json') }}-${{ github.sha }}
+          restore-keys: |
+            lake-${{ matrix.toolchain }}-${{ hashFiles('lakefile.lean', 'lake-manifest.json') }}-
 
       # Fast source-level guard: the default umbrella must not import the
       # runtime-axiom tier.

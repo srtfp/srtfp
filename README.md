@@ -38,8 +38,10 @@ No `sorry` anywhere.
 Factored out of QuadParsers, a biparser library with proven
 round-trip properties.
 
-Zero dependencies beyond the Lean toolchain — no mathlib — except
-[LSpec](https://github.com/argumentcomputer/LSpec) for the test suite.
+Zero dependencies beyond the Lean toolchain — no mathlib, and the test
+suite runs on a small in-repo harness (`SrtfpTest/Spec.lean`). CI builds
+and tests the library on Lean v4.27.0, v4.32.2 (the pinned toolchain),
+and v4.33.0.
 One caveat: the library vendors a few root-level compatibility lemmas
 (`abs_nonneg`, `Nat.log`, …) that Mathlib also declares, so a file
 cannot import both srtfp and Mathlib. Packages can depend on both as
