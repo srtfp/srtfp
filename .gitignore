@@ -7,6 +7,3 @@ benches/bench_java/*.class
 benches/perf.png
 benches/corpora/*
 !benches/corpora/SEED.txt
-benches/bench_hs/.stack-work/
-benches/bench_json_cpp
-benches/perf_json.png

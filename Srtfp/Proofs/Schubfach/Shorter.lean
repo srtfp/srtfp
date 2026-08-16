@@ -246,23 +246,9 @@ theorem tenPos_twoNeg_pos_Int (q k : Int) :
 private theorem mul_lt_mul_right_of_pos {a b c : Int} (h : a < b) (hc : 0 < c) :
     a * c < b * c := Int.mul_lt_mul_of_pos_right h hc
 
-/-- Helper: `a * c ≤ b * c` given `a ≤ b` and `0 ≤ c`. -/
-private theorem mul_le_mul_right_of_nonneg {a b c : Int} (h : a ≤ b) (hc : 0 ≤ c) :
-    a * c ≤ b * c := Int.mul_le_mul_of_nonneg_right h hc
-
-/-- Helper: `4ab*c = 4a*(b*c)`. -/
-private theorem reassoc4 (a b c : Int) :
-    4 * a * b * c = 4 * a * (b * c) :=
-  Int.mul_assoc (4 * a) b c
-
 /-- Helper: `(x*y)*z = x*(y*z)`. -/
 private theorem mul_assoc3 (x y z : Int) :
     x * y * z = x * (y * z) := Int.mul_assoc x y z
-
-/-- Helper: `4 * (a * (b * c)) = 4 * a * b * c`. -/
-private theorem expand4 (a b c : Int) :
-    4 * (a * (b * c)) = 4 * a * b * c := by
-  rw [← Int.mul_assoc 4 a, ← Int.mul_assoc (4 * a) b]
 
 /-- Structural: `fourVL < fourV`. -/
 theorem fourVL_lt_fourV (m : Nat) (q k : Int) (irreg : Bool) :
@@ -380,11 +366,6 @@ theorem shiftFactor_width_identity (q : Int) :
     have hpow : (2 : Int) ^ ((-q).toNat + 2) = (2 : Int) ^ (-q).toNat * 4 := pow_add2 _
     rw [hpow]
     rw [Int.mul_one, Int.mul_one, Int.mul_comm ((2 : Int) ^ (-q).toNat) 4]
-
-/-- Reassociation helper: `4 * a * b * c = 4 * (a * (d * e))` when `b*c = d*e` (in the
-"sorted" form). We define a specific form: `4 * a * (b * c)` ↔ `4 * a * b * c`. -/
-private theorem assoc_4abc (a b c : Int) : 4 * a * (b * c) = 4 * a * b * c := by
-  rw [Int.mul_assoc (4 * a) b c]
 
 /-- `4u ≤ 4v` in cleared form. -/
 theorem fourU_le_fourV (s m : Nat) (q k : Int) (hs : s = shiftedSig m q k) :
@@ -690,37 +671,10 @@ private def WIn (s : Nat) (k : Int) (m : Nat) (q : Int) : Prop :=
   (fourW s q k < fourVR m q k ∨
     (fourW s q k = fourVR m q k ∧ m % 2 = 0))
 
-private theorem inRoundingInterval_eq_UIn (s : Nat) (k : Int) (m : Nat) (q : Int) :
-    inRoundingInterval s k m q (isIrregular m q) = true ↔ UIn s k m q := by
-  exact inRoundingInterval_iff s k m q (isIrregular m q)
-
-private theorem inRoundingInterval_succ_eq_WIn (s : Nat) (k : Int) (m : Nat) (q : Int) :
-    inRoundingInterval (s + 1) k m q (isIrregular m q) = true ↔ WIn s k m q := by
-  have := inRoundingInterval_iff (s + 1) k m q (isIrregular m q)
-  -- Need: fourU (s+1) q k = fourW s q k
-  unfold UIn WIn at *
-  rw [this]
-  -- Now: ... fourU (s+1) ... ↔ ... fourW s ...
-  unfold fourU fourW cmpScaledMixed.rhs
-  -- Both sides expand to (4 * (s+1)) * ... So they're equal.
-  -- Use Nat.cast_add and Nat.cast_one for s+1.
-  have h_cast : (((s + 1) : Nat) : Int) = (s : Int) + 1 := by push_cast; rfl
-  rw [h_cast]
-
 /-! ### Forbidding the "both fail" case.
 
 The technical heart of R11. We assume both `UIn` and `WIn` fail and
 derive a contradiction. -/
-
-/-- The numerical witness used to derive a contradiction in R11.
-
-A positivity lemma: `tenPosPow k * twoNegPow q > 0` (already in
-`tenPos_twoNeg_pos_Int`, repackaged for clarity). -/
-private theorem tenPos_twoNeg_pos' (q k : Int) :
-    0 < (tenPosPow k : Int) * (twoNegPow q : Int) := tenPos_twoNeg_pos_Int q k
-
-private theorem twoPos_tenNeg_pos' (q k : Int) :
-    0 < (twoPosPow q : Int) * (tenNegPow k : Int) := twoPos_tenNeg_pos_Int q k
 
 /-- If `4 · tenPosPow K · twoNegPow q = 3 · twoPosPow q · tenNegPow K` (the
 irregular-case equality), we get an impossible factor-of-3 condition.

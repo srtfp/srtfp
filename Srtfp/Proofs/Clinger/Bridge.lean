@@ -24,10 +24,6 @@ open Srtfp
 
 private theorem zero_lt_2pow52 : (0 : Nat) < 2 ^ 52 := by decide
 
-private theorem one_shl_52_lt_2pow52_false : ¬ ((1 : Nat) <<< 52 < 2 ^ 52) := by decide
-
-private theorem one_lt_2048 : (1 : Nat) < 2048 := by decide
-
 /-! ## decode (fromBits ...) lemmas
 
 These wrap the `fromBits_proj` axiom for the specific bit-field
@@ -58,16 +54,6 @@ private theorem decode_fromBits_normal
   rw [if_neg h_ne]
 
 /-! ## Inline reductions of `decimalToFloat` -/
-
-/-- `infOfSign` reduces. -/
-private theorem decode_infOfSign (sign : Bool) :
-    decode (fromBits sign 2047 0) = ⟨sign, 0 + (1 <<< 52), (2047 : Int) - 1023 - 52⟩ :=
-  decode_fromBits_normal sign 2047 0 (by decide) (by decide) zero_lt_2pow52 (by omega)
-
-/-- `zeroOfSign` reduces. -/
-private theorem decode_zeroOfSign (sign : Bool) :
-    decode (fromBits sign 0 0) = ⟨sign, 0, -1074⟩ :=
-  decode_fromBits_zero sign 0 zero_lt_2pow52
 
 /-! ## Per-branch bridge lemmas
 

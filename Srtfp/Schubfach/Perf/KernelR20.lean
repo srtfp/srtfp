@@ -38,9 +38,6 @@ open Srtfp.Schubfach.R20Sweep
 The magic constants satisfy `0 < C ≤ 2^41` and `A < 0`, so the floors are
 sign-faithful and `|k| ≤ |q|`. -/
 
-/-- `C ≤ 2^41`: the `log₁₀ 2` numerator is below the shift width. -/
-private theorem constC_le : constC ≤ 2 ^ shiftQ := by decide
-
 /-- `floorLog10Pow2 q ≤ q` for `q ≥ 0`. -/
 theorem floorLog10Pow2_le_self (q : Int) (hq : 0 ≤ q) : floorLog10Pow2 q ≤ q := by
   unfold floorLog10Pow2 shiftQ constC

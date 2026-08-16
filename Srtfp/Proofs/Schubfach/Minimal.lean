@@ -867,16 +867,6 @@ the unique "canonical part" of `N`: the integer N with its trailing
 zeros stripped. We use this to compare `decDigitLength sig'` to the
 canonical form of `out_sig`. -/
 
-/-- For canonical `sig'` (sig' % 10 ≠ 0, sig' ≥ 1) with `sig' * 10^j = N`,
-`decDigitLength sig + j = decDigitLength N`. -/
-private theorem decDigitLength_canonical_eq (sig N j : Nat)
-    (hsig_pos : 1 ≤ sig)
-    (heq : sig * 10 ^ j = N) :
-    decDigitLength sig + j = decDigitLength N := by
-  have h_dl := decDigitLength_mul_pow10 sig j hsig_pos
-  rw [heq] at h_dl
-  omega
-
 /-- Uniqueness of canonical-pow10 factoring: if `a * 10^i = b * 10^j` and
 both `a`, `b` are canonical (% 10 ≠ 0, ≥ 1), then `a = b` and `i = j`. -/
 theorem canonical_pow10_unique (a b i j : Nat)
@@ -938,37 +928,6 @@ theorem canonical_pow10_unique (a b i j : Nat)
       obtain ⟨d, hd⟩ : ∃ d, j - i = d + 1 := ⟨j - i - 1, by omega⟩
       rw [hd, Nat.pow_succ, ← Nat.mul_assoc]
       exact Nat.mul_mod_left _ _
-
-/-- For any N ≥ 1, there exists a unique canonical factoring N = c * 10^t
-with c % 10 ≠ 0 and c ≥ 1. -/
-private theorem canonical_factoring_exists (N : Nat) (hN_pos : 1 ≤ N) :
-    ∃ (c : Nat) (t : Nat), c * 10 ^ t = N ∧ c % 10 ≠ 0 ∧ 1 ≤ c := by
-  -- Induction on N.
-  induction N using Nat.strongRecOn with
-  | _ N ih =>
-    by_cases h_mod : N % 10 = 0
-    · -- N is divisible by 10. Recurse on N/10.
-      have hN_div_pos : 1 ≤ N / 10 := by
-        have hN_ge_10 : 10 ≤ N := by
-          have h_pos : 0 < N := hN_pos
-          rcases Nat.lt_or_ge N 10 with h_lt | h_ge
-          · -- N < 10 and N % 10 = 0 means N = 0, contradiction.
-            have : N % 10 = N := Nat.mod_eq_of_lt h_lt
-            omega
-          · exact h_ge
-        have : 10 / 10 ≤ N / 10 := Nat.div_le_div_right hN_ge_10
-        simpa using this
-      have hN_div_lt : N / 10 < N := Nat.div_lt_self hN_pos (by decide)
-      obtain ⟨c, t, h_eq, h_c_canon, h_c_pos⟩ := ih (N / 10) hN_div_lt hN_div_pos
-      refine ⟨c, t + 1, ?_, h_c_canon, h_c_pos⟩
-      rw [Nat.pow_succ, ← Nat.mul_assoc, h_eq]
-      have hN_eq : N / 10 * 10 = N := by
-        have hdm : 10 * (N / 10) + N % 10 = N := Nat.div_add_mod N 10
-        rw [h_mod] at hdm
-        omega
-      exact hN_eq
-    · -- N % 10 ≠ 0. Then N itself is canonical.
-      exact ⟨N, 0, by simp, h_mod, hN_pos⟩
 
 /-- For canonical sig' with sig' * 10^j = N, sig' is THE canonical factor of N. -/
 private theorem canonical_factor_unique_value (sig' N j : Nat)

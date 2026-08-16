@@ -290,14 +290,6 @@ theorem signBit_eq_decode_sign (f : _root_.Float) :
 
 /-! ## IsFiniteAbs from inRoundingInterval witness -/
 
-/-- If `(m, q) = decode f` for finite f with m ≠ 0 (a LegalIEEE pair), and the abstract
-    `decodedAbs sign sig exp` happens to equal `(m, q)`, then `IsFiniteAbs` holds.
-    Direct: the q ≤ 971 bound. -/
-private theorem isFiniteAbs_of_decodedAbs_q_le
-    (sign : Bool) (sig : Nat) (exp : Int)
-    (h_q_le : (decodedAbs sign sig exp).q ≤ 971) :
-    IsFiniteAbs sign sig exp := h_q_le
-
 /-! ## The round-trip theorem -/
 
 /-! ## The round-trip theorem -/

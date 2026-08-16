@@ -43,13 +43,6 @@ private theorem decode_eq_of_toBits_eq
   unfold decode signBit biasedExpBits mantissaBits
   rw [h]
 
-/-- `isFiniteBits` reads only the bit pattern. -/
-private theorem isFiniteBits_eq_of_toBits_eq
-    {f g : _root_.Float} (h : f.toBits = g.toBits) :
-    isFiniteBits f = isFiniteBits g := by
-  unfold isFiniteBits biasedExpBits
-  rw [h]
-
 /-! ## Zero-value vocabulary facts -/
 
 private theorem toRat_zero (d : Decimal) (h : d.significand = 0) :

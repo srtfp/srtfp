@@ -49,18 +49,6 @@ theorem toNat_ofNat_of_lt {m : Nat} (h : m < (1 <<< 64 : Nat)) :
   have : (1 <<< 64 : Nat) = 2 ^ 64 := by decide
   omega
 
-/-- `UInt64.ofNat (4 * m) = UInt64.ofNat m <<< 2` (unconditionally). -/
-private theorem ofNat_4_mul_eq_shiftLeft_2 (m : Nat) :
-    UInt64.ofNat (4 * m) = (UInt64.ofNat m) <<< 2 := by
-  rw [uint64_shiftLeft_2, UInt64.ofNat_mul]
-  rfl
-
-/-- `UInt64.ofNat (2 * m) = UInt64.ofNat m <<< 1` (unconditionally). -/
-private theorem ofNat_2_mul_eq_shiftLeft_1 (m : Nat) :
-    UInt64.ofNat (2 * m) = (UInt64.ofNat m) <<< 1 := by
-  rw [uint64_shiftLeft_1, UInt64.ofNat_mul]
-  rfl
-
 /-- For `m ≥ 1`, `(4·m - 2 : Int).toNat = 4*m - 2`. -/
 theorem toNat_4m_sub_2_eq {m : Nat} (hm_pos : m ≥ 1) :
     (4 * (m : Int) - 2).toNat = 4 * m - 2 := by
