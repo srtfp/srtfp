@@ -5,18 +5,35 @@ A Lean 4 library providing, for IEEE-754 binary64:
 - a **shortest round-trip printer** (the [Schubfach
   algorithm](https://drive.google.com/file/d/1IEeATSVnEE6TkrHlCYNY2GjaraBjOT4f/view)),
 - a **correctly rounded parser** (Clinger-style), and
-- a machine-checked **round-trip theorem** connecting them at the
-  `Float.toBits` level.
+- a machine-checked, **fully axiom-free certification** connecting them
+  on raw binary64 bit patterns (`UInt64` words).
 
-The specification and top-level correctness theorems are in
-[`Srtfp/Correctness.lean`](Srtfp/Correctness.lean).
+The certification is two-tier:
 
-Axiom budget: `propext`, `Quot.sound`, `Classical.choice`, plus one
-quarantined runtime axiom about the `Float.toBits`/`Float.ofBits`
-intrinsics ([`Srtfp/Float/RuntimeAxiom.lean`](Srtfp/Float/RuntimeAxiom.lean));
-the round-trip theorem is stated at the `.toBits` level so the
-bit-level results are axiom-free. Enforced by `SrtfpAxiomCheck.lean` at
-build time. No `sorry`.
+- **Bits tier (`import Srtfp`, the default)** — the flagship theorems in
+  [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean): a function is a
+  correct shortest-decimal printer iff it is `Schubfach.toDecimalBits`,
+  and a correct round-to-nearest reader iff it is
+  `Clinger.ofDecimalBits`, both stated on words. Every declaration in
+  this tier depends on **nothing beyond `propext`, `Quot.sound`,
+  `Classical.choice`** — no assumption about the runtime `Float` type is
+  ever made. Enforced at build time by `SrtfpBitsAxiomCheck.lean` (an
+  environment-level transitive axiom audit) and
+  `tools/check_axiom_free_imports.py` (a source-level import walk).
+- **Float tier (`import Srtfp.Bridge`, opt-in)** — the same theorems
+  attached to the runtime `Float` type
+  ([`Srtfp/Bridge/Correctness.lean`](Srtfp/Bridge/Correctness.lean)).
+  This tier admits exactly one extra axiom: the restricted runtime
+  round-trip `Float.toBits_ofBits`
+  ([`Srtfp/Float/RuntimeAxiom.lean`](Srtfp/Float/RuntimeAxiom.lean)) —
+  `(Float.ofBits x).toBits = x` for non-NaN patterns `x`, the IEEE-754
+  implementation contract of Lean's opaque `Float`, not derivable in
+  pure Lean. `SrtfpTest/RuntimeAxiomProbe.lean` demonstrates empirically
+  that the runtime canonicalises NaN payloads, which is exactly why the
+  axiom carries its non-NaN restriction. `SrtfpAxiomCheck.lean` audits
+  this closure against the four-axiom budget.
+
+No `sorry` anywhere.
 
 Factored out of QuadParsers, a biparser library with proven
 round-trip properties.

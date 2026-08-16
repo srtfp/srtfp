@@ -25,8 +25,19 @@ require LSpec from git
 lean_lib Srtfp where
   roots := #[`Srtfp]
 
+-- The Float tier: everything in `Srtfp` plus the runtime-axiom bridge
+-- (`Srtfp/Bridge.lean` and below). Importing it admits Float.toBits_ofBits.
+@[default_target]
+lean_lib SrtfpBridge where
+  roots := #[`Srtfp.Bridge]
+
 lean_lib SrtfpAxiomCheck where
   roots := #[`SrtfpAxiomCheck]
+
+-- Axiom linter for the axiom-free tier: `import Srtfp` alone must need
+-- only propext / Quot.sound / Classical.choice.
+lean_lib SrtfpBitsAxiomCheck where
+  roots := #[`SrtfpBitsAxiomCheck]
 
 -- Test corpus modules (e.g. `SrtfpTest.Ryu`). The `test` exe imports from this
 -- library; new corpora go in `SrtfpTest/*.lean` and are picked up automatically.

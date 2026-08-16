@@ -21,10 +21,13 @@
      `clinger_num_lt_2pow53_denom`, `num_pre_denom_eq`.
    * **`Clinger/IrregularNoCarry.lean`** — `irregular_no_carry_correct`.
    * **`Clinger/IrregularCarry.lean`** — `irregular_carry_correct`.
-   * **`Clinger/Bridge.lean`** — `decodeOfDecimalBridge_thm` (uses
-     `Float.toBits_ofBits` axiom).
+   * **`Clinger/Bridge.lean`** — the axiom-free bits-level bridge
+     `decode_of_decimal_bridge_bits`, plus its Float tier (which uses
+     the `Float.toBits_ofBits` axiom).
 
-   This file assembles the dispatch and the unconditional headline. -/
+   This file assembles the dispatch and the unconditional headline, at
+   both the word level (`ofDecimalBits_in_Rv`, axiom-free) and the
+   `Float` level (`ofDecimal_in_Rv`). -/
 
 import Srtfp.Proofs.Clinger.Base
 import Srtfp.Proofs.Clinger.Regular
@@ -33,7 +36,6 @@ import Srtfp.Proofs.Clinger.IrregularNoCarry
 import Srtfp.Proofs.Clinger.IrregularCarry
 import Srtfp.Proofs.Clinger.Dispatch
 import Srtfp.Proofs.Clinger.Bridge
-import Srtfp.Float.RuntimeAxiom
 import Srtfp.Proofs.Schubfach.Shorter
 import Srtfp.Proofs.Schubfach.ToDecimal
 
@@ -98,16 +100,15 @@ to project bit fields through the IEEE-754 runtime intrinsics. The
 abstract correctness reduces to the case-split dispatch on
 `decodedAbs`'s if-tree. Both are now proven; this theorem is
 unconditional. -/
-theorem ofDecimal_in_Rv
+theorem ofDecimalBits_in_Rv
     (d : Decimal)
     (h_nonzero : d.significand ≠ 0)
     (h_finite : IsFiniteAbs d.sign d.significand d.exponent) :
-    let f := ofDecimal d
-    let decoded := decode f
+    let decoded := Word.decode (ofDecimalBits d)
     inRoundingInterval d.significand d.exponent
         decoded.m decoded.q (isIrregular decoded.m decoded.q) = true := by
   simp only
-  rw [decode_of_decimal_bridge d h_finite]
+  rw [decode_of_decimal_bridge_bits d h_finite]
   exact (abstract_correctness_of_dispatch branch_dispatch)
           d.sign d.significand d.exponent h_nonzero h_finite
 

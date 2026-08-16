@@ -10,7 +10,7 @@
 
    ## Contents
 
-   * `correctness_proof`      — `IsCorrectPrinter Schubfach.toDecimal`
+   * `correctness_proof`      — `IsCorrectPrinterBits Schubfach.toDecimal`
    * `printer_unique_proof`   — the spec pins the printer extensionally
    * `specOutput_eq_output`   — a spec output IS the algorithm's output
    * `spec_output_exists_unique_proof` — per-float `∃!`
@@ -35,12 +35,11 @@ open Srtfp.Schubfach (decDigitLength)
 These are tiny re-exports of facts buried as `private` lemmas in
 `FloatParser.lean`. We re-prove them here so this file stands alone. -/
 
-/-- `decode` reads only the bit pattern, so equal bits give equal
-    `Decoded` records. -/
+/-- `Word.decode` is a congruence along word equality (kept as a named
+lemma so the rewrite sites below read like their `Float` ancestors). -/
 private theorem decode_eq_of_toBits_eq
-    {f g : _root_.Float} (h : f.toBits = g.toBits) :
-    decode f = decode g := by
-  unfold decode signBit biasedExpBits mantissaBits
+    {w v : UInt64} (h : w = v) :
+    Word.decode w = Word.decode v := by
   rw [h]
 
 /-! ## Zero-value vocabulary facts -/
@@ -52,9 +51,9 @@ private theorem toRat_zero (d : Decimal) (h : d.significand = 0) :
   push_cast
   grind
 
-private theorem floatVal_zero (f : _root_.Float) (h : (decode f).m = 0) :
-    Schubfach.floatVal f = 0 := by
-  unfold Schubfach.floatVal Schubfach.magVal
+private theorem floatVal_zero (w : UInt64) (h : (Word.decode w).m = 0) :
+    Schubfach.wordVal w = 0 := by
+  unfold Schubfach.wordVal Schubfach.magVal
   rw [h]
   push_cast
   grind
@@ -69,21 +68,21 @@ private theorem toRat_ne_zero (d : Decimal) (h : d.significand ≠ 0) :
     rcases Rat.mul_eq_zero.mp (by grind : (d.significand : ℚ) * (10:ℚ) ^ d.exponent = 0) with
       h0 | h0 <;> first | exact h1 h0 | exact h2 h0
 
-/-- `IsSpecOutput` with the competitor clauses split into two `∀`s (the
+/-- `IsSpecOutputBits` with the competitor clauses split into two `∀`s (the
 proofs build and consume them separately). -/
-private theorem Schubfach.isSpecOutput_iff (f : _root_.Float) (d : Decimal) :
-    Schubfach.IsSpecOutput f d ↔
+private theorem Schubfach.isSpecOutput_iff (w : UInt64) (d : Decimal) :
+    Schubfach.IsSpecOutputBits w d ↔
       Decimal.IsCanonical d
-    ∧ Schubfach.RoundTrips f d
-    ∧ (∀ d' : Decimal, Decimal.IsCanonical d' → Schubfach.RoundTrips f d' →
+    ∧ Schubfach.RoundTripsBits w d
+    ∧ (∀ d' : Decimal, Decimal.IsCanonical d' → Schubfach.RoundTripsBits w d' →
          decDigitLength d.significand ≤ decDigitLength d'.significand)
-    ∧ (∀ d' : Decimal, Decimal.IsCanonical d' → Schubfach.RoundTrips f d' →
+    ∧ (∀ d' : Decimal, Decimal.IsCanonical d' → Schubfach.RoundTripsBits w d' →
          decDigitLength d'.significand = decDigitLength d.significand →
            d = d'
-         ∨ |Decimal.toRat d - Schubfach.floatVal f|
-             < |Decimal.toRat d' - Schubfach.floatVal f|
-         ∨ ( |Decimal.toRat d - Schubfach.floatVal f|
-               = |Decimal.toRat d' - Schubfach.floatVal f|
+         ∨ |Decimal.toRat d - Schubfach.wordVal w|
+             < |Decimal.toRat d' - Schubfach.wordVal w|
+         ∨ ( |Decimal.toRat d - Schubfach.wordVal w|
+               = |Decimal.toRat d' - Schubfach.wordVal w|
              ∧ d.significand % 2 = 0 )) := by
   constructor
   · rintro ⟨h0, h1, h⟩
@@ -106,100 +105,96 @@ private theorem Schubfach.isSpecOutput_iff (f : _root_.Float) (d : Decimal) :
       exact Or.inl (by omega)
 
 /-- The two signed-zero bit patterns are distinct, so bits pin the sign. -/
-private theorem fromBits_zero_sign_inj (s' s : Bool)
-    (h : (fromBits s' 0 0).toBits = (fromBits s 0 0).toBits) : s' = s := by
+private theorem pack_zero_sign_inj (s' s : Bool)
+    (h : Word.pack s' 0 0 = Word.pack s 0 0) : s' = s := by
   cases s' <;> cases s <;> first
     | rfl
-    | (exfalso
-       unfold fromBits at h
-       rw [_root_.Float.toBits_ofBits _ (by decide), _root_.Float.toBits_ofBits _ (by decide)]
-         at h
-       exact absurd h (by decide))
+    | exact absurd h (by decide)
 
-/-- For finite `f` with zero magnitude, the signed canonical zero reads
-back to exactly `f`'s bits. -/
-private theorem ofDecimal_signedZero_bits (f : _root_.Float)
-    (h_m : (decode f).m = 0) :
-    (Clinger.ofDecimal (⟨(decode f).sign, 0, 0⟩ : Decimal)).toBits = f.toBits := by
-  have h_be : biasedExpBits f = 0 := by
+/-- For finite `w` with zero magnitude, the signed canonical zero reads
+back to exactly `w`'s bits. -/
+private theorem ofDecimal_signedZero_bits (w : UInt64)
+    (h_m : (Word.decode w).m = 0) :
+    Clinger.ofDecimalBits (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) = w := by
+  have h_be : Word.biasedExp w = 0 := by
     by_contra he
-    have hm_def : (decode f).m = mantissaBits f + (1 <<< 52) := by
-      unfold decode; rw [if_neg he]
+    have hm_def : (Word.decode w).m = Word.mantissa w + (1 <<< 52) := by
+      unfold Word.decode; rw [if_neg he]
     have h52 : (1 : Nat) <<< 52 = 2 ^ 52 := by decide
     rw [hm_def, h52] at h_m
     have hbig : (2 : Nat) ^ 52 = 4503599627370496 := by decide
     omega
-  have h_mant : mantissaBits f = 0 := by
-    have hm_def : (decode f).m = mantissaBits f := by
-      unfold decode; rw [if_pos h_be]
+  have h_mant : Word.mantissa w = 0 := by
+    have hm_def : (Word.decode w).m = Word.mantissa w := by
+      unfold Word.decode; rw [if_pos h_be]
     omega
-  have h_sign : (decode f).sign = signBit f := by
-    unfold decode
+  have h_sign : (Word.decode w).sign = Word.signBit w := by
+    unfold Word.decode
     simp [h_be]
-  have h_lhs : (Clinger.ofDecimal (⟨(decode f).sign, 0, 0⟩ : Decimal)).toBits
-      = (fromBits (decode f).sign 0 0).toBits := by
-    show (Clinger.decimalToFloat (decode f).sign 0 0).toBits = _
-    unfold Clinger.decimalToFloat
+  have h_lhs : Clinger.ofDecimalBits (⟨(Word.decode w).sign, 0, 0⟩ : Decimal)
+      = Word.pack (Word.decode w).sign 0 0 := by
+    show Clinger.decimalToFloatBits (Word.decode w).sign 0 0 = _
+    unfold Clinger.decimalToFloatBits
     rw [if_pos rfl]
     rfl
-  have h2 : fromBits (signBit f) (biasedExpBits f) (mantissaBits f)
-      = fromBits (decode f).sign 0 0 := by
+  have h2 : Word.pack (Word.signBit w) (Word.biasedExp w) (Word.mantissa w)
+      = Word.pack (Word.decode w).sign 0 0 := by
     rw [h_be, h_mant, h_sign]
   rw [h_lhs, ← h2]
-  have h_nan : isNaNBits f = false := by
-    unfold isNaNBits
-    have : ¬ biasedExpBits f = 2047 := by omega
+  have h_nan : Word.isNaN w = false := by
+    unfold Word.isNaN
+    have : ¬ Word.biasedExp w = 2047 := by omega
     simp [this]
-  exact fromBits_decode_eq f h_nan
+  exact pack_decode_eq w h_nan
 
-/-- The bits of `ofDecimal` on a sig-0 decimal, in `fromBits` form. -/
+/-- The bits of `ofDecimal` on a sig-0 decimal, in `Word.pack` form. -/
 private theorem ofDecimal_sig0_bits (d : Decimal) (h : d.significand = 0) :
-    (Clinger.ofDecimal d).toBits = (fromBits d.sign 0 0).toBits := by
-  show (Clinger.decimalToFloat d.sign d.significand d.exponent).toBits = _
-  unfold Clinger.decimalToFloat
+    Clinger.ofDecimalBits d = Word.pack d.sign 0 0 := by
+  show Clinger.decimalToFloatBits d.sign d.significand d.exponent = _
+  unfold Clinger.decimalToFloatBits
   rw [if_pos h]
   rfl
 
 /-! ## Schubfach output is canonical -/
 
-/-- Helper: for finite nonzero `f`, the Decimal returned by
-    `Schubfach.toDecimal f` is canonical (its significand is positive and
+/-- Helper: for finite nonzero `w`, the Decimal returned by
+    `Schubfach.toDecimalBits w` is canonical (its significand is positive and
     not divisible by 10, the second branch of `IsCanonical`). -/
 private theorem toDecimal_isCanonical
-    (f : _root_.Float)
-    (h_fin : isFiniteBits f = true)
-    (h_nz : (decode f).m ≠ 0)
+    (w : UInt64)
+    (h_fin : Word.isFinite w = true)
+    (h_nz : (Word.decode w).m ≠ 0)
     (d : Decimal)
-    (h_eq : Schubfach.toDecimal f = .ok d) :
+    (h_eq : Schubfach.toDecimalBits w = .ok d) :
     Decimal.IsCanonical d := by
   -- Unfold toDecimal to extract d's explicit form.
-  have h_be_lt : biasedExpBits f < 2047 := by
-    unfold isFiniteBits at h_fin; simpa using h_fin
-  have h_nan : isNaNBits f = false := by
-    unfold isNaNBits
-    have : ¬ biasedExpBits f = 2047 := by omega
+  have h_be_lt : Word.biasedExp w < 2047 := by
+    unfold Word.isFinite at h_fin; simpa using h_fin
+  have h_nan : Word.isNaN w = false := by
+    unfold Word.isNaN
+    have : ¬ Word.biasedExp w = 2047 := by omega
     simp [this]
-  have h_inf : isInfBits f = false := by
-    unfold isInfBits
-    have : ¬ biasedExpBits f = 2047 := by omega
+  have h_inf : Word.isInf w = false := by
+    unfold Word.isInf
+    have : ¬ Word.biasedExp w = 2047 := by omega
     simp [this]
   have ⟨h_m_lt, h_q_lo, h_q_hi⟩ :=
-    Srtfp.Schubfach.decode_invariants_of_finite f h_fin
-  have h_m_pos : 1 ≤ (decode f).m := Nat.one_le_iff_ne_zero.mpr h_nz
-  have h_sig_pos : 1 ≤ (shortestUnsigned (decode f).m (decode f).q).1 :=
+    Srtfp.Schubfach.decode_invariants_bits w h_fin
+  have h_m_pos : 1 ≤ (Word.decode w).m := Nat.one_le_iff_ne_zero.mpr h_nz
+  have h_sig_pos : 1 ≤ (shortestUnsigned (Word.decode w).m (Word.decode w).q).1 :=
     Srtfp.Schubfach.shortestUnsigned_sig_pos
-      (decode f).m (decode f).q h_m_pos h_m_lt h_q_lo h_q_hi
-  have h_sig_ne : (shortestUnsigned (decode f).m (decode f).q).1 ≠ 0 :=
+      (Word.decode w).m (Word.decode w).q h_m_pos h_m_lt h_q_lo h_q_hi
+  have h_sig_ne : (shortestUnsigned (Word.decode w).m (Word.decode w).q).1 ≠ 0 :=
     Nat.one_le_iff_ne_zero.mp h_sig_pos
-  -- Now unfold toDecimal to identify d with Decimal.mk' ...
-  unfold Schubfach.toDecimal at h_eq
+  -- Now unfold toDecimalBits to identify d with Decimal.mk' ...
+  unfold Schubfach.toDecimalBits at h_eq
   rw [if_neg (by simp [h_nan]), if_neg (by simp [h_inf])] at h_eq
   simp only [h_nz, ↓reduceIte, Except.ok.injEq] at h_eq
-  -- h_eq : Decimal.mk' (decode f).sign (...).1 (...).2 = d
+  -- h_eq : Decimal.mk' (Word.decode w).sign (...).1 (...).2 = d
   -- Apply mk_pos_props.
   have ⟨_, h_ne, h_mod, _, _⟩ := mk_pos_props
-    (decode f).sign (shortestUnsigned (decode f).m (decode f).q).1
-    (shortestUnsigned (decode f).m (decode f).q).2 h_sig_ne
+    (Word.decode w).sign (shortestUnsigned (Word.decode w).m (Word.decode w).q).1
+    (shortestUnsigned (Word.decode w).m (Word.decode w).q).2 h_sig_ne
   rw [h_eq] at h_ne h_mod
   -- Conclude: second branch of IsCanonical.
   unfold Decimal.IsCanonical
@@ -207,7 +202,7 @@ private theorem toDecimal_isCanonical
 
 /-! ## Clause (3) — tie-breaking at the output scale
 
-The output `(out_sig, out_exp) = shortestUnsigned (decode f).m (decode f).q`
+The output `(out_sig, out_exp) = shortestUnsigned (Word.decode w).m (Word.decode w).q`
 is, *at scale `out_exp`*, the closest grid point to `v = magVal m q` among
 all scale-`out_exp` grid points (breaking exact ties toward an even
 significand). This is the unsigned core of clause (3); it is then lifted to
@@ -1357,47 +1352,47 @@ private theorem samelen_tie_canonical_even
 
 /-! ## The headline proofs
 
-`correctness_proof` establishes `IsCorrectPrinter Schubfach.toDecimal`
+`correctness_proof` establishes `IsCorrectPrinterBits Schubfach.toDecimal`
 clause by clause. `specOutput_eq_output` shows a spec output IS the
 algorithm's output; `printer_unique_proof` (extensional uniqueness) and
 `spec_output_exists_unique_proof` (per-float `∃!`) follow. -/
 
 set_option maxHeartbeats 1600000 in
 /-- The finite-nonzero clause of `correctness_proof`. -/
-private theorem Schubfach.correctness_fin_aux (f : _root_.Float)
-    (h_fin : isFiniteBits f = true) (h_nz : (decode f).m ≠ 0) :
-    ∃ d : Decimal, Schubfach.toDecimal f = .ok d ∧ Schubfach.IsSpecOutput f d := by
+private theorem Schubfach.correctness_fin_aux (w : UInt64)
+    (h_fin : Word.isFinite w = true) (h_nz : (Word.decode w).m ≠ 0) :
+    ∃ d : Decimal, Schubfach.toDecimalBits w = .ok d ∧ Schubfach.IsSpecOutputBits w d := by
   -- Round-trip clause + the algorithm output `d`.
-  obtain ⟨d, h_eq, h_rt⟩ := ofDecimal_toDecimal_eq_bits f h_fin h_nz
+  obtain ⟨d, h_eq, h_rt⟩ := ofDecimal_toDecimal_eq_bits w h_fin h_nz
   -- Decode invariants.
-  set m := (decode f).m with hm
-  set q := (decode f).q with hq
+  set m := (Word.decode w).m with hm
+  set q := (Word.decode w).q with hq
   have ⟨h_m_lt, h_q_lo, h_q_hi⟩ :=
-    Srtfp.Schubfach.decode_invariants_of_finite f h_fin
+    Srtfp.Schubfach.decode_invariants_bits w h_fin
   have h_m_pos : 1 ≤ m := Nat.one_le_iff_ne_zero.mpr h_nz
-  -- The output decimal d = mk' (decode f).sign out_sig out_exp.
+  -- The output decimal d = mk' (Word.decode w).sign out_sig out_exp.
   set out_sig := (shortestUnsigned m q).1 with h_out_sig
   set out_exp := (shortestUnsigned m q).2 with h_out_exp
   have h_out_ne : out_sig ≠ 0 := by
     rw [h_out_sig]; exact Nat.one_le_iff_ne_zero.mp
       (shortestUnsigned_sig_pos m q h_m_pos h_m_lt h_q_lo h_q_hi)
-  have h_d_eq : d = Decimal.mk' (decode f).sign out_sig out_exp := by
-    have h_be_lt : biasedExpBits f < 2047 := by
-      unfold isFiniteBits at h_fin; simpa using h_fin
-    have hnan : isNaNBits f = false := by
-      unfold isNaNBits; have : ¬ biasedExpBits f = 2047 := by omega
+  have h_d_eq : d = Decimal.mk' (Word.decode w).sign out_sig out_exp := by
+    have h_be_lt : Word.biasedExp w < 2047 := by
+      unfold Word.isFinite at h_fin; simpa using h_fin
+    have hnan : Word.isNaN w = false := by
+      unfold Word.isNaN; have : ¬ Word.biasedExp w = 2047 := by omega
       simp [this]
-    have hinf : isInfBits f = false := by
-      unfold isInfBits; have : ¬ biasedExpBits f = 2047 := by omega
+    have hinf : Word.isInf w = false := by
+      unfold Word.isInf; have : ¬ Word.biasedExp w = 2047 := by omega
       simp [this]
-    have h_unfold : Schubfach.toDecimal f
-        = .ok (Decimal.mk' (decode f).sign out_sig out_exp) := by
-      unfold Schubfach.toDecimal
+    have h_unfold : Schubfach.toDecimalBits w
+        = .ok (Decimal.mk' (Word.decode w).sign out_sig out_exp) := by
+      unfold Schubfach.toDecimalBits
       rw [hnan, hinf]; rw [if_neg h_nz]; rfl
     rw [h_unfold] at h_eq; cases h_eq; rfl
   -- Canonical decomposition of d via `mk_pos_props`.
   obtain ⟨h_mk_sign, h_mk_sig_ne, h_mk_canon, h_mk_exp_le, h_mk_decomp⟩ :=
-    mk_pos_props (decode f).sign out_sig out_exp h_out_ne
+    mk_pos_props (Word.decode w).sign out_sig out_exp h_out_ne
   rw [← h_d_eq] at h_mk_sign h_mk_sig_ne h_mk_canon h_mk_exp_le h_mk_decomp
   set t : Nat := (d.exponent - out_exp).toNat with h_t
   have h_ce : d.exponent = out_exp + (t : Int) := by
@@ -1405,48 +1400,45 @@ private theorem Schubfach.correctness_fin_aux (f : _root_.Float)
   have h_out_decomp : out_sig = d.significand * 10 ^ t := h_mk_decomp.symm
   have h_cs_pos : 1 ≤ d.significand := Nat.one_le_iff_ne_zero.mpr h_mk_sig_ne
   -- Shared competitor analysis: any canonical round-tripper `d'` has a
-  -- nonzero canonical significand, `f`'s sign, and lies in `R_v(decode f)`.
+  -- nonzero canonical significand, `w`'s sign, and lies in `R_v(Word.decode w)`.
   have h_comp : ∀ d' : Decimal, Decimal.IsCanonical d' →
-      (Clinger.ofDecimal d').toBits = f.toBits →
-      d'.significand ≠ 0 ∧ d'.significand % 10 ≠ 0 ∧ d'.sign = (decode f).sign ∧
+      Clinger.ofDecimalBits d' = w →
+      d'.significand ≠ 0 ∧ d'.significand % 10 ≠ 0 ∧ d'.sign = (Word.decode w).sign ∧
       inRoundingInterval d'.significand d'.exponent m q (isIrregular m q) = true := by
     intro d' h'_canon h'_rt
     have h'_sig_ne : d'.significand ≠ 0 := by
       intro h_sig_zero
-      have h_f_bits : f.toBits = (fromBits d'.sign 0 0).toBits := by
+      have h_f_bits : w = Word.pack d'.sign 0 0 := by
         rw [← h'_rt]; exact ofDecimal_sig0_bits d' h_sig_zero
-      have h_m_zero : (decode f).m = 0 := by
+      have h_m_zero : (Word.decode w).m = 0 := by
         cases hs : d'.sign
         all_goals
           rw [hs] at h_f_bits
-          unfold fromBits at h_f_bits
-          rw [_root_.Float.toBits_ofBits _ (by decide)] at h_f_bits
-          unfold decode signBit biasedExpBits mantissaBits
           rw [h_f_bits]
           decide
       exact h_nz h_m_zero
     have h'_finabs : IsFiniteAbs d'.sign d'.significand d'.exponent :=
-      Clinger.isFiniteAbs_of_roundtrip d' f h'_sig_ne h_fin h'_rt
+      Clinger.isFiniteAbs_of_roundtrip_bits d' w h'_sig_ne h_fin h'_rt
     have h'_mod : d'.significand % 10 ≠ 0 := by
       rcases h'_canon with ⟨h_zero, _⟩ | ⟨_, h_mod⟩
       · exact absurd h_zero h'_sig_ne
       · exact h_mod
-    have h'_sign : d'.sign = (decode f).sign := roundtrip_sign_eq d' f h'_finabs h'_rt
+    have h'_sign : d'.sign = (Word.decode w).sign := roundtrip_sign_eq d' w h'_finabs h'_rt
     have h'_in_Rv : inRoundingInterval d'.significand d'.exponent m q
         (isIrregular m q) = true := by
       have h0 : inRoundingInterval d'.significand d'.exponent
-          (decode (Clinger.ofDecimal d')).m (decode (Clinger.ofDecimal d')).q
-          (isIrregular (decode (Clinger.ofDecimal d')).m
-                       (decode (Clinger.ofDecimal d')).q) = true :=
-        Clinger.ofDecimal_in_Rv d' h'_sig_ne h'_finabs
+          (Word.decode (Clinger.ofDecimalBits d')).m (Word.decode (Clinger.ofDecimalBits d')).q
+          (isIrregular (Word.decode (Clinger.ofDecimalBits d')).m
+                       (Word.decode (Clinger.ofDecimalBits d')).q) = true :=
+        Clinger.ofDecimalBits_in_Rv d' h'_sig_ne h'_finabs
       rwa [decode_eq_of_toBits_eq h'_rt] at h0
     exact ⟨h'_sig_ne, h'_mod, h'_sign, h'_in_Rv⟩
-  refine ⟨d, h_eq, (Schubfach.isSpecOutput_iff f d).mpr
-    ⟨toDecimal_isCanonical f h_fin h_nz d h_eq, h_rt, ?shortest, ?tie⟩⟩
+  refine ⟨d, h_eq, (Schubfach.isSpecOutput_iff w d).mpr
+    ⟨toDecimal_isCanonical w h_fin h_nz d h_eq, h_rt, ?shortest, ?tie⟩⟩
   case shortest =>
     intro d' h'_canon h'_rt
     obtain ⟨h'_sig_ne, h'_mod, _, h'_in_Rv⟩ := h_comp d' h'_canon h'_rt
-    obtain ⟨result, h_result_eq, h_minimal⟩ := toDecimal_minimal f h_fin h_nz
+    obtain ⟨result, h_result_eq, h_minimal⟩ := toDecimal_minimal w h_fin h_nz
     have h_result_eq_d : result = d := by
       rw [h_result_eq] at h_eq; cases h_eq; rfl
     rw [h_result_eq_d] at h_minimal
@@ -1460,12 +1452,12 @@ private theorem Schubfach.correctness_fin_aux (f : _root_.Float)
       d'.significand d'.exponent (Nat.one_le_iff_ne_zero.mpr h'_sig_ne)
       h'_mod h'_in_Rv h'_len
     -- Reduce signed distances to unsigned grid distances.
-    have h_d_dist : |Decimal.toRat d - Schubfach.floatVal f|
+    have h_d_dist : |Decimal.toRat d - Schubfach.wordVal w|
         = |magVal m q - gridVal d.significand d.exponent| :=
-      toRat_dist_eq_grid_dist d f h_mk_sign
-    have h'_dist : |Decimal.toRat d' - Schubfach.floatVal f|
+      toRat_dist_eq_grid_dist d w h_mk_sign
+    have h'_dist : |Decimal.toRat d' - Schubfach.wordVal w|
         = |magVal m q - gridVal d'.significand d'.exponent| :=
-      toRat_dist_eq_grid_dist d' f h'_sign
+      toRat_dist_eq_grid_dist d' w h'_sign
     rw [h_d_dist, h'_dist]
     rcases h_unsigned with ⟨h_sig_eq, h_exp_eq⟩ | h_lt | ⟨h_eqd, h_even⟩
     · -- d' agrees with d on significand, exponent, and sign ⇒ d = d'.
@@ -1486,7 +1478,7 @@ private theorem Schubfach.correctness_fin_aux (f : _root_.Float)
         simp only at hsg hsig hexp ⊢
         rw [hsg, hsig, hexp]
       · have h_legal : LegalIEEE m q := by
-          rw [hm, hq]; exact decode_legalIEEE f h_fin h_nz
+          rw [hm, hq]; exact decode_legalIEEE_bits w h_fin h_nz
         have h_cs_even := samelen_tie_canonical_even m q h_m_pos h_m_lt h_q_lo h_q_hi
           h_legal d.significand d.exponent t h_cs_pos h_mk_canon h_out_decomp h_ce
           d'.significand d'.exponent (Nat.one_le_iff_ne_zero.mpr h'_sig_ne) h'_mod
@@ -1495,12 +1487,12 @@ private theorem Schubfach.correctness_fin_aux (f : _root_.Float)
 
 /-- The zero clause of `correctness_proof`: the signed canonical zero is
 THE shortest decimal for `±0`. -/
-private theorem Schubfach.correctness_zero_aux (f : _root_.Float)
-    (h_fin : isFiniteBits f = true) (h_nz : (decode f).m = 0) :
-    ∃ d : Decimal, Schubfach.toDecimal f = .ok d ∧ Schubfach.IsSpecOutput f d := by
-  refine ⟨⟨(decode f).sign, 0, 0⟩, toDecimal_zero f h_fin h_nz,
-    (Schubfach.isSpecOutput_iff f _).mpr
-      ⟨Or.inl ⟨rfl, rfl⟩, ofDecimal_signedZero_bits f h_nz, ?_, ?_⟩⟩
+private theorem Schubfach.correctness_zero_aux (w : UInt64)
+    (h_fin : Word.isFinite w = true) (h_nz : (Word.decode w).m = 0) :
+    ∃ d : Decimal, Schubfach.toDecimalBits w = .ok d ∧ Schubfach.IsSpecOutputBits w d := by
+  refine ⟨⟨(Word.decode w).sign, 0, 0⟩, toDecimalBits_zero w h_fin h_nz,
+    (Schubfach.isSpecOutput_iff w _).mpr
+      ⟨Or.inl ⟨rfl, rfl⟩, ofDecimal_signedZero_bits w h_nz, ?_, ?_⟩⟩
   · -- shortest: one digit is minimal.
     intro d' _ _
     show decDigitLength 0 ≤ decDigitLength d'.significand
@@ -1516,21 +1508,21 @@ private theorem Schubfach.correctness_zero_aux (f : _root_.Float)
         rcases h'_canon with ⟨_, h⟩ | ⟨h, _⟩
         · exact h
         · exact absurd h'_s0 h
-      have h'_bits : (fromBits d'.sign 0 0).toBits = f.toBits := by
+      have h'_bits : Word.pack d'.sign 0 0 = w := by
         rw [← ofDecimal_sig0_bits d' h'_s0]; exact h'_rt
-      have h_bits : (fromBits (decode f).sign 0 0).toBits = f.toBits := by
-        rw [← ofDecimal_sig0_bits (⟨(decode f).sign, 0, 0⟩ : Decimal) rfl]
-        exact ofDecimal_signedZero_bits f h_nz
-      have h_sign : d'.sign = (decode f).sign :=
-        fromBits_zero_sign_inj _ _ (h'_bits.trans h_bits.symm)
-      show (⟨(decode f).sign, 0, 0⟩ : Decimal) = d'
+      have h_bits : Word.pack (Word.decode w).sign 0 0 = w := by
+        rw [← ofDecimal_sig0_bits (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) rfl]
+        exact ofDecimal_signedZero_bits w h_nz
+      have h_sign : d'.sign = (Word.decode w).sign :=
+        pack_zero_sign_inj _ _ (h'_bits.trans h_bits.symm)
+      show (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) = d'
       rcases d' with ⟨ds, dsig, dexp⟩
       simp only at h'_s0 h'_exp h_sign
       rw [h_sign, h'_s0, h'_exp]
     · -- a nonzero competitor is strictly farther from `±0`.
       right; left
-      have h_fv : Schubfach.floatVal f = 0 := floatVal_zero f h_nz
-      have h_d0 : Decimal.toRat (⟨(decode f).sign, 0, 0⟩ : Decimal) = 0 :=
+      have h_fv : Schubfach.wordVal w = 0 := floatVal_zero w h_nz
+      have h_d0 : Decimal.toRat (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) = 0 :=
         toRat_zero _ rfl
       rw [h_fv, h_d0]
       simp only [sub_zero, abs_zero]
@@ -1540,101 +1532,98 @@ set_option maxHeartbeats 1600000 in
 /-- Proof of `Schubfach.correctness`.  The audit-facing statement (with its
 rich docstring) is in `Srtfp/Correctness.lean`, which delegates here. -/
 theorem Schubfach.correctness_proof :
-    Schubfach.IsCorrectPrinter Schubfach.toDecimal := by
-  intro f
+    Schubfach.IsCorrectPrinterBits Schubfach.toDecimalBits := by
+  intro w
   refine ⟨?nanCase, ?infCase, ?finCase⟩
   case nanCase =>
     intro h_nan
-    unfold Schubfach.toDecimal
+    unfold Schubfach.toDecimalBits
     rw [if_pos h_nan]
   case infCase =>
     intro h_inf
-    have h_nan : isNaNBits f = false := by
-      unfold isNaNBits
-      unfold isInfBits at h_inf
+    have h_nan : Word.isNaN w = false := by
+      unfold Word.isNaN
+      unfold Word.isInf at h_inf
       simp only [Bool.and_eq_true, decide_eq_true_eq] at h_inf
       simp [h_inf.2]
-    unfold Schubfach.toDecimal
+    unfold Schubfach.toDecimalBits
     rw [if_neg (by simp [h_nan]), if_pos h_inf]
   case finCase =>
     intro h_fin
-    by_cases h_nz : (decode f).m = 0
-    · exact Schubfach.correctness_zero_aux f h_fin h_nz
-    · exact Schubfach.correctness_fin_aux f h_fin h_nz
+    by_cases h_nz : (Word.decode w).m = 0
+    · exact Schubfach.correctness_zero_aux w h_fin h_nz
+    · exact Schubfach.correctness_fin_aux w h_fin h_nz
 set_option maxHeartbeats 1600000 in
 /-- `specOutput_eq_output`, finite-nonzero case: pits the spec witness
 `d_star` against the output `d` — mutual shortest-ness forces equal digit
 length, mutual closest-ness forces equidistance, and a same-length
 even–even tie is geometrically impossible (`samelen_even_tie_false`). -/
-private theorem Schubfach.specOutput_eq_output_nz (f : _root_.Float)
-    (h_fin : isFiniteBits f = true) (h_nz : (decode f).m ≠ 0)
+private theorem Schubfach.specOutput_eq_output_nz (w : UInt64)
+    (h_fin : Word.isFinite w = true) (h_nz : (Word.decode w).m ≠ 0)
     (d_star : Decimal)
     (h_canon : Decimal.IsCanonical d_star)
-    (h_rt : Schubfach.RoundTrips f d_star)
-    (h_short : ∀ d' : Decimal, Decimal.IsCanonical d' → Schubfach.RoundTrips f d' →
+    (h_rt : Schubfach.RoundTripsBits w d_star)
+    (h_short : ∀ d' : Decimal, Decimal.IsCanonical d' → Schubfach.RoundTripsBits w d' →
         decDigitLength d_star.significand ≤ decDigitLength d'.significand)
-    (h_tie : ∀ d' : Decimal, Decimal.IsCanonical d' → Schubfach.RoundTrips f d' →
+    (h_tie : ∀ d' : Decimal, Decimal.IsCanonical d' → Schubfach.RoundTripsBits w d' →
         decDigitLength d'.significand = decDigitLength d_star.significand →
           d_star = d'
-        ∨ |Decimal.toRat d_star - Schubfach.floatVal f| < |Decimal.toRat d' - Schubfach.floatVal f|
-        ∨ ( |Decimal.toRat d_star - Schubfach.floatVal f| = |Decimal.toRat d' - Schubfach.floatVal f|
+        ∨ |Decimal.toRat d_star - Schubfach.wordVal w| < |Decimal.toRat d' - Schubfach.wordVal w|
+        ∨ ( |Decimal.toRat d_star - Schubfach.wordVal w| = |Decimal.toRat d' - Schubfach.wordVal w|
             ∧ d_star.significand % 2 = 0 )) :
-    Schubfach.toDecimal f = .ok d_star := by
-  have h_rt' : (Clinger.ofDecimal d_star).toBits = f.toBits := h_rt
+    Schubfach.toDecimalBits w = .ok d_star := by
+  have h_rt' : Clinger.ofDecimalBits d_star = w := h_rt
   -- The algorithm's own output and its spec properties.
-  have h_corr := Schubfach.correctness_proof f
+  have h_corr := Schubfach.correctness_proof w
   obtain ⟨_, _, h_main⟩ := h_corr
   obtain ⟨d, h_eq, h_spec_d⟩ := h_main h_fin
   obtain ⟨h_canon_d, h_rt_d, h_min_d, h_tie_d⟩ :=
-    (Schubfach.isSpecOutput_iff f d).mp h_spec_d
-  have h_rt_d' : (Clinger.ofDecimal d).toBits = f.toBits := h_rt_d
+    (Schubfach.isSpecOutput_iff w d).mp h_spec_d
+  have h_rt_d' : Clinger.ofDecimalBits d = w := h_rt_d
   -- Reduce to d = d_star.
   suffices h_de : d = d_star by rw [h_de] at h_eq; exact h_eq
   -- Decode invariants and output decomposition.
-  set m := (decode f).m with hm
-  set q := (decode f).q with hq
+  set m := (Word.decode w).m with hm
+  set q := (Word.decode w).q with hq
   have ⟨h_m_lt, h_q_lo, h_q_hi⟩ :=
-    Srtfp.Schubfach.decode_invariants_of_finite f h_fin
+    Srtfp.Schubfach.decode_invariants_bits w h_fin
   have h_m_pos : 1 ≤ m := Nat.one_le_iff_ne_zero.mpr h_nz
   set out_sig := (shortestUnsigned m q).1 with h_out_sig
   set out_exp := (shortestUnsigned m q).2 with h_out_exp
   have h_out_ne : out_sig ≠ 0 := by
     rw [h_out_sig]; exact Nat.one_le_iff_ne_zero.mp
       (shortestUnsigned_sig_pos m q h_m_pos h_m_lt h_q_lo h_q_hi)
-  have h_d_eq : d = Decimal.mk' (decode f).sign out_sig out_exp := by
-    have h_be_lt : biasedExpBits f < 2047 := by
-      unfold isFiniteBits at h_fin; simpa using h_fin
-    have hnan : isNaNBits f = false := by
-      unfold isNaNBits; have : ¬ biasedExpBits f = 2047 := by omega
+  have h_d_eq : d = Decimal.mk' (Word.decode w).sign out_sig out_exp := by
+    have h_be_lt : Word.biasedExp w < 2047 := by
+      unfold Word.isFinite at h_fin; simpa using h_fin
+    have hnan : Word.isNaN w = false := by
+      unfold Word.isNaN; have : ¬ Word.biasedExp w = 2047 := by omega
       simp [this]
-    have hinf : isInfBits f = false := by
-      unfold isInfBits; have : ¬ biasedExpBits f = 2047 := by omega
+    have hinf : Word.isInf w = false := by
+      unfold Word.isInf; have : ¬ Word.biasedExp w = 2047 := by omega
       simp [this]
-    have h_unfold : Schubfach.toDecimal f
-        = .ok (Decimal.mk' (decode f).sign out_sig out_exp) := by
-      unfold Schubfach.toDecimal
+    have h_unfold : Schubfach.toDecimalBits w
+        = .ok (Decimal.mk' (Word.decode w).sign out_sig out_exp) := by
+      unfold Schubfach.toDecimalBits
       rw [hnan, hinf]; rw [if_neg h_nz]; rfl
     rw [h_unfold] at h_eq; cases h_eq; rfl
   obtain ⟨h_mk_sign, h_mk_sig_ne, h_mk_canon, h_mk_exp_le, h_mk_decomp⟩ :=
-    mk_pos_props (decode f).sign out_sig out_exp h_out_ne
+    mk_pos_props (Word.decode w).sign out_sig out_exp h_out_ne
   rw [← h_d_eq] at h_mk_sign h_mk_sig_ne h_mk_canon h_mk_exp_le h_mk_decomp
   set t : Nat := (d.exponent - out_exp).toNat with h_t
   have h_ce : d.exponent = out_exp + (t : Int) := by
     rw [h_t, Int.toNat_of_nonneg (by omega)]; grind
   have h_out_decomp : out_sig = d.significand * 10 ^ t := h_mk_decomp.symm
   have h_cs_pos : 1 ≤ d.significand := Nat.one_le_iff_ne_zero.mpr h_mk_sig_ne
-  -- d_star has a nonzero canonical significand (round-trips to nonzero f).
+  -- d_star has a nonzero canonical significand (round-trips to nonzero w).
   have h_star_sig_ne : d_star.significand ≠ 0 := by
     intro h_sig_zero
-    have h_f_bits : f.toBits = (fromBits d_star.sign 0 0).toBits := by
+    have h_f_bits : w = Word.pack d_star.sign 0 0 := by
       rw [← h_rt']; exact ofDecimal_sig0_bits d_star h_sig_zero
-    have h_m_zero : (decode f).m = 0 := by
+    have h_m_zero : (Word.decode w).m = 0 := by
       cases hs : d_star.sign
       all_goals
         rw [hs] at h_f_bits
-        unfold fromBits at h_f_bits
-        rw [_root_.Float.toBits_ofBits _ (by decide)] at h_f_bits
-        unfold decode signBit biasedExpBits mantissaBits
         rw [h_f_bits]
         decide
     exact h_nz h_m_zero
@@ -1643,7 +1632,7 @@ private theorem Schubfach.specOutput_eq_output_nz (f : _root_.Float)
     · exact absurd h_zero h_star_sig_ne
     · exact h_mod
   have h_finabs : IsFiniteAbs d_star.sign d_star.significand d_star.exponent :=
-    Clinger.isFiniteAbs_of_roundtrip d_star f h_star_sig_ne h_fin h_rt'
+    Clinger.isFiniteAbs_of_roundtrip_bits d_star w h_star_sig_ne h_fin h_rt'
   -- Step 1: same digit length L.
   have h_le1 : decDigitLength d.significand ≤ decDigitLength d_star.significand :=
     h_min_d d_star h_canon h_rt
@@ -1655,23 +1644,23 @@ private theorem Schubfach.specOutput_eq_output_nz (f : _root_.Float)
   have h_tb_d := h_tie_d d_star h_canon h_rt h_len_eq.symm
   have h_tb_s := h_tie d h_canon_d h_rt_d h_len_eq
   -- Distance reductions to unsigned grid distances.
-  have h'_sign : d_star.sign = (decode f).sign := roundtrip_sign_eq d_star f h_finabs h_rt'
-  have h_d_dist : |Decimal.toRat d - Schubfach.floatVal f|
+  have h'_sign : d_star.sign = (Word.decode w).sign := roundtrip_sign_eq d_star w h_finabs h_rt'
+  have h_d_dist : |Decimal.toRat d - Schubfach.wordVal w|
       = |magVal m q - gridVal d.significand d.exponent| :=
-    toRat_dist_eq_grid_dist d f h_mk_sign
-  have h_s_dist : |Decimal.toRat d_star - Schubfach.floatVal f|
+    toRat_dist_eq_grid_dist d w h_mk_sign
+  have h_s_dist : |Decimal.toRat d_star - Schubfach.wordVal w|
       = |magVal m q - gridVal d_star.significand d_star.exponent| :=
-    toRat_dist_eq_grid_dist d_star f h'_sign
+    toRat_dist_eq_grid_dist d_star w h'_sign
   -- Resolve the mutual tie-break.
   rcases h_tb_d with h_eqd' | h_lt_d | ⟨h_eqdist_d, h_even_out⟩
   · exact h_eqd'
-  · -- |d - f| < |d_star - f|.  Combine with h_tb_s.
+  · -- |d - w| < |d_star - w|.  Combine with h_tb_s.
     exfalso
     rcases h_tb_s with h_eqs' | h_lt_s | ⟨h_eqdist_s, _⟩
     · exact Rat.ne_of_lt h_lt_d (by rw [h_eqs'])
     · exact absurd (lt_trans h_lt_d h_lt_s) (lt_irrefl _)
     · rw [h_eqdist_s] at h_lt_d; exact lt_irrefl _ h_lt_d
-  · -- |d - f| = |d_star - f| and d.significand even.  Combine with h_tb_s.
+  · -- |d - w| = |d_star - w| and d.significand even.  Combine with h_tb_s.
     rcases h_tb_s with h_eqs' | h_lt_s | ⟨_, h_even_star⟩
     · exact h_eqs'.symm
     · rw [h_eqdist_d] at h_lt_s; exact absurd h_lt_s (lt_irrefl _)
@@ -1702,10 +1691,10 @@ private theorem Schubfach.specOutput_eq_output_nz (f : _root_.Float)
       have h_star_in_Rv : inRoundingInterval d_star.significand d_star.exponent m q
                             (isIrregular m q) = true := by
         have h0 : inRoundingInterval d_star.significand d_star.exponent
-            (decode (Clinger.ofDecimal d_star)).m (decode (Clinger.ofDecimal d_star)).q
-            (isIrregular (decode (Clinger.ofDecimal d_star)).m
-                         (decode (Clinger.ofDecimal d_star)).q) = true :=
-          Clinger.ofDecimal_in_Rv d_star h_star_sig_ne h_finabs
+            (Word.decode (Clinger.ofDecimalBits d_star)).m (Word.decode (Clinger.ofDecimalBits d_star)).q
+            (isIrregular (Word.decode (Clinger.ofDecimalBits d_star)).m
+                         (Word.decode (Clinger.ofDecimalBits d_star)).q) = true :=
+          Clinger.ofDecimalBits_in_Rv d_star h_star_sig_ne h_finabs
         rwa [decode_eq_of_toBits_eq h_rt'] at h0
       have h_distinct : ¬ (d_star.significand = d.significand ∧ d_star.exponent = d.exponent) :=
         h_same
@@ -1717,32 +1706,32 @@ private theorem Schubfach.specOutput_eq_output_nz (f : _root_.Float)
 
 
 /-- A decimal satisfying the specification IS the algorithm's output. -/
-theorem Schubfach.specOutput_eq_output (f : _root_.Float)
-    (h_fin : isFiniteBits f = true)
-    (d_star : Decimal) (h_spec : Schubfach.IsSpecOutput f d_star) :
-    Schubfach.toDecimal f = .ok d_star := by
+theorem Schubfach.specOutput_eq_output (w : UInt64)
+    (h_fin : Word.isFinite w = true)
+    (d_star : Decimal) (h_spec : Schubfach.IsSpecOutputBits w d_star) :
+    Schubfach.toDecimalBits w = .ok d_star := by
   obtain ⟨h_canon, h_rt, h_short, h_tie⟩ :=
-    (Schubfach.isSpecOutput_iff f d_star).mp h_spec
-  by_cases h_nz : (decode f).m = 0
-  · -- `f = ±0`: the spec pins `d_star` to the signed canonical zero.
-    have h_rt' : (Clinger.ofDecimal d_star).toBits = f.toBits := h_rt
-    have h_dz_rt : Schubfach.RoundTrips f (⟨(decode f).sign, 0, 0⟩ : Decimal) :=
-      ofDecimal_signedZero_bits f h_nz
-    have h_dz_canon : Decimal.IsCanonical (⟨(decode f).sign, 0, 0⟩ : Decimal) :=
+    (Schubfach.isSpecOutput_iff w d_star).mp h_spec
+  by_cases h_nz : (Word.decode w).m = 0
+  · -- `w = ±0`: the spec pins `d_star` to the signed canonical zero.
+    have h_rt' : Clinger.ofDecimalBits d_star = w := h_rt
+    have h_dz_rt : Schubfach.RoundTripsBits w (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) :=
+      ofDecimal_signedZero_bits w h_nz
+    have h_dz_canon : Decimal.IsCanonical (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) :=
       Or.inl ⟨rfl, rfl⟩
-    have h_fv : Schubfach.floatVal f = 0 := floatVal_zero f h_nz
+    have h_fv : Schubfach.wordVal w = 0 := floatVal_zero w h_nz
     have h_sig0 : d_star.significand = 0 := by
       by_contra h_ne
       have h_le : decDigitLength d_star.significand ≤ decDigitLength 0 :=
-        h_short ⟨(decode f).sign, 0, 0⟩ h_dz_canon h_dz_rt
-      have h_len : decDigitLength (⟨(decode f).sign, 0, 0⟩ : Decimal).significand
+        h_short ⟨(Word.decode w).sign, 0, 0⟩ h_dz_canon h_dz_rt
+      have h_len : decDigitLength (⟨(Word.decode w).sign, 0, 0⟩ : Decimal).significand
           = decDigitLength d_star.significand := by
         have h1 := decDigitLength_pos d_star.significand
         have h0 : decDigitLength 0 = 1 := decDigitLength_zero
         show decDigitLength 0 = _
         omega
-      have h_tb := h_tie ⟨(decode f).sign, 0, 0⟩ h_dz_canon h_dz_rt h_len
-      have h_z : Decimal.toRat (⟨(decode f).sign, 0, 0⟩ : Decimal) = 0 :=
+      have h_tb := h_tie ⟨(Word.decode w).sign, 0, 0⟩ h_dz_canon h_dz_rt h_len
+      have h_z : Decimal.toRat (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) = 0 :=
         toRat_zero _ rfl
       rcases h_tb with h_eq' | h_lt | ⟨h_eqd, _⟩
       · rw [h_eq'] at h_ne
@@ -1757,68 +1746,68 @@ theorem Schubfach.specOutput_eq_output (f : _root_.Float)
       rcases h_canon with ⟨_, h⟩ | ⟨h, _⟩
       · exact h
       · exact absurd h_sig0 h
-    have h_sign : d_star.sign = (decode f).sign := by
-      have h1 : (Clinger.ofDecimal d_star).toBits = (fromBits d_star.sign 0 0).toBits :=
+    have h_sign : d_star.sign = (Word.decode w).sign := by
+      have h1 : Clinger.ofDecimalBits d_star = Word.pack d_star.sign 0 0 :=
         ofDecimal_sig0_bits d_star h_sig0
-      have h2 : (fromBits (decode f).sign 0 0).toBits = f.toBits := by
-        rw [← ofDecimal_sig0_bits (⟨(decode f).sign, 0, 0⟩ : Decimal) rfl]
+      have h2 : Word.pack (Word.decode w).sign 0 0 = w := by
+        rw [← ofDecimal_sig0_bits (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) rfl]
         exact h_dz_rt
-      exact fromBits_zero_sign_inj _ _ ((h1.symm.trans h_rt').trans h2.symm)
-    rw [toDecimal_zero f h_fin h_nz]
+      exact pack_zero_sign_inj _ _ ((h1.symm.trans h_rt').trans h2.symm)
+    rw [toDecimalBits_zero w h_fin h_nz]
     rcases d_star with ⟨ds, dsig, dexp⟩
     simp only at h_sig0 h_exp0 h_sign
     rw [h_sign, h_sig0, h_exp0]
-  · exact Schubfach.specOutput_eq_output_nz f h_fin h_nz d_star h_canon h_rt h_short h_tie
+  · exact Schubfach.specOutput_eq_output_nz w h_fin h_nz d_star h_canon h_rt h_short h_tie
 
 /-- Proof of `Schubfach.printer_unique`: the specification pins down the
 printer extensionally — on each input, case-split the (exhaustive,
 mutually exclusive) edge conditions; on finite nonzero inputs both
 outputs equal the algorithm's via `specOutput_eq_output`. -/
-theorem Schubfach.printer_unique_proof (p₁ p₂ : _root_.Float → Except String Decimal)
-    (h₁ : Schubfach.IsCorrectPrinter p₁) (h₂ : Schubfach.IsCorrectPrinter p₂) :
+theorem Schubfach.printer_unique_proof (p₁ p₂ : UInt64 → Except String Decimal)
+    (h₁ : Schubfach.IsCorrectPrinterBits p₁) (h₂ : Schubfach.IsCorrectPrinterBits p₂) :
     p₁ = p₂ := by
-  funext f
-  obtain ⟨h1_nan, h1_inf, h1_main⟩ := h₁ f
-  obtain ⟨h2_nan, h2_inf, h2_main⟩ := h₂ f
-  by_cases h_nan : isNaNBits f = true
+  funext w
+  obtain ⟨h1_nan, h1_inf, h1_main⟩ := h₁ w
+  obtain ⟨h2_nan, h2_inf, h2_main⟩ := h₂ w
+  by_cases h_nan : Word.isNaN w = true
   · rw [h1_nan h_nan, h2_nan h_nan]
-  · by_cases h_inf : isInfBits f = true
+  · by_cases h_inf : Word.isInf w = true
     · rw [h1_inf h_inf, h2_inf h_inf]
     · -- Not NaN, not ∞ ⇒ finite.
-      have h_fin : isFiniteBits f = true := by
-        have h_be_le : biasedExpBits f ≤ 2047 := by
-          show ((f.toBits >>> 52) &&& 0x7FF).toNat ≤ 2047
+      have h_fin : Word.isFinite w = true := by
+        have h_be_le : Word.biasedExp w ≤ 2047 := by
+          show ((w >>> 52) &&& 0x7FF).toNat ≤ 2047
           rw [UInt64.toNat_and]
           have h_max : (0x7FF : UInt64).toNat = 2047 := by decide
           rw [h_max]
           exact Nat.and_le_right
-        unfold isFiniteBits
-        rcases Nat.lt_or_ge (biasedExpBits f) 2047 with h | h
+        unfold Word.isFinite
+        rcases Nat.lt_or_ge (Word.biasedExp w) 2047 with h | h
         · simpa using h
         · exfalso
-          have h_be : biasedExpBits f = 2047 := by omega
-          by_cases h_m : mantissaBits f = 0
-          · exact h_inf (by unfold isInfBits; simp [h_be, h_m])
-          · exact h_nan (by unfold isNaNBits; simp [h_be, h_m])
+          have h_be : Word.biasedExp w = 2047 := by omega
+          by_cases h_m : Word.mantissa w = 0
+          · exact h_inf (by unfold Word.isInf; simp [h_be, h_m])
+          · exact h_nan (by unfold Word.isNaN; simp [h_be, h_m])
       obtain ⟨d₁, h_eq₁, h_spec₁⟩ := h1_main h_fin
       obtain ⟨d₂, h_eq₂, h_spec₂⟩ := h2_main h_fin
-      have e₁ := Schubfach.specOutput_eq_output f h_fin d₁ h_spec₁
-      have e₂ := Schubfach.specOutput_eq_output f h_fin d₂ h_spec₂
+      have e₁ := Schubfach.specOutput_eq_output w h_fin d₁ h_spec₁
+      have e₂ := Schubfach.specOutput_eq_output w h_fin d₂ h_spec₂
       rw [h_eq₁, h_eq₂]
       rw [e₁] at e₂
       cases e₂
       rfl
 
 /-- Proof of `Schubfach.spec_output_exists_unique`. -/
-theorem Schubfach.spec_output_exists_unique_proof (f : _root_.Float)
-    (h_fin : isFiniteBits f = true) :
-    ∃! d : Decimal, Schubfach.IsSpecOutput f d := by
-  have h_corr := Schubfach.correctness_proof f
+theorem Schubfach.spec_output_exists_unique_proof (w : UInt64)
+    (h_fin : Word.isFinite w = true) :
+    ∃! d : Decimal, Schubfach.IsSpecOutputBits w d := by
+  have h_corr := Schubfach.correctness_proof w
   obtain ⟨_, _, h_main⟩ := h_corr
   obtain ⟨d, h_eq, h_spec⟩ := h_main h_fin
   refine ⟨d, h_spec, ?_⟩
   intro d' h_spec'
-  have e' := Schubfach.specOutput_eq_output f h_fin d' h_spec'
+  have e' := Schubfach.specOutput_eq_output w h_fin d' h_spec'
   rw [h_eq] at e'
   cases e'
   rfl
@@ -1844,50 +1833,50 @@ theorem Schubfach.decDigitLength_eq_log (n : Nat) :
     omega
 
 theorem Schubfach.correct_iff_toDecimal_proof
-    (p : _root_.Float → Except String Decimal) :
-    ( ∀ f : _root_.Float,
-        (isNaNBits f = true → p f = .error "NaN")
-      ∧ (isInfBits f = true →
-           p f = .error (if signBit f then "-Infinity" else "Infinity"))
-      ∧ (isFiniteBits f = true →
-           ∃ d : Decimal, p f = .ok d
+    (p : UInt64 → Except String Decimal) :
+    ( ∀ w : UInt64,
+        (Word.isNaN w = true → p w = .error "NaN")
+      ∧ (Word.isInf w = true →
+           p w = .error (if Word.signBit w then "-Infinity" else "Infinity"))
+      ∧ (Word.isFinite w = true →
+           ∃ d : Decimal, p w = .ok d
              ∧ ( Decimal.IsCanonical d
-               ∧ Schubfach.RoundTrips f d
+               ∧ Schubfach.RoundTripsBits w d
                ∧ (∀ d' : Decimal, d' ≠ d → Decimal.IsCanonical d' →
-                    Schubfach.RoundTrips f d' →
+                    Schubfach.RoundTripsBits w d' →
                     ( Nat.log 10 d.significand + 1
                         < Nat.log 10 d'.significand + 1
                     ∨ ( Nat.log 10 d'.significand + 1
                           = Nat.log 10 d.significand + 1
-                      ∧ ( |Decimal.toRat d - Schubfach.floatVal f|
-                            < |Decimal.toRat d' - Schubfach.floatVal f|
-                        ∨ ( |Decimal.toRat d - Schubfach.floatVal f|
-                              = |Decimal.toRat d' - Schubfach.floatVal f|
+                      ∧ ( |Decimal.toRat d - Schubfach.wordVal w|
+                            < |Decimal.toRat d' - Schubfach.wordVal w|
+                        ∨ ( |Decimal.toRat d - Schubfach.wordVal w|
+                              = |Decimal.toRat d' - Schubfach.wordVal w|
                             ∧ d.significand % 2 = 0 ))))))) )
-    ↔ p = Schubfach.toDecimal := by
+    ↔ p = Schubfach.toDecimalBits := by
   simp only [← Schubfach.decDigitLength_eq_log]
   constructor
   · intro h
-    exact Schubfach.printer_unique_proof p Schubfach.toDecimal h
+    exact Schubfach.printer_unique_proof p Schubfach.toDecimalBits h
       Schubfach.correctness_proof
   · rintro rfl
     exact Schubfach.correctness_proof
 
-theorem Schubfach.shortest_decimal_exists_unique_proof (f : _root_.Float)
-    (h_fin : isFiniteBits f = true) :
+theorem Schubfach.shortest_decimal_exists_unique_proof (w : UInt64)
+    (h_fin : Word.isFinite w = true) :
     ∃! d : Decimal,
         Decimal.IsCanonical d
-      ∧ Schubfach.RoundTrips f d
+      ∧ Schubfach.RoundTripsBits w d
       ∧ (∀ d' : Decimal, d' ≠ d → Decimal.IsCanonical d' →
-           Schubfach.RoundTrips f d' →
+           Schubfach.RoundTripsBits w d' →
            ( Nat.log 10 d.significand + 1 < Nat.log 10 d'.significand + 1
            ∨ ( Nat.log 10 d'.significand + 1 = Nat.log 10 d.significand + 1
-             ∧ ( |Decimal.toRat d - Schubfach.floatVal f|
-                   < |Decimal.toRat d' - Schubfach.floatVal f|
-               ∨ ( |Decimal.toRat d - Schubfach.floatVal f|
-                     = |Decimal.toRat d' - Schubfach.floatVal f|
+             ∧ ( |Decimal.toRat d - Schubfach.wordVal w|
+                   < |Decimal.toRat d' - Schubfach.wordVal w|
+               ∨ ( |Decimal.toRat d - Schubfach.wordVal w|
+                     = |Decimal.toRat d' - Schubfach.wordVal w|
                    ∧ d.significand % 2 = 0 ))))) := by
   simpa only [← Schubfach.decDigitLength_eq_log] using
-    Schubfach.spec_output_exists_unique_proof f h_fin
+    Schubfach.spec_output_exists_unique_proof w h_fin
 
 end Srtfp

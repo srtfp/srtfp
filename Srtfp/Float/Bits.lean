@@ -336,6 +336,21 @@ theorem word_isNaN_eq_isNaNPattern (w : UInt64) :
     simp only [decide_eq_true_eq, bne_iff_ne, ne_eq]
     rw [show (0 : Nat) = (0 : UInt64).toNat from rfl, UInt64.toNat_inj]
 
+/-- Finite words are not NaN patterns. -/
+theorem word_isNaN_false_of_isFinite (w : UInt64) (h : Word.isFinite w = true) :
+    Word.isNaN w = false := by
+  unfold Word.isFinite at h
+  unfold Word.isNaN
+  have : ¬ Word.biasedExp w = 2047 := by
+    simp only [decide_eq_true_eq] at h; omega
+  simp [this]
+
+/-- Finite words satisfy the runtime axiom's side condition. -/
+theorem isNaNPattern_false_of_isFinite (w : UInt64) (h : Word.isFinite w = true) :
+    _root_.Float.isNaNPattern w = false := by
+  rw [← word_isNaN_eq_isNaNPattern]
+  exact word_isNaN_false_of_isFinite w h
+
 /-- `Word.biasedExp` is always in range `[0, 2048)`: it is an 11-bit field
 mask, bounded regardless of the word. -/
 theorem word_biasedExp_lt (w : UInt64) : Word.biasedExp w < 2048 := by

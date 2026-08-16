@@ -617,21 +617,16 @@ theorem decodedAbs_sign (sign : Bool) (sig : Nat) (exp : Int) :
 
 /-- **(F)** A canonical `d'` with `IsFiniteAbs` flags whose `ofDecimal`
 round-trips bitwise to `f` shares `(decode f).sign`. -/
-theorem roundtrip_sign_eq (d' : Decimal) (f : _root_.Float)
+theorem roundtrip_sign_eq (d' : Decimal) (w : UInt64)
     (h_fin : Clinger.IsFiniteAbs d'.sign d'.significand d'.exponent)
-    (h_rt : (Clinger.ofDecimal d').toBits = f.toBits) :
-    d'.sign = (Srtfp.Float.decode f).sign := by
-  have h_bridge : Srtfp.Float.decode (Clinger.ofDecimal d')
+    (h_rt : Clinger.ofDecimalBits d' = w) :
+    d'.sign = (Srtfp.Float.Word.decode w).sign := by
+  have h_bridge : Srtfp.Float.Word.decode (Clinger.ofDecimalBits d')
       = Clinger.decodedAbs d'.sign d'.significand d'.exponent :=
-    Clinger.decode_of_decimal_bridge d' h_fin
-  have h_deceq : Srtfp.Float.decode (Clinger.ofDecimal d')
-      = Srtfp.Float.decode f := by
-    unfold Srtfp.Float.decode Srtfp.Float.signBit
-      Srtfp.Float.biasedExpBits Srtfp.Float.mantissaBits
-    rw [h_rt]
-  have h1 : (Srtfp.Float.decode (Clinger.ofDecimal d')).sign = d'.sign := by
+    Clinger.decode_of_decimal_bridge_bits d' h_fin
+  have h1 : (Srtfp.Float.Word.decode (Clinger.ofDecimalBits d')).sign = d'.sign := by
     rw [h_bridge, decodedAbs_sign]
-  rw [← h1, h_deceq]
+  rw [← h1, h_rt]
 
 /-! ## Signed-distance connector
 
@@ -642,11 +637,11 @@ reducing the signed distance to the unsigned grid distance
 `|magVal m q - gridVal sig exp|` for which `tieBreak_unsigned_fallback`
 applies. -/
 
-/-- `floatVal f = signFactor (decode f).sign · magVal …`. -/
-theorem floatVal_eq_signFactor_magVal (f : _root_.Float) :
-    floatVal f = signFactor (Srtfp.Float.decode f).sign
-        * magVal (Srtfp.Float.decode f).m (Srtfp.Float.decode f).q := by
-  unfold floatVal signFactor; rfl
+/-- `wordVal w = signFactor (Word.decode w).sign · magVal …`. -/
+theorem floatVal_eq_signFactor_magVal (w : UInt64) :
+    wordVal w = signFactor (Srtfp.Float.Word.decode w).sign
+        * magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode w).q := by
+  unfold wordVal signFactor; rfl
 
 /-- `|±1·a - ±1·b| = |a - b|`: the shared sign factors out of the distance. -/
 theorem abs_signFactor_sub (sgn : Bool) (a b : ℚ) :
@@ -659,28 +654,29 @@ theorem abs_signFactor_sub (sgn : Bool) (a b : ℚ) :
     rw [show (-1 : ℚ) * a - (-1) * b = -(a - b) from by grind, abs_neg]
 
 /-- **Signed-distance reduction.** For a decimal `d'` whose sign matches
-`(decode f).sign`, the signed clause-(3) distance reduces to the unsigned
-grid distance against `v = magVal (decode f).m (decode f).q`. -/
-theorem toRat_dist_eq_grid_dist (d' : Decimal) (f : _root_.Float)
-    (h_sign : d'.sign = (Srtfp.Float.decode f).sign) :
-    |Decimal.toRat d' - floatVal f|
-      = |magVal (Srtfp.Float.decode f).m (Srtfp.Float.decode f).q
+`(Srtfp.Float.Word.decode w).sign`, the signed clause-(3) distance reduces to the
+unsigned grid distance against `v = magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode
+w).q`. -/
+theorem toRat_dist_eq_grid_dist (d' : Decimal) (w : UInt64)
+    (h_sign : d'.sign = (Srtfp.Float.Word.decode w).sign) :
+    |Decimal.toRat d' - wordVal w|
+      = |magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode w).q
          - gridVal d'.significand d'.exponent| := by
   rw [toRat_eq_signFactor_gridVal, floatVal_eq_signFactor_magVal, h_sign]
-  rw [show signFactor (Srtfp.Float.decode f).sign
+  rw [show signFactor (Srtfp.Float.Word.decode w).sign
             * gridVal d'.significand d'.exponent
-          - signFactor (Srtfp.Float.decode f).sign
-            * magVal (Srtfp.Float.decode f).m (Srtfp.Float.decode f).q
-        = signFactor (Srtfp.Float.decode f).sign
+          - signFactor (Srtfp.Float.Word.decode w).sign
+            * magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode w).q
+        = signFactor (Srtfp.Float.Word.decode w).sign
             * (gridVal d'.significand d'.exponent
-               - magVal (Srtfp.Float.decode f).m (Srtfp.Float.decode f).q) from by
+               - magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode w).q) from by
         grind]
-  rw [show signFactor (Srtfp.Float.decode f).sign
+  rw [show signFactor (Srtfp.Float.Word.decode w).sign
             * (gridVal d'.significand d'.exponent
-               - magVal (Srtfp.Float.decode f).m (Srtfp.Float.decode f).q)
-        = signFactor (Srtfp.Float.decode f).sign * gridVal d'.significand d'.exponent
-          - signFactor (Srtfp.Float.decode f).sign
-            * magVal (Srtfp.Float.decode f).m (Srtfp.Float.decode f).q from by grind]
+               - magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode w).q)
+        = signFactor (Srtfp.Float.Word.decode w).sign * gridVal d'.significand d'.exponent
+          - signFactor (Srtfp.Float.Word.decode w).sign
+            * magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode w).q from by grind]
   rw [abs_signFactor_sub, abs_sub_comm]
 
 end Schubfach

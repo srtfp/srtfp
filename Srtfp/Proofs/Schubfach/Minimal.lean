@@ -267,10 +267,10 @@ For any `(sig', exp')` (canonical or otherwise) at scale `exp' ≥ k+1`,
 where `k = kOfMQ m q`, when `shortestUnsigned` is in fallback,
 `(sig', exp')` is not in R_v. -/
 theorem toDecimal_no_higher_scale_under_fallback
-    (f : _root_.Float)
-    (h_fin : isFiniteBits f = true)
-    (h_nonzero : (decode f).m ≠ 0) :
-    let d := decode f
+    (w : UInt64)
+    (h_fin : Word.isFinite w = true)
+    (h_nonzero : (Word.decode w).m ≠ 0) :
+    let d := Word.decode w
     let k := kOfMQ d.m d.q
     let s := shiftedSig d.m d.q k
     s ≥ 10 →
@@ -280,7 +280,7 @@ theorem toDecimal_no_higher_scale_under_fallback
       inRoundingInterval sig' exp' d.m d.q (isIrregular d.m d.q) = false := by
   intro d k s hs_big h_u h_w sig' exp' h_exp
   have ⟨h_m_lt, h_q_lo, h_q_hi⟩ :=
-    Srtfp.Schubfach.decode_invariants_of_finite f h_fin
+    Srtfp.Schubfach.decode_invariants_bits w h_fin
   have h_m_pos : 1 ≤ d.m := Nat.one_le_iff_ne_zero.mpr h_nonzero
   exact Schubfach_no_high_scale_under_fallback_proof d.m d.q h_m_pos h_m_lt h_q_lo h_q_hi
           hs_big h_u h_w sig' exp' h_exp
@@ -308,10 +308,10 @@ must have `exp' ≤ k`.
 
 This is the K+1 pigeonhole expressed in canonical-only form. -/
 theorem toDecimal_classically_minimal_canonical
-    (f : _root_.Float)
-    (h_fin : isFiniteBits f = true)
-    (h_nonzero : (decode f).m ≠ 0) :
-    let d := decode f
+    (w : UInt64)
+    (h_fin : Word.isFinite w = true)
+    (h_nonzero : (Word.decode w).m ≠ 0) :
+    let d := Word.decode w
     let k := kOfMQ d.m d.q
     let s := shiftedSig d.m d.q k
     s ≥ 10 →
@@ -324,14 +324,14 @@ theorem toDecimal_classically_minimal_canonical
       ¬ inRoundingInterval sig' exp' d.m d.q (isIrregular d.m d.q) = true := by
   intro d k s hs_big h_u h_w sign' sig' exp' _hsig_ne _hcanon h_exp_ge h_mem
   have h_false :=
-    toDecimal_no_higher_scale_under_fallback f h_fin h_nonzero hs_big h_u h_w sig' exp' h_exp_ge
+    toDecimal_no_higher_scale_under_fallback w h_fin h_nonzero hs_big h_u h_w sig' exp' h_exp_ge
   rw [h_false] at h_mem
   exact Bool.false_ne_true h_mem
 
 /-! ## Universally-quantified form: classical minimality across the toDecimal output
 
 The most general statement that the K+1 pigeonhole supports. Phrased as
-`∃ d, toDecimal f = .ok d ∧ ∀ canonical competitor not in R_v at any
+`∃ d, toDecimalBits w = .ok d ∧ ∀ canonical competitor not in R_v at any
 scale ≥ k + 1` — without the digit-length comparison. -/
 
 /-- **Universally quantified classical minimality** for `toDecimal`.
@@ -339,7 +339,7 @@ scale ≥ k + 1` — without the digit-length comparison. -/
 `toDecimal f` succeeds on finite non-zero floats and produces a result
 `d` such that **no canonical decimal `(sign', sig', exp')` with
 `exp' ≥ k + 1`** has its rational value in R_v, where `k = kOfMQ
-(decode f).m (decode f).q`. This is the cleanest classical-minimality
+(Word.decode w).m (Word.decode w).q`. This is the cleanest classical-minimality
 result that follows directly from the K+1 pigeonhole.
 
 In the shorter-form output cases (`uIn = true` or `wIn = true` at
@@ -348,11 +348,11 @@ fallback hypothesis is not satisfied; this theorem is vacuous in those
 cases. Under fallback, it gives the canonical-classical-minimality
 claim. -/
 theorem toDecimal_classically_minimal
-    (f : _root_.Float)
-    (h_fin : isFiniteBits f = true)
-    (h_nonzero : (decode f).m ≠ 0) :
-    ∃ result, toDecimal f = .ok result ∧
-      let d := decode f
+    (w : UInt64)
+    (h_fin : Word.isFinite w = true)
+    (h_nonzero : (Word.decode w).m ≠ 0) :
+    ∃ result, toDecimalBits w = .ok result ∧
+      let d := Word.decode w
       let k := kOfMQ d.m d.q
       let s := shiftedSig d.m d.q k
       s ≥ 10 →
@@ -363,10 +363,10 @@ theorem toDecimal_classically_minimal
         sig' % 10 ≠ 0 →
         exp' ≥ k + 1 →
         ¬ inRoundingInterval sig' exp' d.m d.q (isIrregular d.m d.q) = true := by
-  obtain ⟨result, hresult, _⟩ := toDecimal_in_Rv f h_fin h_nonzero
+  obtain ⟨result, hresult, _⟩ := toDecimalBits_in_Rv w h_fin h_nonzero
   refine ⟨result, hresult, ?_⟩
   intro d k s hs_big h_u h_w sign' sig' exp' h_sig_ne h_canon h_exp_ge h_mem
-  exact toDecimal_classically_minimal_canonical f h_fin h_nonzero
+  exact toDecimal_classically_minimal_canonical w h_fin h_nonzero
           hs_big h_u h_w sign' sig' exp' h_sig_ne h_canon h_exp_ge h_mem
 
 /-! ## Cross-scale infrastructure
@@ -1337,11 +1337,11 @@ require a magnitude-based argument to show
 competitors. The current high-scale theorem subsumes
 `toDecimal_classically_minimal` (in fact, returning `=` instead of `≠ true`). -/
 theorem toDecimal_minimal_high_scale
-    (f : _root_.Float)
-    (h_fin : isFiniteBits f = true)
-    (h_nonzero : (decode f).m ≠ 0) :
-    ∃ result, toDecimal f = .ok result ∧
-      let d := decode f
+    (w : UInt64)
+    (h_fin : Word.isFinite w = true)
+    (h_nonzero : (Word.decode w).m ≠ 0) :
+    ∃ result, toDecimalBits w = .ok result ∧
+      let d := Word.decode w
       let k := kOfMQ d.m d.q
       ∀ (_sign' : Bool) (sig' : Nat) (exp' : Int),
         sig' ≠ 0 →
@@ -1349,29 +1349,29 @@ theorem toDecimal_minimal_high_scale
         exp' ≥ k + 1 →
         inRoundingInterval sig' exp' d.m d.q (isIrregular d.m d.q) = true →
         decDigitLength sig' = decDigitLength result.significand := by
-  obtain ⟨result, hresult, _⟩ := toDecimal_in_Rv f h_fin h_nonzero
+  obtain ⟨result, hresult, _⟩ := toDecimalBits_in_Rv w h_fin h_nonzero
   refine ⟨result, hresult, ?_⟩
   intro d k sign' sig' exp' h_sig_ne h_canon h_exp_ge h_mem
   have ⟨h_m_lt, h_q_lo, h_q_hi⟩ :=
-    Srtfp.Schubfach.decode_invariants_of_finite f h_fin
+    Srtfp.Schubfach.decode_invariants_bits w h_fin
   have h_m_pos : 1 ≤ d.m := Nat.one_le_iff_ne_zero.mpr h_nonzero
   -- Establish that result is `Decimal.mk' d.sign output_sig output_exp`.
   have h_toDec_unfold :
-      toDecimal f = .ok (Decimal.mk' d.sign (shortestUnsigned d.m d.q).1
+      toDecimalBits w = .ok (Decimal.mk' d.sign (shortestUnsigned d.m d.q).1
                                             (shortestUnsigned d.m d.q).2) := by
-    have hfin_lt : biasedExpBits f < 2047 := by
-      unfold isFiniteBits at h_fin; simpa using h_fin
-    have hnan : isNaNBits f = false := by
-      unfold isNaNBits
-      have : ¬ biasedExpBits f = 2047 := by omega
+    have hfin_lt : Word.biasedExp w < 2047 := by
+      unfold Word.isFinite at h_fin; simpa using h_fin
+    have hnan : Word.isNaN w = false := by
+      unfold Word.isNaN
+      have : ¬ Word.biasedExp w = 2047 := by omega
       simp [this]
-    have hinf : isInfBits f = false := by
-      unfold isInfBits
-      have : ¬ biasedExpBits f = 2047 := by omega
+    have hinf : Word.isInf w = false := by
+      unfold Word.isInf
+      have : ¬ Word.biasedExp w = 2047 := by omega
       simp [this]
-    unfold toDecimal
+    unfold toDecimalBits
     rw [hnan, hinf]
-    have hm_ne' : (decode f).m ≠ 0 := h_nonzero
+    have hm_ne' : (Word.decode w).m ≠ 0 := h_nonzero
     simp [hm_ne']
     rfl
   rw [h_toDec_unfold] at hresult
@@ -1601,42 +1601,42 @@ The dispatch:
 competitor `(sign', sig', exp')` with `exp' ≤ r.exponent` in R_v,
 `decDigitLength sig' ≥ decDigitLength r.significand`. -/
 theorem toDecimal_minimal_low_scale
-    (f : _root_.Float)
-    (h_fin : isFiniteBits f = true)
-    (h_nonzero : (decode f).m ≠ 0) :
-    ∃ result, toDecimal f = .ok result ∧
+    (w : UInt64)
+    (h_fin : Word.isFinite w = true)
+    (h_nonzero : (Word.decode w).m ≠ 0) :
+    ∃ result, toDecimalBits w = .ok result ∧
       ∀ (_sign' : Bool) (sig' : Nat) (exp' : Int),
         sig' ≠ 0 →
         sig' % 10 ≠ 0 →
         exp' ≤ result.exponent →
-        inRoundingInterval sig' exp' (decode f).m (decode f).q
-                            (isIrregular (decode f).m (decode f).q) = true →
+        inRoundingInterval sig' exp' (Word.decode w).m (Word.decode w).q
+                            (isIrregular (Word.decode w).m (Word.decode w).q) = true →
         decDigitLength sig' ≥ decDigitLength result.significand := by
-  obtain ⟨result, hresult, _⟩ := toDecimal_in_Rv f h_fin h_nonzero
+  obtain ⟨result, hresult, _⟩ := toDecimalBits_in_Rv w h_fin h_nonzero
   refine ⟨result, hresult, ?_⟩
   intro sign' sig' exp' h_sig_ne h_canon h_exp_le h_mem
-  set d := decode f with hd
+  set d := Word.decode w with hd
   set k := kOfMQ d.m d.q with hk
   have ⟨h_m_lt, h_q_lo, h_q_hi⟩ :=
-    Srtfp.Schubfach.decode_invariants_of_finite f h_fin
+    Srtfp.Schubfach.decode_invariants_bits w h_fin
   have h_m_pos : 1 ≤ d.m := Nat.one_le_iff_ne_zero.mpr h_nonzero
   have h_sig_pos : 1 ≤ sig' := Nat.one_le_iff_ne_zero.mpr h_sig_ne
   -- Identify result = Decimal.mk' d.sign sU.1 sU.2.
   have h_toDec_unfold :
-      toDecimal f = .ok (Decimal.mk' d.sign (shortestUnsigned d.m d.q).1
+      toDecimalBits w = .ok (Decimal.mk' d.sign (shortestUnsigned d.m d.q).1
                                             (shortestUnsigned d.m d.q).2) := by
-    have hfin_lt : biasedExpBits f < 2047 := by
-      unfold isFiniteBits at h_fin; simpa using h_fin
-    have hnan : isNaNBits f = false := by
-      unfold isNaNBits
-      have : ¬ biasedExpBits f = 2047 := by omega
+    have hfin_lt : Word.biasedExp w < 2047 := by
+      unfold Word.isFinite at h_fin; simpa using h_fin
+    have hnan : Word.isNaN w = false := by
+      unfold Word.isNaN
+      have : ¬ Word.biasedExp w = 2047 := by omega
       simp [this]
-    have hinf : isInfBits f = false := by
-      unfold isInfBits
-      have : ¬ biasedExpBits f = 2047 := by omega
+    have hinf : Word.isInf w = false := by
+      unfold Word.isInf
+      have : ¬ Word.biasedExp w = 2047 := by omega
       simp [this]
-    have hm_ne' : (decode f).m ≠ 0 := h_nonzero
-    unfold toDecimal
+    have hm_ne' : (Word.decode w).m ≠ 0 := h_nonzero
+    unfold toDecimalBits
     rw [hnan, hinf]
     simp [hm_ne']
     rfl
@@ -1662,7 +1662,7 @@ theorem toDecimal_minimal_low_scale
   -- Dispatch on exp' vs k+1.
   by_cases h_exp_high : exp' ≥ k + 1
   · -- High-scale: apply high-scale theorem.
-    obtain ⟨result', hres', hhigh⟩ := toDecimal_minimal_high_scale f h_fin h_nonzero
+    obtain ⟨result', hres', hhigh⟩ := toDecimal_minimal_high_scale w h_fin h_nonzero
     have h_result'_eq : result' = result := by
       rw [h_toDec_unfold] at hres'
       cases hresult
@@ -1908,25 +1908,25 @@ The bound combines:
 * `toDecimal_minimal_high_scale` for `exp' ≥ k + 1`.
 * `toDecimal_minimal_low_scale` for `exp' ≤ result.exponent`. -/
 theorem toDecimal_minimal
-    (f : _root_.Float)
-    (h_fin : isFiniteBits f = true)
-    (h_nonzero : (decode f).m ≠ 0) :
-    ∃ result, toDecimal f = .ok result ∧
+    (w : UInt64)
+    (h_fin : Word.isFinite w = true)
+    (h_nonzero : (Word.decode w).m ≠ 0) :
+    ∃ result, toDecimalBits w = .ok result ∧
       ∀ (_sign' : Bool) (sig' : Nat) (exp' : Int),
         sig' ≠ 0 →
         sig' % 10 ≠ 0 →
-        inRoundingInterval sig' exp' (decode f).m (decode f).q
-                            (isIrregular (decode f).m (decode f).q) = true →
+        inRoundingInterval sig' exp' (Word.decode w).m (Word.decode w).q
+                            (isIrregular (Word.decode w).m (Word.decode w).q) = true →
         decDigitLength sig' ≥ decDigitLength result.significand := by
-  obtain ⟨result, hresult, hlow⟩ := toDecimal_minimal_low_scale f h_fin h_nonzero
-  obtain ⟨result', hres', hhigh⟩ := toDecimal_minimal_high_scale f h_fin h_nonzero
+  obtain ⟨result, hresult, hlow⟩ := toDecimal_minimal_low_scale w h_fin h_nonzero
+  obtain ⟨result', hres', hhigh⟩ := toDecimal_minimal_high_scale w h_fin h_nonzero
   have h_result_eq : result' = result := by
     rw [hres'] at hresult
     cases hresult; rfl
   rw [h_result_eq] at hhigh
   refine ⟨result, hresult, ?_⟩
   intro sign' sig' exp' h_sig_ne h_canon h_mem
-  set d := decode f with hd
+  set d := Word.decode w with hd
   set k := kOfMQ d.m d.q with hk
   by_cases h_exp_high : exp' ≥ k + 1
   · -- High-scale: gives equality.
@@ -1937,23 +1937,23 @@ theorem toDecimal_minimal
     have h_exp_le_k : exp' ≤ k := by omega
     -- result.exponent ≥ k always (Schubfach output exponent).
     have ⟨h_m_lt, h_q_lo, h_q_hi⟩ :=
-      Srtfp.Schubfach.decode_invariants_of_finite f h_fin
+      Srtfp.Schubfach.decode_invariants_bits w h_fin
     have h_m_pos : 1 ≤ d.m := Nat.one_le_iff_ne_zero.mpr h_nonzero
     have h_toDec_unfold :
-        toDecimal f = .ok (Decimal.mk' d.sign (shortestUnsigned d.m d.q).1
+        toDecimalBits w = .ok (Decimal.mk' d.sign (shortestUnsigned d.m d.q).1
                                               (shortestUnsigned d.m d.q).2) := by
-      have hfin_lt : biasedExpBits f < 2047 := by
-        unfold isFiniteBits at h_fin; simpa using h_fin
-      have hnan : isNaNBits f = false := by
-        unfold isNaNBits
-        have : ¬ biasedExpBits f = 2047 := by omega
+      have hfin_lt : Word.biasedExp w < 2047 := by
+        unfold Word.isFinite at h_fin; simpa using h_fin
+      have hnan : Word.isNaN w = false := by
+        unfold Word.isNaN
+        have : ¬ Word.biasedExp w = 2047 := by omega
         simp [this]
-      have hinf : isInfBits f = false := by
-        unfold isInfBits
-        have : ¬ biasedExpBits f = 2047 := by omega
+      have hinf : Word.isInf w = false := by
+        unfold Word.isInf
+        have : ¬ Word.biasedExp w = 2047 := by omega
         simp [this]
-      have hm_ne' : (decode f).m ≠ 0 := h_nonzero
-      unfold toDecimal
+      have hm_ne' : (Word.decode w).m ≠ 0 := h_nonzero
+      unfold toDecimalBits
       rw [hnan, hinf]
       simp [hm_ne']
       rfl

@@ -50,48 +50,49 @@ def LegalIEEE (m : Nat) (q : Int) : Prop :=
 instance (m : Nat) (q : Int) : Decidable (LegalIEEE m q) := by
   unfold LegalIEEE; exact inferInstance
 
-/-- For a finite Float with nonzero magnitude, `decode` produces a LegalIEEE pair. -/
-theorem decode_legalIEEE (f : _root_.Float)
-    (h_fin : isFiniteBits f = true) (h_nonzero : (decode f).m ≠ 0) :
-    LegalIEEE (decode f).m (decode f).q := by
-  have hfin_lt : biasedExpBits f < 2047 := by
-    unfold isFiniteBits at h_fin; simpa using h_fin
-  have hmb : mantissaBits f < 2 ^ 52 := by
-    unfold mantissaBits
-    rw [UInt64.toNat_and]
-    have hmask : ((0x000F_FFFF_FFFF_FFFF : UInt64).toNat) = 4503599627370495 := by decide
-    rw [hmask]
-    have hle : f.toBits.toNat &&& 4503599627370495 ≤ 4503599627370495 := Nat.and_le_right
-    have hpow : (2 : Nat) ^ 52 = 4503599627370496 := by decide
-    omega
+/-- For a finite binary64 word with nonzero magnitude, `Word.decode`
+produces a LegalIEEE pair. -/
+theorem decode_legalIEEE_bits (w : UInt64)
+    (h_fin : Word.isFinite w = true) (h_nonzero : (Word.decode w).m ≠ 0) :
+    LegalIEEE (Word.decode w).m (Word.decode w).q := by
+  have hfin_lt : Word.biasedExp w < 2047 := by
+    unfold Word.isFinite at h_fin; simpa using h_fin
+  have hmb : Word.mantissa w < 2 ^ 52 := word_mantissa_lt w
   unfold LegalIEEE
-  by_cases he : biasedExpBits f = 0
-  · -- Subnormal: m = mantissaBits, q = -1074.
-    have hm : (decode f).m = mantissaBits f := by unfold decode; rw [if_pos he]
-    have hq : (decode f).q = -1074 := by unfold decode; rw [if_pos he]
+  by_cases he : Word.biasedExp w = 0
+  · -- Subnormal: m = mantissa, q = -1074.
+    have hm : (Word.decode w).m = Word.mantissa w := by unfold Word.decode; rw [if_pos he]
+    have hq : (Word.decode w).q = -1074 := by unfold Word.decode; rw [if_pos he]
     left
     refine ⟨?_, ?_, hq⟩
-    · have hmb_ne : mantissaBits f ≠ 0 := by rw [hm] at h_nonzero; exact h_nonzero
+    · have hmb_ne : Word.mantissa w ≠ 0 := by rw [hm] at h_nonzero; exact h_nonzero
       rw [hm]; omega
     · rw [hm]; exact hmb
-  · -- Normal: m = mantissaBits + 2^52, q = (biasedExp : Int) - 1023 - 52.
-    have hm : (decode f).m = mantissaBits f + (1 <<< 52) := by unfold decode; rw [if_neg he]
-    have hq : (decode f).q = (biasedExpBits f : Int) - 1023 - 52 := by
-      unfold decode; rw [if_neg he]
+  · -- Normal: m = mantissa + 2^52, q = (biasedExp : Int) - 1023 - 52.
+    have hm : (Word.decode w).m = Word.mantissa w + (1 <<< 52) := by
+      unfold Word.decode; rw [if_neg he]
+    have hq : (Word.decode w).q = (Word.biasedExp w : Int) - 1023 - 52 := by
+      unfold Word.decode; rw [if_neg he]
     right
-    have h_be_pos : 1 ≤ biasedExpBits f := by omega
-    have h_be_le : biasedExpBits f ≤ 2046 := by omega
+    have h_be_pos : 1 ≤ Word.biasedExp w := by omega
+    have h_be_le : Word.biasedExp w ≤ 2046 := by omega
     have h_shl : (1 : Nat) <<< 52 = 2 ^ 52 := by decide
     have h53 : (2 : Nat) ^ 53 = 2 * 2 ^ 52 := by decide
     refine ⟨?_, ?_, ?_, ?_⟩
     · rw [hm, h_shl]; omega
     · rw [hm, h_shl, h53]; omega
     · rw [hq]
-      have : (1 : Int) ≤ (biasedExpBits f : Int) := by exact_mod_cast h_be_pos
+      have : (1 : Int) ≤ (Word.biasedExp w : Int) := by exact_mod_cast h_be_pos
       omega
     · rw [hq]
-      have : (biasedExpBits f : Int) ≤ 2046 := by omega
+      have : (Word.biasedExp w : Int) ≤ 2046 := by omega
       omega
+
+/-- Float-level instantiation (axiom-free: `w := f.toBits`). -/
+theorem decode_legalIEEE (f : _root_.Float)
+    (h_fin : isFiniteBits f = true) (h_nonzero : (decode f).m ≠ 0) :
+    LegalIEEE (decode f).m (decode f).q :=
+  decode_legalIEEE_bits f.toBits h_fin h_nonzero
 
 /-! ## Canonicalization-invariance of `inRoundingInterval` (deferred)
 

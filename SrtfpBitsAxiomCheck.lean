@@ -1,37 +1,24 @@
-/- Axiom linter — fails the build if any project definition uses a
-   disallowed axiom.  To reuse in another project, change the two
-   lines marked CONFIGURE below.
+/- Axiom linter for the AXIOM-FREE tier: importing only `Srtfp` (the
+   default umbrella — definitions, proof stack, and the bits-level
+   certification in `Srtfp/Correctness.lean`), every declaration must
+   depend on nothing beyond the three standard axioms. In particular the
+   restricted runtime axiom `Float.toBits_ofBits` must be unreachable —
+   that axiom is admitted only via the `Srtfp.Bridge` umbrella, which this
+   module deliberately does NOT import (`SrtfpAxiomCheck.lean` audits that
+   closure with the wider whitelist).
 
-   PERFORMANCE: rather than calling `Lean.collectAxioms` once per `Srtfp.*`
-   decl (each call re-walks that decl's entire transitive cone with a
-   call-local visited set → O(N·M)), we build a SINGLE memoized
-   transitive-axiom map over the reachable constant graph. Each constant
-   is processed once and its axiom set reused by all dependents → linear.
+   Mechanism identical to `SrtfpAxiomCheck.lean` (memoized transitive
+   axiom map over the environment); see there for the performance notes. -/
 
-   The memoized `axiomsOf` reproduces `Lean.collectAxioms` semantics
-   EXACTLY (same kernel env `env.checked`, same per-`ConstantInfo`
-   traversal rules, same `Expr.getUsedConstants`, including the
-   axiom-traverses-its-own-type behaviour of Lean ≥4.23 / 4.27). It is
-   cycle-safe (mutual recursion forms reference cycles) via Tarjan SCC
-   condensation: all members of a strongly-connected component share one
-   axiom set, computed once per SCC in reverse-topological order. -/
-
--- CONFIGURE: import the project root module (the Bridge umbrella is the
--- full closure: Srtfp + the runtime-axiom tier)
-import Srtfp.Bridge
-import Srtfp.Schubfach.Perf.CsimpPin -- build-time pin of live @[csimp] kernels
+import Srtfp
 import Lean.Elab.Command
 
 open Lean
 
--- CONFIGURE: namespace roots to scan, and permitted axioms
 private def roots : Array Lean.Name := #[`Srtfp]
 private def allowedAxioms : Array Lean.Name :=
-  #[`propext, `Quot.sound, `Classical.choice,
-    -- IEEE-754 binary64 runtime intrinsic axiom (`Float.toBits ∘ Float.ofBits = id`).
-    -- Used (transitively) by the Clinger `DecodeOfDecimalBridge` proof; not
-    -- derivable in pure Lean 4 because `Float` is opaque.
-    `Float.toBits_ofBits]
+  #[`propext, `Quot.sound, `Classical.choice]
+
 
 /-- True if the constant is `partial` or `unsafe` (from `partial def` or `unsafe def`). -/
 private def isPartialOrUnsafe (env : Lean.Environment) (name : Lean.Name) : Bool :=

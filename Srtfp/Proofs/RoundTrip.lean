@@ -1,9 +1,9 @@
-/- Round-trip theorem: `Clinger.ofDecimal (Schubfach.toDecimal f) = f` at
+/- Round-trip theorem: `Clinger.ofDecimal (Schubfach.toDecimalBits w) = f` at
    the bit level.
 
    This chains:
      * M3.8 Schubfach correctness (`toDecimal_in_Rv`): the decimal produced
-       has `(sig, exp)` in the rounding interval of `decode f`.
+       has `(sig, exp)` in the rounding interval of `Word.decode w`.
      * M4 Clinger correctness (`ofDecimal_in_Rv`): for finite nonzero
        Decimal d, `decode (ofDecimal d)` has `(sig, exp)` in its rounding
        interval.
@@ -12,8 +12,8 @@
 
    ## Statement (.toBits level)
 
-   For finite f with `(decode f).m ≠ 0`, there exists `d : Decimal` with
-   `Schubfach.toDecimal f = .ok d ∧ (Clinger.ofDecimal d).toBits = f.toBits`.
+   For finite f with `(Word.decode w).m ≠ 0`, there exists `d : Decimal` with
+   `Schubfach.toDecimalBits w = .ok d ∧ Clinger.ofDecimalBits d = w`.
 
    ## Why `.toBits` level?
 
@@ -27,7 +27,7 @@ import Srtfp.Proofs.Decimal
 import Srtfp.Proofs.Schubfach.ToDecimal
 import Srtfp.Proofs.Schubfach.Shortest
 import Srtfp.Proofs.Clinger
-import Srtfp.Float.RuntimeAxiom
+import Srtfp.Float.Bits
 import Srtfp.Tactics
 
 namespace Srtfp
@@ -68,30 +68,21 @@ theorem decodedAbs_sign (sign : Bool) (sig : Nat) (exp : Int) :
 
 /-! ## Decode is injective at the bit level for finite canonical pairs
 
-The decode function `Float → (sign, m, q)` is injective on finite floats
+The Word.decode wunction `Float → (sign, m, q)` is injective on finite floats
 because the underlying bit pattern is uniquely determined by these
-three quantities (`fromBits` is the inverse). This lemma lifts that fact:
+three quantities (`Word.pack` is the inverse). This lemma lifts that fact:
 if two finite floats decode to the same triple, their bits agree. -/
 
-/-- A float is recovered from its bit-field decomposition via `fromBits`,
+/-- A float is recovered from its bit-field decomposition via `Word.pack`,
     provided `f` is not NaN. This uses the restricted `Float.toBits_ofBits`
     and pure UInt64/Nat algebra: the three bit fields are disjoint, so their
     OR is a sum (`or_or_eq_add'`) and `omega` reassembles the word. -/
-theorem fromBits_decode_eq (f : _root_.Float) (h : isNaNBits f = false) :
-    (fromBits (signBit f) (biasedExpBits f) (mantissaBits f)).toBits = f.toBits := by
-  rw [fromBits_word]
-  have h_nan : biasedExpBits f = 2047 → mantissaBits f = 0 := by
-    intro heq
-    unfold isNaNBits at h
-    rw [heq] at h
-    simpa using h
-  rw [_root_.Float.toBits_ofBits _
-      (pack_isNaNPattern_false (signBit f) (biasedExpBits f) (mantissaBits f)
-        (biasedExpBits_lt f) (mantissaBits_lt f) h_nan)]
-  unfold Word.pack signBit biasedExpBits mantissaBits
-  -- Goal: (signBit branch ||| biasedExp shifted ||| mantissa masked) = f.toBits.
+theorem pack_decode_eq (w : UInt64) (_h : Word.isNaN w = false) :
+    Word.pack (Word.signBit w) (Word.biasedExp w) (Word.mantissa w) = w := by
+  unfold Word.pack Word.signBit Word.biasedExp Word.mantissa
+  -- Goal: (signBit branch ||| biasedExp shifted ||| mantissa masked) = w.
   -- Pure UInt64 fact: OR of disjoint bit-field projections recovers W.
-  generalize f.toBits = W
+  generalize w = W
   -- Reduce the .toNat in biasedExpBits and mantissaBits casts.
   show (if decide (W >>> 63 ≠ 0) = true then (1 : UInt64) <<< 63 else 0) |||
        (UInt64.ofNat (((W >>> 52) &&& 0x7FF).toNat) &&& 0x7FF) <<< 52 |||
@@ -144,19 +135,19 @@ theorem fromBits_decode_eq (f : _root_.Float) (h : isNaNBits f = false) :
 /-- For two finite floats `f₁, f₂` decoding to the same `(sign, m, q)`,
     their bits agree. -/
 theorem toBits_eq_of_decode_eq
-    (f₁ f₂ : _root_.Float)
-    (h_fin₁ : isFiniteBits f₁ = true)
-    (h_fin₂ : isFiniteBits f₂ = true)
-    (h_sign : signBit f₁ = signBit f₂)
-    (h_m : (decode f₁).m = (decode f₂).m)
-    (h_q : (decode f₁).q = (decode f₂).q) :
-    f₁.toBits = f₂.toBits := by
+    (w₁ w₂ : UInt64)
+    (h_fin₁ : Word.isFinite w₁ = true)
+    (h_fin₂ : Word.isFinite w₂ = true)
+    (h_sign : Word.signBit w₁ = Word.signBit w₂)
+    (h_m : (Word.decode w₁).m = (Word.decode w₂).m)
+    (h_q : (Word.decode w₁).q = (Word.decode w₂).q) :
+    w₁ = w₂ := by
   -- The bit fields are determined by signBit, biasedExpBits, mantissaBits.
   -- We have h_sign (signBit). We need (biasedExpBits, mantissaBits) equality.
   -- From decode: m and q determine (biasedExpBits, mantissaBits) when the bits are canonical.
-  -- Strategy: use the fromBits inverse to reassemble.
-  -- Goal: f₁.toBits = f₂.toBits.
-  -- We'll show via fromBits_decode_eq that f.toBits = (assembled bits from (sign, be, mb)).
+  -- Strategy: use the Word.pack inverse to reassemble.
+  -- Goal: w₁ = w₂.
+  -- We'll show via pack_decode_eq that w = (assembled bits from (sign, be, mb)).
   -- Then comparing the assembled bits gives equality.
   -- decode determines biasedExpBits and mantissaBits:
   --   If biasedExpBits = 0: m = mantissaBits, q = -1074.
@@ -164,127 +155,129 @@ theorem toBits_eq_of_decode_eq
   -- The encoding of (m, q) into (be, mb) is unique given m, q.
   have hm₁ := h_m
   have hq₁ := h_q
-  -- We need biasedExpBits f₁ = biasedExpBits f₂ and mantissaBits f₁ = mantissaBits f₂.
-  -- Get them by case analysis on (biasedExpBits f₁ = 0) vs not, comparing to f₂'s.
-  have h_be_eq : biasedExpBits f₁ = biasedExpBits f₂ := by
-    by_cases he₁ : biasedExpBits f₁ = 0
-    · -- f₁ subnormal: q₁ = -1074, m₁ = mantissaBits f₁ < 2^52.
-      have hq_eq₁ : (decode f₁).q = -1074 := by unfold decode; rw [if_pos he₁]
+  -- We need Word.biasedExp w₁ = Word.biasedExp w₂ and Word.mantissa w₁ = Word.mantissa w₂.
+  -- Get them by case analysis on (Word.biasedExp w₁ = 0) vs not, comparing to f₂'s.
+  have h_be_eq : Word.biasedExp w₁ = Word.biasedExp w₂ := by
+    by_cases he₁ : Word.biasedExp w₁ = 0
+    · -- f₁ subnormal: q₁ = -1074, m₁ = Word.mantissa w₁ < 2^52.
+      have hq_eq₁ : (Word.decode w₁).q = -1074 := by unfold Word.decode; rw [if_pos he₁]
       -- f₂'s decode q equals -1074 (by h_q).
-      have hq_eq₂ : (decode f₂).q = -1074 := by rw [← h_q]; exact hq_eq₁
+      have hq_eq₂ : (Word.decode w₂).q = -1074 := by rw [← h_q]; exact hq_eq₁
       -- This forces f₂ to also be subnormal (biasedExp = 0).
       by_contra h_ne
       -- Then biasedExp f₂ ≥ 1, so q = be₂ - 1023 - 52 ≥ -1074 with equality iff be₂ = 1.
       -- But mantissaBits would differ, so m would differ. Wait, we need a contradiction.
-      have he₂ : biasedExpBits f₂ ≠ 0 := by
+      have he₂ : Word.biasedExp w₂ ≠ 0 := by
         intro h
         apply h_ne
         rw [he₁, h]
-      have hq₂_def : (decode f₂).q = (biasedExpBits f₂ : Int) - 1023 - 52 := by
-        unfold decode; rw [if_neg he₂]
+      have hq₂_def : (Word.decode w₂).q = (Word.biasedExp w₂ : Int) - 1023 - 52 := by
+        unfold Word.decode; rw [if_neg he₂]
       rw [hq₂_def] at hq_eq₂
       -- (be₂ : Int) - 1023 - 52 = -1074 → be₂ = 1.
-      have hbe₂_one : biasedExpBits f₂ = 1 := by
-        have : (biasedExpBits f₂ : Int) = 1 := by omega
+      have hbe₂_one : Word.biasedExp w₂ = 1 := by
+        have : (Word.biasedExp w₂ : Int) = 1 := by omega
         exact_mod_cast this
-      -- Then m₂ = mantissaBits f₂ + 2^52 ≥ 2^52.
-      have hm₂_def : (decode f₂).m = mantissaBits f₂ + (1 <<< 52) := by
-        unfold decode; rw [if_neg he₂]
+      -- Then m₂ = Word.mantissa w₂ + 2^52 ≥ 2^52.
+      have hm₂_def : (Word.decode w₂).m = Word.mantissa w₂ + (1 <<< 52) := by
+        unfold Word.decode; rw [if_neg he₂]
       have h_shl : (1 : Nat) <<< 52 = 2 ^ 52 := by decide
-      have h_m₂_ge : 2^52 ≤ (decode f₂).m := by rw [hm₂_def, h_shl]; omega
-      -- But m₁ = mantissaBits f₁ < 2^52.
-      have hm₁_def : (decode f₁).m = mantissaBits f₁ := by unfold decode; rw [if_pos he₁]
-      have hmb₁_lt : mantissaBits f₁ < 2 ^ 52 := by
-        unfold mantissaBits
+      have h_m₂_ge : 2^52 ≤ (Word.decode w₂).m := by rw [hm₂_def, h_shl]; omega
+      -- But m₁ = Word.mantissa w₁ < 2^52.
+      have hm₁_def : (Word.decode w₁).m = Word.mantissa w₁ := by unfold Word.decode; rw [if_pos he₁]
+      have hmb₁_lt : Word.mantissa w₁ < 2 ^ 52 := by
+        unfold Word.mantissa
         rw [UInt64.toNat_and]
         have hmask : ((0x000F_FFFF_FFFF_FFFF : UInt64).toNat) = 4503599627370495 := by decide
         rw [hmask]
-        have hle : f₁.toBits.toNat &&& 4503599627370495 ≤ 4503599627370495 := Nat.and_le_right
+        have hle : w₁.toNat &&& 4503599627370495 ≤ 4503599627370495 := Nat.and_le_right
         have hpow : (2 : Nat) ^ 52 = 4503599627370496 := by decide
         omega
       rw [hm₁_def] at h_m
       rw [h_m] at hmb₁_lt
       omega
     · -- f₁ normal.
-      by_cases he₂ : biasedExpBits f₂ = 0
+      by_cases he₂ : Word.biasedExp w₂ = 0
       · -- Mirror of above.
         exfalso
-        have hq_eq₂ : (decode f₂).q = -1074 := by unfold decode; rw [if_pos he₂]
-        have hq_eq₁ : (decode f₁).q = -1074 := by rw [h_q]; exact hq_eq₂
-        have hq₁_def : (decode f₁).q = (biasedExpBits f₁ : Int) - 1023 - 52 := by
-          unfold decode; rw [if_neg he₁]
+        have hq_eq₂ : (Word.decode w₂).q = -1074 := by unfold Word.decode; rw [if_pos he₂]
+        have hq_eq₁ : (Word.decode w₁).q = -1074 := by rw [h_q]; exact hq_eq₂
+        have hq₁_def : (Word.decode w₁).q = (Word.biasedExp w₁ : Int) - 1023 - 52 := by
+          unfold Word.decode; rw [if_neg he₁]
         rw [hq₁_def] at hq_eq₁
-        have hbe₁_one : biasedExpBits f₁ = 1 := by
-          have : (biasedExpBits f₁ : Int) = 1 := by omega
+        have hbe₁_one : Word.biasedExp w₁ = 1 := by
+          have : (Word.biasedExp w₁ : Int) = 1 := by omega
           exact_mod_cast this
-        have hm₁_def : (decode f₁).m = mantissaBits f₁ + (1 <<< 52) := by
-          unfold decode; rw [if_neg he₁]
+        have hm₁_def : (Word.decode w₁).m = Word.mantissa w₁ + (1 <<< 52) := by
+          unfold Word.decode; rw [if_neg he₁]
         have h_shl : (1 : Nat) <<< 52 = 2 ^ 52 := by decide
-        have h_m₁_ge : 2^52 ≤ (decode f₁).m := by rw [hm₁_def, h_shl]; omega
-        have hm₂_def : (decode f₂).m = mantissaBits f₂ := by unfold decode; rw [if_pos he₂]
-        have hmb₂_lt : mantissaBits f₂ < 2 ^ 52 := by
-          unfold mantissaBits
+        have h_m₁_ge : 2^52 ≤ (Word.decode w₁).m := by rw [hm₁_def, h_shl]; omega
+        have hm₂_def : (Word.decode w₂).m = Word.mantissa w₂ := by unfold Word.decode; rw [if_pos he₂]
+        have hmb₂_lt : Word.mantissa w₂ < 2 ^ 52 := by
+          unfold Word.mantissa
           rw [UInt64.toNat_and]
           have hmask : ((0x000F_FFFF_FFFF_FFFF : UInt64).toNat) = 4503599627370495 := by decide
           rw [hmask]
-          have hle : f₂.toBits.toNat &&& 4503599627370495 ≤ 4503599627370495 := Nat.and_le_right
+          have hle : w₂.toNat &&& 4503599627370495 ≤ 4503599627370495 := Nat.and_le_right
           have hpow : (2 : Nat) ^ 52 = 4503599627370496 := by decide
           omega
         rw [hm₂_def] at h_m
         rw [← h_m] at hmb₂_lt
         omega
       · -- Both normal: q determines biasedExp.
-        have hq₁_def : (decode f₁).q = (biasedExpBits f₁ : Int) - 1023 - 52 := by
-          unfold decode; rw [if_neg he₁]
-        have hq₂_def : (decode f₂).q = (biasedExpBits f₂ : Int) - 1023 - 52 := by
-          unfold decode; rw [if_neg he₂]
+        have hq₁_def : (Word.decode w₁).q = (Word.biasedExp w₁ : Int) - 1023 - 52 := by
+          unfold Word.decode; rw [if_neg he₁]
+        have hq₂_def : (Word.decode w₂).q = (Word.biasedExp w₂ : Int) - 1023 - 52 := by
+          unfold Word.decode; rw [if_neg he₂]
         rw [hq₁_def, hq₂_def] at h_q
-        have : (biasedExpBits f₁ : Int) = (biasedExpBits f₂ : Int) := by omega
+        have : (Word.biasedExp w₁ : Int) = (Word.biasedExp w₂ : Int) := by omega
         exact_mod_cast this
-  have h_mb_eq : mantissaBits f₁ = mantissaBits f₂ := by
-    by_cases he₁ : biasedExpBits f₁ = 0
-    · have he₂ : biasedExpBits f₂ = 0 := by rw [← h_be_eq]; exact he₁
-      have hm₁_def : (decode f₁).m = mantissaBits f₁ := by unfold decode; rw [if_pos he₁]
-      have hm₂_def : (decode f₂).m = mantissaBits f₂ := by unfold decode; rw [if_pos he₂]
+  have h_mb_eq : Word.mantissa w₁ = Word.mantissa w₂ := by
+    by_cases he₁ : Word.biasedExp w₁ = 0
+    · have he₂ : Word.biasedExp w₂ = 0 := by rw [← h_be_eq]; exact he₁
+      have hm₁_def : (Word.decode w₁).m = Word.mantissa w₁ := by unfold Word.decode; rw [if_pos he₁]
+      have hm₂_def : (Word.decode w₂).m = Word.mantissa w₂ := by unfold Word.decode; rw [if_pos he₂]
       rw [hm₁_def, hm₂_def] at h_m; exact h_m
-    · have he₂ : biasedExpBits f₂ ≠ 0 := by rw [← h_be_eq]; exact he₁
-      have hm₁_def : (decode f₁).m = mantissaBits f₁ + (1 <<< 52) := by
-        unfold decode; rw [if_neg he₁]
-      have hm₂_def : (decode f₂).m = mantissaBits f₂ + (1 <<< 52) := by
-        unfold decode; rw [if_neg he₂]
+    · have he₂ : Word.biasedExp w₂ ≠ 0 := by rw [← h_be_eq]; exact he₁
+      have hm₁_def : (Word.decode w₁).m = Word.mantissa w₁ + (1 <<< 52) := by
+        unfold Word.decode; rw [if_neg he₁]
+      have hm₂_def : (Word.decode w₂).m = Word.mantissa w₂ + (1 <<< 52) := by
+        unfold Word.decode; rw [if_neg he₂]
       rw [hm₁_def, hm₂_def] at h_m; omega
-  -- Now use fromBits_decode_eq to recover both f₁ and f₂ (neither is NaN,
+  -- Now use pack_decode_eq to recover both f₁ and f₂ (neither is NaN,
   -- since both are finite).
-  have h_be_lt₁ : biasedExpBits f₁ < 2047 := by unfold isFiniteBits at h_fin₁; simpa using h_fin₁
-  have h_be_lt₂ : biasedExpBits f₂ < 2047 := by unfold isFiniteBits at h_fin₂; simpa using h_fin₂
-  have h_nan₁ : isNaNBits f₁ = false := by
-    unfold isNaNBits
-    have : ¬ biasedExpBits f₁ = 2047 := by omega
+  have h_be_lt₁ : Word.biasedExp w₁ < 2047 := by unfold Word.isFinite at h_fin₁; simpa using h_fin₁
+  have h_be_lt₂ : Word.biasedExp w₂ < 2047 := by unfold Word.isFinite at h_fin₂; simpa using h_fin₂
+  have h_nan₁ : Word.isNaN w₁ = false := by
+    unfold Word.isNaN
+    have : ¬ Word.biasedExp w₁ = 2047 := by omega
     simp [this]
-  have h_nan₂ : isNaNBits f₂ = false := by
-    unfold isNaNBits
-    have : ¬ biasedExpBits f₂ = 2047 := by omega
+  have h_nan₂ : Word.isNaN w₂ = false := by
+    unfold Word.isNaN
+    have : ¬ Word.biasedExp w₂ = 2047 := by omega
     simp [this]
-  have hf₁ := fromBits_decode_eq f₁ h_nan₁
-  have hf₂ := fromBits_decode_eq f₂ h_nan₂
+  have hf₁ := pack_decode_eq w₁ h_nan₁
+  have hf₂ := pack_decode_eq w₂ h_nan₂
   rw [h_sign, h_be_eq, h_mb_eq] at hf₁
-  rw [← hf₁, ← hf₂]
+  exact hf₁.symm.trans hf₂
 
-/-! ## Sign equality for `decode (ofDecimal d)` -/
+/-! ## Sign equality for `Word.decode (ofDecimalBits d)` -/
 
-/-- `decode (ofDecimal d)` has sign `d.sign`, provided the value is in finite range. -/
-theorem decode_ofDecimal_sign (d : Decimal) (h_finite : IsFiniteAbs d.sign d.significand d.exponent) :
-    (decode (ofDecimal d)).sign = d.sign := by
-  rw [decode_of_decimal_bridge d h_finite]
+/-- `Word.decode (ofDecimalBits d)` has sign `d.sign`, provided the value
+is in finite range. -/
+theorem decode_ofDecimal_sign (d : Decimal)
+    (h_finite : IsFiniteAbs d.sign d.significand d.exponent) :
+    (Word.decode (Clinger.ofDecimalBits d)).sign = d.sign := by
+  rw [Clinger.decode_of_decimal_bridge_bits d h_finite]
   exact decodedAbs_sign d.sign d.significand d.exponent
 
 /-! ## SignBit lemmas -/
 
-/-- `signBit f = (decode f).sign`. -/
-theorem signBit_eq_decode_sign (f : _root_.Float) :
-    signBit f = (decode f).sign := by
-  unfold decode
-  by_cases he : biasedExpBits f = 0
+/-- `Word.signBit w = (Word.decode w).sign`. -/
+theorem signBit_eq_decode_sign (w : UInt64) :
+    Word.signBit w = (Word.decode w).sign := by
+  unfold Word.decode
+  by_cases he : Word.biasedExp w = 0
   · simp [he]
   · simp [he]
 
@@ -328,16 +321,16 @@ private theorem inRoundingInterval_mk'_eq (sign : Bool) (sig : Nat) (exp : Int)
 
 /-! ## Sorry D: `(decode (Clinger.ofDecimal d)).m ≠ 0` helper -/
 
-/-- If `(decode g).m = 0`, then `g` is in the subnormal-zero bit branch:
-    `biasedExpBits g = 0`, hence `(decode g).q = -1074`. The normal branch
+/-- If `(Word.decode v).m = 0`, then `g` is in the subnormal-zero bit branch:
+    `Word.biasedExp v = 0`, hence `(Word.decode v).q = -1074`. The normal branch
     produces `m = mantissaBits + 2^52 ≥ 2^52 > 0`, ruling it out. -/
-private theorem decode_m_zero_q (g : _root_.Float) (h_m : (decode g).m = 0) :
-    (decode g).q = -1074 := by
-  by_cases he : biasedExpBits g = 0
-  · unfold decode; rw [if_pos he]
+private theorem decode_m_zero_q (v : UInt64) (h_m : (Word.decode v).m = 0) :
+    (Word.decode v).q = -1074 := by
+  by_cases he : Word.biasedExp v = 0
+  · unfold Word.decode; rw [if_pos he]
   · exfalso
-    have hm_def : (decode g).m = mantissaBits g + (1 <<< 52) := by
-      unfold decode; rw [if_neg he]
+    have hm_def : (Word.decode v).m = Word.mantissa v + (1 <<< 52) := by
+      unfold Word.decode; rw [if_neg he]
     have h_shl : (1 : Nat) <<< 52 = 2 ^ 52 := by decide
     rw [hm_def, h_shl] at h_m
     have hpow : (2 : Nat) ^ 52 = 4503599627370496 := by decide
@@ -1239,49 +1232,49 @@ set_option maxHeartbeats 1600000 in
     produced; `ofDecimal_toDecimal_eq_bits` instantiates it with the
     Schubfach output. -/
 theorem ofDecimal_eq_bits_of_rv
-    (f : _root_.Float) (c : Decimal)
-    (h_fin : isFiniteBits f = true)
-    (h_nonzero : (decode f).m ≠ 0)
+    (w : UInt64) (c : Decimal)
+    (h_fin : Word.isFinite w = true)
+    (h_nonzero : (Word.decode w).m ≠ 0)
     (h_c_sig_ne : c.significand ≠ 0)
-    (h_c_sign : c.sign = (decode f).sign)
+    (h_c_sign : c.sign = (Word.decode w).sign)
     (h_rv : inRoundingInterval c.significand c.exponent
-              (decode f).m (decode f).q
-              (isIrregular (decode f).m (decode f).q) = true) :
-    (Clinger.ofDecimal c).toBits = f.toBits := by
-  set decoded_f := decode f with h_decoded_f
+              (Word.decode w).m (Word.decode w).q
+              (isIrregular (Word.decode w).m (Word.decode w).q) = true) :
+    Clinger.ofDecimalBits c = w := by
+  set decoded_f := Word.decode w with h_decoded_f
   have h_legal_for_finite : LegalIEEE decoded_f.m decoded_f.q :=
-    decode_legalIEEE f h_fin h_nonzero
+    decode_legalIEEE_bits w h_fin h_nonzero
   have h_finite_abs : IsFiniteAbs c.sign c.significand c.exponent :=
     isFiniteAbs_of_rv c decoded_f.m decoded_f.q h_legal_for_finite h_c_sig_ne h_rv
   have h_rv_clinger :
       inRoundingInterval c.significand c.exponent
-        (decode (Clinger.ofDecimal c)).m (decode (Clinger.ofDecimal c)).q
-        (isIrregular (decode (Clinger.ofDecimal c)).m (decode (Clinger.ofDecimal c)).q) = true :=
-    Clinger.ofDecimal_in_Rv c h_c_sig_ne h_finite_abs
-  have h_bridge := Clinger.decode_of_decimal_bridge c h_finite_abs
-  have h_fin_clinger : isFiniteBits (Clinger.ofDecimal c) = true := by
-    unfold isFiniteBits
-    have h_dec_q : (decode (Clinger.ofDecimal c)).q ≤ 971 := by
+        (Word.decode (Clinger.ofDecimalBits c)).m (Word.decode (Clinger.ofDecimalBits c)).q
+        (isIrregular (Word.decode (Clinger.ofDecimalBits c)).m (Word.decode (Clinger.ofDecimalBits c)).q) = true :=
+    Clinger.ofDecimalBits_in_Rv c h_c_sig_ne h_finite_abs
+  have h_bridge := Clinger.decode_of_decimal_bridge_bits c h_finite_abs
+  have h_fin_clinger : Word.isFinite (Clinger.ofDecimalBits c) = true := by
+    unfold Word.isFinite
+    have h_dec_q : (Word.decode (Clinger.ofDecimalBits c)).q ≤ 971 := by
       rw [h_bridge]; exact h_finite_abs
-    by_cases he : biasedExpBits (Clinger.ofDecimal c) = 0
+    by_cases he : Word.biasedExp (Clinger.ofDecimalBits c) = 0
     · simp [he]
-    · have h_q_def : (decode (Clinger.ofDecimal c)).q
-                   = (biasedExpBits (Clinger.ofDecimal c) : Int) - 1023 - 52 := by
-        unfold decode; rw [if_neg he]
+    · have h_q_def : (Word.decode (Clinger.ofDecimalBits c)).q
+                   = (Word.biasedExp (Clinger.ofDecimalBits c) : Int) - 1023 - 52 := by
+        unfold Word.decode; rw [if_neg he]
       rw [h_q_def] at h_dec_q
-      have h_be_le : (biasedExpBits (Clinger.ofDecimal c) : Int) ≤ 2046 := by omega
-      have h_be_le_nat : biasedExpBits (Clinger.ofDecimal c) ≤ 2046 := by omega
-      have : biasedExpBits (Clinger.ofDecimal c) < 2047 := by omega
+      have h_be_le : (Word.biasedExp (Clinger.ofDecimalBits c) : Int) ≤ 2046 := by omega
+      have h_be_le_nat : Word.biasedExp (Clinger.ofDecimalBits c) ≤ 2046 := by omega
+      have : Word.biasedExp (Clinger.ofDecimalBits c) < 2047 := by omega
       simpa using this
-  have h_decoded_clinger_legal : LegalIEEE (decode (Clinger.ofDecimal c)).m
-                                            (decode (Clinger.ofDecimal c)).q := by
-    apply decode_legalIEEE _ h_fin_clinger
+  have h_decoded_clinger_legal : LegalIEEE (Word.decode (Clinger.ofDecimalBits c)).m
+                                            (Word.decode (Clinger.ofDecimalBits c)).q := by
+    apply decode_legalIEEE_bits _ h_fin_clinger
     intro h_m_zero
-    have h_q_eq : (decode (Clinger.ofDecimal c)).q = -1074 :=
-      decode_m_zero_q (Clinger.ofDecimal c) h_m_zero
+    have h_q_eq : (Word.decode (Clinger.ofDecimalBits c)).q = -1074 :=
+      decode_m_zero_q (Clinger.ofDecimalBits c) h_m_zero
     exact clinger_decode_m_ne_zero_aux c
       decoded_f.m decoded_f.q h_legal_for_finite
-      (decode (Clinger.ofDecimal c)).m (decode (Clinger.ofDecimal c)).q
+      (Word.decode (Clinger.ofDecimalBits c)).m (Word.decode (Clinger.ofDecimalBits c)).q
       h_rv h_rv_clinger h_m_zero h_q_eq
   rw [h_bridge] at h_rv_clinger
   obtain ⟨hm_eq, hq_eq⟩ := inRoundingInterval_uniq
@@ -1292,31 +1285,32 @@ theorem ofDecimal_eq_bits_of_rv
     (by rw [← h_bridge]; exact h_decoded_clinger_legal)
     h_rv
     h_rv_clinger
-  have h_sign_eq : signBit f = signBit (Clinger.ofDecimal c) := by
-    rw [signBit_eq_decode_sign f, signBit_eq_decode_sign]
+  have h_sign_eq : Word.signBit w = Word.signBit (Clinger.ofDecimalBits c) := by
+    rw [signBit_eq_decode_sign w, signBit_eq_decode_sign]
     rw [h_bridge, decodedAbs_sign c.sign c.significand c.exponent]
     rw [← h_c_sign]
-  apply (toBits_eq_of_decode_eq (Clinger.ofDecimal c) f h_fin_clinger h_fin
+  apply (toBits_eq_of_decode_eq (Clinger.ofDecimalBits c) w h_fin_clinger h_fin
     h_sign_eq.symm ?_ ?_)
   · rw [h_bridge]; exact hm_eq.symm
   · rw [h_bridge]; exact hq_eq.symm
 
 set_option maxHeartbeats 1600000 in
-/-- **Round-trip theorem (at `.toBits` level).** For a finite, nonzero Float `f`,
-    `Clinger.ofDecimal (Schubfach.toDecimal f) = f` at the bit level.
+/-- **Round-trip theorem (bits level, axiom-free).** For a finite, nonzero
+    binary64 word `w`, printing then reading recovers `w` exactly:
+    `Clinger.ofDecimalBits (Schubfach.toDecimalBits w) = w`.
 
     Chains M3.8 (Schubfach correctness) and M4 (Clinger correctness)
     through the disjointness lemma `inRoundingInterval_uniq`. -/
 theorem ofDecimal_toDecimal_eq_bits
-    (f : _root_.Float)
-    (h_fin : isFiniteBits f = true)
-    (h_nonzero : (decode f).m ≠ 0) :
-    ∃ d, Schubfach.toDecimal f = .ok d ∧
-         (Clinger.ofDecimal d).toBits = f.toBits := by
+    (w : UInt64)
+    (h_fin : Word.isFinite w = true)
+    (h_nonzero : (Word.decode w).m ≠ 0) :
+    ∃ d, Schubfach.toDecimalBits w = .ok d ∧
+         Clinger.ofDecimalBits d = w := by
   -- Step 1: Apply M3.8 to get the Schubfach output and its witness.
-  obtain ⟨d, hd_eq, sig, exp, hd_mk, h_rv_raw⟩ := toDecimal_in_Rv f h_fin h_nonzero
+  obtain ⟨d, hd_eq, sig, exp, hd_mk, h_rv_raw⟩ := toDecimalBits_in_Rv w h_fin h_nonzero
   refine ⟨d, hd_eq, ?_⟩
-  set decoded_f := decode f with h_decoded_f
+  set decoded_f := Word.decode w with h_decoded_f
   -- Step 2: From the M3.8 witness, the rounding interval claim is for the raw (sig, exp).
   -- We need it for d.significand, d.exponent (canonical). The values match, so we use
   -- `inRoundingInterval_mk'_eq`.
@@ -1331,19 +1325,19 @@ theorem ofDecimal_toDecimal_eq_bits
     rw [h_false] at h_rv_raw
     exact Bool.false_ne_true h_rv_raw
   -- Step 3: Convert M3.8 witness to canonical form.
-  have h_d_sign : d.sign = (decode f).sign := by
+  have h_d_sign : d.sign = (Word.decode w).sign := by
     rw [← hd_mk]; exact mk_pos_props _ _ _ h_sig_ne |>.1
   have h_d_sig_ne : d.significand ≠ 0 := by
     rw [← hd_mk]; exact mk_pos_props _ _ _ h_sig_ne |>.2.1
   have h_rv_canonical : inRoundingInterval d.significand d.exponent
                           decoded_f.m decoded_f.q (isIrregular decoded_f.m decoded_f.q) = true := by
-    have h_eq := inRoundingInterval_mk'_eq (decode f).sign sig exp decoded_f.m decoded_f.q
+    have h_eq := inRoundingInterval_mk'_eq (Word.decode w).sign sig exp decoded_f.m decoded_f.q
                   (isIrregular decoded_f.m decoded_f.q) h_sig_ne
     simp only at h_eq
     rw [← hd_mk]
     rw [← h_eq]
     exact h_rv_raw
   -- Steps 4-6: the Clinger-side assembly, factored into `ofDecimal_eq_bits_of_rv`.
-  exact ofDecimal_eq_bits_of_rv f d h_fin h_nonzero h_d_sig_ne h_d_sign h_rv_canonical
+  exact ofDecimal_eq_bits_of_rv w d h_fin h_nonzero h_d_sig_ne h_d_sign h_rv_canonical
 
 end Srtfp

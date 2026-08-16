@@ -14,7 +14,6 @@ import Srtfp.Decimal
 import Srtfp.Decimal.Perf.Fast
 import Srtfp.DecimalSyntax
 import Srtfp.Float.Bits
-import Srtfp.Float.RuntimeAxiom
 import Srtfp.Proofs.Clinger.Base
 import Srtfp.Proofs.Clinger.Bridge
 import Srtfp.Proofs.Clinger.Dispatch
