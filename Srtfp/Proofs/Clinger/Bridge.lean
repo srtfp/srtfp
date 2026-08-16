@@ -12,7 +12,7 @@
 
 import Srtfp.Proofs.Clinger.Base
 import Srtfp.Proofs.Clinger.FindBinaryExp
-import Srtfp.Float.RuntimeAxiom
+import Srtfp.Bridge.Basic
 import Srtfp.Tactics
 
 namespace Srtfp.Clinger

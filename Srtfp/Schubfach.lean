@@ -541,6 +541,22 @@ handles it. -/
 Top-level entry point. Returns `Except` so callers can refuse NaN / Infinity
 (which have no `Decimal` representation under this biparser). -/
 
+/-- Render a finite binary64 *bit pattern* as its shortest round-trip
+    `Decimal`. This is the axiom-free core: a pure function of the word,
+    never consulting a runtime `Float`. `toDecimal` is definitionally
+    this function at `f.toBits` (see `toDecimal_eq_bits`). -/
+def toDecimalBits (w : UInt64) : Except String Decimal :=
+  if Word.isNaN w then
+    .error "NaN"
+  else if Word.isInf w then
+    .error (if Word.signBit w then "-Infinity" else "Infinity")
+  else
+    let d := Word.decode w
+    if d.m = 0 then .ok ⟨d.sign, 0, 0⟩
+    else
+      let (sig, exp) := shortestUnsigned d.m d.q
+      .ok (Decimal.mk' d.sign sig exp)
+
 /-- Render a finite `Float` as its shortest round-trip `Decimal`. Returns
     `.error _` for NaN and Infinity. -/
 def toDecimal (f : _root_.Float) : Except String Decimal :=
@@ -554,5 +570,9 @@ def toDecimal (f : _root_.Float) : Except String Decimal :=
     else
       let (sig, exp) := shortestUnsigned d.m d.q
       .ok (Decimal.mk' d.sign sig exp)
+
+/-- `toDecimal` is `toDecimalBits` at `f.toBits` — definitionally: the
+    `Float`-level field readers are the word-level readers at `f.toBits`. -/
+theorem toDecimal_eq_bits (f : _root_.Float) : toDecimal f = toDecimalBits f.toBits := rfl
 
 end Srtfp.Schubfach

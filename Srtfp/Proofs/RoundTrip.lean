@@ -79,16 +79,16 @@ if two finite floats decode to the same triple, their bits agree. -/
     OR is a sum (`or_or_eq_add'`) and `omega` reassembles the word. -/
 theorem fromBits_decode_eq (f : _root_.Float) (h : isNaNBits f = false) :
     (fromBits (signBit f) (biasedExpBits f) (mantissaBits f)).toBits = f.toBits := by
-  unfold fromBits
+  rw [fromBits_word]
   have h_nan : biasedExpBits f = 2047 → mantissaBits f = 0 := by
     intro heq
     unfold isNaNBits at h
     rw [heq] at h
     simpa using h
   rw [_root_.Float.toBits_ofBits _
-      (word_isNaNPattern_false (signBit f) (biasedExpBits f) (mantissaBits f)
+      (pack_isNaNPattern_false (signBit f) (biasedExpBits f) (mantissaBits f)
         (biasedExpBits_lt f) (mantissaBits_lt f) h_nan)]
-  unfold signBit biasedExpBits mantissaBits
+  unfold Word.pack signBit biasedExpBits mantissaBits
   -- Goal: (signBit branch ||| biasedExp shifted ||| mantissa masked) = f.toBits.
   -- Pure UInt64 fact: OR of disjoint bit-field projections recovers W.
   generalize f.toBits = W
