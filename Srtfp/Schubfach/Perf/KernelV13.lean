@@ -12,7 +12,7 @@
    `w = 127` only on irregular bands (excluded by the runtime guard,
    falling back to the packed path). -/
 
-import Srtfp.Schubfach.Perf.KernelV12
+import Srtfp.Schubfach.Perf.KernelSupport
 import Srtfp.Tactics
 
 namespace Srtfp.Schubfach

@@ -4,10 +4,6 @@ import Srtfp.Schubfach.Perf.Orchestration
 import Srtfp.Schubfach.Perf.Uint64Bridge
 import Srtfp.Schubfach.Perf.Kernel192Correctness
 import Srtfp.Schubfach.Perf.DigitsFast
-import Srtfp.Schubfach.Perf.KernelV9
-import Srtfp.Schubfach.Perf.KernelV10
-import Srtfp.Schubfach.Perf.KernelV11
-import Srtfp.Schubfach.Perf.KernelV12
 import Srtfp.Schubfach.Perf.KernelV13
 import Corpora
 

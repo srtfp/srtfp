@@ -49,13 +49,10 @@ import Srtfp.Schubfach.Perf.DigitsFast
 import Srtfp.Schubfach.Perf.Kernel128
 import Srtfp.Schubfach.Perf.Kernel192Correctness
 import Srtfp.Schubfach.Perf.KernelR20
-import Srtfp.Schubfach.Perf.KernelV10
-import Srtfp.Schubfach.Perf.KernelV11
-import Srtfp.Schubfach.Perf.KernelV12
+import Srtfp.Schubfach.Perf.KernelSupport
 import Srtfp.Schubfach.Perf.KernelV13
 import Srtfp.Schubfach.Perf.KernelV5
 import Srtfp.Schubfach.Perf.KernelV6
-import Srtfp.Schubfach.Perf.KernelV9
 import Srtfp.Schubfach.Perf.Orchestration
 import Srtfp.Schubfach.Perf.Pow10Table192
 import Srtfp.Schubfach.Perf.StringFast
