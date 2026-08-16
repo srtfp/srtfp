@@ -27,13 +27,30 @@ import Srtfp.Tactics
 
 namespace Srtfp.Schubfach
 
-set_option maxRecDepth 1024
+set_option maxRecDepth 8192
 set_option maxHeartbeats 1000000
 
 /-! ## Numerical constants. -/
 
 private theorem pow2_128_split : (2 : Nat) ^ 128 = 2 ^ 64 * 2 ^ 64 := by decide
 private theorem pow2_192_split : (2 : Nat) ^ 192 = 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by decide
+
+/- On ≥4.32 toolchains, `omega` can exhaust its recursion budget when a
+ground fact at `2^192` magnitude must be established in a context that
+also carries variable-bearing hypotheses (upstream large-coefficient
+regression; minimized repro in tools/omega_regression_repro.lean). The
+recurring key bound is factored out and proven in a clean context. -/
+private theorem key192_bound :
+    (2 ^ 64 - 1) * 2 ^ 128 + (2 ^ 64 - 1) * 2 ^ 64 + 2 ^ 64 ≤ 2 ^ 192 := by
+  rw [pow2_128_split, pow2_192_split]
+  have h64_pos : 1 ≤ (2 : Nat) ^ 64 := Nat.two_pow_pos _
+  have h1 : (2 ^ 64 - 1) * (2 ^ 64 * 2 ^ 64) = 2 ^ 64 * 2 ^ 64 * 2 ^ 64 - 2 ^ 64 * 2 ^ 64 := by
+    rw [Nat.sub_mul]
+  have h2 : (2 ^ 64 - 1) * 2 ^ 64 = 2 ^ 64 * 2 ^ 64 - 2 ^ 64 := by
+    rw [Nat.sub_mul]
+  have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by grind
+  have hn_le_n2 : (2 : Nat) ^ 64 ≤ 2 ^ 64 * 2 ^ 64 := by grind
+  omega
 
 /-! ## 192-bit Nat interpretation -/
 
@@ -54,18 +71,8 @@ theorem triple192Nat_lt (hi mid lo : UInt64) :
     apply Nat.mul_le_mul_right; omega
   have hMid_bound : mid.toNat * 2 ^ 64 ≤ (2 ^ 64 - 1) * 2 ^ 64 := by
     apply Nat.mul_le_mul_right; omega
-  have hKey : (2 ^ 64 - 1) * 2 ^ 128 + (2 ^ 64 - 1) * 2 ^ 64 + 2 ^ 64 ≤ 2 ^ 192 := by
-    rw [h128, h192]
-    have h64_pos : 1 ≤ (2 : Nat) ^ 64 := by
-      have : (0 : Nat) < 2 ^ 64 := Nat.two_pow_pos _
-      omega
-    have h1 : (2 ^ 64 - 1) * (2 ^ 64 * 2 ^ 64) = 2 ^ 64 * 2 ^ 64 * 2 ^ 64 - 2 ^ 64 * 2 ^ 64 := by
-      rw [Nat.sub_mul]
-    have h2 : (2 ^ 64 - 1) * 2 ^ 64 = 2 ^ 64 * 2 ^ 64 - 2 ^ 64 := by
-      rw [Nat.sub_mul]
-    have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by grind
-    have hn_le_n2 : (2 : Nat) ^ 64 ≤ 2 ^ 64 * 2 ^ 64 := by grind
-    omega
+  have hKey : (2 ^ 64 - 1) * 2 ^ 128 + (2 ^ 64 - 1) * 2 ^ 64 + 2 ^ 64 ≤ 2 ^ 192 :=
+    key192_bound
   omega
 
 /-! ## Helper: carry detection in UInt64 -/
@@ -216,30 +223,20 @@ theorem add192_64_toNat (hi mid lo x : UInt64) :
       apply Nat.mul_le_mul_right; omega
     have hMid_bd : mid'.toNat * 2 ^ 64 ≤ (2 ^ 64 - 1) * 2 ^ 64 := by
       apply Nat.mul_le_mul_right; omega
-    have hKey : (2 ^ 64 - 1) * 2 ^ 128 + (2 ^ 64 - 1) * 2 ^ 64 + 2 ^ 64 ≤ 2 ^ 192 := by
-      rw [h128, h192]
-      have h64_pos : 1 ≤ (2 : Nat) ^ 64 := by
-        have : (0 : Nat) < 2 ^ 64 := Nat.two_pow_pos _
-        omega
-      have h1 : (2 ^ 64 - 1) * (2 ^ 64 * 2 ^ 64) = 2 ^ 64 * 2 ^ 64 * 2 ^ 64 - 2 ^ 64 * 2 ^ 64 := by
-        rw [Nat.sub_mul]
-      have h2 : (2 ^ 64 - 1) * 2 ^ 64 = 2 ^ 64 * 2 ^ 64 - 2 ^ 64 := by
-        rw [Nat.sub_mul]
-      have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by grind
-      have hn_le_n2 : (2 : Nat) ^ 64 ≤ 2 ^ 64 * 2 ^ 64 := by grind
-      omega
+    have hKey : (2 ^ 64 - 1) * 2 ^ 128 + (2 ^ 64 - 1) * 2 ^ 64 + 2 ^ 64 ≤ 2 ^ 192 :=
+      key192_bound
     omega
   rcases hCHi_cases with hCHi0 | hCHi192
   · -- No top carry.
     have : hi.toNat * 2 ^ 128 + mid.toNat * 2 ^ 64 + lo.toNat + x.toNat
               = hi'.toNat * 2 ^ 128 + mid'.toNat * 2 ^ 64 + lo'.toNat := by
-      omega
+      grind
     rw [← this]
-    exact (Nat.mod_eq_of_lt (by omega)).symm
+    exact (Nat.mod_eq_of_lt (by grind)).symm
   · -- Top carry of 2^192.
     have hTotal' : hi.toNat * 2 ^ 128 + mid.toNat * 2 ^ 64 + lo.toNat + x.toNat
                     = (hi'.toNat * 2 ^ 128 + mid'.toNat * 2 ^ 64 + lo'.toNat) + 1 * 2 ^ 192 := by
-      omega
+      grind
     rw [hTotal', Nat.add_mul_mod_self_right]
     exact (Nat.mod_eq_of_lt hTriple_lt).symm
 
@@ -425,15 +422,15 @@ theorem mul192_b_g_toNat (bU gHi gLo : UInt64) :
     have h_hi : rHi_top.toNat * 2 ^ 128 + cHi * 2 ^ 128
                   = bhi_hi * 2 ^ 128 + midCarry_v.toNat * 2 ^ 128 := by
       have := congrArg (· * 2 ^ 128) hHiSum_eq'
-      simp at this; omega
+      simp at this; grind
     have h_mid : midSum_v.toNat * 2 ^ 64 + cMid * 2 ^ 64
                    = bhi_lo * 2 ^ 64 + blo_hi * 2 ^ 64 := by
       have := congrArg (· * 2 ^ 64) hMidSum_eq'
       simp at this
       have : (midSum_v.toNat + cMid) * 2 ^ 64 = (bhi_lo + blo_hi) * 2 ^ 64 := by
         rw [hMidSum_eq']
-      omega
-    omega
+      grind
+    grind
   -- Triple LHS bounded by 2^192.
   have hLHS_lt : rHi_top.toNat * 2 ^ 128 + midSum_v.toNat * 2 ^ 64 + blo_lo < 2 ^ 192 := by
     have hHi_bd : rHi_top.toNat * 2 ^ 128 ≤ (2 ^ 64 - 1) * 2 ^ 128 := by
@@ -441,18 +438,8 @@ theorem mul192_b_g_toNat (bU gHi gLo : UInt64) :
     have hMid_bd : midSum_v.toNat * 2 ^ 64 ≤ (2 ^ 64 - 1) * 2 ^ 64 := by
       apply Nat.mul_le_mul_right; omega
     have hLo_bd : blo_lo < 2 ^ 64 := hblo_lo_lt
-    have hKey : (2 ^ 64 - 1) * 2 ^ 128 + (2 ^ 64 - 1) * 2 ^ 64 + 2 ^ 64 ≤ 2 ^ 192 := by
-      rw [h128, h192]
-      have h64_pos : 1 ≤ (2 : Nat) ^ 64 := by
-        have : (0 : Nat) < 2 ^ 64 := Nat.two_pow_pos _
-        omega
-      have h1 : (2 ^ 64 - 1) * (2 ^ 64 * 2 ^ 64) = 2 ^ 64 * 2 ^ 64 * 2 ^ 64 - 2 ^ 64 * 2 ^ 64 := by
-        rw [Nat.sub_mul]
-      have h2 : (2 ^ 64 - 1) * 2 ^ 64 = 2 ^ 64 * 2 ^ 64 - 2 ^ 64 := by
-        rw [Nat.sub_mul]
-      have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by grind
-      have hn_le_n2 : (2 : Nat) ^ 64 ≤ 2 ^ 64 * 2 ^ 64 := by grind
-      omega
+    have hKey : (2 ^ 64 - 1) * 2 ^ 128 + (2 ^ 64 - 1) * 2 ^ 64 + 2 ^ 64 ≤ 2 ^ 192 :=
+      key192_bound
     omega
   -- The cHi · 2^128 is either 0 or 2^192.
   have hCHi_cases : cHi * 2 ^ 128 = 0 ∨ cHi * 2 ^ 128 = 2 ^ 192 := by
@@ -469,16 +456,16 @@ theorem mul192_b_g_toNat (bU gHi gLo : UInt64) :
     have hEq : rHi_top.toNat * 2 ^ 128 + midSum_v.toNat * 2 ^ 64 + blo_lo
                 = bhi_hi * 2 ^ 128 + (bhi_lo + blo_hi) * 2 ^ 64 + blo_lo := by
       have := hLHS_eq
-      rw [hCHi0] at this; omega
+      rw [hCHi0] at this; grind
     rw [hEq]
-    exact (Nat.mod_eq_of_lt (by omega)).symm
+    exact (Nat.mod_eq_of_lt (by grind)).symm
   · -- Top carry of 2^192.  This means bhi_hi + midCarry ≥ 2^64.  But bhi_hi < 2^64 and
     -- midCarry ≤ 1, so this requires bhi_hi = 2^64 - 1 ∧ midCarry = 1.
     have hTotal' : bhi_hi * 2 ^ 128 + (bhi_lo + blo_hi) * 2 ^ 64 + blo_lo
                     = (rHi_top.toNat * 2 ^ 128 + midSum_v.toNat * 2 ^ 64 + blo_lo) + 1 * 2 ^ 192 := by
       have := hLHS_eq
       rw [hCHi192] at this
-      omega
+      grind
     rw [hTotal', Nat.add_mul_mod_self_right]
     exact (Nat.mod_eq_of_lt hLHS_lt).symm
 
@@ -581,7 +568,7 @@ theorem shift_kernel_mid_eq (aU : UInt64) (s64 : Nat)
         have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by grind
         have h_step1 : 2 ^ 64 * 2 ^ 64 - 2 ^ 64 < 2 ^ 64 * 2 ^ 64 := by omega
         omega
-      omega
+      grind
     exact (Nat.mod_eq_of_lt hlt).symm
   · -- s64 ≠ 0; 0 < s64 < 64.
     have hs0Pos : 0 < s64 := Nat.pos_of_ne_zero hs0
@@ -665,7 +652,7 @@ theorem shift_kernel_mid_eq (aU : UInt64) (s64 : Nat)
         have hn2_le_n3 : 2 ^ 64 * 2 ^ 64 ≤ 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := by grind
         have hn_le_n2 : (2 : Nat) ^ 64 ≤ 2 ^ 64 * 2 ^ 64 := by grind
         omega
-      omega
+      grind
     exact (Nat.mod_eq_of_lt hLHS_lt).symm
 
 /-- For `s ∈ [128, 192)`, `s64 := s - 128`, and `a < 2^(64-s64)`, the

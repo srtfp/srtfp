@@ -29,14 +29,12 @@ def buildPowTab (base : Nat) (n : Nat) : Array Nat :=
 
 theorem buildPowTab_size (base n : Nat) :
     (buildPowTab base n).size = n + 1 := by
-  unfold buildPowTab
-  simp
+  simp [buildPowTab]
 
 theorem buildPowTab_get (base n : Nat) (i : Nat)
     (h : i < (buildPowTab base n).size) :
     (buildPowTab base n)[i]'h = base ^ i := by
-  unfold buildPowTab
-  simp
+  simp [buildPowTab]
 
 /-! ## Concrete tables and lookups
 
@@ -71,14 +69,14 @@ theorem pow2Lookup_eq (n : Nat) : pow2Lookup n = 2 ^ n := by
   unfold pow2Lookup
   rw [show pow2Tab.getD n (2 ^ n) = (if h : n < pow2Tab.size then pow2Tab[n] else 2 ^ n) from rfl]
   split
-  · next h => unfold pow2Tab; rw [buildPowTab_get]
+  · next h => exact buildPowTab_get 2 1074 n h
   · rfl
 
 theorem pow10Lookup_eq (n : Nat) : pow10Lookup n = 10 ^ n := by
   unfold pow10Lookup
   rw [show pow10Tab.getD n (10 ^ n) = (if h : n < pow10Tab.size then pow10Tab[n] else 10 ^ n) from rfl]
   split
-  · next h => unfold pow10Tab; rw [buildPowTab_get]
+  · next h => exact buildPowTab_get 10 324 n h
   · rfl
 
 end Srtfp.Schubfach

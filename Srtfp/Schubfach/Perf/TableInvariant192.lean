@@ -214,6 +214,6 @@ theorem pow10Lookup192_g_ge (k : Int)
   rw [h191]
   have h1 : 2 ^ 63 * 2 ^ 128 ≤ (pow10Lookup192 k).1.toNat * 2 ^ 128 := by
     exact Nat.mul_le_mul_right _ hgHi
-  omega
+  exact Nat.le_trans (Nat.le_trans h1 (Nat.le_add_right _ _)) (Nat.le_add_right _ _)
 
 end Srtfp.Schubfach

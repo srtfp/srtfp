@@ -447,8 +447,8 @@ theorem shiftedSig_fast2_w_eq_binary64
         rw [hTriple]; exact hMG_lt
       have hrHi_lt_60 : rHi.toNat < 2 ^ 60 := by
         have hle : rHi.toNat * 2 ^ 128 ≤ triple192Nat rHi rMid rLo := by
-          unfold triple192Nat; omega
-        have hlt : rHi.toNat * 2 ^ 128 < 2 ^ 188 := by omega
+          unfold triple192Nat; grind
+        have hlt : rHi.toNat * 2 ^ 128 < 2 ^ 188 := by grind
         have hpow : (2 : Nat) ^ 188 = 2 ^ 60 * 2 ^ 128 := by rw [← Nat.pow_add]
         rw [hpow] at hlt
         exact Nat.lt_of_mul_lt_mul_right hlt

@@ -1876,7 +1876,8 @@ theorem Schubfach.shortest_decimal_exists_unique_proof (w : UInt64)
                ∨ ( |Decimal.toRat d - Schubfach.wordVal w|
                      = |Decimal.toRat d' - Schubfach.wordVal w|
                    ∧ d.significand % 2 = 0 ))))) := by
-  simpa only [← Schubfach.decDigitLength_eq_log] using
-    Schubfach.spec_output_exists_unique_proof w h_fin
+  have h := Schubfach.spec_output_exists_unique_proof w h_fin
+  unfold Schubfach.IsSpecOutputBits at h
+  simpa only [← Schubfach.decDigitLength_eq_log] using h
 
 end Srtfp

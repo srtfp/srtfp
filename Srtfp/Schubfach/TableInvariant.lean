@@ -220,6 +220,6 @@ theorem pow10Lookup128_g_ge (k : Int)
   rw [h127]
   have h1 : 2 ^ 63 * 2 ^ 64 ≤ (pow10Lookup128 k).1.toNat * 2 ^ 64 := by
     exact Nat.mul_le_mul_right _ hgHi
-  omega
+  exact Nat.le_trans h1 (Nat.le_add_right _ _)
 
 end Srtfp.Schubfach

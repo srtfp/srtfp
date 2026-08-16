@@ -15,17 +15,34 @@ import Lean
 import Srtfp.Schubfach.Perf.KernelV6
 import Srtfp.Schubfach.Perf.KernelV13
 
-open Lean Lean.Compiler in
-#eval show CoreM Unit from do
-  let s := CSimp.ext.getState (← getEnv)
-  let check (src tgt : Name) : CoreM Unit := do
-    match s.map.find? src with
-    | some t =>
-      unless t == tgt do
-        throwError "csimp pin: {src} compiles to {t}, expected {tgt}"
-    | none => throwError "csimp pin: {src} has no csimp replacement"
-  -- The two hot entry points of the verified printer.
-  check `Srtfp.Schubfach.toDecimal `Srtfp.Schubfach.toDecimal_v7
-  check `Srtfp.Schubfach.floatToStrRef `Srtfp.Schubfach.toStringFast9
-  -- The kernel used by stage-level profiling (BenchProfile).
-  check `Srtfp.Schubfach.shortestUnsigned `Srtfp.Schubfach.shortestUnsigned_v3
+/- The csimp extension's map values changed type across toolchains
+   (`Name` before v4.29-ish, `CSimp.Entry` after), so the check is
+   elaborated from syntax in an environment-dependent branch: only the
+   applicable variant is ever type-checked. -/
+open Lean Elab Command Lean.Compiler in
+run_cmd do
+  let mapInfo ← getConstInfo `Lean.Compiler.CSimp.State.map
+  if mapInfo.type.getUsedConstants.contains `Lean.Compiler.CSimp.Entry then
+    elabCommand (← `(#eval show Lean.CoreM Unit from do
+      let s := Lean.Compiler.CSimp.ext.getState (← Lean.getEnv)
+      let check (src tgt : Lean.Name) : Lean.CoreM Unit := do
+        match s.map.find? src with
+        | some t =>
+          unless t.toDeclName == tgt do
+            throwError "csimp pin: {src} compiles to {t.toDeclName}, expected {tgt}"
+        | none => throwError "csimp pin: {src} has no csimp replacement"
+      check `Srtfp.Schubfach.toDecimal `Srtfp.Schubfach.toDecimal_v7
+      check `Srtfp.Schubfach.floatToStrRef `Srtfp.Schubfach.toStringFast9
+      check `Srtfp.Schubfach.shortestUnsigned `Srtfp.Schubfach.shortestUnsigned_v3))
+  else
+    elabCommand (← `(#eval show Lean.CoreM Unit from do
+      let s := Lean.Compiler.CSimp.ext.getState (← Lean.getEnv)
+      let check (src tgt : Lean.Name) : Lean.CoreM Unit := do
+        match s.map.find? src with
+        | some t =>
+          unless t == tgt do
+            throwError "csimp pin: {src} compiles to {t}, expected {tgt}"
+        | none => throwError "csimp pin: {src} has no csimp replacement"
+      check `Srtfp.Schubfach.toDecimal `Srtfp.Schubfach.toDecimal_v7
+      check `Srtfp.Schubfach.floatToStrRef `Srtfp.Schubfach.toStringFast9
+      check `Srtfp.Schubfach.shortestUnsigned `Srtfp.Schubfach.shortestUnsigned_v3))

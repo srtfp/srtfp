@@ -460,7 +460,7 @@ theorem cmpScaledMixed_strict_minus
   -- add192_64_toNat: triple192Nat (add192_64 l bU) = (L.toNat + bU.toNat) mod 2^192.
   -- Since the sum is < 2^192, the mod is trivial.
   have hadd := add192_64_toNat l_hi l_mid l_lo bU
-  simp only at hadd
+  try simp only at hadd
   -- hadd : triple192Nat (...).1 (...).2.1 (...).2.2 = (L.toNat + bU.toNat) % 2^192
   rw [hbU_eq] at hadd
   rw [Nat.mod_eq_of_lt hsum_lt_192] at hadd
@@ -981,8 +981,8 @@ theorem shiftedSig_eq_fast2 (m : Nat) (q k : Int) :
   -- we get rHi.toNat ≤ 2^60.  Actually rHi.toNat · 2^128 ≤ triple < 2^188, so rHi < 2^60.
   have hrHi_lt_60 : rHi.toNat < 2 ^ 60 := by
     have : rHi.toNat * 2 ^ 128 ≤ triple192Nat rHi rMid rLo := by
-      unfold triple192Nat; omega
-    have : rHi.toNat * 2 ^ 128 < 2 ^ 188 := by omega
+      unfold triple192Nat; grind
+    have : rHi.toNat * 2 ^ 128 < 2 ^ 188 := by grind
     have hpow : (2 : Nat) ^ 188 = 2 ^ 60 * 2 ^ 128 := by
       rw [← Nat.pow_add]
     rw [hpow] at this

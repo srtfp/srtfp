@@ -1002,8 +1002,8 @@ theorem shiftedSig_v4_eq (m : Nat) (q k : Int) :
       rw [hQuad]; exact hProd_lt_252
     have hqHi_lt_60 : qHi.toNat < 2 ^ 60 := by
       have hQuad_ge : qHi.toNat * 2 ^ 192 ≤ quad256Nat qHi qMidHi qMidLo qLo := by
-        unfold quad256Nat; omega
-      have h_lt : qHi.toNat * 2 ^ 192 < 2 ^ 252 := by omega
+        unfold quad256Nat; grind
+      have h_lt : qHi.toNat * 2 ^ 192 < 2 ^ 252 := by grind
       have h_pow : (2 : Nat) ^ 252 = 2 ^ 60 * 2 ^ 192 := by decide
       rw [h_pow] at h_lt
       exact Nat.lt_of_mul_lt_mul_right h_lt

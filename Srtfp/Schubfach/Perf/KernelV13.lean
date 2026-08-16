@@ -13,6 +13,7 @@
    falling back to the packed path). -/
 
 import Srtfp.Schubfach.Perf.KernelSupport
+import Srtfp.Schubfach.Perf.KernelV13WReg
 import Srtfp.Tactics
 
 namespace Srtfp.Schubfach
@@ -637,80 +638,6 @@ range), the flipped window satisfies `h' - q ≥ 128`. Hence `w = 127`
 occurs only on irregular bands, where `m = 2^52` and the certificate
 covers the slack directly. -/
 
-/-- Per-index well-regulated predicate (shared by `wRegBool` and the
-    chunked checker). -/
-def wRegPred (qn : Nat) : Bool :=
-  let q : Int := (qn : Int) - 1074
-  let k : Int := floorLog10Pow2 q
-  decide (k < -324 ∨ k + 1 > 324 ∨ 128 ≤ (pow10Lookup128 (-(k + 1))).2.2 - q)
-
-def wRegBool : Bool :=
-  (List.range 2046).all wRegPred
-
-/-- Chunked checker: `wRegPred` holds across the sub-range `[lo, lo+n)`.
-    A single `decide +kernel` over the full 2046-wide range expands the
-    `pow10Lookup128` table 2046x in one kernel reduction (~20 GB peak).
-    Splitting it into many narrow fixed-width chunks, each elaborated as a
-    separate declaration so they never coexist in memory, caps the peak at
-    one chunk's reduction (~4.5 GB at this width). Do NOT merge the chunks
-    back into one `decide`, and keep the width small — that is what holds
-    the module under the lakefile's `lean -M` budget. -/
-def wRegChunk (lo n : Nat) : Bool :=
-  (List.range' lo n).all wRegPred
-
-theorem wRegChunk_0 : wRegChunk 0 93 = true := by decide +kernel
-theorem wRegChunk_1 : wRegChunk 93 93 = true := by decide +kernel
-theorem wRegChunk_2 : wRegChunk 186 93 = true := by decide +kernel
-theorem wRegChunk_3 : wRegChunk 279 93 = true := by decide +kernel
-theorem wRegChunk_4 : wRegChunk 372 93 = true := by decide +kernel
-theorem wRegChunk_5 : wRegChunk 465 93 = true := by decide +kernel
-theorem wRegChunk_6 : wRegChunk 558 93 = true := by decide +kernel
-theorem wRegChunk_7 : wRegChunk 651 93 = true := by decide +kernel
-theorem wRegChunk_8 : wRegChunk 744 93 = true := by decide +kernel
-theorem wRegChunk_9 : wRegChunk 837 93 = true := by decide +kernel
-theorem wRegChunk_10 : wRegChunk 930 93 = true := by decide +kernel
-theorem wRegChunk_11 : wRegChunk 1023 93 = true := by decide +kernel
-theorem wRegChunk_12 : wRegChunk 1116 93 = true := by decide +kernel
-theorem wRegChunk_13 : wRegChunk 1209 93 = true := by decide +kernel
-theorem wRegChunk_14 : wRegChunk 1302 93 = true := by decide +kernel
-theorem wRegChunk_15 : wRegChunk 1395 93 = true := by decide +kernel
-theorem wRegChunk_16 : wRegChunk 1488 93 = true := by decide +kernel
-theorem wRegChunk_17 : wRegChunk 1581 93 = true := by decide +kernel
-theorem wRegChunk_18 : wRegChunk 1674 93 = true := by decide +kernel
-theorem wRegChunk_19 : wRegChunk 1767 93 = true := by decide +kernel
-theorem wRegChunk_20 : wRegChunk 1860 93 = true := by decide +kernel
-theorem wRegChunk_21 : wRegChunk 1953 93 = true := by decide +kernel
-
-set_option maxRecDepth 8192 in
-theorem wRegRange_split : List.range 2046
-    = List.range' 0 93 ++ (List.range' 93 93 ++ (List.range' 186 93 ++ (List.range' 279 93 ++ (List.range' 372 93 ++ (List.range' 465 93 ++ (List.range' 558 93 ++ (List.range' 651 93 ++ (List.range' 744 93 ++ (List.range' 837 93 ++ (List.range' 930 93 ++ (List.range' 1023 93 ++ (List.range' 1116 93 ++ (List.range' 1209 93 ++ (List.range' 1302 93 ++ (List.range' 1395 93 ++ (List.range' 1488 93 ++ (List.range' 1581 93 ++ (List.range' 1674 93 ++ (List.range' 1767 93 ++ (List.range' 1860 93 ++ (List.range' 1953 93))))))))))))))))))))) := by
-  rfl
-
-theorem wReg_check : wRegBool = true := by
-  unfold wRegBool
-  rw [wRegRange_split]
-  simp only [List.all_append, Bool.and_eq_true]
-  exact ⟨wRegChunk_0, wRegChunk_1, wRegChunk_2, wRegChunk_3, wRegChunk_4, wRegChunk_5, wRegChunk_6, wRegChunk_7, wRegChunk_8, wRegChunk_9, wRegChunk_10, wRegChunk_11, wRegChunk_12, wRegChunk_13, wRegChunk_14, wRegChunk_15, wRegChunk_16, wRegChunk_17, wRegChunk_18, wRegChunk_19, wRegChunk_20, wRegChunk_21⟩
-
-theorem wReg_at (q : Int) (h1 : -1074 ≤ q) (h2 : q ≤ 971)
-    (hklo : ¬ floorLog10Pow2 q < pow10Table128_kMin)
-    (hkhi : ¬ floorLog10Pow2 q + 1 > pow10Table128_kMax) :
-    128 ≤ (pow10Lookup128 (-(floorLog10Pow2 q + 1))).2.2 - q := by
-  have hAll := wReg_check
-  unfold wRegBool at hAll
-  rw [List.all_eq_true] at hAll
-  have h := hAll (q + 1074).toNat (List.mem_range.mpr (by omega))
-  unfold wRegPred at h
-  simp only [decide_eq_true_eq] at h
-  have hq : (((q + 1074).toNat : Int)) - 1074 = q := by omega
-  rw [hq] at h
-  have hklo' : ¬ floorLog10Pow2 q < (-324 : Int) := hklo
-  have hkhi' : ¬ floorLog10Pow2 q + 1 > (324 : Int) := hkhi
-  rcases h with h | h | h
-  · exact absurd h (by omega)
-  · exact absurd h (by omega)
-  · exact h
-
 set_option maxRecDepth 16384 in
 set_option maxHeartbeats 3200000 in
 /-- Fast-path correctness for flip3: a `some` result is the
@@ -911,7 +838,7 @@ theorem shortestUnsigned_u64_opt_flip3_some_eq_packed
     have h2G_val : triple192Nat tg.1 tg.2.1 tg.2.2
         = 2 * (gT.1.toNat * 2 ^ 64 + gT.2.1.toNat) := by
       rw [htg, add192_192_toNat 0 gT.1 gT.2.1 0 gT.1 gT.2.1 (by
-        rw [htrip0G]; omega), htrip0G]
+        rw [htrip0G]; grind), htrip0G]
       omega
     have hlB_val : triple192Nat lB.1 lB.2.1 lB.2.2
         = (if isIrregular m q = true then 4 * m - 1 else 4 * m - 2)
@@ -1046,7 +973,7 @@ theorem shortestUnsigned_u64_opt_flip3_some_eq_packed
     set mH2 := shr1_192 pH2 pMid2 pLo2 with hmH2
     have hG2_lt : gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat < 2 ^ 128 := by
       have h1 := gT2.1.toNat_lt; have h2 := gT2.2.1.toNat_lt
-      omega
+      grind
     have hmulG2_lt : ∀ b : Nat, b ≤ 4 * m + 2 →
         b * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat) < 2 ^ 192 := by
       intro b hb
@@ -1071,7 +998,7 @@ theorem shortestUnsigned_u64_opt_flip3_some_eq_packed
     have h2G2_val : triple192Nat tg2.1 tg2.2.1 tg2.2.2
         = 2 * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat) := by
       rw [htg2, add192_192_toNat 0 gT2.1 gT2.2.1 0 gT2.1 gT2.2.1 (by
-        rw [htrip0G2]; omega), htrip0G2]
+        rw [htrip0G2]; grind), htrip0G2]
       omega
     have hlB2_val : triple192Nat lB2.1 lB2.2.1 lB2.2.2
         = (if isIrregular m q = true then 4 * m - 1 else 4 * m - 2)
@@ -1159,7 +1086,7 @@ theorem shortestUnsigned_u64_opt_flip3_some_eq_packed
     set mH2 := shr1_192 pH2 pMid2 pLo2 with hmH2
     have hG2_lt : gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat < 2 ^ 128 := by
       have h1 := gT2.1.toNat_lt; have h2 := gT2.2.1.toNat_lt
-      omega
+      grind
     have hmulG2_lt : ∀ b : Nat, b ≤ 4 * m + 2 →
         b * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat) < 2 ^ 192 := by
       intro b hb
@@ -1184,7 +1111,7 @@ theorem shortestUnsigned_u64_opt_flip3_some_eq_packed
     have h2G2_val : triple192Nat tg2.1 tg2.2.1 tg2.2.2
         = 2 * (gT2.1.toNat * 2 ^ 64 + gT2.2.1.toNat) := by
       rw [htg2, add192_192_toNat 0 gT2.1 gT2.2.1 0 gT2.1 gT2.2.1 (by
-        rw [htrip0G2]; omega), htrip0G2]
+        rw [htrip0G2]; grind), htrip0G2]
       omega
     have hlB2_val : triple192Nat lB2.1 lB2.2.1 lB2.2.2
         = (if isIrregular m q = true then 4 * m - 1 else 4 * m - 2)

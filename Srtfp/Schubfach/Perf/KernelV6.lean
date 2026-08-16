@@ -251,8 +251,8 @@ theorem hB128_getD (i : Nat) (hi : i < pow10Table128.size) :
   have hsz : i < hB128.size := by unfold hB128; rw [Array.size_map]; exact hi
   rw [(Array.getElem_eq_getD 0 (h := hsz)).symm,
       (Array.getElem_eq_getD pow10Table128_default (h := hi)).symm]
-  unfold hB128
-  simp [Array.getElem_map]
+  unfold hB128 at hsz ⊢
+  exact Array.getElem_map _ hsz
 
 theorem hB192_getD (i : Nat) (hi : i < pow10Table192.size) :
     hB192.getD i 0
@@ -260,8 +260,8 @@ theorem hB192_getD (i : Nat) (hi : i < pow10Table192.size) :
   have hsz : i < hB192.size := by unfold hB192; rw [Array.size_map]; exact hi
   rw [(Array.getElem_eq_getD 0 (h := hsz)).symm,
       (Array.getElem_eq_getD pow10Table192_default (h := hi)).symm]
-  unfold hB192
-  simp [Array.getElem_map]
+  unfold hB192 at hsz ⊢
+  exact Array.getElem_map _ hsz
 
 
 /-! ### Biased-arithmetic bridges -/

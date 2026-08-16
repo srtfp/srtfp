@@ -11,8 +11,11 @@
 
 universe u
 
-/-- Absolute value on `ℚ`. -/
-protected def Rat.abs (q : ℚ) : ℚ := if q < 0 then -q else q
+/-- Absolute value on `ℚ`. Deliberately NOT named `Rat.abs`: newer cores
+declare their own `Rat.abs` with a different (extensionally equal) body,
+and keeping our copy under a private name preserves `abs_def` as `rfl`
+on every toolchain. -/
+def Srtfp.ratAbs (q : ℚ) : ℚ := if q < 0 then -q else q
 
 /-- Minimal stand-in for Mathlib's `Abs` class: just enough to give `|·|`
     a home. -/
@@ -20,26 +23,29 @@ class Abs (α : Type u) where
   /-- The absolute value, written `|a|`. -/
   abs : α → α
 
-instance : Abs ℚ := ⟨Rat.abs⟩
+instance : Abs ℚ := ⟨Srtfp.ratAbs⟩
 
 macro:max atomic("|" noWs) a:term noWs "|" : term => `(Abs.abs $a)
 
 namespace Rat
 
-protected theorem neg_neg (q : ℚ) : -(-q) = q := by
+/- `neg_neg` / `neg_zero` exist in newer cores but not in v4.27; private
+non-colliding copies keep this file toolchain-portable (they are only
+used within this file). -/
+private theorem rat_neg_neg (q : ℚ) : -(-q) = q := by
   calc -(-q) = -(-q) + 0 := (Rat.add_zero _).symm
     _ = -(-q) + (-q + q) := by rw [Rat.neg_add_cancel]
     _ = -(-q) + -q + q := by rw [Rat.add_assoc]
     _ = 0 + q := by rw [Rat.neg_add_cancel]
     _ = q := Rat.zero_add q
 
-protected theorem neg_zero : -(0 : ℚ) = 0 := rfl
+private theorem rat_neg_zero : -(0 : ℚ) = 0 := rfl
 
 protected theorem neg_nonneg {q : ℚ} : 0 ≤ -q ↔ q ≤ 0 := by
   constructor
   · intro h
     have := (Rat.le_iff_sub_nonneg 0 (-q)).mp h
-    simp only [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero] at this
+    simp only [Rat.sub_eq_add_neg, rat_neg_zero, Rat.add_zero] at this
     exact (Rat.le_iff_sub_nonneg q 0).mpr (by
       simp only [Rat.sub_eq_add_neg, Rat.zero_add]
       exact this)
@@ -52,12 +58,12 @@ protected theorem neg_lt_zero {q : ℚ} : -q < 0 ↔ 0 < q := by
   constructor
   · intro h
     have := (Rat.lt_iff_sub_pos (-q) 0).mp h
-    simp only [Rat.sub_eq_add_neg, Rat.zero_add, Rat.neg_neg] at this
+    simp only [Rat.sub_eq_add_neg, Rat.zero_add, rat_neg_neg] at this
     exact this
   · intro h
     have := (Rat.lt_iff_sub_pos 0 q).mp h
     apply (Rat.lt_iff_sub_pos (-q) 0).mpr
-    simp only [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero, Rat.zero_add, Rat.neg_neg] at this ⊢
+    simp only [Rat.sub_eq_add_neg, rat_neg_zero, Rat.add_zero, Rat.zero_add, rat_neg_neg] at this ⊢
     exact this
 
 end Rat
@@ -84,7 +90,7 @@ theorem abs_neg (q : ℚ) : |(-q)| = |q| := by
     by_cases h0 : q = 0
     · subst h0; rfl
     · have hpos : 0 < q := Rat.lt_of_le_of_ne h' (fun e => h0 e.symm)
-      rw [abs_of_nonneg h', abs_of_neg (Rat.neg_lt_zero.mpr hpos), Rat.neg_neg]
+      rw [abs_of_nonneg h', abs_of_neg (Rat.neg_lt_zero.mpr hpos), Rat.rat_neg_neg]
 
 theorem abs_sub_comm (a b : ℚ) : |a - b| = |b - a| := by
   rw [show b - a = -(a - b) from (Rat.neg_sub a b).symm, abs_neg]

@@ -49,6 +49,12 @@ import Srtfp.Schubfach.TableInvariant
 
 namespace Srtfp.Schubfach
 
+/- Clean-context helper: on ≥4.32 toolchains `omega`/`grind` blow up when
+this subtraction shuffle must be discharged amid large-magnitude
+hypotheses (upstream large-coefficient regression). -/
+private theorem sub_add_sub_shuffle (A B C : Nat) (hBA : B ≤ A) (hC : 1 ≤ C) :
+    (A - B) + (C - 1) = A + C - B - 1 := by omega
+
 set_option maxHeartbeats 1000000
 
 /-! ## 192-bit comparison: gt192 / le192 reflect Nat order on triples -/
@@ -91,7 +97,7 @@ theorem gt192_iff (hi₁ mid₁ lo₁ hi₂ mid₂ lo₂ : UInt64) :
       · intro hLt
         have hLo_bd : mid₁.toNat * 2 ^ 64 > mid₂.toNat * 2 ^ 64 := by
           apply Nat.mul_lt_mul_right (Nat.two_pow_pos 64) |>.mpr hLt
-        omega
+        grind
       · intro hGt
         by_contra hContra
         push_neg at hContra
@@ -117,7 +123,7 @@ theorem gt192_iff (hi₁ mid₁ lo₁ hi₂ mid₂ lo₂ : UInt64) :
       have hHi_mul : hi₁.toNat * 2 ^ 128 ≥ (hi₂.toNat + 1) * 2 ^ 128 :=
         Nat.mul_le_mul_right _ hHi_step
       have : hi₁.toNat * 2 ^ 128 ≥ hi₂.toNat * 2 ^ 128 + 2 ^ 128 := by omega
-      omega
+      grind
     · intro hGt
       by_contra hContra
       push_neg at hContra
@@ -1428,7 +1434,7 @@ theorem shiftedSig_floor_gap_bound
                       = N * 2 ^ s * 2 ^ 126 + m * B * 2 ^ 126 := by grind
       have hSlack' : m * B * 2 ^ 126 ≤ N * 2 ^ s := hSlack
       have hRHS : N * 2 ^ s * (2 ^ 126 + 1) = N * 2 ^ s * 2 ^ 126 + N * 2 ^ s := by grind
-      omega
+      grind
     calc K * B * 2 ^ s * 2 ^ 126
         < (N * 2 ^ s + m * B) * 2 ^ 126 := by
           have := Nat.mul_lt_mul_right h2_126_pos |>.mpr h1
@@ -1456,7 +1462,7 @@ theorem shiftedSig_floor_gap_bound
   rw [hExpand] at hCancel_s
   -- K · B · 2^126 < N · 2^126 + N.
   -- So K · B · 2^126 ≤ N · 2^126 + N - 1 (Nat).  Hence K · B ≤ N + (N-1)/2^126 ≤ N + N/2^126.
-  have h3 : K * B * 2 ^ 126 ≤ N * 2 ^ 126 + N - 1 := by omega
+  have h3 : K * B * 2 ^ 126 ≤ N * 2 ^ 126 + N - 1 := by grind
   -- (K · B) ≤ (N · 2^126 + N - 1) / 2^126 ≤ N + (N-1)/2^126 ≤ N + N/2^126.
   -- Divide h3 by 2^126:
   have h4 : K * B ≤ (N * 2 ^ 126 + N - 1) / 2 ^ 126 := by
@@ -1474,13 +1480,13 @@ theorem shiftedSig_floor_gap_bound
     subst hN
     have hSlack' : m * B * 2 ^ 126 ≤ 0 := by simpa using hSlack
     have hmB_zero : m * B = 0 := by
-      rcases Nat.mul_eq_zero.mp (by omega : m * B * 2 ^ 126 = 0) with h | h
+      rcases Nat.mul_eq_zero.mp (by grind : m * B * 2 ^ 126 = 0) with h | h
       · exact h
       · exact absurd h (Nat.pos_iff_ne_zero.mp h2_126_pos)
     have hKB_zero : K * B = 0 := by
       have hh : K * B * 2 ^ s < 0 + m * B := by simpa using h1
       rw [hmB_zero] at hh
-      have : K * B * 2 ^ s = 0 := by omega
+      have : K * B * 2 ^ s = 0 := by grind
       rcases Nat.mul_eq_zero.mp this with h | h
       · exact h
       · exact absurd h (Nat.pos_iff_ne_zero.mp h2s_pos)
@@ -1576,7 +1582,10 @@ theorem shiftedSig_floor_strict_precision
       rw [this]
       have ha : 2 ^ s * (2 ^ 127 - 1) = 2 ^ s * 2 ^ 127 - 2 ^ s := by
         rw [Nat.mul_sub_one]
-      omega
+      rw [ha]
+      have hBA : 2 ^ s ≤ 2 ^ s * 2 ^ 127 :=
+        Nat.le_mul_of_pos_right _ (Nat.two_pow_pos _)
+      exact sub_add_sub_shuffle _ _ _ hBA h2_127_pos
     -- We have h3: 2^s · 2^127 + 2^127 - 2^s - 1 < N · 2^s.
     -- And hN_lt: N < 2^127 - 1, so N · 2^s < (2^127 - 1) · 2^s = 2^s · 2^127 - 2^s.
     have h2_127_pos : (1 : Nat) ≤ 2 ^ 127 := Nat.one_le_two_pow

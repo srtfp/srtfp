@@ -813,7 +813,11 @@ boundary.  -/
 /-- UInt64 / Nat comparison: `sU ≥ 10 ↔ sU.toNat ≥ 10`. -/
 theorem uint64_ge_10 (sU : UInt64) :
     sU ≥ (10 : UInt64) ↔ sU.toNat ≥ 10 := by
-  constructor <;> (intro h; simpa [GE.ge] using h)
+  constructor
+  · intro h
+    exact UInt64.le_iff_toNat_le.mp h
+  · intro h
+    exact UInt64.le_iff_toNat_le.mpr h
 
 /-- UInt64 / Nat equality: `sU = 0 ↔ sU.toNat = 0`. -/
 theorem uint64_eq_0 (sU : UInt64) :
