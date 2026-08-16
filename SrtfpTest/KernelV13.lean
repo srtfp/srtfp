@@ -10,7 +10,7 @@
    `shortestUnsigned_u64_opt_v13_some_eq_packed`; this is a belt-and-
    suspenders runtime witness over the corpus. -/
 
-import LSpec
+import SrtfpTest.Spec
 import Srtfp.Schubfach
 import Srtfp.Schubfach.Perf.Uint64Kernel
 import Srtfp.Schubfach.Perf.KernelV13
@@ -19,7 +19,7 @@ import SrtfpTest.Ryu
 
 namespace Srtfp.Tests.KernelV13
 
-open LSpec Srtfp Srtfp.Schubfach Srtfp.Float
+open SrtfpSpec Srtfp Srtfp.Schubfach Srtfp.Float
 
 open Srtfp.Tests.Ryu in
 /-- The full Ryu corpus, flattened. -/

@@ -6,7 +6,7 @@
    Correctness witness for the 192-bit path pending the formal
    equivalence proof. -/
 
-import LSpec
+import SrtfpTest.Spec
 import Srtfp.Schubfach
 import Srtfp.Schubfach.Perf.Orchestration
 import Srtfp.Schubfach.Perf.Uint64Kernel
@@ -16,7 +16,7 @@ import SrtfpTest.Ryu
 
 namespace Srtfp.Tests.Uint64Kernel192
 
-open LSpec Srtfp Srtfp.Schubfach Srtfp.Float
+open SrtfpSpec Srtfp Srtfp.Schubfach Srtfp.Float
 
 open Srtfp.Tests.Ryu in
 /-- The full Ryu corpus, flattened. -/

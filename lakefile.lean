@@ -18,9 +18,6 @@ package srtfp where
   -- every build but never enters the trace hash (tuning it forces no rebuild).
   weakLeanArgs := #["-M", "10240"]
 
-require LSpec from git
-  "https://github.com/argumentcomputer/LSpec.git" @ "8e6ddb17c2b7e2bbb63585aa4225c5b0701b8ad2"
-
 @[default_target]
 lean_lib Srtfp where
   roots := #[`Srtfp]

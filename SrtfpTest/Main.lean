@@ -1,4 +1,4 @@
-import LSpec
+import SrtfpTest.Spec
 import Srtfp
 import SrtfpAxiomCheck
 import SrtfpTest.Ryu
@@ -6,7 +6,7 @@ import SrtfpTest.Uint64Kernel
 import SrtfpTest.Uint64Kernel192
 import SrtfpTest.KernelV13
 
-open LSpec
+open SrtfpSpec
 
 def main : IO UInt32 :=
   lspecIO (.ofList [
