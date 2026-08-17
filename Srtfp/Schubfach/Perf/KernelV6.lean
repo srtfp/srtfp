@@ -164,43 +164,6 @@ theorem shortestUnsigned_v6_eq (m : Nat) (q : Int) :
   show shortestUnsigned_v5 m q = shortestUnsigned m q
   exact shortestUnsigned_v5_eq m q
 
-theorem shortestUnsigned_v6_eq_v5 (m : Nat) (q : Int) :
-    shortestUnsigned_v6 m q = shortestUnsigned_v5 m q := by
-  rw [shortestUnsigned_v6_eq, shortestUnsigned_v5_eq]
-
-/-! ## Fused `toDecimal_v6` (csimp overrides v5; later csimps win) -/
-
-open Srtfp.Float in
-def toDecimal_v6 (f : _root_.Float) : Except String _root_.Srtfp.Decimal :=
-  if isNaNBits f then
-    .error "NaN"
-  else if isInfBits f then
-    .error (if signBit f then "-Infinity" else "Infinity")
-  else
-    let d := decode f
-    if d.m = 0 then .ok ⟨d.sign, 0, 0⟩
-    else
-      let (sig, exp) := shortestUnsigned_v6 d.m d.q
-      .ok (Srtfp.Decimal.mk' d.sign sig exp)
-
-theorem toDecimal_v6_eq (f : _root_.Float) :
-    toDecimal_v6 f = toDecimal f := by
-  unfold toDecimal_v6 toDecimal
-  by_cases h1 : Srtfp.Float.isNaNBits f = true
-  · simp [h1]
-  by_cases h2 : Srtfp.Float.isInfBits f = true
-  · simp [h1, h2]
-  simp only [h1, h2, if_false, Bool.false_eq_true]
-  by_cases h3 : (Srtfp.Float.decode f).m = 0
-  · simp [h3]
-  simp only [h3, if_false]
-  rw [shortestUnsigned_v6_eq]
-
--- Superseded registration: `toDecimal_eq_v7_csimp` below is the live @[csimp].
-theorem toDecimal_eq_v6_csimp : @toDecimal = @toDecimal_v6 := by
-  funext f
-  exact (toDecimal_v6_eq f).symm
-
 /-! ## v7: pre-biased h side-tables, no Int arithmetic in the hot body
 
 The three `h ± q` computations each cost a boxed `Int` add/sub, two
@@ -637,7 +600,7 @@ theorem shortestUnsigned_v7_eq_v5 (m : Nat) (q : Int) :
     shortestUnsigned_v7 m q = shortestUnsigned_v5 m q := by
   rw [shortestUnsigned_v7_eq, shortestUnsigned_v5_eq]
 
-/-! ## Fused `toDecimal_v7` (csimp overrides v6; later csimps win) -/
+/-! ## Fused `toDecimal_v7` — the live `toDecimal` replacement -/
 
 open Srtfp.Float in
 def toDecimal_v7 (f : _root_.Float) : Except String _root_.Srtfp.Decimal :=

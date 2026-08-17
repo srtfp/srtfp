@@ -27,10 +27,6 @@ namespace Srtfp.Schubfach
 def buildPowTab (base : Nat) (n : Nat) : Array Nat :=
   ((List.range (n + 1)).map (base ^ ·)).toArray
 
-theorem buildPowTab_size (base n : Nat) :
-    (buildPowTab base n).size = n + 1 := by
-  simp [buildPowTab]
-
 theorem buildPowTab_get (base n : Nat) (i : Nat)
     (h : i < (buildPowTab base n).size) :
     (buildPowTab base n)[i]'h = base ^ i := by
@@ -46,10 +42,6 @@ def pow2Tab : Array Nat := buildPowTab 2 1074
 
 /-- Powers of 10: `pow10Tab[i] = 10^i` for `i ∈ [0, 324]`. -/
 def pow10Tab : Array Nat := buildPowTab 10 324
-
-theorem pow2Tab_size : pow2Tab.size = 1075 := buildPowTab_size 2 1074
-
-theorem pow10Tab_size : pow10Tab.size = 325 := buildPowTab_size 10 324
 
 /-- Total `2^n` lookup with fallback. Inside the binary64 range
     (`n ≤ 1074`) this is an O(1) array lookup. -/

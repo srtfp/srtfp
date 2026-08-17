@@ -112,12 +112,6 @@ def kOfMQ (m : Nat) (q : Int) : Int :=
   else
     floorLog10Pow2 q
 
-/-- Compute Schubfach's `k` directly from a `Float`. The result is meaningful
-    only for finite values; NaN / Infinity should be filtered upstream. -/
-def kOfFloat (f : _root_.Float) : Int :=
-  let d := decode f
-  kOfMQ d.m d.q
-
 /-! ## M3.3+ Multiply-shift and tie-breaking
 
 The reference Schubfach implementation uses a precomputed table of 18-digit
@@ -381,10 +375,6 @@ theorem shiftedSig_eq_fast (m : Nat) (q k : Int) :
     shiftedSig m q k = shiftedSig_fast m q k := by
   unfold shiftedSig shiftedSig_fast
   simp only [pow2Lookup_eq, pow10Lookup_eq]
-
-theorem shiftedSig_eq_fast_thm : @shiftedSig = @shiftedSig_fast := by
-  funext m q k
-  exact shiftedSig_eq_fast m q k
 
 /-! ## Phase 3 runtime refinement of `shiftedSig`
 

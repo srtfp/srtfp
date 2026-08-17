@@ -819,54 +819,6 @@ theorem shiftedSig_floor_of_oracle
     (Nat.le_div_iff_mul_le hB_pos).mpr hOracle
   omega
 
-/-- Unconditional disagreement bound: under the sandwich and `m < 2^s`, the
-    kernel floor `K = ⌊m·g/2^s⌋` exceeds the spec floor `⌊N/B⌋` by at most
-    one.  No table-precision assumption needed; the bound is purely a
-    consequence of the sandwich's slack-width `m·B` and `m < 2^s`.
-
-    To upgrade to `K = ⌊N/B⌋` (i.e., rule out the `K = ⌊N/B⌋ + 1` case),
-    one further needs the residue condition that `B - (N mod B) ≥ m·B/2^s`,
-    i.e., that the spec quotient is not within `m/2^s` of an integer.  For
-    Schubfach-chosen `k`, this is Nadezhin's R20 (cf. §9.5 of the paper). -/
-theorem shiftedSig_floor_disagreement_le_one
-    (m g B s N : Nat)
-    (hB_pos : 0 < B)
-    (hm_lt_2s : m < 2 ^ s)
-    (hSandwich : N * 2 ^ s ≤ m * g * B ∧ m * g * B < N * 2 ^ s + m * B) :
-    (m * g) / 2 ^ s ≤ N / B + 1 := by
-  obtain ⟨_hLo, hHi⟩ := hSandwich
-  have h2s_pos : 0 < 2 ^ s := Nat.two_pow_pos s
-  set K := (m * g) / 2 ^ s with hK_def
-  have hK_lo : K * 2 ^ s ≤ m * g := Nat.div_mul_le_self _ _
-  have h1 : K * 2 ^ s * B < N * 2 ^ s + m * B := by
-    calc K * 2 ^ s * B ≤ m * g * B := Nat.mul_le_mul_right B hK_lo
-      _ < N * 2 ^ s + m * B := hHi
-  set Ks := N / B with hKs_def
-  have hN_decomp : B * Ks + N % B = N := Nat.div_add_mod N B
-  have h_mod_lt : N % B < B := Nat.mod_lt N hB_pos
-  have hN_lt : N < (Ks + 1) * B := by
-    have heq : (Ks + 1) * B = B * Ks + B := by grind
-    omega
-  have h2 : N * 2 ^ s < (Ks + 1) * B * 2 ^ s :=
-    (Nat.mul_lt_mul_right h2s_pos).mpr hN_lt
-  have h3 : K * 2 ^ s * B < (Ks + 1) * B * 2 ^ s + m * B := by omega
-  by_contra hContra
-  push_neg at hContra
-  have hK_ge : Ks + 2 ≤ K := by omega
-  have h4 : (Ks + 2) * 2 ^ s * B ≤ K * 2 ^ s * B := by
-    apply Nat.mul_le_mul_right
-    apply Nat.mul_le_mul_right
-    exact hK_ge
-  have h5 : (Ks + 2) * 2 ^ s * B < (Ks + 1) * B * 2 ^ s + m * B := by
-    calc (Ks + 2) * 2 ^ s * B ≤ K * 2 ^ s * B := h4
-      _ < (Ks + 1) * B * 2 ^ s + m * B := h3
-  have h6 : 2 ^ s * B < m * B := by
-    have h_diff : (Ks + 2) * 2 ^ s * B = (Ks + 1) * 2 ^ s * B + 2 ^ s * B := by grind
-    have h_rearrange : (Ks + 1) * B * 2 ^ s = (Ks + 1) * 2 ^ s * B := by grind
-    omega
-  have : 2 ^ s < m := Nat.lt_of_mul_lt_mul_right h6
-  omega
-
 /-! ### R20 residue condition: the floor-extraction closing oracle
 
 The disagreement bound above leaves exactly the `K = ⌊N/B⌋ + 1` case to
@@ -919,19 +871,6 @@ theorem residueR20Cond_of_dist (m B s N a : Nat)
   calc m * B ≤ m * ((B - N % B) * 2 ^ a) := Nat.mul_le_mul_left _ hDist
     _ = (B - N % B) * (m * 2 ^ a) := by grind
     _ ≤ (B - N % B) * 2 ^ s := Nat.mul_le_mul_left _ hSlack
-
-/-- R20 residue holds whenever `B` divides `N` (residue 0, the spec
-    quotient is exact).  Covers the `B = 1` band and the 2-adic
-    `kNeg ≥ qNeg` sub-band where `N mod B = 0`.  Requires only the kernel
-    slack `m ≤ 2^s` (automatic for binary64: `m < 2^53 ≤ 2^124 ≤ 2^s`). -/
-theorem residueR20Cond_of_dvd (m B s N : Nat)
-    (hDvd : B ∣ N) (hSlack : m ≤ 2 ^ s) :
-    residueR20Cond m B s N := by
-  unfold residueR20Cond
-  have hmod : N % B = 0 := Nat.mod_eq_zero_of_dvd hDvd
-  rw [hmod, Nat.sub_zero]
-  calc m * B = B * m := by grind
-    _ ≤ B * 2 ^ s := Nat.mul_le_mul_left _ hSlack
 
 /-- R20 residue holds in the *safe regime* `m · B ≤ 2^s`.  Since
     `N mod B < B` gives `B − N mod B ≥ 1`, the slack `2^s` already
@@ -1161,20 +1100,6 @@ theorem farFromMultipleBelow_dist (M u m s a : Nat)
   unfold residueR20Cond at h
   exact h
 
-/-- The separation predicate holds *trivially with `a = 0`* whenever
-    `m·u` is itself a multiple of `M` (residue 0, gap `= M`).  Covers the
-    divisible sub-band (`5^k ∣ m·2^j` band 2 — i.e. `5^k ∣ m`; or
-    `2^e ∣ m·5^kNeg` — i.e. `2^e ∣ m` — band 1) without any
-    number-theoretic input.  Note this is the predicate-level analogue of
-    `residueR20Cond_of_dvd`, exposed through `farFromMultipleBelow`. -/
-theorem farFromMultipleBelow_of_dvd (M u m : Nat)
-    (hDvd : M ∣ (m * u)) :
-    farFromMultipleBelow M u m 0 := by
-  unfold farFromMultipleBelow
-  have hmod : (m * u) % M = 0 := Nat.mod_eq_zero_of_dvd hDvd
-  rw [hmod, Nat.sub_zero, Nat.pow_zero, Nat.mul_one]
-  exact Nat.le_refl M
-
 /-- Band 2 closed *from the analytic core*: given the binary64 slack
     (`m < 2^53`, `s ≥ 124` ⟹ pick `a ≤ 71`) and the normalised
     separation of `m·2^(q−k)` from multiples of `5^k`, the band-2
@@ -1397,117 +1322,6 @@ yields `K · B − N ≤ N / 2^126` (more precisely, in Nat, an analogous
 divisibility statement).  This bounds how far the kernel's floor can
 exceed the spec floor; the residue argument then closes by showing
 the gap is in fact zero. -/
-
-/-- Bounded floor disagreement.  Given the sandwich and slack bound,
-    the kernel's `K · B` exceeds `N` by at most `⌊N / 2^126⌋`.
-
-    For inputs with `N ≤ 2^126`, the bound forces `K · B ≤ N` and the
-    proof closes immediately.  For larger `N`, the residue argument
-    is needed to show the gap is zero. -/
-theorem shiftedSig_floor_gap_bound
-    (m g B s N : Nat)
-    (_hB_pos : 0 < B)
-    (hSandwich : N * 2 ^ s ≤ m * g * B ∧ m * g * B < N * 2 ^ s + m * B)
-    (hSlack : m * B * 2 ^ 126 ≤ N * 2 ^ s) :
-    let K := (m * g) / 2 ^ s
-    K * B ≤ N + N / 2 ^ 126 := by
-  obtain ⟨hLo, hHi⟩ := hSandwich
-  have h2s_pos : 0 < 2 ^ s := Nat.two_pow_pos s
-  have h2_126_pos : 0 < 2 ^ 126 := Nat.two_pow_pos 126
-  set K := (m * g) / 2 ^ s with hK_def
-  -- K · 2^s ≤ m · g.
-  have hK_lo : K * 2 ^ s ≤ m * g := Nat.div_mul_le_self _ _
-  -- K · B · 2^s ≤ m · g · B < N · 2^s + m · B.
-  have h1 : K * B * 2 ^ s < N * 2 ^ s + m * B := by
-    calc K * B * 2 ^ s
-        = K * 2 ^ s * B := by grind
-      _ ≤ m * g * B := Nat.mul_le_mul_right B hK_lo
-      _ < N * 2 ^ s + m * B := hHi
-  -- Multiply both sides by 2^126.
-  -- K · B · 2^s · 2^126 < (N · 2^s + m · B) · 2^126
-  --   = N · 2^s · 2^126 + m · B · 2^126
-  --   ≤ N · 2^s · 2^126 + N · 2^s   (using slack bound m · B · 2^126 ≤ N · 2^s)
-  --   = N · 2^s · (2^126 + 1).
-  have h2 : K * B * 2 ^ s * 2 ^ 126 < N * 2 ^ s * (2 ^ 126 + 1) := by
-    have hStep : (N * 2 ^ s + m * B) * 2 ^ 126 ≤ N * 2 ^ s * (2 ^ 126 + 1) := by
-      have hExpand : (N * 2 ^ s + m * B) * 2 ^ 126
-                      = N * 2 ^ s * 2 ^ 126 + m * B * 2 ^ 126 := by grind
-      have hSlack' : m * B * 2 ^ 126 ≤ N * 2 ^ s := hSlack
-      have hRHS : N * 2 ^ s * (2 ^ 126 + 1) = N * 2 ^ s * 2 ^ 126 + N * 2 ^ s := by grind
-      grind
-    calc K * B * 2 ^ s * 2 ^ 126
-        < (N * 2 ^ s + m * B) * 2 ^ 126 := by
-          have := Nat.mul_lt_mul_right h2_126_pos |>.mpr h1
-          have hrw : (N * 2 ^ s + m * B) * 2 ^ 126
-                      = N * 2 ^ s * 2 ^ 126 + m * B * 2 ^ 126 := by grind
-          have hrw' : K * B * 2 ^ s * 2 ^ 126
-                      = (K * B * 2 ^ s) * 2 ^ 126 := by grind
-          omega
-      _ ≤ N * 2 ^ s * (2 ^ 126 + 1) := hStep
-  -- Divide both sides by 2^s · 2^126 in Nat.
-  -- K · B · 2^126 < N · (2^126 + 1) (after cancelling 2^s).
-  have hCancel_s : K * B * 2 ^ 126 < N * (2 ^ 126 + 1) := by
-    -- From h2 with 2^s factored out.
-    have hLHS : K * B * 2 ^ s * 2 ^ 126 = K * B * 2 ^ 126 * 2 ^ s := by grind
-    have hRHS : N * 2 ^ s * (2 ^ 126 + 1) = N * (2 ^ 126 + 1) * 2 ^ s := by grind
-    rw [hLHS, hRHS] at h2
-    exact Nat.lt_of_mul_lt_mul_right h2
-  -- N · (2^126 + 1) = N · 2^126 + N.  So K · B · 2^126 ≤ N · 2^126 + N - 1 ≤ N · 2^126 + N.
-  -- Hence K · B ≤ (N · 2^126 + N) / 2^126 = N + N/2^126 (approx).
-  -- More precisely: K · B ≤ N + N / 2^126 + 1 if N % 2^126 > 0, but we want strict.
-  -- Cleaner: K · B · 2^126 < N · 2^126 + N ≤ (N + N/2^126 + 1) · 2^126 ... need care.
-  -- Use:  K · B · 2^126 < N · 2^126 + N, so K · B · 2^126 ≤ N · 2^126 + N - 1.
-  -- Then K · B ≤ N + (N - 1) / 2^126 ≤ N + N / 2^126.
-  have hExpand : N * (2 ^ 126 + 1) = N * 2 ^ 126 + N := by grind
-  rw [hExpand] at hCancel_s
-  -- K · B · 2^126 < N · 2^126 + N.
-  -- So K · B · 2^126 ≤ N · 2^126 + N - 1 (Nat).  Hence K · B ≤ N + (N-1)/2^126 ≤ N + N/2^126.
-  have h3 : K * B * 2 ^ 126 ≤ N * 2 ^ 126 + N - 1 := by grind
-  -- (K · B) ≤ (N · 2^126 + N - 1) / 2^126 ≤ N + (N-1)/2^126 ≤ N + N/2^126.
-  -- Divide h3 by 2^126:
-  have h4 : K * B ≤ (N * 2 ^ 126 + N - 1) / 2 ^ 126 := by
-    have := Nat.div_le_div_right (c := 2 ^ 126) h3
-    have hself : K * B * 2 ^ 126 / 2 ^ 126 = K * B :=
-      Nat.mul_div_cancel _ h2_126_pos
-    rw [hself] at this
-    exact this
-  -- (N · 2^126 + N - 1) / 2^126 = N + (N - 1) / 2^126.
-  -- when N ≥ 1; for N = 0, both sides are 0.
-  by_cases hN : N = 0
-  · -- N = 0.  From hSlack: m · B · 2^126 ≤ 0, so m · B = 0.
-    -- From h1 (post-N=0): K · B · 2^s < 0 + m · B = 0.  So K · B = 0.
-    -- Goal: K · B ≤ 0 + 0/2^126 = 0.
-    subst hN
-    have hSlack' : m * B * 2 ^ 126 ≤ 0 := by simpa using hSlack
-    have hmB_zero : m * B = 0 := by
-      rcases Nat.mul_eq_zero.mp (by grind : m * B * 2 ^ 126 = 0) with h | h
-      · exact h
-      · exact absurd h (Nat.pos_iff_ne_zero.mp h2_126_pos)
-    have hKB_zero : K * B = 0 := by
-      have hh : K * B * 2 ^ s < 0 + m * B := by simpa using h1
-      rw [hmB_zero] at hh
-      have : K * B * 2 ^ s = 0 := by grind
-      rcases Nat.mul_eq_zero.mp this with h | h
-      · exact h
-      · exact absurd h (Nat.pos_iff_ne_zero.mp h2s_pos)
-    show K * B ≤ 0 + 0 / 2 ^ 126
-    rw [hKB_zero]; simp
-  · -- N ≥ 1.
-    have hN_pos : 0 < N := Nat.pos_of_ne_zero hN
-    -- (N · 2^126 + N - 1) / 2^126 ≤ N + N/2^126.
-    -- N · 2^126 / 2^126 = N.  (N - 1)/2^126 ≤ N/2^126 only if N - 1 < N, true.
-    -- Actually we want: K · B ≤ (N · 2^126 + N - 1) / 2^126 ≤ N + N / 2^126.
-    have hKey : (N * 2 ^ 126 + N - 1) / 2 ^ 126 ≤ N + N / 2 ^ 126 := by
-      have h_sub_le : N * 2 ^ 126 + N - 1 ≤ N * 2 ^ 126 + N := by omega
-      have h_div_le : (N * 2 ^ 126 + N - 1) / 2 ^ 126 ≤ (N * 2 ^ 126 + N) / 2 ^ 126 :=
-        Nat.div_le_div_right h_sub_le
-      have h_split : (N * 2 ^ 126 + N) / 2 ^ 126 = N + N / 2 ^ 126 := by
-        -- (N · 2^126 + N) / 2^126: split via Nat.add_mul_div_right (a + b*c)/c = a/c + b.
-        have hrw : N * 2 ^ 126 + N = N + N * 2 ^ 126 := by grind
-        rw [hrw, Nat.add_mul_div_right N N h2_126_pos]
-        omega
-      omega
-    omega
 
 /-! ## Floor-extraction closing lemma for the kernel
 

@@ -196,11 +196,6 @@ theorem mk'_eq_fast (sign : Bool) (significand : Nat) (exponent : Int) :
   unfold mk'_fast Decimal.mk'
   exact canonical_eq_fast _
 
--- Superseded registration: `mk'_eq_fast2_csimp` below is the live @[csimp].
-theorem mk'_eq_fast_csimp : @Decimal.mk' = @mk'_fast := by
-  funext sign sig exp
-  exact mk'_eq_fast sign sig exp
-
 /-! ## `mk'_fast2` — check canonicalisation BEFORE allocating the Decimal.
 
 `mk'_fast` allocates a Decimal ctor then calls `canonical_fast` which

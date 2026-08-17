@@ -146,9 +146,4 @@ def shiftedSig_v4 (m : Nat) (q : Int) (k : Int) : Nat :=
 For test/bench purposes, expose a function comparing `shiftedSig_v4 = shiftedSig_v3`
 on a list of `(m, q, k)` triples. -/
 
-/-- `True` iff `shiftedSig_v4 m q k = shiftedSig_v3 m q k`.  Used by
-    `Tests/Uint64Kernel192.lean` for runtime corpus validation. -/
-def shiftedSig_v4_matches_v3 (m : Nat) (q : Int) (k : Int) : Bool :=
-  decide (shiftedSig_v4 m q k = shiftedSig_v3 m q k)
-
 end Srtfp.Schubfach

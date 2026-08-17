@@ -60,10 +60,6 @@ def tableIdx192 (k : Int) : Nat := (k + 324).toNat
 
 theorem pow10Table192_size_eq : pow10Table192.size = 649 := by decide +kernel
 
-theorem pow10Table192_kMin_def : pow10Table192_kMin = -324 := rfl
-
-theorem pow10Table192_kMax_def : pow10Table192_kMax = 324 := rfl
-
 /-- When `k` is in the tabulated range, `pow10Lookup192` returns the
     `tableIdx192 k`-th entry. -/
 theorem pow10Lookup192_in_range (k : Int)

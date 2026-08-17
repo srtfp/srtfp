@@ -92,10 +92,6 @@ quantity we care about.  `mulHigh128_toNat` proves equivalence (mod 2⁶⁴). -/
 def mulHigh128Spec (a gHi gLo : UInt64) : Nat :=
   (a.toNat * (gHi.toNat * 2 ^ 64 + gLo.toNat)) / 2 ^ 64
 
-/-- Auxiliary spec for `mulHi64`. -/
-def mulHi64Spec (a b : UInt64) : Nat :=
-  (a.toNat * b.toNat) / 2 ^ 64
-
 /-! ## Nat-level mirror
 
 `mulHi64Nat` is a Nat-only mirror of the schoolbook computation in

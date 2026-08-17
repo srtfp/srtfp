@@ -227,22 +227,6 @@ theorem denI_pos (u M : Nat) (hM : 0 < M) :
               Int.mul_le_mul_of_nonneg_right this (Int.le_of_lt h1)
       omega
 
-/-- Strict growth: `denI n < denI (n+2)` inside the regime (and one-step
-monotonicity `denI (n+1) ≤ denI (n+2)`). -/
-theorem denI_lt_add_two (u M : Nat) (hM : 0 < M) (n : Nat)
-    (hpos : ∀ i, i ≤ n+2 → 0 < rem u M i) :
-    denI u M (n+1) < denI u M (n+2) := by
-  have hq : 1 ≤ qt u M (n+1) := qt_pos u M hM (n+1) (fun i hi => hpos i (by omega))
-  have h1 : 0 < denI u M (n+1) := denI_pos u M hM (n+1) (fun i hi => hpos i (by omega))
-  have h0 : 0 < denI u M n := denI_pos u M hM n (fun i hi => hpos i (by omega))
-  show denI u M (n+1) < (qt u M (n+1) : ℤ) * denI u M (n+1) + denI u M n
-  have : (1 : ℤ) ≤ (qt u M (n+1) : ℤ) := by exact_mod_cast hq
-  have hmul : denI u M (n+1) ≤ (qt u M (n+1) : ℤ) * denI u M (n+1) := by
-    calc denI u M (n+1) = 1 * denI u M (n+1) := by grind
-      _ ≤ (qt u M (n+1) : ℤ) * denI u M (n+1) :=
-          Int.mul_le_mul_of_nonneg_right this (Int.le_of_lt h1)
-  omega
-
 /-- The gcd of consecutive remainders is invariant (Euclid). -/
 theorem gcd_rem_invariant (u M : Nat) :
     ∀ n, Nat.gcd (rem u M (n+1)) (rem u M n) = Nat.gcd (rem u M 1) (rem u M 0) := by

@@ -2,9 +2,8 @@
 
    The Schubfach optimization series replaced kernels via proven-equal
    `@[csimp]` swaps. Each function must have exactly ONE registration
-   (enforced by review; superseded swaps keep their theorems but not the
-   attribute), and this module asserts at compile time which replacement
-   the compiler will actually use. An import reorder or a stray new
+   (enforced by review), and this module asserts at compile time which
+   replacement the compiler will actually use. An import reorder or a stray new
    registration that changes the live kernel FAILS THE BUILD here
    instead of silently reverting performance.
 

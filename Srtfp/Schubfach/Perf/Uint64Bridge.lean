@@ -40,15 +40,6 @@ theorem uint64_shiftLeft_1 (x : UInt64) : x <<< 1 = 2 * x := by
   rw [h1, h2]
   simp [Nat.shiftLeft_eq, Nat.mul_comm]
 
-/-- For `m < 2^64`, `(UInt64.ofNat m).toNat = m`. -/
-theorem toNat_ofNat_of_lt {m : Nat} (h : m < (1 <<< 64 : Nat)) :
-    (UInt64.ofNat m).toNat = m := by
-  rw [UInt64.toNat_ofNat']
-  apply Nat.mod_eq_of_lt
-  show m < 2 ^ 64
-  have : (1 <<< 64 : Nat) = 2 ^ 64 := by decide
-  omega
-
 /-- For `m ≥ 1`, `(4·m - 2 : Int).toNat = 4*m - 2`. -/
 theorem toNat_4m_sub_2_eq {m : Nat} (hm_pos : m ≥ 1) :
     (4 * (m : Int) - 2).toNat = 4 * m - 2 := by
@@ -746,63 +737,6 @@ theorem shortestUnsigned_v2_eq_packed (m : Nat) (q : Int) :
   | some v =>
     exact (shortestUnsigned_u64_opt_some_eq_packed m q v h).symm
 
-/-- `shortestUnsigned_v2 = shortestUnsigned` (via the packed chain). -/
-theorem shortestUnsigned_v2_eq (m : Nat) (q : Int) :
-    shortestUnsigned_v2 m q = shortestUnsigned m q := by
-  rw [shortestUnsigned_v2_eq_packed, shortestUnsigned_packed_eq]
-
-/-- `shortestUnsigned_packed = shortestUnsigned_v2`. -/
-theorem shortestUnsigned_packed_eq_v2 :
-    @shortestUnsigned_packed = @shortestUnsigned_v2 := by
-  funext m q
-  exact (shortestUnsigned_v2_eq_packed m q).symm
-
-/-- `shortestUnsigned = shortestUnsigned_v2`. -/
-theorem shortestUnsigned_eq_v2 :
-    @shortestUnsigned = @shortestUnsigned_v2 := by
-  funext m q
-  exact (shortestUnsigned_v2_eq m q).symm
-
-/-! ## Fused `toDecimal` with v2 inlined
-
-The existing `toDecimal_packed` in `Orchestration.lean` was compiled
-before our v2 csimp was registered, so its compiled body still calls
-`shortestUnsigned_packed` directly.  This new `toDecimal_v2` is a
-syntactic copy of `toDecimal` compiled AFTER the v2 csimp is in scope,
-so the inner `shortestUnsigned` call inlines to `shortestUnsigned_v2`. -/
-
-open Srtfp.Float in
-/-- Fused `Float → Decimal` using the v2 path directly. -/
-def toDecimal_v2 (f : _root_.Float) : Except String _root_.Srtfp.Decimal :=
-  if isNaNBits f then
-    .error "NaN"
-  else if isInfBits f then
-    .error (if signBit f then "-Infinity" else "Infinity")
-  else
-    let d := decode f
-    if d.m = 0 then .ok ⟨d.sign, 0, 0⟩
-    else
-      let (sig, exp) := shortestUnsigned_v2 d.m d.q
-      .ok (Srtfp.Decimal.mk' d.sign sig exp)
-
-theorem toDecimal_v2_eq (f : _root_.Float) :
-    toDecimal_v2 f = toDecimal f := by
-  unfold toDecimal_v2 toDecimal
-  by_cases h1 : Srtfp.Float.isNaNBits f = true
-  · simp [h1]
-  by_cases h2 : Srtfp.Float.isInfBits f = true
-  · simp [h1, h2]
-  simp only [h1, h2, if_false, Bool.false_eq_true]
-  by_cases h3 : (Srtfp.Float.decode f).m = 0
-  · simp [h3]
-  simp only [h3, if_false]
-  rw [shortestUnsigned_v2_eq]
-
-/-- `toDecimal = toDecimal_v2`. -/
-theorem toDecimal_eq_v2 : @toDecimal = @toDecimal_v2 := by
-  funext f
-  exact (toDecimal_v2_eq f).symm
-
 /-! ## Bridge for `shortestUnsigned_u64_opt_v2` (UInt64-significand path).
 
 Same shape as `shortestUnsigned_u64_opt_some_eq_packed`, but the
@@ -832,10 +766,6 @@ theorem uint64_eq_0 (sU : UInt64) :
 theorem uint64_ofNat_toNat_self {s : Nat} (h : s < 2^64) :
     (UInt64.ofNat s).toNat = s := by
   rw [UInt64.toNat_ofNat']; exact Nat.mod_eq_of_lt h
-
-/-- Round-trip the other way: `UInt64.ofNat sU.toNat = sU`. -/
-theorem uint64_ofNat_toNat (sU : UInt64) :
-    UInt64.ofNat sU.toNat = sU := UInt64.ofNat_toNat
 
 /-- Helper: when both inRoundingInterval-paths agree, the s≥10 branches
     return identical results modulo `.toNat`.  Stated as: for any leaves
@@ -1039,42 +969,5 @@ theorem shortestUnsigned_v2_eq_v3_csimp :
     @shortestUnsigned_v2 = @shortestUnsigned_v3 := by
   funext m q
   rw [shortestUnsigned_v2_eq_packed, ← shortestUnsigned_v3_eq_packed]
-
-/-! ## Fused `toDecimal_v3` — direct v3 path, no v2 detour.
-
-Compiled AFTER all v3 csimps so the inner `shortestUnsigned_packed`
-call inlines to `shortestUnsigned_v3`. -/
-
-open Srtfp.Float in
-/-- Fused `Float → Decimal` using the v3 path directly. -/
-def toDecimal_v3 (f : _root_.Float) : Except String _root_.Srtfp.Decimal :=
-  if isNaNBits f then
-    .error "NaN"
-  else if isInfBits f then
-    .error (if signBit f then "-Infinity" else "Infinity")
-  else
-    let d := decode f
-    if d.m = 0 then .ok ⟨d.sign, 0, 0⟩
-    else
-      let (sig, exp) := shortestUnsigned_v3 d.m d.q
-      .ok (Srtfp.Decimal.mk' d.sign sig exp)
-
-theorem toDecimal_v3_eq (f : _root_.Float) :
-    toDecimal_v3 f = toDecimal f := by
-  unfold toDecimal_v3 toDecimal
-  by_cases h1 : Srtfp.Float.isNaNBits f = true
-  · simp [h1]
-  by_cases h2 : Srtfp.Float.isInfBits f = true
-  · simp [h1, h2]
-  simp only [h1, h2, if_false, Bool.false_eq_true]
-  by_cases h3 : (Srtfp.Float.decode f).m = 0
-  · simp [h3]
-  simp only [h3, if_false]
-  rw [shortestUnsigned_v3_eq]
-
--- Superseded registration: `toDecimal_eq_v7_csimp` (KernelV6.lean) is the live @[csimp].
-theorem toDecimal_eq_v3_csimp : @toDecimal = @toDecimal_v3 := by
-  funext f
-  exact (toDecimal_v3_eq f).symm
 
 end Srtfp.Schubfach

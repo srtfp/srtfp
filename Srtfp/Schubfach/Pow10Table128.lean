@@ -26,9 +26,6 @@ def pow10Table128_kMin : Int := -324
 /-- The largest tabulated `k`. -/
 def pow10Table128_kMax : Int := 324
 
-/-- Number of entries in the table. -/
-def pow10Table128_size : Nat := 649
-
 /-- Raw 128-bit pow10 entries `(gHi, gLo, h)` for `k ∈ [-324, 324]`,
     indexed by `(k - pow10Table128_kMin).toNat`. -/
 def pow10Table128 : Array (UInt64 × UInt64 × Int) := #[

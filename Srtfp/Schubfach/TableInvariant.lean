@@ -60,10 +60,6 @@ def tableIdx (k : Int) : Nat := (k + 324).toNat
 
 theorem pow10Table128_size_eq : pow10Table128.size = 649 := by decide +kernel
 
-theorem pow10Table128_kMin_def : pow10Table128_kMin = -324 := rfl
-
-theorem pow10Table128_kMax_def : pow10Table128_kMax = 324 := rfl
-
 /-- When `k` is in the tabulated range, `pow10Lookup128` returns the
     `tableIdx k`-th entry. -/
 theorem pow10Lookup128_in_range (k : Int)
@@ -158,68 +154,5 @@ theorem pow10Lookup128_invariant (k : Int)
   -- Rewrite the lookup to the table-indexed entry
   simp only [hLookup]
   exact (entryInvBool_iff k _ _ _).mp hEntry_inv
-
-/-! ## Normality invariant: every `gHi` has its top bit set
-
-Every table entry's `gHi` is in `[2^63, 2^64)`, hence the full 128-bit
-`g = gHi · 2^64 + gLo ≥ 2^127`.  This is the §9 high-bit normality
-assumption that drives the multiply-shift precision bound. -/
-
-/-- Per-entry normality: `gHi.toNat ≥ 2^63`. -/
-def entryNormBool (gHi : UInt64) : Bool :=
-  decide ((2 ^ 63 : Nat) ≤ gHi.toNat)
-
-/-- Aggregate normality over the entire table. -/
-def tableNorm128Bool : Bool :=
-  (List.range pow10Table128.size).all fun i =>
-    entryNormBool (pow10Table128[i]!).1
-
-/-- Every table entry's `gHi` has its top bit set.  Verified by
-    `decide +kernel` on the literal table data. -/
-theorem tableNorm128 : tableNorm128Bool = true := by decide +kernel
-
-/-- Per-entry normality extraction. -/
-theorem entryNormBool_of_tableNorm128 (i : Nat) (hi : i < pow10Table128.size) :
-    entryNormBool (pow10Table128[i]!).1 = true := by
-  have hAll : tableNorm128Bool = true := tableNorm128
-  unfold tableNorm128Bool at hAll
-  rw [List.all_eq_true] at hAll
-  apply hAll
-  rw [List.mem_range]
-  exact hi
-
-/-- Normality in arithmetic form: `2^63 ≤ gHi.toNat`. -/
-theorem pow10Lookup128_gHi_top_bit (k : Int)
-    (hLo : pow10Table128_kMin ≤ k) (hHi : k ≤ pow10Table128_kMax) :
-    2 ^ 63 ≤ (pow10Lookup128 k).1.toNat := by
-  have hLookup := pow10Lookup128_in_range k hLo hHi
-  have hidx_lt : tableIdx k < pow10Table128.size := by
-    unfold tableIdx
-    have hk_nonneg : 0 ≤ k + 324 := by
-      have : pow10Table128_kMin = -324 := rfl
-      omega
-    have hk_ub : k + 324 ≤ 648 := by
-      have : pow10Table128_kMax = 324 := rfl
-      omega
-    rw [pow10Table128_size_eq]
-    have := Int.toNat_of_nonneg hk_nonneg
-    omega
-  have hEntry := entryNormBool_of_tableNorm128 (tableIdx k) hidx_lt
-  unfold entryNormBool at hEntry
-  rw [decide_eq_true_eq] at hEntry
-  rw [hLookup]
-  exact hEntry
-
-/-- The full 128-bit `g = gHi · 2^64 + gLo ≥ 2^127`. -/
-theorem pow10Lookup128_g_ge (k : Int)
-    (hLo : pow10Table128_kMin ≤ k) (hHi : k ≤ pow10Table128_kMax) :
-    2 ^ 127 ≤ (pow10Lookup128 k).1.toNat * 2 ^ 64 + (pow10Lookup128 k).2.1.toNat := by
-  have hgHi : 2 ^ 63 ≤ (pow10Lookup128 k).1.toNat :=
-    pow10Lookup128_gHi_top_bit k hLo hHi
-  have h127 : (2 : Nat) ^ 127 = 2 ^ 63 * 2 ^ 64 := by decide
-  rw [h127]
-  have h1 : 2 ^ 63 * 2 ^ 64 ≤ (pow10Lookup128 k).1.toNat * 2 ^ 64 := by
-    exact Nat.mul_le_mul_right _ hgHi
-  exact Nat.le_trans h1 (Nat.le_add_right _ _)
 
 end Srtfp.Schubfach

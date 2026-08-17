@@ -45,7 +45,7 @@ def floatToStrRef (f : _root_.Float) : String :=
 
 /-! ## Fast path: avoid Except + Decimal allocation. -/
 
-/-- Fused `Float → String`. Mirrors `toDecimal_v4`'s control flow but
+/-- Fused `Float → String`. Mirrors `toDecimal`'s control flow but
     inlines the `Except` and `Decimal` wrappers — the success path drops
     straight from `(sig, exp)` to the final `++` chain. -/
 @[inline]
@@ -124,11 +124,5 @@ theorem toStringFast_eq_ref (f : _root_.Float) : toStringFast f = floatToStrRef 
             signStr ++ toString sig' ++ "e" ++ intToStrRef exp')
       = decimalToStrRef (_root_.Srtfp.Decimal.mk' (decode f).sign sig exp)
   rw [decimalToStrRef_mk']
-
--- Superseded registration: `floatToStrRef_eq_toStringFast4` (DigitsFast.lean)
--- is the live @[csimp].
-theorem floatToStrRef_eq_toStringFast : @floatToStrRef = @toStringFast := by
-  funext f
-  exact (toStringFast_eq_ref f).symm
 
 end Srtfp.Schubfach

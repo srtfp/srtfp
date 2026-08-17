@@ -34,18 +34,6 @@ set_option maxHeartbeats 2000000
 def quad256Nat (hi midHi midLo lo : UInt64) : Nat :=
   hi.toNat * 2 ^ 192 + midHi.toNat * 2 ^ 128 + midLo.toNat * 2 ^ 64 + lo.toNat
 
-theorem quad256Nat_lt (hi midHi midLo lo : UInt64) :
-    quad256Nat hi midHi midLo lo < 2 ^ 256 := by
-  unfold quad256Nat
-  have hHi : hi.toNat < 2 ^ 64 := hi.toNat_lt
-  have hMH : midHi.toNat < 2 ^ 64 := midHi.toNat_lt
-  have hML : midLo.toNat < 2 ^ 64 := midLo.toNat_lt
-  have hLo : lo.toNat < 2 ^ 64 := lo.toNat_lt
-  have h192 : (2 : Nat) ^ 192 = 2 ^ 64 * (2 ^ 64 * 2 ^ 64) := by decide
-  have h128 : (2 : Nat) ^ 128 = 2 ^ 64 * 2 ^ 64 := by decide
-  have h256 : (2 : Nat) ^ 256 = 2 ^ 64 * (2 ^ 64 * (2 ^ 64 * 2 ^ 64)) := by decide
-  grind
-
 /-! ## 4-limb mul correctness via `mul192_b_g_toNat` + shift
 
 The kernel's 4-limb product can be derived from two 128-bit muls plus
@@ -555,55 +543,6 @@ theorem shift_kernel256_mid_eq
 These mirror `shiftedSig_sandwich` and `shiftedSig_slack_bound` from
 `KernelCorrectness.lean`, but for the 192-bit table with `g ≥ 2^191`.
 -/
-
-/-- 192-bit slack bound: `m · B · 2^190 ≤ N · 2^s` from `g ≥ 2^191`. -/
-theorem shiftedSig_slack_bound_192
-    (m g qPos qNeg kPos kNeg hPos hNeg s : Nat)
-    (hg : 2 ^ 191 ≤ g)
-    (hRegroup : 2 ^ s * 2 ^ qPos * 2 ^ hNeg = 2 ^ qNeg * 2 ^ hPos)
-    (hInv : 10 ^ kNeg * 2 ^ hPos ≤ g * 10 ^ kPos * 2 ^ hNeg
-              ∧ g * 10 ^ kPos * 2 ^ hNeg < 10 ^ kNeg * 2 ^ hPos + 10 ^ kPos * 2 ^ hNeg) :
-    m * (2 ^ qNeg * 10 ^ kPos) * 2 ^ 190
-      ≤ m * 2 ^ qPos * 10 ^ kNeg * 2 ^ s := by
-  -- Mirror of `shiftedSig_slack_bound` with the wider precision factor 2^190.
-  -- Step 1: 2^190 · 10^kPos · 2^hNeg ≤ 10^kNeg · 2^hPos (table high-precision bound at 191).
-  obtain ⟨_, hHi⟩ := hInv
-  -- From `g ≥ 2^191`: (2^191) · 10^kPos · 2^hNeg ≤ g · 10^kPos · 2^hNeg < 10^kNeg · 2^hPos + 10^kPos · 2^hNeg.
-  -- Hence (2^191 - 1) · 10^kPos · 2^hNeg < 10^kNeg · 2^hPos.  Then 2^190 ≤ 2^191 - 1.
-  have h1 : 2 ^ 191 * (10 ^ kPos * 2 ^ hNeg) ≤ g * 10 ^ kPos * 2 ^ hNeg := by
-    have := Nat.mul_le_mul_right (10 ^ kPos * 2 ^ hNeg) hg
-    have hrw2 : g * (10 ^ kPos * 2 ^ hNeg) = g * 10 ^ kPos * 2 ^ hNeg := by grind
-    rw [hrw2] at this; exact this
-  have h2 : 2 ^ 191 * (10 ^ kPos * 2 ^ hNeg) < 10 ^ kNeg * 2 ^ hPos + 10 ^ kPos * 2 ^ hNeg :=
-    Nat.lt_of_le_of_lt h1 hHi
-  have hExpand : (2 ^ 191 - 1) * (10 ^ kPos * 2 ^ hNeg)
-                  = 2 ^ 191 * (10 ^ kPos * 2 ^ hNeg) - 10 ^ kPos * 2 ^ hNeg := by
-    have := Nat.sub_mul (2 ^ 191) 1 (10 ^ kPos * 2 ^ hNeg); omega
-  have h2_191_pos : (1 : Nat) ≤ 2 ^ 191 := Nat.one_le_two_pow
-  have hStrict : (2 ^ 191 - 1) * (10 ^ kPos * 2 ^ hNeg) < 10 ^ kNeg * 2 ^ hPos := by omega
-  -- 2^190 ≤ 2^191 - 1.
-  have h190_le : 2 ^ 190 ≤ 2 ^ 191 - 1 := by
-    have : (2 : Nat) ^ 191 = 2 * 2 ^ 190 := by
-      rw [show (191 : Nat) = 1 + 190 from rfl, Nat.pow_add, Nat.pow_one]
-    have h1 : 1 ≤ 2 ^ 190 := Nat.one_le_two_pow
-    omega
-  have hWeak : 2 ^ 190 * (10 ^ kPos * 2 ^ hNeg) ≤ 10 ^ kNeg * 2 ^ hPos := by
-    have h_le : 2 ^ 190 * (10 ^ kPos * 2 ^ hNeg) ≤ (2 ^ 191 - 1) * (10 ^ kPos * 2 ^ hNeg) :=
-      Nat.mul_le_mul_right _ h190_le
-    omega
-  -- Multiply through by m · 2^qNeg, apply regroup.
-  have hMul : m * 2 ^ qNeg * (2 ^ 190 * (10 ^ kPos * 2 ^ hNeg))
-                ≤ m * 2 ^ qNeg * (10 ^ kNeg * 2 ^ hPos) :=
-    Nat.mul_le_mul_left _ hWeak
-  have hLHS_eq : m * 2 ^ qNeg * (2 ^ 190 * (10 ^ kPos * 2 ^ hNeg))
-                  = m * (2 ^ qNeg * 10 ^ kPos) * 2 ^ 190 * 2 ^ hNeg := by grind
-  have hRHS_eq : m * 2 ^ qNeg * (10 ^ kNeg * 2 ^ hPos)
-                  = m * 2 ^ qPos * 10 ^ kNeg * 2 ^ s * 2 ^ hNeg := by
-    have hMul' : m * 2 ^ qNeg * (10 ^ kNeg * 2 ^ hPos)
-                  = m * 10 ^ kNeg * (2 ^ qNeg * 2 ^ hPos) := by grind
-    rw [hMul', ← hRegroup]; grind
-  rw [hLHS_eq, hRHS_eq] at hMul
-  exact Nat.le_of_mul_le_mul_right hMul (Nat.two_pow_pos _)
 
 /-! ## Bridge: `shiftedSig_v4` agrees with `shiftedSig`
 
@@ -1235,42 +1174,5 @@ theorem shortestUnsigned_v4_eq (m : Nat) (q : Int) :
   have hRev : shortestUnsigned_v3 m q = shortestUnsigned m q := shortestUnsigned_v3_eq m q
   unfold shortestUnsigned_v3 at hRev
   exact hRev
-
-/-! ## Fused `toDecimal_v4`
-
-Calls `shortestUnsigned_v4` directly (which uses `shiftedSig_v3b` via
-the new chain).  Compiled in this file, AFTER `shiftedSig_v3b` is in
-scope. -/
-
-open Srtfp.Float in
-def toDecimal_v4 (f : _root_.Float) : Except String _root_.Srtfp.Decimal :=
-  if isNaNBits f then
-    .error "NaN"
-  else if isInfBits f then
-    .error (if signBit f then "-Infinity" else "Infinity")
-  else
-    let d := decode f
-    if d.m = 0 then .ok ⟨d.sign, 0, 0⟩
-    else
-      let (sig, exp) := shortestUnsigned_v4 d.m d.q
-      .ok (Srtfp.Decimal.mk' d.sign sig exp)
-
-theorem toDecimal_v4_eq (f : _root_.Float) :
-    toDecimal_v4 f = toDecimal f := by
-  unfold toDecimal_v4 toDecimal
-  by_cases h1 : Srtfp.Float.isNaNBits f = true
-  · simp [h1]
-  by_cases h2 : Srtfp.Float.isInfBits f = true
-  · simp [h1, h2]
-  simp only [h1, h2, if_false, Bool.false_eq_true]
-  by_cases h3 : (Srtfp.Float.decode f).m = 0
-  · simp [h3]
-  simp only [h3, if_false]
-  rw [shortestUnsigned_v4_eq]
-
--- Superseded registration: `toDecimal_eq_v7_csimp` (KernelV6.lean) is the live @[csimp].
-theorem toDecimal_eq_v4_csimp : @toDecimal = @toDecimal_v4 := by
-  funext f
-  exact (toDecimal_v4_eq f).symm
 
 end Srtfp.Schubfach

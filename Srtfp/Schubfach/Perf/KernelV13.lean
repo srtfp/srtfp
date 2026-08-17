@@ -361,12 +361,6 @@ theorem shortestUnsigned_v13_eq_packed (mU qB : UInt64) :
     exact (shortestUnsigned_u64_opt_flip3_some_eq_packed _ _ _ _
       (shortestUnsigned_u64_opt_v13_some_eq_flip3 mU qB (sU, k) h)).symm
 
-theorem shortestUnsigned_v13_eq_v8 (mU qB : UInt64) :
-    shortestUnsigned_v13 mU qB = shortestUnsigned_v8 mU qB := by
-  rw [shortestUnsigned_v13_eq_packed, shortestUnsigned_packed_eq,
-      ← shortestUnsigned_v5_eq, ← shortestUnsigned_v7_eq_v5,
-      ← shortestUnsigned_v8_eq_v7]
-
 set_option maxHeartbeats 1600000 in
 /-- Every successful v11 exit carries an exponent in `[-324, 325]`
     (mirror of the v11 one). -/
