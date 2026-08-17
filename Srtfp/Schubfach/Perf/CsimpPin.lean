@@ -7,6 +7,17 @@
    registration that changes the live kernel FAILS THE BUILD here
    instead of silently reverting performance.
 
+   The optimization ladder, for orientation (each rung proven equal to
+   the previous; retired rungs survive only as proof waypoints or
+   differential-test baselines):
+     packed  shared `(q, k)` orchestration        (Orchestration.lean)
+     v2/v3   all-UInt64 kernel, boxed-free path   (Uint64Kernel/Bridge.lean)
+     v4      192-bit table, widened safe regime   (Kernel192Correctness.lean)
+     v5      no domain re-check on the hot path   (KernelV5.lean)
+     v6-v8   biased index, side tables, u64 API   (KernelV6.lean)
+     v13     boundary-product digits + flip3      (KernelV13*.lean)
+   (V9-V12 were dropped; shared pieces live on in KernelSupport.lean.)
+
    Wired into `lake test` via AxiomCheck.lean. Not imported by `PP`
    (it pulls the Lean frontend, which library clients don't need). -/
 

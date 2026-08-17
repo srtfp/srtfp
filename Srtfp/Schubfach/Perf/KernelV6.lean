@@ -1,5 +1,6 @@
-/- Kernel v6a: one biased table index, no dead guards.
+/- Kernels v6-v8; `toDecimal_v7` at the bottom is the live `toDecimal`.
 
+   v6: one biased table index, no dead guards.
    The v4/v5 hot path computes a table index from `k : Int` three times
    per call (`-k+324`, `k+1+324`, `k+324`), each through boxed `Int`
    negation/addition plus an `Int.toNat` call, and re-checks 192-table
