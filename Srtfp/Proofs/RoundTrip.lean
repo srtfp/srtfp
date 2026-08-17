@@ -1334,4 +1334,66 @@ theorem ofDecimal_toDecimal_eq_bits
   -- Steps 4-6: the Clinger-side assembly, factored into `ofDecimal_eq_bits_of_rv`.
   exact ofDecimal_eq_bits_of_rv w d h_fin h_nonzero h_d_sig_ne h_d_sign h_rv_canonical
 
+
+/-- Packing `(s, 0, 0)` is injective in the sign bit. -/
+theorem pack_zero_sign_inj (s' s : Bool)
+    (h : Word.pack s' 0 0 = Word.pack s 0 0) : s' = s := by
+  cases s' <;> cases s <;> first
+    | rfl
+    | exact absurd h (by decide)
+
+/-- For finite `w` with zero magnitude, the signed canonical zero reads
+back to exactly `w`'s bits. -/
+theorem ofDecimal_signedZero_bits (w : UInt64)
+    (h_m : (Word.decode w).m = 0) :
+    Clinger.ofDecimalBits (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) = w := by
+  have h_be : Word.biasedExp w = 0 := by
+    by_contra he
+    have hm_def : (Word.decode w).m = Word.mantissa w + (1 <<< 52) := by
+      unfold Word.decode; rw [if_neg he]
+    have h52 : (1 : Nat) <<< 52 = 2 ^ 52 := by decide
+    rw [hm_def, h52] at h_m
+    have hbig : (2 : Nat) ^ 52 = 4503599627370496 := by decide
+    omega
+  have h_mant : Word.mantissa w = 0 := by
+    have hm_def : (Word.decode w).m = Word.mantissa w := by
+      unfold Word.decode; rw [if_pos h_be]
+    omega
+  have h_sign : (Word.decode w).sign = Word.signBit w := by
+    unfold Word.decode
+    simp [h_be]
+  have h_lhs : Clinger.ofDecimalBits (⟨(Word.decode w).sign, 0, 0⟩ : Decimal)
+      = Word.pack (Word.decode w).sign 0 0 := by
+    show Clinger.decimalToFloatBits (Word.decode w).sign 0 0 = _
+    unfold Clinger.decimalToFloatBits
+    rw [if_pos rfl]
+    rfl
+  have h2 : Word.pack (Word.signBit w) (Word.biasedExp w) (Word.mantissa w)
+      = Word.pack (Word.decode w).sign 0 0 := by
+    rw [h_be, h_mant, h_sign]
+  rw [h_lhs, ← h2]
+  have h_nan : Word.isNaN w = false := by
+    unfold Word.isNaN
+    have : ¬ Word.biasedExp w = 2047 := by omega
+    simp [this]
+  exact pack_decode_eq w h_nan
+
+/-- **Printer outputs read back exactly (bits level, axiom-free).**
+    Whatever `Schubfach.toDecimalBits` returns on a finite word `w`,
+    `Clinger.ofDecimalBits` maps it back to `w` — the zero and nonzero
+    cases of `ofDecimal_toDecimal_eq_bits` in one statement. -/
+theorem toDecimalBits_roundtrip (w : UInt64)
+    (h_fin : Word.isFinite w = true)
+    {d : Decimal} (h : Schubfach.toDecimalBits w = .ok d) :
+    Clinger.ofDecimalBits d = w := by
+  by_cases h_mz : (Word.decode w).m = 0
+  · rw [Schubfach.toDecimalBits_zero w h_fin h_mz] at h
+    obtain rfl : (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) = d := by
+      injection h
+    exact ofDecimal_signedZero_bits w h_mz
+  · obtain ⟨d', hd', hback⟩ := ofDecimal_toDecimal_eq_bits w h_fin h_mz
+    rw [h] at hd'
+    obtain rfl : d = d' := by injection hd'
+    exact hback
+
 end Srtfp

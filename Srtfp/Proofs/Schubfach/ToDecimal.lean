@@ -73,6 +73,25 @@ theorem decode_invariants_bits (w : UInt64) (h : Word.isFinite w = true) :
 
 /-! ## NaN / Infinity rejection -/
 
+/-- A successful `toDecimalBits` implies the input word is finite: the
+    NaN and infinity branches both return `.error`. -/
+theorem isFinite_of_toDecimalBits_ok {w : UInt64} {d : Decimal}
+    (h : toDecimalBits w = .ok d) : Word.isFinite w = true := by
+  unfold toDecimalBits at h
+  have hn : Word.isNaN w = false := by
+    revert h; cases hc : Word.isNaN w <;> simp
+  have hi : Word.isInf w = false := by
+    revert h; rw [hn]; cases hc : Word.isInf w <;> simp
+  unfold Word.isNaN at hn
+  unfold Word.isInf at hi
+  unfold Word.isFinite
+  have hlt := word_biasedExp_lt w
+  by_cases he : Word.biasedExp w = 2047
+  · by_cases hm : Word.mantissa w = 0
+    · rw [he, hm] at hi; simp at hi
+    · rw [he] at hn; simp [hm] at hn
+  · simp; omega
+
 /-! ## Zero case -/
 
 /-- For a finite word with `(Word.decode w).m = 0`, `toDecimalBits` returns
