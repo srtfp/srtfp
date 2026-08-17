@@ -9,16 +9,17 @@ package srtfp where
   -- otherwise generalize a theorem statement without complaint.
   leanOptions := #[⟨`autoImplicit, false⟩]
   -- Per-process build memory guard (`lean -M`, in MB). This counts Lean's
-  -- allocator accounting, which runs above resident RSS. The heaviest module
-  -- is KernelV13Flip3 (~7.5 GB peak cgroup memory for the single flip3 spec
-  -- proof; shrinking it further means restructuring that proof); KernelV6
-  -- and TableInvariant peak ~3.5-4 GB, everything else ≤ ~2 GB — the heavy
-  -- modules were split (KernelV13{Resid,Flip3,WReg}, R20Band*Sweep*)
-  -- precisely so peaks stay per-process and the sweeps parallelize. 10 GB
-  -- leaves margin for Flip3 yet aborts a runaway proof with
-  -- `memory_exception` instead of OOM-ing the machine. `weakLeanArgs` so the
-  -- limit applies on every build but never enters the trace hash.
-  weakLeanArgs := #["-M", "10240"]
+  -- allocator accounting, which runs above resident RSS. Elaboration memory
+  -- accumulates across a module's declarations on ≥4.32 toolchains, so the
+  -- heavy proofs are split one-per-module (KernelV13{Resid,Flip3*,WReg},
+  -- R20Band*Sweep*): the worst single process is now KernelV13Flip3LegPick
+  -- at ~4.1 GB cgroup peak, with KernelV6/TableInvariant ~3.5-4 GB and
+  -- everything else ≤ ~2.5 GB. 8 GB covers the worst with allocator
+  -- headroom yet aborts a runaway proof with `memory_exception` instead of
+  -- OOM-ing the machine; the library parallel-builds comfortably in 16 GB.
+  -- `weakLeanArgs` so the limit applies on every build but never enters the
+  -- trace hash.
+  weakLeanArgs := #["-M", "8192"]
 
 @[default_target]
 lean_lib Srtfp where
