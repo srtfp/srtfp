@@ -11,6 +11,8 @@ import Srtfp.Float.Bits
 import Srtfp.Schubfach
 import Srtfp.Clinger
 
+open Srtfp.Compat
+
 namespace Srtfp
 
 open Schubfach Clinger Srtfp.Float Decimal

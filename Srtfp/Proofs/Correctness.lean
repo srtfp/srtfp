@@ -25,6 +25,8 @@ import Srtfp.Proofs.Schubfach.TieBreak
 import Srtfp.NatLog
 import Srtfp.Tactics
 
+open Srtfp.Compat
+
 namespace Srtfp
 
 open Schubfach Clinger Srtfp.Float Decimal

@@ -26,6 +26,8 @@ import Srtfp.Proofs.Schubfach.Minimal
 import Srtfp.Proofs.Clinger
 import Srtfp.Tactics
 
+open Srtfp.Compat
+
 namespace Srtfp
 
 -- `Decimal.toRat`, `Schubfach.magVal`, `Schubfach.floatVal` are the

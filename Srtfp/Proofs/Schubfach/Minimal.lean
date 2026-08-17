@@ -25,6 +25,8 @@ import Srtfp.Proofs.Schubfach.Shortest
 import Srtfp.Proofs.Decimal
 import Srtfp.Tactics
 
+open Srtfp.Compat
+
 namespace Srtfp.Schubfach
 
 open Srtfp.Schubfach.RoundingInterval

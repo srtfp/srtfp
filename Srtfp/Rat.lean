@@ -3,19 +3,25 @@
    The proof stack was written against Mathlib's rational-number surface;
    core Lean (`Init.Data.Rat`) provides the type, field arithmetic, order,
    and `zpow`, but not the `ℚ` notation, `abs`, or the `|·|` bars. This
-   file supplies exactly that missing surface. -/
+   file supplies exactly that missing surface.
 
-@[inherit_doc] notation "ℚ" => Rat
-@[inherit_doc] notation "ℤ" => Int
-@[inherit_doc] notation "ℕ" => Nat
+   Everything lives in the `Srtfp.Compat` namespace with scoped
+   notation, so importing srtfp never collides with Mathlib's root
+   names; proof files start with `open Srtfp.Compat`. -/
+
+namespace Srtfp.Compat
+
+@[inherit_doc] scoped notation "ℚ" => Rat
+@[inherit_doc] scoped notation "ℤ" => Int
+@[inherit_doc] scoped notation "ℕ" => Nat
 
 universe u
 
 /-- Absolute value on `ℚ`. Deliberately NOT named `Rat.abs`: newer cores
 declare their own `Rat.abs` with a different (extensionally equal) body,
-and keeping our copy under a private name preserves `abs_def` as `rfl`
+and keeping our copy under a separate name preserves `abs_def` as `rfl`
 on every toolchain. -/
-def Srtfp.ratAbs (q : ℚ) : ℚ := if q < 0 then -q else q
+def ratAbs (q : ℚ) : ℚ := if q < 0 then -q else q
 
 /-- Minimal stand-in for Mathlib's `Abs` class: just enough to give `|·|`
     a home. -/
@@ -23,9 +29,9 @@ class Abs (α : Type u) where
   /-- The absolute value, written `|a|`. -/
   abs : α → α
 
-instance : Abs ℚ := ⟨Srtfp.ratAbs⟩
+instance : Abs ℚ := ⟨ratAbs⟩
 
-macro:max atomic("|" noWs) a:term noWs "|" : term => `(Abs.abs $a)
+scoped macro:max atomic("|" noWs) a:term noWs "|" : term => `(Abs.abs $a)
 
 namespace Rat
 
@@ -383,7 +389,7 @@ def ExistsUnique {α : Sort u} (p : α → Prop) : Prop := ∃ x, p x ∧ ∀ y,
 
 open Lean in
 @[inherit_doc ExistsUnique]
-macro "∃!" xs:explicitBinders ", " b:term : term => do
+scoped macro "∃!" xs:explicitBinders ", " b:term : term => do
   return ⟨← expandExplicitBinders ``ExistsUnique xs b⟩
 
 /-- `dvd_pow` for `Nat` (vendored). -/
@@ -407,3 +413,5 @@ theorem lt_trans {a b c : ℚ} (h1 : a < b) (h2 : b < c) : a < c := by grind
 /-- `dvd_pow_self` for `Nat` (vendored). -/
 theorem dvd_pow_self (a : Nat) {n : Nat} (hn : n ≠ 0) : a ∣ a ^ n :=
   Nat.dvd_pow' (Nat.dvd_refl a) hn
+
+end Srtfp.Compat

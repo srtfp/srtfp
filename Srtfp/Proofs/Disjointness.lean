@@ -34,6 +34,8 @@ import Srtfp.Proofs.Schubfach.ToDecimal
 import Srtfp.Proofs.Clinger
 import Srtfp.Tactics
 
+open Srtfp.Compat
+
 namespace Srtfp
 
 open Srtfp.Schubfach

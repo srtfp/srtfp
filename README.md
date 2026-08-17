@@ -42,10 +42,9 @@ Zero dependencies beyond the Lean toolchain — no mathlib, and the test
 suite runs on a small in-repo harness (`SrtfpTest/Spec.lean`). CI builds
 and tests the library on Lean v4.27.0, v4.32.2 (the pinned toolchain),
 and v4.33.0.
-One caveat: the library vendors a few root-level compatibility lemmas
-(`abs_nonneg`, `Nat.log`, …) that Mathlib also declares, so a file
-cannot import both srtfp and Mathlib. Packages can depend on both as
-long as no single file imports both.
+The vendored compatibility surface (`abs_nonneg`, `Nat.log`, the `ℚ`/`|·|`/`∃!`
+notations, …) lives in the `Srtfp.Compat` namespace with scoped notation, so
+srtfp and Mathlib can be imported in the same file without collisions.
 
 ## Build
 

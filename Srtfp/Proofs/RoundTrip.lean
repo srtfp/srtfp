@@ -30,6 +30,8 @@ import Srtfp.Proofs.Clinger
 import Srtfp.Float.Bits
 import Srtfp.Tactics
 
+open Srtfp.Compat
+
 namespace Srtfp
 
 open Srtfp.Schubfach

@@ -3,7 +3,7 @@
    dependency was dropped: the digit-count spec is phrased in terms of
    `Nat.log 10`. -/
 
-namespace Nat
+namespace Srtfp.Compat.Nat
 
 /-- Base-`b` logarithm of a natural number: largest `k` with `b ^ k ≤ n`,
     and `0` where that reading is meaningless (`n = 0` or `b ≤ 1`).
@@ -44,4 +44,4 @@ theorem log_div_base (b n : Nat) : log b (n / b) = log b n - 1 := by
       exact hc ⟨Nat.le_trans hle (Nat.div_le_self n b), hlt⟩
     omega
 
-end Nat
+end Srtfp.Compat.Nat

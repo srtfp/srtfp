@@ -26,6 +26,8 @@ import Srtfp.Proofs.RoundTrip
 import Srtfp.Proofs.Schubfach.TieBreak
 import Srtfp.Tactics
 
+open Srtfp.Compat
+
 namespace Srtfp.Clinger
 
 open Srtfp.Float

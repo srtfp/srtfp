@@ -7,6 +7,8 @@
 import Srtfp.Schubfach.Perf.DigitsFast
 import Srtfp.Tactics
 
+open Srtfp.Compat
+
 namespace Srtfp.Schubfach
 
 /-- `emitChecked` with the table index pre-computed and validated by a

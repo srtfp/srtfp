@@ -15,6 +15,8 @@
 import Srtfp.Correctness
 import Srtfp.Bridge.Clinger
 
+open Srtfp.Compat
+
 namespace Srtfp.Spec
 
 open Srtfp Srtfp.Float

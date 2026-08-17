@@ -21,6 +21,8 @@ import Srtfp.Proofs.Correctness
 import Srtfp.Proofs.ReaderCorrectness
 import Srtfp.NatLog
 
+open Srtfp.Compat
+
 namespace Srtfp.Spec
 
 open Srtfp Srtfp.Float

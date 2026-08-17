@@ -14,6 +14,8 @@ import Srtfp.Schubfach.R20Legendre
 import Srtfp.Schubfach.KernelCorrectness
 import Srtfp.Tactics
 
+open Srtfp.Compat
+
 namespace Srtfp.Schubfach.R20Sweep
 
 open Srtfp.Schubfach (farFromMultipleBelow)

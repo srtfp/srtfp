@@ -16,6 +16,8 @@
 import Srtfp.Rat
 import Srtfp.Tactics
 
+open Srtfp.Compat
+
 namespace Srtfp.Schubfach.R20Sweep
 
 /-! ## The Euclidean remainder sequence and its continuants -/
