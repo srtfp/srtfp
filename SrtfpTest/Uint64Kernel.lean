@@ -26,12 +26,6 @@ private def allRyuFloats : Array Float :=
     ++ f2sBoundaryRoundEven ++ f2sExactValueRoundEven ++ f2sLotsOfTrailingZeros
     ++ f2sRegression ++ f2sLooksLikePow5 ++ f2sOutputLength).map (fun c => c.2.1)
 
-/-- Spec vs v2 cross-check on a single `Float`. -/
-private def specEqV2 (f : Float) : Bool :=
-  let d := decode f
-  if d.m = 0 then true  -- skipped by the orchestration anyway
-  else shortestUnsigned_packed d.m d.q == shortestUnsigned_v2 d.m d.q
-
 /-- An array of inputs to cross-check. -/
 private def crossCheckCorpus : Array Float := allRyuFloats ++ #[
   -- Additional edge cases.

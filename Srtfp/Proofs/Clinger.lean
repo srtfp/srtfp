@@ -47,47 +47,6 @@ open Srtfp
 
 /-! ## Setup lemmas for the dispatch -/
 
-/-- For the regular subnormal branch, the cleared-form identities at
-`q = -1074` and the scale `k = 1074`. -/
-private theorem subnormal_cleared
-    (sig : Nat) (exp : Int) (a b : Nat)
-    (ha_eq : a = sig * tenPosPow exp) (hb_eq : b = tenNegPow exp)
-    (hb : 0 < b) :
-    let q : Int := -1074
-    ((scaleByPow2 a b 1074).1 : Int) = sig * (tenPosPow exp) * (twoNegPow q) ∧
-    ((scaleByPow2 a b 1074).2 : Int) = (tenNegPow exp) * (twoPosPow q) ∧
-    0 < (scaleByPow2 a b 1074).2 := by
-  show ((scaleByPow2 a b 1074).1 : Int) = _ ∧ _ ∧ _
-  have h_a : a = (if exp ≥ 0 then sig * 10 ^ exp.toNat else sig) := by
-    rw [ha_eq]
-    by_cases hexp : 0 ≤ exp
-    · rw [tenPosPow_nonneg hexp, if_pos hexp]
-    · have hexp' : exp < 0 := Int.not_le.mp hexp
-      rw [tenPosPow_neg hexp', if_neg hexp, Nat.mul_one]
-  have h_b : b = (if exp ≥ 0 then 1 else 10 ^ (-exp).toNat) := by
-    rw [hb_eq]
-    by_cases hexp : 0 ≤ exp
-    · rw [tenNegPow_nonneg hexp, if_pos hexp]
-    · have hexp' : exp < 0 := Int.not_le.mp hexp
-      rw [tenNegPow_neg hexp', if_neg hexp]
-  have hk_eq : ((-1074 : Int)) = -1074 := rfl
-  have hk_eq' : ((-1074 : Int)) = -(1074 : Int) := by omega
-  refine ⟨?_, ?_, scaleByPow2_denom_pos hb⟩
-  · rw [scaleByPow2_num_clear', h_a]
-    have h_at := scaleByPow2_num_clear_at' sig exp 1074 (-1074) hk_eq'
-    have h_cast : (((if exp ≥ 0 then sig * 10 ^ exp.toNat else sig)
-            * (2 ^ (if (1074 : Int) ≥ 0 then (1074 : Int).toNat else 0)) : Nat) : Int)
-         = ((sig * (tenPosPow exp) * (twoNegPow (-1074)) : Nat) : Int) := by
-      congr 1
-    exact h_cast
-  · rw [scaleByPow2_denom_clear', h_b]
-    have h_at := scaleByPow2_denom_clear_at' sig exp 1074 (-1074) hk_eq'
-    have h_cast : (((if exp ≥ 0 then 1 else 10 ^ (-exp).toNat)
-            * (2 ^ (if ¬ ((1074 : Int) ≥ 0) then (-(1074 : Int)).toNat else 0)) : Nat) : Int)
-         = ((tenNegPow exp * twoPosPow (-1074) : Nat) : Int) := by
-      congr 1
-    exact h_cast
-
 /-! ## Headline correctness theorem -/
 
 /-- **Headline correctness theorem.** For a non-overflow nonzero

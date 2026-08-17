@@ -920,7 +920,7 @@ theorem ofDecimal_sig_zero (d : Decimal) (h : d.significand = 0) :
 
 /-- Same-sign distance reduction: `|wordVal w - toRat d|` is the
 unsigned grid distance. -/
-theorem floatVal_dist_reduce (d : Decimal) (w : UInt64)
+theorem wordVal_dist_reduce (d : Decimal) (w : UInt64)
     (h_sign : (Word.decode w).sign = d.sign) :
     |wordVal w - Decimal.toRat d|
       = |magVal (Word.decode w).m (Word.decode w).q - gridVal d.significand d.exponent| := by
@@ -928,11 +928,11 @@ theorem floatVal_dist_reduce (d : Decimal) (w : UInt64)
   exact toRat_dist_eq_grid_dist d w h_sign.symm
 
 /-- Opposite-sign distance: magnitudes add. -/
-theorem floatVal_dist_opp (d : Decimal) (w : UInt64)
+theorem wordVal_dist_opp (d : Decimal) (w : UInt64)
     (h_sign : (Word.decode w).sign ≠ d.sign) :
     |wordVal w - Decimal.toRat d|
       = magVal (Word.decode w).m (Word.decode w).q + gridVal d.significand d.exponent := by
-  rw [floatVal_eq_signFactor_magVal, toRat_eq_signFactor_gridVal]
+  rw [wordVal_eq_signFactor_magVal, toRat_eq_signFactor_gridVal]
   have hmag := magVal_nonneg (Word.decode w).m (Word.decode w).q
   have hgrid := gridVal_nonneg d.significand d.exponent
   rcases Bool.eq_false_or_eq_true (Word.decode w).sign with hf | hf <;>
@@ -982,7 +982,7 @@ theorem rv_dist_le_u (s : Nat) (k : Int) (m : Nat) (q : Int)
 /-! ## Backward direction: `ofDecimal` satisfies the reader spec -/
 
 /-- In-range decimals: `ofDecimal` is the nearest float. -/
-theorem ofDecimal_isNearestFloat (d : Decimal)
+theorem ofDecimalBits_isNearestWord (d : Decimal)
     (h_in : |Decimal.toRat d| < 2 ^ 1024 - 2 ^ 970) :
     IsNearestWord d (Clinger.ofDecimalBits d) := by
   by_cases h_sig : d.significand = 0
@@ -1027,16 +1027,16 @@ theorem ofDecimal_isNearestFloat (d : Decimal)
     have h_rv := Clinger.ofDecimalBits_in_Rv d h_sig h_fin
     simp only at h_rv
     have h_shape_f := decode_finShape _ h_finBits
-    have h_df := floatVal_dist_reduce d _ h_sign_f
+    have h_df := wordVal_dist_reduce d _ h_sign_f
     refine ⟨h_finBits, ?_, ?_, ?_⟩
     · rw [signBit_eq_decode_sign, h_sign_f]
     · -- nearest
       intro v hg
       rw [h_df]
       by_cases hgs : (Word.decode v).sign = d.sign
-      · rw [floatVal_dist_reduce d v hgs]
+      · rw [wordVal_dist_reduce d v hgs]
         exact rv_nearest_mag _ _ _ _ _ _ h_shape_f (decode_finShape v hg) h_rv
-      · rw [floatVal_dist_opp d v hgs]
+      · rw [wordVal_dist_opp d v hgs]
         have h1 := rv_dist_le_u _ _ _ _ h_rv
         have h2 := magVal_nonneg (Word.decode v).m (Word.decode v).q
         grind
@@ -1044,24 +1044,24 @@ theorem ofDecimal_isNearestFloat (d : Decimal)
       intro v hg h_ne h_eq'
       rw [← decode_m_parity]
       by_cases hgs : (Word.decode v).sign = d.sign
-      · rw [h_df, floatVal_dist_reduce d v hgs] at h_eq'
+      · rw [h_df, wordVal_dist_reduce d v hgs] at h_eq'
         have h_mag_ne : magVal (Word.decode v).m (Word.decode v).q
             ≠ magVal (Word.decode (Clinger.ofDecimalBits d)).m (Word.decode (Clinger.ofDecimalBits d)).q := by
           intro hmm
           apply h_ne
-          rw [floatVal_eq_signFactor_magVal, floatVal_eq_signFactor_magVal,
+          rw [wordVal_eq_signFactor_magVal, wordVal_eq_signFactor_magVal,
               hgs, h_sign_f, hmm]
         exact rv_tie_even_mag _ _ _ _ _ _ h_shape_f (decode_finShape v hg) h_rv h_mag_ne h_eq'
       · -- Opposite-sign exact tie: impossible.
         exfalso
-        rw [h_df, floatVal_dist_opp d v hgs] at h_eq'
+        rw [h_df, wordVal_dist_opp d v hgs] at h_eq'
         have h1 := rv_dist_le_u _ _ _ _ h_rv
         have h2 := magVal_nonneg (Word.decode v).m (Word.decode v).q
         have hu0 := gridVal_nonneg d.significand d.exponent
         -- The tie forces mag_g = 0 and |v - u| = u.
         have h_magg : magVal (Word.decode v).m (Word.decode v).q = 0 := by grind
-        have h_fvg : wordVal v = 0 := by
-          rw [floatVal_eq_signFactor_magVal, h_magg, mul_zero]
+        have h_v0 : wordVal v = 0 := by
+          rw [wordVal_eq_signFactor_magVal, h_magg, mul_zero]
         set mval := magVal (Word.decode (Clinger.ofDecimalBits d)).m (Word.decode (Clinger.ofDecimalBits d)).q
           with hmval
         set u := gridVal d.significand d.exponent with hu
@@ -1070,7 +1070,7 @@ theorem ofDecimal_isNearestFloat (d : Decimal)
         have h_v_ne : mval ≠ 0 := by
           intro hmval0
           apply h_ne
-          rw [h_fvg, floatVal_eq_signFactor_magVal, ← hmval, hmval0, mul_zero]
+          rw [h_v0, wordVal_eq_signFactor_magVal, ← hmval, hmval0, mul_zero]
         have h_v_pos : 0 < mval := lt_of_le_of_ne (hmval ▸ magVal_nonneg _ _) (Ne.symm h_v_ne)
         -- |mval - u| = u with mval > 0 forces mval = 2u.
         have h_v2u : mval = 2 * u := by
@@ -1182,7 +1182,7 @@ theorem ofDecimal_overflow (d : Decimal)
 /-! ## Forward direction: the spec pins the bits down -/
 
 /-- Every finite shape is realized by a float of either sign. -/
-theorem exists_float_of_finShape (sign : Bool) (m : Nat) (q : Int)
+theorem exists_word_of_finShape (sign : Bool) (m : Nat) (q : Int)
     (hs : FinShape m q) :
     ∃ v : UInt64, Word.isFinite v = true ∧ (Word.decode v).sign = sign
       ∧ (Word.decode v).m = m ∧ (Word.decode v).q = q := by
@@ -1333,12 +1333,12 @@ private theorem tie_values_eq (d : Decimal) (wf wg : UInt64)
   set v := magVal (Word.decode wf).m (Word.decode wf).q with hv
   set w := magVal (Word.decode wg).m (Word.decode wg).q with hw
   have h_dist' : |w - u| = |v - u| := by
-    rw [floatVal_dist_reduce d wg hgs', floatVal_dist_reduce d wf hfs'] at h_dist
+    rw [wordVal_dist_reduce d wg hgs', wordVal_dist_reduce d wf hfs'] at h_dist
     exact h_dist
   have h_mag_ne : w ≠ v := by
     intro hmm
     apply h_val
-    rw [floatVal_eq_signFactor_magVal, floatVal_eq_signFactor_magVal, hgs', hfs',
+    rw [wordVal_eq_signFactor_magVal, wordVal_eq_signFactor_magVal, hgs', hfs',
         ← hv, ← hw, hmm]
   rcases Rat.lt_trichotomy w v with hwv | hwv | hwv
   · -- w < v: u is the exact midpoint; g's successor breaks the tie.
@@ -1364,14 +1364,14 @@ private theorem tie_values_eq (d : Decimal) (wf wg : UInt64)
         (by rw [← hsval, h_eq, hv])
       omega
     · -- Strictly between w and v: strictly closer to u than the tie distance.
-      obtain ⟨g₂, hg₂F, hg₂s, hg₂m, hg₂q⟩ := exists_float_of_finShape d.sign ms qs hss
+      obtain ⟨g₂, hg₂F, hg₂s, hg₂m, hg₂q⟩ := exists_word_of_finShape d.sign ms qs hss
       have h_w_le_u : w ≤ u := by grind
       have h_dist_g : |wordVal wg - Decimal.toRat d| = u - w := by
-        rw [floatVal_dist_reduce d wg hgs', ← hw, ← hu,
+        rw [wordVal_dist_reduce d wg hgs', ← hw, ← hu,
             abs_of_nonpos (by grind : w - u ≤ 0)]
         grind
       have h_dist_g₂ : |wordVal g₂ - Decimal.toRat d| < u - w := by
-        rw [floatVal_dist_reduce d g₂ hg₂s, hg₂m, hg₂q, ← hu]
+        rw [wordVal_dist_reduce d g₂ hg₂s, hg₂m, hg₂q, ← hu]
         have h_s_gt : w < magVal ms qs := by
           rw [hsval, ← hw]
           grind
@@ -1403,14 +1403,14 @@ private theorem tie_values_eq (d : Decimal) (wf wg : UInt64)
         (Word.decode wf).q (Word.decode wg).q h_shape_f (h_shape_g.legal_of_ne h_mg_ne)
         (by rw [← hsval, h_eq, hw])
       omega
-    · obtain ⟨g₂, hg₂F, hg₂s, hg₂m, hg₂q⟩ := exists_float_of_finShape d.sign ms qs hss
+    · obtain ⟨g₂, hg₂F, hg₂s, hg₂m, hg₂q⟩ := exists_word_of_finShape d.sign ms qs hss
       have h_v_le_u : v ≤ u := by grind
       have h_dist_f : |wordVal wf - Decimal.toRat d| = u - v := by
-        rw [floatVal_dist_reduce d wf hfs', ← hv, ← hu,
+        rw [wordVal_dist_reduce d wf hfs', ← hv, ← hu,
             abs_of_nonpos (by grind : v - u ≤ 0)]
         grind
       have h_dist_g₂ : |wordVal g₂ - Decimal.toRat d| < u - v := by
-        rw [floatVal_dist_reduce d g₂ hg₂s, hg₂m, hg₂q, ← hu]
+        rw [wordVal_dist_reduce d g₂ hg₂s, hg₂m, hg₂q, ← hu]
         have h_s_gt : v < magVal ms qs := by
           rw [hsval, ← hv]
           grind
@@ -1431,7 +1431,7 @@ theorem spec_toBits_eq (d : Decimal) (v : UInt64)
   rcases lt_or_ge |Decimal.toRat d| ((2 : ℚ) ^ 1024 - 2 ^ 970) with h_in | h_out
   · -- In range: both are nearest floats, tie analysis forces equal values.
     obtain ⟨hgF, hgs, hg_near, hg_tie⟩ := h_near h_in
-    obtain ⟨hfF, hfs, hf_near, hf_tie⟩ := ofDecimal_isNearestFloat d h_in
+    obtain ⟨hfF, hfs, hf_near, hf_tie⟩ := ofDecimalBits_isNearestWord d h_in
     have hgs' : (Word.decode v).sign = d.sign := by
       rw [← signBit_eq_decode_sign]; exact hgs
     have hfs' : (Word.decode (Clinger.ofDecimalBits d)).sign = d.sign := by
@@ -1452,7 +1452,7 @@ theorem spec_toBits_eq (d : Decimal) (v : UInt64)
     -- Equal values, equal signs: identical decode, identical bits.
     have h_mag : magVal (Word.decode v).m (Word.decode v).q
         = magVal (Word.decode (Clinger.ofDecimalBits d)).m (Word.decode (Clinger.ofDecimalBits d)).q := by
-      rw [floatVal_eq_signFactor_magVal, floatVal_eq_signFactor_magVal,
+      rw [wordVal_eq_signFactor_magVal, wordVal_eq_signFactor_magVal,
           hgs', hfs'] at h_val
       have hsf : signFactor d.sign ≠ 0 := by
         unfold signFactor
@@ -1477,7 +1477,7 @@ theorem spec_toBits_eq (d : Decimal) (v : UInt64)
     exact h1.symm
 
 /-- The reader spec transports along bit equality. -/
-private theorem isNearestFloat_congr_bits (d : Decimal) (w₁ w₂ : UInt64)
+private theorem isNearestWord_congr (d : Decimal) (w₁ w₂ : UInt64)
     (h : w₂ = w₁) (h₁ : IsNearestWord d w₁) :
     IsNearestWord d w₂ := by
   have hfv : wordVal w₂ = wordVal w₁ := by rw [h]
@@ -1506,8 +1506,8 @@ theorem correct_iff_ofDecimal_proof (p : Decimal → UInt64) :
   · intro h d
     refine ⟨?_, ?_⟩
     · intro h_in
-      exact isNearestFloat_congr_bits d (Clinger.ofDecimalBits d) (p d) (h d)
-        (ofDecimal_isNearestFloat d h_in)
+      exact isNearestWord_congr d (Clinger.ofDecimalBits d) (p d) (h d)
+        (ofDecimalBits_isNearestWord d h_in)
     · intro h_out
       obtain ⟨hf_inf, hf_sb⟩ := ofDecimal_overflow d h_out
       have hb := h d

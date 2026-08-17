@@ -51,7 +51,7 @@ private theorem toRat_zero (d : Decimal) (h : d.significand = 0) :
   push_cast
   grind
 
-private theorem floatVal_zero (w : UInt64) (h : (Word.decode w).m = 0) :
+private theorem wordVal_zero (w : UInt64) (h : (Word.decode w).m = 0) :
     Schubfach.wordVal w = 0 := by
   unfold Schubfach.wordVal Schubfach.magVal
   rw [h]
@@ -1521,7 +1521,7 @@ private theorem Schubfach.correctness_zero_aux (w : UInt64)
       rw [h_sign, h'_s0, h'_exp]
     · -- a nonzero competitor is strictly farther from `±0`.
       right; left
-      have h_fv : Schubfach.wordVal w = 0 := floatVal_zero w h_nz
+      have h_fv : Schubfach.wordVal w = 0 := wordVal_zero w h_nz
       have h_d0 : Decimal.toRat (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) = 0 :=
         toRat_zero _ rfl
       rw [h_fv, h_d0]
@@ -1719,7 +1719,7 @@ theorem Schubfach.specOutput_eq_output (w : UInt64)
       ofDecimal_signedZero_bits w h_nz
     have h_dz_canon : Decimal.IsCanonical (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) :=
       Or.inl ⟨rfl, rfl⟩
-    have h_fv : Schubfach.wordVal w = 0 := floatVal_zero w h_nz
+    have h_fv : Schubfach.wordVal w = 0 := wordVal_zero w h_nz
     have h_sig0 : d_star.significand = 0 := by
       by_contra h_ne
       have h_le : decDigitLength d_star.significand ≤ decDigitLength 0 :=

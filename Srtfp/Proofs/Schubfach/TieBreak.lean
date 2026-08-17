@@ -616,7 +616,7 @@ reducing the signed distance to the unsigned grid distance
 applies. -/
 
 /-- `wordVal w = signFactor (Word.decode w).sign · magVal …`. -/
-theorem floatVal_eq_signFactor_magVal (w : UInt64) :
+theorem wordVal_eq_signFactor_magVal (w : UInt64) :
     wordVal w = signFactor (Srtfp.Float.Word.decode w).sign
         * magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode w).q := by
   unfold wordVal signFactor; rfl
@@ -640,7 +640,7 @@ theorem toRat_dist_eq_grid_dist (d' : Decimal) (w : UInt64)
     |Decimal.toRat d' - wordVal w|
       = |magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode w).q
          - gridVal d'.significand d'.exponent| := by
-  rw [toRat_eq_signFactor_gridVal, floatVal_eq_signFactor_magVal, h_sign]
+  rw [toRat_eq_signFactor_gridVal, wordVal_eq_signFactor_magVal, h_sign]
   rw [show signFactor (Srtfp.Float.Word.decode w).sign
             * gridVal d'.significand d'.exponent
           - signFactor (Srtfp.Float.Word.decode w).sign
