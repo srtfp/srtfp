@@ -2,7 +2,7 @@
 
    Imports only the spec module `Srtfp.Schubfach` (and `Corpora`), NOT the
    `Schubfach/Perf/*` kernel modules. The kernel `@[csimp]` redirects
-   (`shiftedSig`→fast, `toDecimal`→v4, `floatToStrRef`→`toStringFast`, …) all
+   (`shiftedSig`→fast, `toDecimal`→v7, `floatToStrRef`→`toStringFast9`, …) all
    live under `Perf/`, so they are out of scope here and the pure-Nat spec
    `toDecimal` runs. This measures the float→string path with the dominant
    csimp layer disabled — directly comparable to `benchFloatToString`.
