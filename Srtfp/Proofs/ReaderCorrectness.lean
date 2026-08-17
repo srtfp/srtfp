@@ -41,8 +41,6 @@ open Srtfp
 def FinShape (m : Nat) (q : Int) : Prop :=
   (m = 0 ∧ q = -1074) ∨ LegalIEEE m q
 
-theorem finShape_zero : FinShape 0 (-1074) := Or.inl ⟨rfl, rfl⟩
-
 theorem FinShape.m_lt {m : Nat} {q : Int} (h : FinShape m q) : m < 2 ^ 53 := by
   rcases h with ⟨rfl, rfl⟩ | h | h <;> omega
 
@@ -1180,10 +1178,6 @@ theorem ofDecimal_overflow (d : Decimal)
     rw [h_be, h_mb]
     decide
   · exact h_sb
-
-/-- **`Clinger.ofDecimal` is a correct reader.** -/
-theorem isCorrectReader_ofDecimal : IsCorrectReaderBits Clinger.ofDecimalBits :=
-  fun d => ⟨ofDecimal_isNearestFloat d, ofDecimal_overflow d⟩
 
 /-! ## Forward direction: the spec pins the bits down -/
 

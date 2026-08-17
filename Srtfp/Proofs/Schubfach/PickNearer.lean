@@ -307,22 +307,6 @@ theorem pickNearer_both_in_tie_s_odd (s : Nat) (k : Int) (m : Nat) (q : Int)
 These are simpler: when only one of the two candidates is in `R_v`,
 `pickNearer` picks the one that *is* in. -/
 
-/-- If only `s` is in `R_v`, `pickNearer` picks `s`. -/
-theorem pickNearer_left_only (s : Nat) (k : Int) (m : Nat) (q : Int)
-    (huIn : inRoundingInterval s k m q (isIrregular m q) = true)
-    (hwIn : inRoundingInterval (s + 1) k m q (isIrregular m q) = false) :
-    pickNearer s k m q = s := by
-  unfold pickNearer
-  simp [huIn, hwIn]
-
-/-- If only `s+1` is in `R_v`, `pickNearer` picks `s+1`. -/
-theorem pickNearer_right_only (s : Nat) (k : Int) (m : Nat) (q : Int)
-    (huIn : inRoundingInterval s k m q (isIrregular m q) = false)
-    (hwIn : inRoundingInterval (s + 1) k m q (isIrregular m q) = true) :
-    pickNearer s k m q = s + 1 := by
-  unfold pickNearer
-  simp [huIn, hwIn]
-
 /-! ## Top-level closer-or-tie-even spec
 
 The downstream M3.8.6/M3.8.7 milestones use the following combined

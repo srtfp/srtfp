@@ -343,8 +343,6 @@ theorem abs_cases (a : ℚ) : |a| = a ∧ 0 ≤ a ∨ |a| = -a ∧ a < 0 := by
 
 theorem sub_pos {a b : ℚ} : 0 < a - b ↔ b < a := by grind
 
-theorem sub_nonneg {a b : ℚ} : 0 ≤ a - b ↔ b ≤ a := by grind
-
 theorem lt_or_ge (a b : ℚ) : a < b ∨ a ≥ b := by
   by_cases h : a < b
   · exact Or.inl h

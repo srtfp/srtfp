@@ -375,12 +375,4 @@ theorem word_mantissa_lt (w : UInt64) : Word.mantissa w < 2 ^ 52 := by
   have hpow : (2 : Nat) ^ 52 = 4503599627370496 := by decide
   omega
 
-/-- `biasedExpBits` is always in range `[0, 2048)`. -/
-theorem biasedExpBits_lt (f : _root_.Float) : biasedExpBits f < 2048 :=
-  word_biasedExp_lt f.toBits
-
-/-- `mantissaBits` is always in range `[0, 2^52)`. -/
-theorem mantissaBits_lt (f : _root_.Float) : mantissaBits f < 2 ^ 52 :=
-  word_mantissa_lt f.toBits
-
 end Srtfp.Float

@@ -73,28 +73,6 @@ theorem decode_invariants_bits (w : UInt64) (h : Word.isFinite w = true) :
 
 /-! ## NaN / Infinity rejection -/
 
-/-- `toDecimalBits` rejects NaN patterns. -/
-theorem toDecimalBits_nan_rejected (w : UInt64) (h : Word.isNaN w = true) :
-    ¬ ∃ d, toDecimalBits w = .ok d := by
-  intro ⟨d, hd⟩
-  unfold toDecimalBits at hd
-  rw [h] at hd
-  simp at hd
-
-/-- `toDecimalBits` rejects Infinity patterns. -/
-theorem toDecimalBits_inf_rejected (w : UInt64) (h : Word.isInf w = true) :
-    ¬ ∃ d, toDecimalBits w = .ok d := by
-  intro ⟨d, hd⟩
-  unfold toDecimalBits at hd
-  -- Word.isInf → biasedExp = 2047 ∧ mantissa = 0.
-  -- That makes Word.isNaN false (which needs mantissa ≠ 0).
-  have hmb : Word.mantissa w = 0 := by
-    unfold Word.isInf at h; simp at h; exact h.2
-  have hnan : Word.isNaN w = false := by
-    unfold Word.isNaN; simp [hmb]
-  rw [hnan, h] at hd
-  simp at hd
-
 /-! ## Zero case -/
 
 /-- For a finite word with `(Word.decode w).m = 0`, `toDecimalBits` returns
@@ -166,40 +144,6 @@ theorem toDecimalBits_in_Rv
   rfl
 
 /-! ## Float-level instantiations (axiom-free: `w := f.toBits`) -/
-
-theorem decode_q_ge_of_finite
-    {f : _root_.Float} (h : isFiniteBits f = true) :
-    -1074 ≤ (decode f).q := decode_q_ge_bits (w := f.toBits) h
-
-theorem decode_q_le_of_finite
-    {f : _root_.Float} (h : isFiniteBits f = true) :
-    (decode f).q ≤ 971 := decode_q_le_bits (w := f.toBits) h
-
-theorem decode_m_lt_of_finite
-    {f : _root_.Float} (h : isFiniteBits f = true) :
-    (decode f).m < 2 ^ 53 := decode_m_lt_bits (w := f.toBits) h
-
-/-- Convenience bundle: `decode` outputs satisfy the Schubfach hypotheses. -/
-theorem decode_invariants_of_finite (f : _root_.Float)
-    (h : isFiniteBits f = true) :
-    (decode f).m < 2 ^ 53 ∧ -1074 ≤ (decode f).q ∧ (decode f).q ≤ 971 :=
-  decode_invariants_bits f.toBits h
-
-/-- `toDecimal` rejects NaN. -/
-theorem toDecimal_nan_rejected (f : _root_.Float) (h : isNaNBits f = true) :
-    ¬ ∃ d, toDecimal f = .ok d := toDecimalBits_nan_rejected f.toBits h
-
-/-- `toDecimal` rejects Infinity. -/
-theorem toDecimal_inf_rejected (f : _root_.Float) (h : isInfBits f = true) :
-    ¬ ∃ d, toDecimal f = .ok d := toDecimalBits_inf_rejected f.toBits h
-
-/-- For finite `f` with `(decode f).m = 0`, `toDecimal` returns the signed
-    canonical zero. -/
-theorem toDecimal_zero (f : _root_.Float)
-    (h_fin : isFiniteBits f = true)
-    (h_zero : (decode f).m = 0) :
-    toDecimal f = .ok ⟨(decode f).sign, 0, 0⟩ :=
-  toDecimalBits_zero f.toBits h_fin h_zero
 
 /-- For a finite non-zero `Float`, `toDecimal` returns `.ok d` where `d` is
     `Decimal.mk' sign sig exp` for some `(sig, exp)` lying in the

@@ -263,14 +263,6 @@ theorem toBits_eq_of_decode_eq
 
 /-! ## Sign equality for `Word.decode (ofDecimalBits d)` -/
 
-/-- `Word.decode (ofDecimalBits d)` has sign `d.sign`, provided the value
-is in finite range. -/
-theorem decode_ofDecimal_sign (d : Decimal)
-    (h_finite : IsFiniteAbs d.sign d.significand d.exponent) :
-    (Word.decode (Clinger.ofDecimalBits d)).sign = d.sign := by
-  rw [Clinger.decode_of_decimal_bridge_bits d h_finite]
-  exact decodedAbs_sign d.sign d.significand d.exponent
-
 /-! ## SignBit lemmas -/
 
 /-- `Word.signBit w = (Word.decode w).sign`. -/

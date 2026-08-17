@@ -95,28 +95,6 @@ theorem roundNearestEven_eq_ceil_of_above (a b : Nat)
   have hnot : ¬ (2 * (a - a / b * b) < b) := by omega
   rw [if_neg hnot, if_pos h]
 
-/-- Exactly-at-midpoint, floor even: pick the floor. -/
-theorem roundNearestEven_eq_floor_of_tie_even (a b : Nat)
-    (htie : 2 * (a - a / b * b) = b) (heven : a / b % 2 = 0) :
-    roundNearestEven a b = a / b := by
-  show (if 2 * (a - a / b * b) < b then a / b
-     else if 2 * (a - a / b * b) > b then a / b + 1
-     else if a / b % 2 = 0 then a / b else a / b + 1) = a / b
-  have hnot1 : ¬ (2 * (a - a / b * b) < b) := by omega
-  have hnot2 : ¬ (2 * (a - a / b * b) > b) := by omega
-  rw [if_neg hnot1, if_neg hnot2, if_pos heven]
-
-/-- Exactly-at-midpoint, floor odd: pick the ceil. -/
-theorem roundNearestEven_eq_ceil_of_tie_odd (a b : Nat)
-    (htie : 2 * (a - a / b * b) = b) (hodd : a / b % 2 ≠ 0) :
-    roundNearestEven a b = a / b + 1 := by
-  show (if 2 * (a - a / b * b) < b then a / b
-     else if 2 * (a - a / b * b) > b then a / b + 1
-     else if a / b % 2 = 0 then a / b else a / b + 1) = a / b + 1
-  have hnot1 : ¬ (2 * (a - a / b * b) < b) := by omega
-  have hnot2 : ¬ (2 * (a - a / b * b) > b) := by omega
-  rw [if_neg hnot1, if_neg hnot2, if_neg hodd]
-
 /-! ## Closest-integer characterisation of `roundNearestEven`
 
 The contract: for `b > 0`, `roundNearestEven a b` is the integer `m` such
@@ -230,10 +208,6 @@ theorem findBinaryExp_eq_or (a b : Nat) :
   · right; simp [h]
 
 /-! ## `scaleByPow2` shape lemmas -/
-
-theorem scaleByPow2_nonneg {a b : Nat} {k : Int} (h : k ≥ 0) :
-    scaleByPow2 a b k = (a * 2 ^ k.toNat, b) := by
-  unfold scaleByPow2; simp [h]
 
 theorem scaleByPow2_neg {a b : Nat} {k : Int} (h : ¬ k ≥ 0) :
     scaleByPow2 a b k = (a, b * 2 ^ (-k).toNat) := by

@@ -49,14 +49,6 @@ theorem decimalToFloat_overflow_inf (sign : Bool) (sig : Nat) (exp : Int)
       decimalToFloatBits_overflow_inf sign sig exp h_sig h_not]
   rfl
 
-/-- `±∞` is not finite, at the bit level (Float tier). -/
-theorem isFiniteBits_fromBits_inf (sign : Bool) :
-    isFiniteBits (fromBits sign 2047 0) = false := by
-  rw [fromBits_word,
-      isFiniteBits_ofBits _ (pack_isNaNPattern_false sign 2047 0 (by decide) (by decide)
-        (fun _ => rfl))]
-  exact word_isFinite_inf sign
-
 /-- `IsFiniteAbs` from a bit-level round-trip to a finite float (Float
 tier of `isFiniteAbs_of_roundtrip_bits`). -/
 theorem isFiniteAbs_of_roundtrip (d : Decimal) (f : _root_.Float)

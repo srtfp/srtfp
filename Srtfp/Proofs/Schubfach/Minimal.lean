@@ -760,34 +760,6 @@ theorem digitLength_high_scale (m : Nat) (q : Int)
 Given `digitLength_high_scale`, we conclude `decDigitLength sig' ≤
 max(decDigitLength s/10, decDigitLength s/10+1)`, with equality when `j = 0`. -/
 
-/-- For canonical sig' (sig' % 10 ≠ 0) at high scale exp' ≥ k+1 in R_v:
-sig' equals exactly `canonical(s/10)` or `canonical(s/10 + 1)`, with
-the exp' being its exponent (k+1 + (trailing zeros)). The digit count
-matches the canonical form's. -/
-theorem high_scale_canonical_digit_eq (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_lt : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971) :
-    let k := kOfMQ m q
-    let s := shiftedSig m q k
-    ∀ (sig' : Nat) (exp' : Int),
-      1 ≤ sig' →
-      sig' % 10 ≠ 0 →
-      exp' ≥ k + 1 →
-      inRoundingInterval sig' exp' m q (isIrregular m q) = true →
-      -- sig' is "the canonical part" of either s/10 or s/10+1.
-      ∃ (n : Nat) (j : Nat),
-        (n = s / 10 ∨ n = s / 10 + 1) ∧
-        n = sig' * 10 ^ j ∧
-        decDigitLength sig' + j = decDigitLength n := by
-  intro k s sig' exp' h_sig_pos h_canon h_exp_ge h_mem
-  have h_cands := Schubfach_high_scale_candidates m q hm_pos hm_lt hq_lo hq_hi
-                    sig' exp' h_exp_ge h_mem
-  let j : Nat := (exp' - (k + 1)).toNat
-  have h_dl_pow : decDigitLength (sig' * 10 ^ j) = decDigitLength sig' + j :=
-    decDigitLength_mul_pow10 sig' j h_sig_pos
-  rcases h_cands with h1 | h1
-  · exact ⟨s / 10, j, Or.inl rfl, h1.symm, by rw [← h1, h_dl_pow]⟩
-  · exact ⟨s / 10 + 1, j, Or.inr rfl, h1.symm, by rw [← h1, h_dl_pow]⟩
-
 /-- Key conclusion: for canonical high-scale competitor in R_v in the uIn case
 (where `s/10` is in R_v at K+1, and `s/10 + 1` is NOT), the competitor must
 correspond to the `s/10` branch. -/
@@ -1293,25 +1265,6 @@ theorem pickNearer_eq_s_or_succ (s : Nat) (k : Int) (m : Nat) (q : Int) :
           by_cases h5 : s % 2 = 0
           · rw [if_pos h5]; left; rfl
           · rw [if_neg h5]; right; rfl
-
-/-- Fallback case: under the fallback hypotheses, no canonical sig' at high
-scale exp' ≥ k+1 is in R_v, so the forall is vacuous. -/
-theorem high_scale_digit_count_fallback (m : Nat) (q : Int) (_sign : Bool)
-    (hm_pos : 1 ≤ m) (hm_lt : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971)
-    (h_uIn_false : inRoundingInterval (shiftedSig m q (kOfMQ m q) / 10)
-                      (kOfMQ m q + 1) m q (isIrregular m q) = false)
-    (h_wIn_false : inRoundingInterval (shiftedSig m q (kOfMQ m q) / 10 + 1)
-                      (kOfMQ m q + 1) m q (isIrregular m q) = false)
-    (hs_big : shiftedSig m q (kOfMQ m q) ≥ 10) :
-    let k := kOfMQ m q
-    ∀ (sig' : Nat) (exp' : Int),
-      sig' ≠ 0 →
-      sig' % 10 ≠ 0 →
-      exp' ≥ k + 1 →
-      inRoundingInterval sig' exp' m q (isIrregular m q) = false := by
-  intro k sig' exp' _h_sig_ne _h_canon h_exp_ge
-  exact Schubfach_no_high_scale_under_fallback_proof m q hm_pos hm_lt hq_lo hq_hi
-          hs_big h_uIn_false h_wIn_false sig' exp' h_exp_ge
 
 /-! ## Assembled high-scale cross-scale minimality
 

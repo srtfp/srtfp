@@ -80,23 +80,6 @@ theorem shiftFactor_pos (n : Int) : 0 < shiftFactor n := by
     rw [Int.pow_succ]
     exact Int.mul_pos ih (by decide)
 
-theorem shiftFactor_nonneg (n : Int) : 0 ≤ shiftFactor n :=
-  Int.le_of_lt (shiftFactor_pos n)
-
-theorem shiftFactor_ne_zero (n : Int) : shiftFactor n ≠ 0 :=
-  Int.ne_of_gt (shiftFactor_pos n)
-
-theorem shiftFactor_nonpos {n : Int} (h : n ≤ 0) : shiftFactor n = 1 := by
-  unfold shiftFactor
-  have : n.toNat = 0 := Int.toNat_of_nonpos h
-  rw [this]; rfl
-
-theorem shiftFactor_of_nonneg {n : Int} (_h : 0 ≤ n) :
-    shiftFactor n = (2 : Int) ^ n.toNat := rfl
-
-theorem shiftFactor_zero : shiftFactor 0 = 1 := by
-  unfold shiftFactor; rfl
-
 /-! ### Equivalence: same real value -/
 
 /-- Two midpoints denote the same real number, in cross-multiplied form.
@@ -106,9 +89,6 @@ b.num/2^b.denPow2` equality regardless of signs. -/
 def Equiv (a b : Midpoint) : Prop :=
   a.num * shiftFactor (b.denPow2 - a.denPow2)
     = b.num * shiftFactor (a.denPow2 - b.denPow2)
-
-theorem Equiv.refl (a : Midpoint) : Equiv a a := by
-  unfold Equiv; rfl
 
 theorem Equiv.symm {a b : Midpoint} (h : Equiv a b) : Equiv b a := by
   unfold Equiv at h ⊢
@@ -123,9 +103,6 @@ def ofMQ (m : Int) (q : Int) : Midpoint := ⟨m, -q⟩
 def zero : Midpoint := ⟨0, 0⟩
 
 instance : Inhabited Midpoint := ⟨zero⟩
-
-theorem ofMQ_num (m q : Int) : (ofMQ m q).num = m := rfl
-theorem ofMQ_denPow2 (m q : Int) : (ofMQ m q).denPow2 = -q := rfl
 
 /-! ### Less-than relation
 
@@ -147,41 +124,6 @@ def le (a b : Midpoint) : Prop :=
 
 instance : LT Midpoint := ⟨lt⟩
 instance : LE Midpoint := ⟨le⟩
-
-theorem lt_iff (a b : Midpoint) :
-    a < b ↔ a.num * shiftFactor (b.denPow2 - a.denPow2)
-            < b.num * shiftFactor (a.denPow2 - b.denPow2) := Iff.rfl
-
-theorem le_iff (a b : Midpoint) :
-    a ≤ b ↔ a.num * shiftFactor (b.denPow2 - a.denPow2)
-            ≤ b.num * shiftFactor (a.denPow2 - b.denPow2) := Iff.rfl
-
-/-- When two midpoints share `denPow2`, equivalence reduces to
-numerator equality. -/
-theorem equiv_of_same_den {a b : Midpoint}
-    (hden : a.denPow2 = b.denPow2) (hnum : a.num = b.num) : Equiv a b := by
-  unfold Equiv
-  rw [hden, hnum]
-
-/-- When two midpoints share `denPow2`, `<` reduces to numerator `<`. -/
-theorem lt_of_same_den {a b : Midpoint}
-    (hden : a.denPow2 = b.denPow2) (hnum : a.num < b.num) : a < b := by
-  show lt a b
-  unfold lt
-  have h1 : b.denPow2 - a.denPow2 = 0 := by omega
-  have h2 : a.denPow2 - b.denPow2 = 0 := by omega
-  rw [h1, h2, shiftFactor_zero]
-  omega
-
-/-- When two midpoints share `denPow2`, `≤` reduces to numerator `≤`. -/
-theorem le_of_same_den {a b : Midpoint}
-    (hden : a.denPow2 = b.denPow2) (hnum : a.num ≤ b.num) : a ≤ b := by
-  show le a b
-  unfold le
-  have h1 : b.denPow2 - a.denPow2 = 0 := by omega
-  have h2 : a.denPow2 - b.denPow2 = 0 := by omega
-  rw [h1, h2, shiftFactor_zero]
-  omega
 
 end Midpoint
 
@@ -288,36 +230,6 @@ def ofMQ (m : Nat) (q : Int)
 
 /-! ### Projection lemmas: the constructor returns the expected shape -/
 
-theorem ofMQ_scale (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971) :
-    (ofMQ m q hm_pos hm_le hq_lo hq_hi).scale = -q + 2 := rfl
-
-theorem ofMQ_vMid_num (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971) :
-    (ofMQ m q hm_pos hm_le hq_lo hq_hi).vMid.num = 4 * (m : Int) := rfl
-
-theorem ofMQ_vMid_denPow2 (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971) :
-    (ofMQ m q hm_pos hm_le hq_lo hq_hi).vMid.denPow2 = -q + 2 := rfl
-
-theorem ofMQ_vl_num_regular (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971)
-    (h_reg : ¬ (isIrregular m q = true)) :
-    (ofMQ m q hm_pos hm_le hq_lo hq_hi).vl.num = 4 * (m : Int) - 2 := by
-  unfold ofMQ
-  simp [h_reg]
-
-theorem ofMQ_vl_num_irregular (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971)
-    (h_irreg : isIrregular m q = true) :
-    (ofMQ m q hm_pos hm_le hq_lo hq_hi).vl.num = 4 * (m : Int) - 1 := by
-  unfold ofMQ
-  simp [h_irreg]
-
-theorem ofMQ_vr_num (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971) :
-    (ofMQ m q hm_pos hm_le hq_lo hq_hi).vr.num = 4 * (m : Int) + 2 := rfl
-
 theorem ofMQ_width_num_regular (m : Nat) (q : Int)
     (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971)
     (h_reg : ¬ (isIrregular m q = true)) :
@@ -349,86 +261,11 @@ The regular equivalence rests on `4 · 2^(q-2) = 2^q`, i.e. `4 = 2^2`.
 The irregular form is *already* `⟨3, -q + 2⟩` modulo definitional
 unfolding — a one-line lemma. -/
 
-/-- Width of `R_v` in regular spacing is `2^q`. Stated as
-`Midpoint.Equiv width ⟨1, -q⟩`. -/
-theorem width_regular (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971)
-    (h_reg : ¬ (isIrregular m q = true)) :
-    (ofMQ m q hm_pos hm_le hq_lo hq_hi).width.Equiv ⟨1, -q⟩ := by
-  -- Width = ⟨4, -q + 2⟩, target = ⟨1, -q⟩.
-  -- Cross-mul: 4 · 2^((-q) - (-q+2))⁺ = 1 · 2^((-q+2) - (-q))⁺
-  --         ↔ 4 · 2^0 = 1 · 2^2 ↔ 4 = 4. ✓
-  show Midpoint.Equiv _ _
-  unfold Midpoint.Equiv
-  have hwidth_num : (ofMQ m q hm_pos hm_le hq_lo hq_hi).width.num = 4 :=
-    ofMQ_width_num_regular m q hm_pos hm_le hq_lo hq_hi h_reg
-  have hwidth_den : (ofMQ m q hm_pos hm_le hq_lo hq_hi).width.denPow2 = -q + 2 := rfl
-  show (ofMQ m q hm_pos hm_le hq_lo hq_hi).width.num *
-        Midpoint.shiftFactor ((⟨1, -q⟩ : Midpoint).denPow2
-          - (ofMQ m q hm_pos hm_le hq_lo hq_hi).width.denPow2)
-        = (⟨1, -q⟩ : Midpoint).num *
-            Midpoint.shiftFactor ((ofMQ m q hm_pos hm_le hq_lo hq_hi).width.denPow2
-              - (⟨1, -q⟩ : Midpoint).denPow2)
-  rw [hwidth_num, hwidth_den]
-  -- Goal now: 4 * 2^((-q - (-q+2)).toNat) = 1 * 2^(((-q+2) - (-q)).toNat)
-  show (4 : Int) * Midpoint.shiftFactor (-q - (-q + 2)) = 1 * Midpoint.shiftFactor (-q + 2 - -q)
-  have h1 : (-q - (-q + 2) : Int) = -2 := by omega
-  have h2 : (-q + 2 - -q : Int) = 2 := by omega
-  rw [h1, h2]
-  unfold Midpoint.shiftFactor
-  decide
-
-/-- Width of `R_v` in irregular spacing is `3 · 2^(q-2) = (3/4) · 2^q`.
-Stated as `Midpoint.Equiv width ⟨3, -q + 2⟩`. -/
-theorem width_irregular (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971)
-    (h_irreg : isIrregular m q = true) :
-    (ofMQ m q hm_pos hm_le hq_lo hq_hi).width.Equiv ⟨3, -q + 2⟩ := by
-  -- Width = ⟨3, -q + 2⟩ already.
-  apply Midpoint.equiv_of_same_den
-  · exact ofMQ_width_denPow2 m q hm_pos hm_le hq_lo hq_hi
-  · exact ofMQ_width_num_irregular m q hm_pos hm_le hq_lo hq_hi h_irreg
-
 /-! ### `v ∈ R_v` and strict-order endpoints
 
 Both endpoints share `denPow2` with `vMid`, so the strict numerator
 orderings carried in the structure (`vl_lt_v_num`, `v_lt_vr_num`)
 immediately give the value-level strict inequalities `vl < v < vr`. -/
-
-/-- `vℓ < v` as `Midpoint` values. -/
-theorem vl_lt_v (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971) :
-    let R := ofMQ m q hm_pos hm_le hq_lo hq_hi
-    R.vl < R.vMid := by
-  intro R
-  apply Midpoint.lt_of_same_den
-  · rw [R.vl_den, R.vMid_den]
-  · exact R.vl_lt_v_num
-
-/-- `v < vr` as `Midpoint` values. -/
-theorem v_lt_vr (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971) :
-    let R := ofMQ m q hm_pos hm_le hq_lo hq_hi
-    R.vMid < R.vr := by
-  intro R
-  apply Midpoint.lt_of_same_den
-  · rw [R.vMid_den, R.vr_den]
-  · exact R.v_lt_vr_num
-
-/-- `v ∈ [vℓ, vr]` — non-strict version, the formal statement that `v`
-itself lies in `R_v`. -/
-theorem v_mem_rv (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971) :
-    let R := ofMQ m q hm_pos hm_le hq_lo hq_hi
-    R.vl ≤ R.vMid ∧ R.vMid ≤ R.vr := by
-  intro R
-  refine ⟨?_, ?_⟩
-  · apply Midpoint.le_of_same_den
-    · rw [R.vl_den, R.vMid_den]
-    · exact Int.le_of_lt R.vl_lt_v_num
-  · apply Midpoint.le_of_same_den
-    · rw [R.vMid_den, R.vr_den]
-    · exact Int.le_of_lt R.v_lt_vr_num
 
 /-! ### Endpoint-vs-`v` value equalities
 
@@ -437,41 +274,6 @@ side) without unfolding the constructor every time. We expose the
 numerator differences at the shared scale — the most ergonomic form
 for downstream `omega`/`decide` arithmetic. -/
 
-/-- `v - vℓ` numerator (regular): `4·m - (4·m - 2) = 2`. So the value
-is `2 / 2^(-q+2) = 2^(q-1)`, the regular half-width. -/
-theorem v_minus_vl_num_regular (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971)
-    (h_reg : ¬ (isIrregular m q = true)) :
-    let R := ofMQ m q hm_pos hm_le hq_lo hq_hi
-    R.vMid.num - R.vl.num = 2 := by
-  intro R
-  rw [ofMQ_vMid_num, ofMQ_vl_num_regular m q hm_pos hm_le hq_lo hq_hi h_reg]
-  omega
-
-/-- `v - vℓ` numerator (irregular): `4·m - (4·m - 1) = 1`. So the
-value is `1 / 2^(-q+2) = 2^(q-2)`, the irregular half-width on the
-lower side. -/
-theorem v_minus_vl_num_irregular (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971)
-    (h_irreg : isIrregular m q = true) :
-    let R := ofMQ m q hm_pos hm_le hq_lo hq_hi
-    R.vMid.num - R.vl.num = 1 := by
-  intro R
-  rw [ofMQ_vMid_num, ofMQ_vl_num_irregular m q hm_pos hm_le hq_lo hq_hi h_irreg]
-  omega
-
-/-- `vr - v` numerator (always 2 in both cases): the upper half-width
-is `2^(q-1)` whether spacing is regular or irregular. This is the
-*key asymmetry* of the irregular case — the lower side shrinks but
-the upper side is unchanged. -/
-theorem vr_minus_v_num (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971) :
-    let R := ofMQ m q hm_pos hm_le hq_lo hq_hi
-    R.vr.num - R.vMid.num = 2 := by
-  intro R
-  rw [ofMQ_vr_num, ofMQ_vMid_num]
-  omega
-
 /-! ### Cross-check with `inRoundingInterval`
 
 `Srtfp.Schubfach.inRoundingInterval` uses exactly the same scaled
@@ -479,28 +281,6 @@ endpoints: `leftN = 4m - 1` or `4m - 2`, `rightN = 4m + 2`. The
 lemmas below witness that correspondence as plain equalities — useful
 when M3.8.4+ needs to bridge between the `inRoundingInterval` boolean
 and the `R_v` structural claim. -/
-
-/-- `inRoundingInterval`'s left numerator matches `vl.num`. -/
-theorem ofMQ_vl_matches_inRI_leftN (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971) :
-    let R := ofMQ m q hm_pos hm_le hq_lo hq_hi
-    let irreg := isIrregular m q
-    R.vl.num = (if irreg then 4 * (m : Int) - 1 else 4 * (m : Int) - 2) := by
-  intro R irreg
-  by_cases h : irreg = true
-  · have h_irreg : isIrregular m q = true := h
-    rw [ofMQ_vl_num_irregular m q hm_pos hm_le hq_lo hq_hi h_irreg]
-    simp [show irreg = true from h]
-  · have h_reg : ¬ (isIrregular m q = true) := h
-    rw [ofMQ_vl_num_regular m q hm_pos hm_le hq_lo hq_hi h_reg]
-    have : irreg = false := Bool.eq_false_iff.mpr h
-    simp [this]
-
-/-- `inRoundingInterval`'s right numerator matches `vr.num`. -/
-theorem ofMQ_vr_matches_inRI_rightN (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_le : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971) :
-    let R := ofMQ m q hm_pos hm_le hq_lo hq_hi
-    R.vr.num = 4 * (m : Int) + 2 := ofMQ_vr_num m q hm_pos hm_le hq_lo hq_hi
 
 end RoundingInterval
 

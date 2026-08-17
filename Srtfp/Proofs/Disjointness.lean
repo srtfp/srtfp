@@ -88,12 +88,6 @@ theorem decode_legalIEEE_bits (w : UInt64)
       have : (Word.biasedExp w : Int) ≤ 2046 := by omega
       omega
 
-/-- Float-level instantiation (axiom-free: `w := f.toBits`). -/
-theorem decode_legalIEEE (f : _root_.Float)
-    (h_fin : isFiniteBits f = true) (h_nonzero : (decode f).m ≠ 0) :
-    LegalIEEE (decode f).m (decode f).q :=
-  decode_legalIEEE_bits f.toBits h_fin h_nonzero
-
 /-! ## Canonicalization-invariance of `inRoundingInterval` (deferred)
 
 `inRoundingInterval sig exp m q irreg` only depends on the real value

@@ -142,23 +142,6 @@ theorem pow10_decDigitLength_pred_le : ∀ (n : Nat), 1 ≤ n →
       Nat.mul_le_mul_left 10 ih'
     omega
 
-/-- If `n < 10 ^ L`, then `decDigitLength n ≤ L` (for `L ≥ 1` or `n = 0`). -/
-theorem decDigitLength_le_of_lt_pow10 {n L : Nat} (hL : 1 ≤ L) (h : n < 10 ^ L) :
-    decDigitLength n ≤ L := by
-  by_cases hn : n = 0
-  · subst hn
-    rw [decDigitLength_zero]
-    exact hL
-  · have hn_pos : 1 ≤ n := Nat.pos_of_ne_zero hn
-    apply Decidable.byContradiction
-    intro hc
-    have hc' : L < decDigitLength n := Nat.lt_of_not_le hc
-    have h1 := pow10_decDigitLength_pred_le n hn_pos
-    have hdlen_pos := decDigitLength_pos n
-    have hL_le : L ≤ decDigitLength n - 1 := by omega
-    have h2 : 10 ^ L ≤ 10 ^ (decDigitLength n - 1) := Nat.pow_le_pow_right (by decide) hL_le
-    omega
-
 /-- If `10 ^ L ≤ n`, then `L < decDigitLength n`. -/
 theorem lt_decDigitLength_of_pow10_le {n L : Nat} (h : 10 ^ L ≤ n) :
     L < decDigitLength n := by
@@ -172,20 +155,6 @@ theorem lt_decDigitLength_of_pow10_le {n L : Nat} (h : 10 ^ L ≤ n) :
   have h1 := lt_pow10_decDigitLength n hn_pos
   have h2 : 10 ^ decDigitLength n ≤ 10 ^ L := Nat.pow_le_pow_right (by decide) hc'
   omega
-
-/-- Monotonicity. -/
-theorem decDigitLength_mono : ∀ {a b : Nat}, a ≤ b → decDigitLength a ≤ decDigitLength b := by
-  intro a b hab
-  by_cases ha : a = 0
-  · subst ha
-    rw [decDigitLength_zero]
-    exact decDigitLength_pos b
-  · have ha_pos : 1 ≤ a := Nat.pos_of_ne_zero ha
-    have _hb_pos : 1 ≤ b := Nat.le_trans ha_pos hab
-    have h1 := pow10_decDigitLength_pred_le a ha_pos
-    have h3 : 10 ^ (decDigitLength a - 1) ≤ b := Nat.le_trans h1 hab
-    have h4 := lt_decDigitLength_of_pow10_le h3
-    omega
 
 /-! ## Sig = 0 is not in R_v for m ≥ 1
 
@@ -346,16 +315,6 @@ def Schubfach_minimal_statement (m : Nat) (q : Int) : Prop :=
     inRoundingInterval (s / 10 + 1) (k + 1) m q (isIrregular m q) = false →
     ∀ sig' : Nat, inRoundingInterval sig' (k + 1) m q (isIrregular m q) = false
 
-/-- Sanity: in the trivial sub-case where sig' = 0 (which has
-`decDigitLength 0 = 1`, less than the output's length when output ≥ 10),
-the statement holds unconditionally — by `no_zero_sig_in_rv`. -/
-theorem Schubfach_minimal_zero_case
-    (m : Nat) (q : Int) (hm_pos : 1 ≤ m) (_hm_lt : m < 2^53)
-    (_hq_lo : -1074 ≤ q) (_hq_hi : q ≤ 971)
-    (exp' : Int) :
-    inRoundingInterval 0 exp' m q (isIrregular m q) = false :=
-  no_zero_sig_in_rv m q hm_pos exp'
-
 /-! ## Generalisation of R11 to higher scale
 
 The next milestone-internal subgoal is to show that the shorter-form
@@ -390,32 +349,6 @@ def Schubfach_no_K1_candidate_under_fallback (m : Nat) (q : Int) : Prop :=
 We carry through the integer-arithmetic relating `step at K+1` and
 `fourVR - fourVL`. The key fact is `log_width_lt_succK` from K.lean,
 which says R_v's width is strictly less than the K+1-scale step. -/
-
-/-- The step at scale `K+1` (cleared, factor 4) is exactly `4 · 10^(K+1) · 2^(-q)`. -/
-theorem fourW_sub_fourU_at_K1 (s : Nat) (q : Int) (k : Int) :
-    fourW s q (k + 1) - fourU s q (k + 1) = 4 * (tenPosPow (k + 1) : Int) * (twoNegPow q : Int) :=
-  fourW_sub_fourU s q (k + 1)
-
-/-- Step at K+1 is exactly 10 × step at K (over `Int`). -/
-theorem tenPosPow_succ (k : Int) (hk : 0 ≤ k) :
-    (tenPosPow (k + 1) : Int) = 10 * (tenPosPow k : Int) := by
-  unfold tenPosPow
-  have hk1 : (0 : Int) ≤ k + 1 := by omega
-  simp [show k ≥ 0 from hk, show k + 1 ≥ 0 from hk1]
-  have hk1_eq : (k + 1).toNat = k.toNat + 1 := by
-    have : (k + 1).toNat = k.toNat + (1 : Int).toNat := Int.toNat_add hk (by decide)
-    simpa using this
-  rw [hk1_eq]
-  -- Goal: ((10^(k.toNat + 1) : Nat) : Int) = 10 * ((10^k.toNat : Nat) : Int)
-  -- (or similar; might be all-Nat)
-  -- Convert step: 10^(n+1) = 10 * 10^n
-  show ((10 ^ (k.toNat + 1) : Nat) : Int) = 10 * ((10 ^ k.toNat : Nat) : Int)
-  have hN : (10 : Nat) ^ (k.toNat + 1) = 10 * (10 : Nat) ^ k.toNat := by
-    rw [Nat.pow_add, Nat.pow_one]
-    exact Nat.mul_comm _ _
-  rw [hN]
-  push_cast
-  rfl
 
 /-- Comparison-decomposition: if `inRoundingInterval sig' k1 m q irreg = true`,
 the cleared form gives `fourVL ≤ fourU sig' ≤ fourVR` (with allowance for
@@ -777,12 +710,6 @@ theorem Schubfach_no_K1_candidate_under_fallback_proof (m : Nat) (q : Int)
         -- fourU sig' ≥ fourU(s/10 + 2) = fourW(s/10) + step > fourVL + step > fourVR.
         omega
       omega
-
-/-- Public statement form: the `Prop` definition combined with the proof. -/
-theorem Schubfach_no_K1_candidate_under_fallback_holds (m : Nat) (q : Int)
-    (hm_pos : 1 ≤ m) (hm_lt : m < 2 ^ 53) (hq_lo : -1074 ≤ q) (hq_hi : q ≤ 971) :
-    Schubfach_no_K1_candidate_under_fallback m q :=
-  Schubfach_no_K1_candidate_under_fallback_proof m q hm_pos hm_lt hq_lo hq_hi
 
 /-- K+1 minimality: the full statement combined with the proof. -/
 theorem Schubfach_minimal_statement_holds (m : Nat) (q : Int) :

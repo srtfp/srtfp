@@ -578,28 +578,6 @@ theorem toRat_eq_signFactor_gridVal (d : Decimal) :
     d.toRat = signFactor d.sign * gridVal d.significand d.exponent := by
   unfold Decimal.toRat signFactor gridVal; grind
 
-/-- The exact value is unchanged by canonicalisation: for `sig ≠ 0`,
-`(mk' sign sig exp).toRat = signFactor sign · gridVal sig exp`. -/
-theorem toRat_mk' (sign : Bool) (sig : Nat) (exp : Int) (h : sig ≠ 0) :
-    (Decimal.mk' sign sig exp).toRat = signFactor sign * gridVal sig exp := by
-  have ⟨h_sign, _, _, h_exp_ge, h_val⟩ := mk_pos_props sign sig exp h
-  rw [toRat_eq_signFactor_gridVal, h_sign]
-  congr 1
-  -- gridVal of the canonical form = gridVal of (sig, exp), by value preservation.
-  set d := Decimal.mk' sign sig exp with hd
-  -- h_val : d.significand * 10 ^ (d.exponent - exp).toNat = sig
-  set j : Nat := (d.exponent - exp).toNat with hj
-  have h_j_cast : (j : Int) = d.exponent - exp := Int.toNat_of_nonneg (by omega)
-  have h_exp_split : d.exponent = (j : Int) + exp := by rw [h_j_cast]; grind
-  -- gridVal d.sig d.exp = (d.sig : ℚ)·10^(j+exp) = (d.sig·10^j : ℚ)·10^exp = sig·10^exp.
-  unfold gridVal
-  have hcast : ((sig : Nat) : ℚ) = ((d.significand * 10 ^ j : Nat) : ℚ) := by
-    rw [h_val]
-  rw [hcast, h_exp_split]
-  push_cast
-  rw [Rat.zpow_add (by grind : (10:ℚ) ≠ 0), Rat.zpow_natCast]
-  grind
-
 /-! ## (F) Sign handling
 
 A canonical `d'` whose `ofDecimal` round-trips to a finite nonzero `f`

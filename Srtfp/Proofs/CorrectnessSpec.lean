@@ -37,9 +37,6 @@ def floatVal (f : _root_.Float) : ℚ :=
   (if (Srtfp.Float.decode f).sign then -1 else 1)
     * magVal (Srtfp.Float.decode f).m (Srtfp.Float.decode f).q
 
-/-- The two value readers agree definitionally. -/
-theorem floatVal_word (f : _root_.Float) : floatVal f = wordVal f.toBits := rfl
-
 /-- Number of base-10 digits in `n`; `decDigitLength 0 = 1`. -/
 def decDigitLength (n : Nat) : Nat :=
   if n < 10 then 1
@@ -80,19 +77,6 @@ def IsSpecOutput (f : _root_.Float) (d : Decimal) : Prop :=
          ∧ ( |Decimal.toRat d - floatVal f| < |Decimal.toRat d' - floatVal f|
            ∨ ( |Decimal.toRat d - floatVal f| = |Decimal.toRat d' - floatVal f|
                ∧ d.significand % 2 = 0 )))))
-
-/-- What a correct printer returns on every binary64 input.
-The four conditions are exhaustive and mutually exclusive. -/
-def IsCorrectPrinter (p : _root_.Float → Except String Decimal) : Prop :=
-  ∀ f : _root_.Float,
-      -- NaN
-      (isNaNBits f = true → p f = .error "NaN")
-      -- ±∞
-    ∧ (isInfBits f = true →
-         p f = .error (if signBit f then "-Infinity" else "Infinity"))
-      -- every finite float (±0 included): THE shortest decimal
-    ∧ (isFiniteBits f = true →
-         ∃ d : Decimal, p f = .ok d ∧ IsSpecOutput f d)
 
 /-- Bits-level `IsSpecOutput`: `d` is THE shortest decimal for the finite
 binary64 word `w` — same clauses, pure word pipeline. -/
@@ -136,17 +120,6 @@ def IsNearestFloat (d : Decimal) (f : _root_.Float) : Prop :=
        floatVal g ≠ floatVal f →
        |floatVal g - Decimal.toRat d| = |floatVal f - Decimal.toRat d| →
        mantissaBits f % 2 = 0)
-
-/-- What a correct reader returns on every decimal: the nearest finite
-float while `d`'s value is in range, `±∞` by `d.sign` past the overflow
-threshold `2^1024 - 2^970` (the midpoint between the largest finite
-float and its would-be successor; ties-to-even sends the midpoint
-itself to `∞`). -/
-def IsCorrectReader (p : Decimal → _root_.Float) : Prop :=
-  ∀ d : Decimal,
-      (|Decimal.toRat d| < 2 ^ 1024 - 2 ^ 970 → IsNearestFloat d (p d))
-    ∧ ((2 : ℚ) ^ 1024 - 2 ^ 970 ≤ |Decimal.toRat d| →
-         isInfBits (p d) = true ∧ signBit (p d) = d.sign)
 
 /-- Bits-level `IsNearestFloat`: `w` is THE correctly rounded finite
 binary64 word for `d`. Note this quantifies over *all* finite words —
