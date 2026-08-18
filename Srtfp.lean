@@ -66,3 +66,5 @@ import Srtfp.Schubfach.R20Continuant
 import Srtfp.Schubfach.R20Keystone
 import Srtfp.Schubfach.R20Legendre
 import Srtfp.Schubfach.TableInvariant
+import Srtfp.Text
+import Srtfp.Text.Roundtrip

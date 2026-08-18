@@ -1,3 +1,4 @@
+module
 /- M7 milestone: extensibility audit for the upcoming JSON ↔ YAML bridge.
 
    `decimalNumber` (M2.3) accepts the strict RFC 8259 number grammar:
@@ -18,6 +19,8 @@
    refactor (when actually needed for the YAML port) has a clear target.
 
    See also: dissertation §6 for the JSON-↔-YAML bridge plan. -/
+
+@[expose] public section
 
 namespace Srtfp
 
@@ -43,6 +46,12 @@ structure DecimalSyntax where
       `0o...`, `0b...`). JSON: no. YAML 1.1: yes, YAML 1.2: no for octal,
       yes for the others under specific tags. -/
   allowAlternativeBases : Bool := false
+  /-- Require the decimal point: a bare integer literal like `"2"` is not
+      a float. JSON: no (integers are floats). MLIR: yes. -/
+  requireDot : Bool := false
+  /-- Allow redundant leading zeros on the integer part, e.g. `"007.5"`.
+      JSON: no. MLIR: yes (`[0-9]+` digits). -/
+  allowLeadingZeros : Bool := false
   deriving Repr, DecidableEq, Inhabited
 
 namespace DecimalSyntax
@@ -65,6 +74,15 @@ def yamlCore : DecimalSyntax :=
     (which several YAML 1.1 emitters still produce in the wild). -/
 def yaml11 : DecimalSyntax :=
   { yamlCore with allowAlternativeBases := true }
+
+/-- MLIR float literals: `[0-9]+ '.' [0-9]* ([eE][+-]?[0-9]+)?`. The dot
+    is mandatory, may dangle (`"2."`), and leading zeros are allowed
+    (`"007.5"`). The mantissa sign is lexed separately in MLIR, so `'+'`
+    stays disallowed here. -/
+def mlir : DecimalSyntax :=
+  { requireDot        := true
+  , allowTrailingDot  := true
+  , allowLeadingZeros := true }
 
 end DecimalSyntax
 
