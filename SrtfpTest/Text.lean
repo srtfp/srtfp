@@ -28,8 +28,13 @@ private def corpusDecimals : Array Decimal :=
        ⟨false, 12345678901234567, 100⟩, ⟨false, 5, -324⟩, ⟨true, 1, 16⟩,
        ⟨false, 1, -5⟩, ⟨false, 9007199254740993, -22⟩]
 
+/-- A consumer-defined preset (the pattern downstream repos use):
+    shortest form with a forced decimal point, suiting dot-requiring
+    grammars such as MLIR float literals. -/
+private def dotted : FormatOptions := { minFracDigits := 1, sciMinFracDigits := 1 }
+
 private def fmts : Array (String × FormatOptions) :=
-  #[("veir", .veir), ("python", .python), ("js", .js), ("java", .java),
+  #[("dotted", dotted), ("python", .python), ("js", .js), ("java", .java),
     ("cScientific", .cScientific)]
 
 private def dialects : Array (String × DecimalSyntax) :=
@@ -50,14 +55,14 @@ def runRoundTripTests : TestSeq := Id.run do
   return t
 
 def runDialectTests : TestSeq :=
-  test "veir format matches the FloatPrinter shapes"
-      (format .veir ⟨false, 15, -1⟩ == "1.5"
-        && format .veir ⟨false, 2, 0⟩ == "2.0"
-        && format .veir ⟨false, 15, 2⟩ == "1500.0"
-        && format .veir ⟨false, 5, -4⟩ == "0.0005"
-        && format .veir ⟨true, 0, 0⟩ == "-0.0"
-        && format .veir ⟨false, 15, 300⟩ == "1.5e301"
-        && format .veir ⟨false, 1, -7⟩ == "1.0e-7")
+  test "dotted format shapes (MLIR-parseable)"
+      (format dotted ⟨false, 15, -1⟩ == "1.5"
+        && format dotted ⟨false, 2, 0⟩ == "2.0"
+        && format dotted ⟨false, 15, 2⟩ == "1500.0"
+        && format dotted ⟨false, 5, -4⟩ == "0.0005"
+        && format dotted ⟨true, 0, 0⟩ == "-0.0"
+        && format dotted ⟨false, 15, 300⟩ == "1.5e301"
+        && format dotted ⟨false, 1, -7⟩ == "1.0e-7")
     ++ test "python/js/java/C shapes"
       (format .python ⟨false, 1, 21⟩ == "1e+21"
         && format .python ⟨false, 1, -5⟩ == "1e-05"

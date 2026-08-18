@@ -2,7 +2,7 @@ module
 /- Decimal ↔ String: a dialect-parameterized formatter and parser.
 
    `Srtfp`'s verified core stops at the `Decimal` record; this module is
-   the shared text layer so that consumers (VeIR/MLIR, JSON, YAML, ...)
+   the shared text layer so that consumers (MLIR, JSON, YAML, ...)
    don't each hand-roll literal printing and parsing. The lexical shape a
    dialect *accepts* is a `DecimalSyntax` (`Srtfp/DecimalSyntax.lean`);
    the shape a printer *emits* is a `FormatOptions` below. One engine,
@@ -34,7 +34,7 @@ inductive ExpMode where
   /-- Always use an exponent (C `%e` style). -/
   | scientific
   /-- Positional iff `lo < pointExp < hi` (shortest-style windows:
-      Python `repr` and VeIR use `(-5, 16)`, JavaScript `(-7, 21)`,
+      Python `repr` uses `(-5, 16)`, JavaScript `(-7, 21)`,
       Java `(-4, 7)`). -/
   | window (lo hi : Int)
   deriving Repr, DecidableEq, Inhabited
@@ -62,12 +62,9 @@ structure FormatOptions where
 
 namespace FormatOptions
 
-/-- VeIR / MLIR shortest form: `repr`'s window, forced `.0`, bare
-    exponents (`"2.0"`, `"1.5e-7"`). -/
-def veir : FormatOptions := { minFracDigits := 1, sciMinFracDigits := 1 }
-
-/-- Python `repr`: like `veir` but `'+'`-signed, two-digit exponents
-    (`"1e+21"`, `"1e-05"`). -/
+/-- Python `repr`: the `(-5, 16)` window, positional `.0`, bare
+    scientific mantissa, and
+    `'+'`-signed two-digit exponents (`"2.0"`, `"1e+21"`, `"1e-05"`). -/
 def python : FormatOptions := { minFracDigits := 1, expPlus := true, expMinDigits := 2 }
 
 /-- JavaScript `String(x)`: wider window, integers without a dot

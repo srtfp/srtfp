@@ -438,7 +438,7 @@ theorem dotFrac_eq_nil {minFrac : Nat} {frac : List Char}
     (h : frac ++ List.replicate (minFrac - frac.length) '0' = []) :
     dotFrac minFrac frac = [] := by
   simp only [dotFrac]
-  rw [if_pos (by simp [List.isEmpty_iff, h])]
+  rw [if_pos (by rw [h]; rfl)]
 
 /-! ## The round-trip -/
 
@@ -885,16 +885,10 @@ theorem parse_isCanonical {opts : DecimalSyntax} {s : String} {d : Decimal}
 
 /-! ## Preset instantiations
 
-The compatibility side condition discharges by `decide` for every
-shipped preset pair; these name the ones consumers actually cite. -/
-
-theorem parse_mlir_format_veir (d : Decimal) (hcan : d.IsCanonical) :
-    parse .mlir (format .veir d) = some d :=
-  parse_format (by unfold FormatOptions.CompatibleWith; decide) d hcan
-
-theorem parse_json_format_veir (d : Decimal) (hcan : d.IsCanonical) :
-    parse .jsonStrict (format .veir d) = some d :=
-  parse_format (by unfold FormatOptions.CompatibleWith; decide) d hcan
+The compatibility side condition discharges by `decide` for any pair of
+option literals (after unfolding `CompatibleWith` — instance synthesis
+does not see through the definition). Consumers with their own
+`FormatOptions` instantiate `parse_format` the same one-line way. -/
 
 theorem parse_json_format_python (d : Decimal) (hcan : d.IsCanonical) :
     parse .jsonStrict (format .python d) = some d :=
@@ -902,10 +896,6 @@ theorem parse_json_format_python (d : Decimal) (hcan : d.IsCanonical) :
 
 theorem parse_json_format_js (d : Decimal) (hcan : d.IsCanonical) :
     parse .jsonStrict (format .js d) = some d :=
-  parse_format (by unfold FormatOptions.CompatibleWith; decide) d hcan
-
-theorem parse_yamlCore_format_veir (d : Decimal) (hcan : d.IsCanonical) :
-    parse .yamlCore (format .veir d) = some d :=
   parse_format (by unfold FormatOptions.CompatibleWith; decide) d hcan
 
 end Srtfp.Text
