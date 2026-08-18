@@ -62,6 +62,12 @@ make                 # helper binaries (benchmarks, difftest)
 
 ## Extra tests
 
+Differential testing against C++'s `std::to_chars` and CPython's `repr`
+found no unexplained differences out of 100 billion tested values. (The
+one explained difference: `to_chars` prints large integers verbatim
+rather than shortest, e.g. `784169164648129232896` instead of
+`7.841691646481292e+20`.)
+
 ```
 python3 benches/difftest_ryu.py   # cross-check the printer vs C++ to_chars (Ryu) and Python repr
 ```
