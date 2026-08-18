@@ -1,4 +1,4 @@
-# srtfp — a verified shortest round-trip float printer
+# srtfp: a verified shortest round-trip float printer
 
 A Lean 4 library providing, for IEEE-754 binary64:
 
@@ -23,31 +23,28 @@ printer:
 5. **breaks ties to even**: at equal distance, it has the even
    significand.
 
-These properties uniquely determine the printer's behavior — and the
-parser's: a function is a correct shortest-decimal printer iff it is
+These properties uniquely determine the printer's behavior, and
+likewise the parser's: a function is a correct shortest-decimal printer iff it is
 `Schubfach.toDecimalBits`, and a correct round-to-nearest reader iff it
 is `Clinger.ofDecimalBits`. For the exact statements, see
 [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean).
 
 The certification is two-tier:
 
-- **Bits tier (`import Srtfp`, the default)** — the theorems stated on
+- **Bits tier (`import Srtfp`, the default)**: the theorems stated on
   raw IEEE-754 bit patterns (`UInt64`). Uses nothing beyond Lean's
   three standard axioms (`propext`, `Quot.sound`, `Classical.choice`);
   a build-time audit enforces this.
-- **Float tier (`import Srtfp.Bridge`, opt-in)** — the same theorems
+- **Float tier (`import Srtfp.Bridge`, opt-in)**: the same theorems
   attached to the runtime `Float` type. This tier depends on exactly
   one extra axiom, `Float.toBits_ofBits`: constructing a non-NaN
-  `Float` from bits and reading it back gives the same bits — the
-  implementation contract of Lean's opaque `Float`, not provable
+  `Float` from bits and reading it back gives the same bits. This is
+  the implementation contract of Lean's opaque `Float`, not provable
   within Lean.
 
 No `sorry` anywhere.
 
-Factored out of QuadParsers, a biparser library with proven
-round-trip properties.
-
-Zero dependencies beyond the Lean toolchain — no mathlib, and the test
+Zero dependencies beyond the Lean toolchain: no mathlib, and the test
 suite runs on a small in-repo harness (`SrtfpTest/Spec.lean`). CI builds
 and tests the library on Lean v4.27.0, v4.32.2 (the pinned toolchain),
 and v4.33.0.
