@@ -1,3 +1,4 @@
+module
 /- 128-bit unsigned multiply-high kernel for the Schubfach multiply-shift
    inner loop (Phase 3 of the UInt64 refinement).
 
@@ -27,6 +28,8 @@
    can treat `mulHigh128` as exact.
 
 -/
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 
@@ -186,11 +189,11 @@ The actual `mulHi64` (UInt64 algorithm) is observationally the Nat
 mirror.  All intermediates are overflow-free, so the UInt64 mod-2⁶⁴
 collapses to identity. -/
 
-private theorem nat_and_2_32 (x : Nat) : x &&& 4294967295 = x % 2 ^ 32 := by
+theorem nat_and_2_32 (x : Nat) : x &&& 4294967295 = x % 2 ^ 32 := by
   rw [show (4294967295 : Nat) = 2 ^ 32 - 1 from by decide,
       Nat.and_two_pow_sub_one_eq_mod]
 
-private theorem nat_shiftRight_32 (x : Nat) : x >>> 32 = x / 2 ^ 32 :=
+theorem nat_shiftRight_32 (x : Nat) : x >>> 32 = x / 2 ^ 32 :=
   Nat.shiftRight_eq_div_pow x 32
 
 /-- The schoolbook UInt64 algorithm matches the Nat mirror. -/

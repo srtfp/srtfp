@@ -1,3 +1,4 @@
+module
 /- Schubfach printer — Float → Decimal.
 
    Full implementation of the Schubfach algorithm (Raffaello Giulietti,
@@ -45,12 +46,14 @@
      - M3.8.9 (`Minimal.lean`)            — full cross-scale minimality
      - Round-trip (`RoundTrip.lean`)      — `Clinger ∘ Schubfach = id` -/
 
-import Srtfp.Decimal
-import Srtfp.Decimal.Perf.Fast
-import Srtfp.Float.Bits
-import Srtfp.Schubfach.MulHigh128
-import Srtfp.Schubfach.Pow10Table
-import Srtfp.Schubfach.Pow10Table128
+public import Srtfp.Decimal
+public import Srtfp.Decimal.Perf.Fast
+public import Srtfp.Float.Bits
+public import Srtfp.Schubfach.MulHigh128
+public import Srtfp.Schubfach.Pow10Table
+public import Srtfp.Schubfach.Pow10Table128
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

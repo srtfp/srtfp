@@ -1,3 +1,4 @@
+module
 /- UInt64 fast path for `Decimal.canonicaliseAux` / `Decimal.mk'`.
 
    `canonicaliseAux` strips trailing decimal zeros from `(s, e)` by
@@ -13,7 +14,9 @@
    fast form. Proofs about `canonicaliseAux` continue to reference the
    `Nat` reference implementation. -/
 
-import Srtfp.Decimal
+public import Srtfp.Decimal
+
+@[expose] public section
 
 namespace Srtfp.Decimal
 
@@ -50,13 +53,13 @@ def canonicaliseAux_fast (s : Nat) (e : Int) : Nat × Int :=
 
 /-! ## Correctness -/
 
-private theorem UInt64_eq_zero_iff (s : UInt64) : s = 0 ↔ s.toNat = 0 := by
+theorem UInt64_eq_zero_iff (s : UInt64) : s = 0 ↔ s.toNat = 0 := by
   constructor
   · intro h; rw [h]; rfl
   · intro h
     rw [← UInt64.toNat_inj, h]; rfl
 
-private theorem UInt64_mod10_eq_zero_iff (s : UInt64) :
+theorem UInt64_mod10_eq_zero_iff (s : UInt64) :
     s % 10 = 0 ↔ s.toNat % 10 = 0 := by
   rw [← UInt64.toNat_inj]
   rw [UInt64.toNat_mod]
@@ -64,7 +67,7 @@ private theorem UInt64_mod10_eq_zero_iff (s : UInt64) :
 
 /-- The `UInt64` loop matches the `Nat` loop on `(toNat, e)`,
     provided fuel suffices. -/
-private theorem canonicaliseAuxU64_eq
+theorem canonicaliseAuxU64_eq
     (fuel : Nat) (s : UInt64) (e : Int) (hbound : s.toNat ≤ 2^fuel) :
     let p := canonicaliseAuxU64 fuel s e
     (p.1.toNat, p.2) = canonicaliseAux s.toNat e := by

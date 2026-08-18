@@ -1,3 +1,4 @@
+module
 /- 128-bit power-of-10 table for the Schubfach multiply-shift kernel.
 
    For each `k ∈ [-324, 324]` (covers both `cmpScaledMixed` and `shiftedSig` lookups), the table stores
@@ -16,6 +17,8 @@
    ceil computation: `g = ⌈10^k · 2^{h}⌉` with `h` chosen so
    `g ∈ [2^127, 2^128)`).
 -/
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

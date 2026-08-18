@@ -1,3 +1,4 @@
+module
 /- Precomputed power tables for the Schubfach multiply-shift kernel.
 
    `Schubfach.shiftedSig m q k` recomputes `2^|q|` and `10^|k|` from
@@ -18,6 +19,8 @@
    (the GMP multiply / divide is the inner kernel) but eliminates the
    redundant `^` cost. A full UInt64 multiply-shift refinement is Phase 2.
 -/
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 
