@@ -1,10 +1,10 @@
 import Srtfp.Schubfach
 import Srtfp.Decimal
-import Srtfp.Schubfach.Perf.Orchestration
-import Srtfp.Schubfach.Perf.Uint64Bridge
-import Srtfp.Schubfach.Perf.Kernel192Correctness
-import Srtfp.Schubfach.Perf.DigitsFast
-import Srtfp.Schubfach.Perf.KernelV13
+import Srtfp.Perf.Orchestration
+import Srtfp.Perf.Uint64Bridge
+import Srtfp.Perf.Kernel192Correctness
+import Srtfp.Perf.DigitsFast
+import Srtfp.Perf.KernelV13
 import Corpora
 
 open Srtfp

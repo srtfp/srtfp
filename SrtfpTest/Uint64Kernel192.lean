@@ -8,9 +8,9 @@
 
 import SrtfpTest.Spec
 import Srtfp.Schubfach
-import Srtfp.Schubfach.Perf.Orchestration
-import Srtfp.Schubfach.Perf.Uint64Kernel
-import Srtfp.Schubfach.Perf.Uint64Kernel192
+import Srtfp.Perf.Orchestration
+import Srtfp.Perf.Uint64Kernel
+import Srtfp.Perf.Uint64Kernel192
 import Srtfp.Float.Bits
 import SrtfpTest.Ryu
 

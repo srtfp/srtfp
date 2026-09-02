@@ -16,10 +16,11 @@
    condensation: all members of a strongly-connected component share one
    axiom set, computed once per SCC in reverse-topological order. -/
 
--- CONFIGURE: import the project root module (the Bridge umbrella is the
--- full closure: Srtfp + the runtime-axiom tier)
+-- CONFIGURE: import the project root modules (the Bridge umbrella is
+-- Srtfp + the runtime-axiom tier; Perf is the opt-in fast-path tier)
 import Srtfp.Bridge
-import Srtfp.Schubfach.Perf.CsimpPin -- build-time pin of live @[csimp] kernels
+import Srtfp.Perf
+import Srtfp.Perf.CsimpPin -- build-time pin of live @[csimp] kernels
 import Lean.Elab.Command
 
 open Lean

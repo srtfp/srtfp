@@ -2,7 +2,7 @@
    Isolates: decode | kernel (shortestUnsigned) | canonicalise (toDecimal)
    | int→string (toString sig) | emit/append | full.  Run: lake exe benchProfile -/
 import Srtfp.Schubfach
-import Srtfp.Schubfach.Perf.KernelV13
+import Srtfp.Perf.KernelV13
 import Corpora
 open Srtfp Srtfp.Schubfach Srtfp.Float
 

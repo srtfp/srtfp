@@ -35,7 +35,7 @@
 
 import SrtfpTest.Spec
 import Srtfp.Schubfach
-import Srtfp.Schubfach.Perf.StringFast
+import Srtfp.Perf.StringFast
 import Srtfp.Clinger
 
 namespace Srtfp.Tests.Ryu

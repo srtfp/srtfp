@@ -48,14 +48,15 @@ jobs:
       - name: Axiom-tier import walk
         run: python3 tools/check_axiom_free_imports.py
 
-      # Srtfp is the axiom-free tier, SrtfpBridge the Float tier.
-      # SrtfpBitsAxiomCheck fails the build if anything reachable from
-      # `import Srtfp` needs an axiom beyond propext / Quot.sound /
+      # Srtfp is the axiom-free reference tier, SrtfpPerf the opt-in
+      # fast-path tier, SrtfpBridge the Float tier. SrtfpBitsAxiomCheck
+      # fails the build if anything reachable from `import Srtfp` or
+      # `import Srtfp.Perf` needs an axiom beyond propext / Quot.sound /
       # Classical.choice; SrtfpAxiomCheck audits the full Bridge closure
       # against that budget plus the single runtime axiom
       # Float.toBits_ofBits.
       - name: Build
-        run: lake build Srtfp SrtfpBridge SrtfpBitsAxiomCheck SrtfpAxiomCheck
+        run: lake build Srtfp SrtfpPerf SrtfpBridge SrtfpBitsAxiomCheck SrtfpAxiomCheck
 
       - name: Test
         run: lake test

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Fast source-level guard for the two-tier axiom split.
 
-Fails (exit 1) if the default umbrella `Srtfp.lean` — or anything it
-transitively imports — reaches `Srtfp.Float.RuntimeAxiom` (the module
-declaring the runtime axiom) or any `Srtfp.Bridge.*` module (its
-consumers). The environment-level ground truth is
+Fails (exit 1) if the default umbrella `Srtfp.lean` or the performance
+umbrella `Srtfp/Perf.lean` — or anything they transitively import —
+reaches `Srtfp.Float.RuntimeAxiom` (the module declaring the runtime
+axiom) or any `Srtfp.Bridge.*` module (its consumers). The environment-level ground truth is
 `SrtfpBitsAxiomCheck.lean`; this walk just catches a stray import before
 a full build.
 """
@@ -30,7 +30,7 @@ def imports_of(mod: str) -> list[str]:
 
 def main() -> int:
     seen: set[str] = set()
-    stack = ["Srtfp"]
+    stack = ["Srtfp", "Srtfp.Perf"]
     parent: dict[str, str] = {}
     while stack:
         mod = stack.pop()
@@ -43,14 +43,14 @@ def main() -> int:
                 while cur in parent:
                     cur = parent[cur]
                     chain.append(cur)
-                print("AXIOM TIER LEAK: the default umbrella reaches "
+                print("AXIOM TIER LEAK: an axiom-free umbrella reaches "
                       f"{dep}\n  via: {' <- '.join(chain)}")
                 return 1
             if dep not in seen:
                 parent[dep] = mod
                 stack.append(dep)
-    print(f"ok: Srtfp's import closure ({len(seen)} modules) stays clear "
-          "of Srtfp.Float.RuntimeAxiom and Srtfp.Bridge.*")
+    print(f"ok: the Srtfp and Srtfp.Perf import closure ({len(seen)} modules) "
+          "stays clear of Srtfp.Float.RuntimeAxiom and Srtfp.Bridge.*")
     return 0
 
 

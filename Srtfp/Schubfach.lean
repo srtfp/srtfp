@@ -47,11 +47,11 @@ module
      - Round-trip (`RoundTrip.lean`)      — `Clinger ∘ Schubfach = id` -/
 
 public import Srtfp.Decimal
-public import Srtfp.Decimal.Perf.Fast
+public import Srtfp.Perf.DecimalFast
 public import Srtfp.Float.Bits
-public import Srtfp.Schubfach.MulHigh128
-public import Srtfp.Schubfach.Pow10Table
-public import Srtfp.Schubfach.Pow10Table128
+public import Srtfp.Perf.MulHigh128
+public import Srtfp.Perf.Pow10Table
+public import Srtfp.Perf.Pow10Table128
 
 @[expose] public section
 
@@ -332,7 +332,7 @@ def cmpScaledMixed_fast2 (a : Int) (q : Int) (b : Int) (k : Int) : Int :=
    `cmpScaledMixed_fast`, so the overall result matches the
    fixed-precision Phase-2 comparison.
 
-   The full mechanised proof is in `Srtfp/Schubfach/KernelCorrectness.lean`
+   The full mechanised proof is in `Srtfp/Perf/KernelCorrectness.lean`
    (theorem `cmpScaledMixed_eq_fast2`).  The `@[csimp]` registration
    also lives there. -/
 
@@ -340,7 +340,7 @@ def cmpScaledMixed_fast2 (a : Int) (q : Int) (b : Int) (k : Int) : Int :=
 
 `shiftedSig` recomputes `2^|q|` and `10^|k|` from scratch on each call.
 For binary64 inputs `|q| ≤ 1074` and `|k| ≤ 324`, both powers are
-tabulated in `Srtfp.Schubfach.Pow10Table` and looked up in O(1).
+tabulated in `Srtfp.Perf.Pow10Table` and looked up in O(1).
 
 `shiftedSig_fast` is observationally equal to `shiftedSig` (proven via
 `pow2Lookup_eq` / `pow10Lookup_eq`) and registered as a `@[csimp]`
@@ -458,7 +458,7 @@ def shiftedSig_fast2 (m : Nat) (q : Int) (k : Int) : Nat :=
    `⌊m · G · 2^{q-h}⌋` matches `⌊m · 2^q · 10^{-k}⌋` for binary64
    inputs.
 
-   The full mechanised proof is in `Srtfp/Schubfach/KernelCorrectness.lean`
+   The full mechanised proof is in `Srtfp/Perf/KernelCorrectness.lean`
    (theorem `shiftedSig_eq_fast2`).  The `@[csimp]` registration
    also lives there. -/
 

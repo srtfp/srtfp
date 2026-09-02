@@ -1,16 +1,18 @@
-/- Axiom linter for the AXIOM-FREE tier: importing only `Srtfp` (the
+/- Axiom linter for the AXIOM-FREE tiers: importing `Srtfp` (the
    default umbrella — definitions, proof stack, and the bits-level
-   certification in `Srtfp/Correctness.lean`), every declaration must
-   depend on nothing beyond the three standard axioms. In particular the
-   restricted runtime axiom `Float.toBits_ofBits` must be unreachable —
-   that axiom is admitted only via the `Srtfp.Bridge` umbrella, which this
-   module deliberately does NOT import (`SrtfpAxiomCheck.lean` audits that
-   closure with the wider whitelist).
+   certification in `Srtfp/Correctness.lean`) and `Srtfp.Perf` (the
+   opt-in fast paths), every declaration must depend on nothing beyond
+   the three standard axioms. In particular the restricted runtime axiom
+   `Float.toBits_ofBits` must be unreachable — that axiom is admitted
+   only via the `Srtfp.Bridge` umbrella, which this module deliberately
+   does NOT import (`SrtfpAxiomCheck.lean` audits that closure with the
+   wider whitelist).
 
    Mechanism identical to `SrtfpAxiomCheck.lean` (memoized transitive
    axiom map over the environment); see there for the performance notes. -/
 
 import Srtfp
+import Srtfp.Perf
 import Lean.Elab.Command
 
 open Lean

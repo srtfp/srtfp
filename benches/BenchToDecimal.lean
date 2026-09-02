@@ -5,10 +5,10 @@
 -/
 
 import Srtfp.Schubfach
-import Srtfp.Schubfach.Perf.Orchestration
-import Srtfp.Schubfach.Perf.Uint64Bridge
-import Srtfp.Schubfach.Perf.Kernel192Correctness
-import Srtfp.Schubfach.Perf.KernelV6 -- live toDecimal @[csimp]
+import Srtfp.Perf.Orchestration
+import Srtfp.Perf.Uint64Bridge
+import Srtfp.Perf.Kernel192Correctness
+import Srtfp.Perf.KernelV6 -- live toDecimal @[csimp]
 open Srtfp.Schubfach
 
 /-- 23 representative `Float` inputs spanning normals, subnormals, edges,

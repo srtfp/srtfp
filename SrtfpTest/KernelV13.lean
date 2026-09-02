@@ -12,8 +12,8 @@
 
 import SrtfpTest.Spec
 import Srtfp.Schubfach
-import Srtfp.Schubfach.Perf.Uint64Kernel
-import Srtfp.Schubfach.Perf.KernelV13
+import Srtfp.Perf.Uint64Kernel
+import Srtfp.Perf.KernelV13
 import Srtfp.Float.Bits
 import SrtfpTest.Ryu
 

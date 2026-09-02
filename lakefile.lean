@@ -31,11 +31,18 @@ lean_lib Srtfp where
 lean_lib SrtfpBridge where
   roots := #[`Srtfp.Bridge]
 
+-- The performance tier: verified `@[csimp]` fast paths (`Srtfp/Perf.lean`
+-- and below). Opt-in for clients; built by default so the equivalence
+-- proofs and the axiom audit always cover it.
+@[default_target]
+lean_lib SrtfpPerf where
+  roots := #[`Srtfp.Perf]
+
 lean_lib SrtfpAxiomCheck where
   roots := #[`SrtfpAxiomCheck]
 
--- Axiom linter for the axiom-free tier: `import Srtfp` alone must need
--- only propext / Quot.sound / Classical.choice.
+-- Axiom linter for the axiom-free tiers: `import Srtfp` and `import
+-- Srtfp.Perf` must need only propext / Quot.sound / Classical.choice.
 lean_lib SrtfpBitsAxiomCheck where
   roots := #[`SrtfpBitsAxiomCheck]
 
