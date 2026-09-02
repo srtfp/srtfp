@@ -1,16 +1,16 @@
 module
-/- Decimal: exact base-10 representation for the numeric biparser
+/- Decimal: an exact base-10 value.
 
    A `Decimal` represents a signed rational of the form
        (-1)^sign × significand × 10^exponent
 
    The canonical form has either
-     - `significand = 0` with `sign = false` and `exponent = 0`, or
-     - `significand` not divisible by 10 (shortest representation).
+     - `significand = 0` with `exponent = 0` (either sign), or
+     - `significand` not divisible by 10 (no trailing zeros).
 
-   This type is the pivot between user syntax (`DecimalLiteral`, M2) and
-   IEEE-754 `Float` (via Schubfach/Clinger, M3/M4). JSON and YAML both
-   produce/consume `Decimal` so the JSON ↔ YAML numeric bridge is lossless. -/
+   It is the pivot of the library: the printer (`Srtfp/Schubfach.lean`)
+   produces one, the reader (`Srtfp/Clinger.lean`) consumes one, and
+   `Srtfp/Text.lean` renders and parses it in a dialect's syntax. -/
 
 @[expose] public section
 

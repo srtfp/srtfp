@@ -29,20 +29,44 @@ likewise the parser's: a function is a correct shortest-decimal printer iff it i
 is `Clinger.ofDecimalBits`. For the exact statements, see
 [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean).
 
-The certification is two-tier:
+The library is three tiers, each a separate import:
 
-- **Bits tier (`import Srtfp`, the default)**: the theorems stated on
-  raw IEEE-754 bit patterns (`UInt64`). Uses nothing beyond Lean's
-  three standard axioms (`propext`, `Quot.sound`, `Classical.choice`);
-  a build-time audit enforces this.
-- **Float tier (`import Srtfp.Bridge`, opt-in)**: the same theorems
-  attached to the runtime `Float` type. This tier depends on exactly
-  one extra axiom, `Float.toBits_ofBits`: constructing a non-NaN
-  `Float` from bits and reading it back gives the same bits. This is
-  the implementation contract of Lean's opaque `Float`, not provable
-  within Lean.
+- **Reference (`import Srtfp`, the default)**: the algorithms as
+  written in the papers, in unbounded `Nat` arithmetic, plus the proofs
+  and the theorems above stated on raw IEEE-754 bit patterns
+  (`UInt64`). Uses nothing beyond Lean's three standard axioms
+  (`propext`, `Quot.sound`, `Classical.choice`); a build-time audit
+  enforces this.
+- **Performance (`import Srtfp.Perf`, opt-in)**: fixed-width `UInt64`
+  kernels and precomputed tables, each proven pointwise equal to the
+  reference function it replaces and registered as a `@[csimp]`
+  rewrite, so compiled code runs the fast path while the proofs still
+  speak about the reference. Same axiom budget as the reference tier.
+  Deleting `Srtfp/Perf/` leaves the library working, only slower.
+- **Float (`import Srtfp.Bridge`, opt-in)**: the same theorems attached
+  to the runtime `Float` type. This tier depends on exactly one extra
+  axiom, `Float.toBits_ofBits`: constructing a non-NaN `Float` from
+  bits and reading it back gives the same bits. This is the
+  implementation contract of Lean's opaque `Float`, not provable within
+  Lean.
 
 No `sorry` anywhere.
+
+## Reading the code
+
+To trust the result, audit [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean)
+(the statements, self-contained) and the four modules it is about:
+
+| Module | Contents |
+| --- | --- |
+| [`Srtfp/Decimal.lean`](Srtfp/Decimal.lean) | the `Decimal` type and its canonical form |
+| [`Srtfp/Float/Bits.lean`](Srtfp/Float/Bits.lean) | binary64 word fields, decoding, packing |
+| [`Srtfp/Schubfach.lean`](Srtfp/Schubfach.lean) | the printer, `toDecimalBits` |
+| [`Srtfp/Clinger.lean`](Srtfp/Clinger.lean) | the reader, `ofDecimalBits` |
+
+Everything else is proof (`Srtfp/Proofs/`), the text layer
+(`Srtfp/Text.lean`, `Decimal` ↔ `String` for JSON, YAML, MLIR, …), the
+performance tier (`Srtfp/Perf/`), or the `Float` bridge (`Srtfp/Bridge/`).
 
 Zero dependencies beyond the Lean toolchain: no mathlib, and the test
 suite runs on a small in-repo harness (`SrtfpTest/Spec.lean`). CI builds

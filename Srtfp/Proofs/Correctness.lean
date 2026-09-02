@@ -1,12 +1,11 @@
 /- Schubfach + Clinger correctness — the headline theorem.
 
-   This file is the audit-friendly artefact: it composes the existing
-   sub-milestones into a single user-facing statement of what
+   This file composes the per-stage results into a single statement of what
    `Schubfach.toDecimal` and `Clinger.ofDecimal` together achieve.
 
    A reader can audit this file in isolation; everything that follows
-   (`inRoundingInterval`, `decode`, `kOfMQ`, `pickNearer`, the nine
-   M3.8.x sub-milestones) is hidden in the imported proofs.
+   (`inRoundingInterval`, `decode`, `kOfMQ`, `pickNearer`, the per-stage
+   lemmas under `Proofs/Schubfach/`) is hidden in the imported proofs.
 
    ## Contents
 
