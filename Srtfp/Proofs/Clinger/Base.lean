@@ -251,7 +251,7 @@ any bit-level round-trip to a finite float). -/
 
 /-- Abstract decoded representation of `Clinger.ofDecimal (⟨sign, sig, exp⟩)`.
     Marker values for overflow/NaN: `m = 0, q = 1024` indicate `±∞`
-    (the algorithm produces `infOfSign sign` whose decoded biased
+    (the algorithm produces `infWord sign` whose decoded biased
     exponent would be 2047). -/
 def decodedAbs (sign : Bool) (sig : Nat) (exp : Int) : Decoded :=
   if sig = 0 then

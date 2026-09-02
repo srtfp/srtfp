@@ -618,7 +618,9 @@ def toDecimal_v7 (f : _root_.Float) : Except String _root_.Srtfp.Decimal :=
 
 theorem toDecimal_v7_eq (f : _root_.Float) :
     toDecimal_v7 f = toDecimal f := by
-  unfold toDecimal_v7 toDecimal
+  unfold toDecimal_v7 toDecimal toDecimalBits
+  simp only [← Srtfp.Float.isNaNBits_word, ← Srtfp.Float.isInfBits_word,
+    ← Srtfp.Float.signBit_word, ← Srtfp.Float.decode_word]
   by_cases h1 : Srtfp.Float.isNaNBits f = true
   · simp [h1]
   by_cases h2 : Srtfp.Float.isInfBits f = true

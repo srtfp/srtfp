@@ -98,7 +98,8 @@ private theorem decimalToStrRef_mk' (sign : Bool) (sig : Nat) (exp : Int) :
   · rw [if_neg hsmod]
 
 theorem toStringFast_eq_ref (f : _root_.Float) : toStringFast f = floatToStrRef f := by
-  unfold toStringFast floatToStrRef toDecimal
+  unfold toStringFast floatToStrRef toDecimal toDecimalBits
+  simp only [← isNaNBits_word, ← isInfBits_word, ← signBit_word, ← decode_word]
   by_cases h1 : isNaNBits f = true
   · simp [h1]
   by_cases h2 : isInfBits f = true
