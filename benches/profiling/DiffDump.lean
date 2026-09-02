@@ -13,7 +13,7 @@ open Srtfp.Schubfach (floatToStrRef)
 partial def loop (stdin : IO.FS.Stream) : IO Unit := do
   let line ← stdin.getLine
   if line.isEmpty then return ()          -- EOF
-  let t := line.trim
+  let t := line.trimAscii
   if t.isEmpty then loop stdin
   else
     match t.toNat? with
