@@ -16,6 +16,7 @@
 import Srtfp.Proofs.Clinger.Base
 import Srtfp.Proofs.Clinger.FindBinaryExp
 import Srtfp.Tactics
+import Srtfp.Proofs.Bits
 
 namespace Srtfp.Clinger
 

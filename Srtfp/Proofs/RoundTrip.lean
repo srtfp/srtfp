@@ -28,6 +28,7 @@ import Srtfp.Proofs.Schubfach.ToDecimal
 import Srtfp.Proofs.Schubfach.Shortest
 import Srtfp.Proofs.Clinger
 import Srtfp.Float.Bits
+import Srtfp.Proofs.Bits
 import Srtfp.Tactics
 
 open Srtfp.Compat

@@ -13,6 +13,7 @@
    everything upstream of it is axiom-free. -/
 
 import Srtfp.Correctness
+import Srtfp.Proofs.Bits
 import Srtfp.Bridge.Clinger
 
 open Srtfp.Compat

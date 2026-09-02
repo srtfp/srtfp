@@ -9,7 +9,7 @@ module
    what makes value-preserving zero-padding round-trip for free. -/
 
 public import Srtfp.Text
-public import Srtfp.Decimal.Instances
+public import Srtfp.Proofs.Decimal.Canonical
 
 @[expose] public section
 

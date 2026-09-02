@@ -18,6 +18,7 @@
    `inRoundingInterval` witness independently of any canonicalisation. -/
 
 import Srtfp.Proofs.Schubfach.Shorter
+import Srtfp.Proofs.Bits
 
 namespace Srtfp.Schubfach
 

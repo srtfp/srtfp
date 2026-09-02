@@ -6,6 +6,7 @@
    just the `(Float.ofBits w).toBits = w` cancellation. -/
 
 import Srtfp.Float.RuntimeAxiom
+import Srtfp.Proofs.Bits
 
 namespace Srtfp.Float
 

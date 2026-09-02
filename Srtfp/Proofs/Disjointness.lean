@@ -33,6 +33,7 @@ import Srtfp.Proofs.Schubfach.RoundingInterval
 import Srtfp.Proofs.Schubfach.ToDecimal
 import Srtfp.Proofs.Clinger
 import Srtfp.Tactics
+import Srtfp.Proofs.Bits
 
 open Srtfp.Compat
 

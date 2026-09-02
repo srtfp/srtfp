@@ -14,7 +14,6 @@
                         admitting the single axiom `Float.toBits_ofBits`. -/
 
 import Srtfp.Decimal
-import Srtfp.Decimal.Instances
 import Srtfp.DecimalSyntax
 import Srtfp.Float.Bits
 import Srtfp.Clinger
@@ -40,7 +39,9 @@ import Srtfp.Proofs.Schubfach.Shorter
 import Srtfp.Proofs.Schubfach.Shortest
 import Srtfp.Proofs.Schubfach.TieBreak
 import Srtfp.Proofs.Schubfach.ToDecimal
+import Srtfp.Proofs.Bits
 import Srtfp.Proofs.Decimal
+import Srtfp.Proofs.Decimal.Canonical
 import Srtfp.Proofs.Disjointness
 import Srtfp.Proofs.RoundTrip
 import Srtfp.Proofs.ReaderCorrectness

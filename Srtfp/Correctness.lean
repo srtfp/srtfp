@@ -42,6 +42,14 @@ def wordVal (w : UInt64) : ℚ :=
 def digits (n : Nat) : Nat := Nat.log 10 n + 1
 example : digits 0 = 1 := by unfold digits; rw [Nat.log_eq_zero_of_not (by omega)]
 
+-- `Nat.log` and `|·|` are this library's own (`Srtfp.Compat`), not Mathlib's:
+example (b n : Nat) :
+    Nat.log b n = if b ≤ n ∧ 1 < b then Nat.log b (n / b) + 1 else 0 := by
+  by_cases h : b ≤ n ∧ 1 < b
+  · rw [if_pos h, Nat.log_eq_log_div_add_one h.1 h.2]
+  · rw [if_neg h, Nat.log_eq_zero_of_not h]
+example (q : ℚ) : |q| = if q < 0 then -q else q := rfl
+
 
 /-! ## referenced definitions, displayed here for convenience -/
 

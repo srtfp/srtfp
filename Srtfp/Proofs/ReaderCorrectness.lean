@@ -25,6 +25,7 @@ import Srtfp.Proofs.CorrectnessSpec
 import Srtfp.Proofs.RoundTrip
 import Srtfp.Proofs.Schubfach.TieBreak
 import Srtfp.Tactics
+import Srtfp.Proofs.Bits
 
 open Srtfp.Compat
 

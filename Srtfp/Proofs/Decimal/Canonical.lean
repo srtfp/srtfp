@@ -1,5 +1,6 @@
 module
-/- Canonicalisation lemmas for Decimal. -/
+/- `Decimal.canonical` is idempotent and lands in `IsCanonical`; unfolding
+   lemmas for `canonicaliseAux`. Consumed by the text round-trip proof. -/
 
 public import Srtfp.Decimal
 
