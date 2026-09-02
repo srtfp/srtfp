@@ -5,6 +5,7 @@
 -/
 
 import Srtfp.Schubfach
+import Srtfp.Perf.DecimalFast -- live Decimal.mk' @[csimp]
 import Srtfp.Perf.Orchestration
 import Srtfp.Perf.Uint64Bridge
 import Srtfp.Perf.Kernel192Correctness

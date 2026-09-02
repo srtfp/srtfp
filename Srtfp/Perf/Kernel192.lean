@@ -22,6 +22,7 @@
    error-bound reasoning that lives in `KernelCorrectness.lean`.
 -/
 import Srtfp.Schubfach
+import Srtfp.Perf.Kernel128Defs
 import Srtfp.Perf.MulHigh128
 import Srtfp.Tactics
 

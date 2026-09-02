@@ -7,9 +7,8 @@
    `toDecimal` runs. This measures the float→string path with the dominant
    csimp layer disabled — directly comparable to `benchFloatToString`.
 
-   Caveat: `Schubfach.lean` itself imports `Decimal.Perf.Fast`, so Decimal
-   *canonicalisation* stays fast; only the (dominant) Schubfach arithmetic
-   kernel is de-optimised. The body below is a verbatim copy of
+   Nothing under `Perf/` is in scope, so Decimal canonicalisation runs
+   the `Nat` reference as well. The body below is a verbatim copy of
    `Schubfach.floatToStrRef` / `decimalToStrRef`.
 
      lake exe benchSpec <adversarial|nice|uniform> [--checksum]   (BENCH_N env) -/

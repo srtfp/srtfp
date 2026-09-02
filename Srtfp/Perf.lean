@@ -18,6 +18,7 @@ import Srtfp.Perf.Pow10Table128
 import Srtfp.Perf.Pow10Table192
 import Srtfp.Perf.TableInvariant
 import Srtfp.Perf.TableInvariant192
+import Srtfp.Perf.Kernel128Defs
 import Srtfp.Perf.Kernel192
 import Srtfp.Perf.KernelCorrectness
 import Srtfp.Perf.Kernel128
