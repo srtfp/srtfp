@@ -54,8 +54,19 @@ No `sorry` anywhere.
 
 ## Reading the code
 
-To trust the result, audit [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean)
-(the statements, self-contained) and the four modules it is about:
+To trust the result, read [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean)
+and nothing else. Both theorems there are biconditionals: a function
+satisfies the specification *if and only if* it is the library's
+function. So the specification has exactly one model, and the
+implementation never needs to be inspected. What does need reading is
+the vocabulary the specification is written in, which the file restates
+inline (the `Decimal` fields, canonical form, and the binary64 word
+fields), plus two small definitions it imports: `Nat.log` for the digit
+count ([`Srtfp/NatLog.lean`](Srtfp/NatLog.lean)) and the absolute value
+on `ℚ` ([`Srtfp/Rat.lean`](Srtfp/Rat.lean)).
+
+The implementation itself is four short modules of unbounded `Nat`
+arithmetic, worth reading to understand or port the algorithms:
 
 | Module | Contents |
 | --- | --- |
