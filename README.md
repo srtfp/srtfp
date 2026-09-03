@@ -2,7 +2,8 @@
 
 A Lean 4 library providing, for IEEE-754 binary64:
 
-- a **shortest round-trip printer** (the [Schubfach
+- a **shortest round-trip printer**, as a dead-simple reference plus a
+  verified fast path (the [Schubfach
   algorithm](https://drive.google.com/file/d/1IEeATSVnEE6TkrHlCYNY2GjaraBjOT4f/view)),
 - a **correctly rounded parser** (Clinger-style), and
 - a machine-checked certification connecting them.
@@ -25,24 +26,27 @@ printer:
 
 These properties uniquely determine the printer's behavior, and
 likewise the parser's: a function is a correct shortest-decimal printer iff it is
-`Schubfach.toDecimalBits`, and a correct round-to-nearest reader iff it
+`Printer.toDecimalBits`, and a correct round-to-nearest reader iff it
 is `Clinger.ofDecimalBits`. For the exact statements, see
 [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean).
 
 The library is three tiers, each a separate import:
 
-- **Reference (`import Srtfp`, the default)**: the algorithms as
-  written in the papers, in unbounded `Nat` arithmetic, plus the proofs
-  and the theorems above stated on raw IEEE-754 bit patterns
-  (`UInt64`). Uses nothing beyond Lean's three standard axioms
-  (`propext`, `Quot.sound`, `Classical.choice`); a build-time audit
-  enforces this.
-- **Performance (`import Srtfp.Perf`, opt-in)**: fixed-width `UInt64`
-  kernels and precomputed tables, each proven pointwise equal to the
-  reference function it replaces and registered as a `@[csimp]`
-  rewrite, so compiled code runs the fast path while the proofs still
-  speak about the reference. Same axiom budget as the reference tier.
-  Deleting `Srtfp/Perf/` leaves the library working, only slower.
+- **Reference (`import Srtfp`, the default)**: the specification made
+  effective. The printer walks the decimal grids from coarse to fine
+  and tests the two grid neighbours of the value against its rounding
+  interval, in exact rational arithmetic; the reader is Clinger's
+  unbounded-integer algorithm. Plus the proofs and the theorems above
+  stated on raw IEEE-754 bit patterns (`UInt64`). Uses nothing beyond
+  Lean's three standard axioms (`propext`, `Quot.sound`,
+  `Classical.choice`); a build-time audit enforces this.
+- **Performance (`import Srtfp.Perf`, opt-in)**: the Schubfach
+  algorithm and its fixed-width `UInt64` kernels and precomputed
+  tables, each proven equal to the reference and registered as a
+  `@[csimp]` rewrite, so compiled code runs the fast path while the
+  proofs still speak about the reference. Same axiom budget as the
+  reference tier. Deleting `Srtfp/Perf/` leaves the library working,
+  only slower.
 - **Float (`import Srtfp.Bridge`, opt-in)**: the same theorems attached
   to the runtime `Float` type. This tier depends on exactly one extra
   axiom, `Float.toBits_ofBits`: constructing a non-NaN `Float` from
@@ -65,14 +69,14 @@ fields), plus two small definitions it imports: `Nat.log` for the digit
 count ([`Srtfp/NatLog.lean`](Srtfp/NatLog.lean)) and the absolute value
 on `ℚ` ([`Srtfp/Rat.lean`](Srtfp/Rat.lean)).
 
-The implementation itself is four short modules of unbounded `Nat`
-arithmetic, worth reading to understand or port the algorithms:
+The implementation itself is four short modules of exact arithmetic,
+worth reading to understand the algorithms:
 
 | Module | Contents |
 | --- | --- |
 | [`Srtfp/Decimal.lean`](Srtfp/Decimal.lean) | the `Decimal` type and its canonical form |
 | [`Srtfp/Float/Bits.lean`](Srtfp/Float/Bits.lean) | binary64 word fields, decoding, packing |
-| [`Srtfp/Schubfach.lean`](Srtfp/Schubfach.lean) | the printer, `toDecimalBits` |
+| [`Srtfp/Printer.lean`](Srtfp/Printer.lean) | the printer, `toDecimalBits` |
 | [`Srtfp/Clinger.lean`](Srtfp/Clinger.lean) | the reader, `ofDecimalBits` |
 
 Everything else is proof (`Srtfp/Proofs/`), the text layer

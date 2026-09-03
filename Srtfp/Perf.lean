@@ -1,11 +1,13 @@
 /- srtfp performance tier — OPT-IN.
 
-   Everything under `Srtfp/Perf/` is runtime acceleration: fixed-width
-   `UInt64` kernels, precomputed power tables, fused string emitters, and
-   the proofs that each one is pointwise equal to the reference function
-   it replaces. Importing this module registers those equalities as
-   `@[csimp]` rewrites, so natively compiled callers of `toDecimal`,
-   `Decimal.mk'`, and friends run the fast kernels.
+   Everything under `Srtfp/Perf/` is runtime acceleration: the Schubfach
+   algorithm (kernel 0, `Perf/Schubfach.lean`, equal to the reference by
+   `Perf/SchubfachEq.lean`), its fixed-width `UInt64` kernels, precomputed
+   power tables, fused string emitters, and the proofs that each one is
+   pointwise equal to the function it replaces. Importing this module
+   registers those equalities as `@[csimp]` rewrites, so natively
+   compiled callers of `Printer.toDecimal`, `Decimal.mk'`, and friends run
+   the fast kernels.
 
    Nothing here is needed for correctness. `import Srtfp` alone gives
    the reference implementation and its certification; deleting this

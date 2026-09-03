@@ -1,31 +1,17 @@
 module
-/- Schubfach printer — binary64 word → shortest round-trip `Decimal`.
+/- Kernel 0 of the Perf chain: the Schubfach algorithm (Raffaello
+   Giulietti, "The Schubfach way to render doubles", 2021, F7 with
+   `M = 1`) over unbounded `Nat` arithmetic.
 
-   The reference implementation of the Schubfach algorithm (Raffaello
-   Giulietti, "The Schubfach way to render doubles", 2021), variant F1
-   with `M = 1`: for every finite, non-zero binary64 value it returns
-   the decimal with the fewest significant digits that reads back to
-   the same value, choosing the closer candidate (ties to even) when
-   several are equally short.
-
-   Everything is unbounded `Nat`/`Int` arithmetic; the only concession
-   to speed is Schubfach's magic-constant floor-log (R14/R15), which the
-   paper proves exact on the binary64 range. The `Perf/` tier replaces
-   the two big-number kernels (`cmpScaledMixed`, `shiftedSig`) with
-   fixed-width `UInt64` code proven equal to them; this file never
-   depends on it.
-
-   Pipeline:
-
-     - `Srtfp/Float/Bits.lean` — decode a word into `(sign, m, q)` with
-       value `(-1)^sign · m · 2^q`.
-     - This file — `k` from the floor-log, the candidate significand
-       `s = ⌊m · 2^q · 10^{-k}⌋`, the rounding-interval test, the
-       shorter-form attempt, and the tie-break.
-     - `Srtfp/Decimal.lean` — `Decimal.mk'` strips trailing zeros.
-
-   The specification is `Srtfp/Correctness.lean`; the proofs are under
-   `Srtfp/Proofs/Schubfach/`. -/
+   Where the reference printer (`Srtfp/Printer.lean`) scans every decimal
+   grid from coarse to fine, Schubfach computes from the width of the
+   rounding interval the one grid `10^k` that must contain a candidate
+   and the one grid `10^{k+1}` that can contain at most one (R10, the
+   pigeonhole), and examines four candidates. This module is the
+   algorithm as written; the `UInt64` kernels under `Perf/` refine it
+   further, and `Perf/SchubfachEq.lean` states its equality with the
+   reference. Its own correctness proof, the paper's R1–R13, is under
+   `Perf/Schubfach/`. -/
 
 public import Srtfp.Decimal
 public import Srtfp.Float.Bits

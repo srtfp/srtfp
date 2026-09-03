@@ -1,4 +1,7 @@
-/- Schubfach + Clinger correctness — the headline theorem.
+/- Schubfach + Clinger correctness: the Schubfach printer meets the
+   specification. Now the Perf tier's justification for kernel 0 (see
+   `Perf/SchubfachEq.lean`); the specification itself is certified by
+   `Srtfp/Proofs/Printer/Spec.lean`.
 
    This file composes the per-stage results into a single statement of what
    `Schubfach.toDecimal` and `Clinger.ofDecimal` together achieve.
