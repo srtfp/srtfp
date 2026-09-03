@@ -48,6 +48,13 @@ import Srtfp.Proofs.RoundTrip
 import Srtfp.Proofs.ReaderCorrectness
 import Srtfp.Proofs.CorrectnessSpec
 import Srtfp.Proofs.Correctness
+import Srtfp.Proofs.Clinger.Interface
+import Srtfp.Proofs.Printer.Vocab
+import Srtfp.Proofs.Printer.Interval
+import Srtfp.Proofs.Printer.Grid
+import Srtfp.Proofs.Printer.Length
+import Srtfp.Proofs.Printer.Scan
+import Srtfp.Proofs.Printer.Spec
 import Srtfp.Correctness
 import Srtfp.Text
 import Srtfp.Text.Roundtrip

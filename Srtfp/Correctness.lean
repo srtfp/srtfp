@@ -4,11 +4,12 @@
    - the float PARSER: a function is a correct Decimal to binary64-word
      reader iff it is `Clinger.ofDecimalBits`.
    - the float PRINTER: a function is a correct word to shortest-decimal
-     printer iff it is `Schubfach.toDecimalBits`.
+     printer iff it is `Printer.toDecimalBits`.
 
    Self-contained: the vocabulary is defined here, and the kernel checks
    the `:=` proof bodies are definitionally the theorems proved in
-   `Srtfp/Proofs/{Correctness,ReaderCorrectness}.lean`.  Axioms at the end
+   `Srtfp/Proofs/Printer/Spec.lean` and `Srtfp/Proofs/ReaderCorrectness.lean`.
+   Axioms at the end
    — only `propext`, `Classical.choice`, `Quot.sound`.
 
    The same statements at the `Float` level (with `Float.toBits` /
@@ -17,7 +18,7 @@
    restricted runtime axiom `Float.toBits_ofBits`
    (see `Srtfp/Float/RuntimeAxiom.lean`). -/
 
-import Srtfp.Proofs.Correctness
+import Srtfp.Proofs.Printer.Spec
 import Srtfp.Proofs.ReaderCorrectness
 import Srtfp.NatLog
 
@@ -137,7 +138,7 @@ def ShortestDecimal (w : UInt64) (d : Decimal) : Prop :=
 
 
 /-- **A function is a correct shortest-decimal printer iff it is
-`Schubfach.toDecimalBits`.**  The forward direction gives uniqueness
+`Printer.toDecimalBits`.**  The forward direction gives uniqueness
 (nothing else satisfies the spec); the backward direction gives
 correctness (`toDecimalBits` satisfies it). -/
 theorem correct_iff_toDecimal (p : UInt64 → Except String Decimal) :
@@ -150,18 +151,18 @@ theorem correct_iff_toDecimal (p : UInt64 → Except String Decimal) :
         -- every finite word: THE shortest decimal
       ∧ (Word.isFinite w →
            ∃ d : Decimal, p w = .ok d ∧ ShortestDecimal w d) )
-    ↔ p = Schubfach.toDecimalBits :=
-  Schubfach.correct_iff_toDecimal_proof p
+    ↔ p = Printer.toDecimalBits :=
+  Printer.correct_iff_toDecimal_proof p
 
 
 /-! ## derived theorem -/
 
 /-- For each finite word, **exactly one** decimal satisfies the
-specification: the one `Schubfach.toDecimalBits` returns. -/
+specification: the one `Printer.toDecimalBits` returns. -/
 theorem shortest_decimal_exists_unique (w : UInt64)
     (h_fin : Word.isFinite w) :
     ∃! d : Decimal, ShortestDecimal w d :=
-  Schubfach.shortest_decimal_exists_unique_proof w h_fin
+  Printer.shortest_decimal_exists_unique_proof w h_fin
 
 end Srtfp.Spec
 

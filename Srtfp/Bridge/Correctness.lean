@@ -128,7 +128,7 @@ theorem correct_iff_ofDecimalF (p : Decimal → Float) :
 /-! ## the float printer theorem, `Float` tier -/
 
 /-- **A function is a correct `Float`→shortest-decimal printer iff it
-is `Schubfach.toDecimal`.** Float tier of
+is `Printer.toDecimal`.** Float tier of
 `Srtfp.Spec.correct_iff_toDecimal`; admits the runtime axiom. -/
 theorem correct_iff_toDecimalF (p : Float → Except String Decimal) :
     ( ∀ f : Float,
@@ -137,12 +137,12 @@ theorem correct_iff_toDecimalF (p : Float → Except String Decimal) :
            p f = .error (if signBit f then "-Infinity" else "Infinity"))
       ∧ (isFiniteBits f →
            ∃ d : Decimal, p f = .ok d ∧ ShortestDecimalF f d) )
-    ↔ p = Schubfach.toDecimal := by
-  have hprinter := (correct_iff_toDecimal Schubfach.toDecimalBits).mpr rfl
+    ↔ p = Printer.toDecimal := by
+  have hprinter := (correct_iff_toDecimal Printer.toDecimalBits).mpr rfl
   constructor
   · intro h
     funext f
-    rw [Schubfach.toDecimal_eq_bits]
+    rw [Printer.toDecimal_eq_bits]
     obtain ⟨hnan, hinf, hfin⟩ := h f
     obtain ⟨hnanB, hinfB, hfinB⟩ := hprinter f.toBits
     by_cases hN : Word.isNaN f.toBits = true
@@ -167,8 +167,8 @@ theorem correct_iff_toDecimalF (p : Float → Except String Decimal) :
           unfold Word.isInf; simp [hbe, hm]
         rw [hinf hI, hinfB hI]; rfl
   · rintro rfl f
-    have hp : Schubfach.toDecimal f = Schubfach.toDecimalBits f.toBits :=
-      Schubfach.toDecimal_eq_bits f
+    have hp : Printer.toDecimal f = Printer.toDecimalBits f.toBits :=
+      Printer.toDecimal_eq_bits f
     obtain ⟨hnan, hinf, hfin⟩ := hprinter f.toBits
     refine ⟨fun hn => by rw [hp]; exact hnan hn,
             fun hi => by rw [hp]; exact hinf hi,
