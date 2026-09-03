@@ -17,6 +17,7 @@ import Srtfp.Decimal
 import Srtfp.DecimalSyntax
 import Srtfp.Float.Bits
 import Srtfp.Clinger
+import Srtfp.Printer
 import Srtfp.Schubfach
 import Srtfp.Rat
 import Srtfp.NatLog

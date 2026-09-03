@@ -6,6 +6,7 @@ import SrtfpTest.Uint64Kernel
 import SrtfpTest.Uint64Kernel192
 import SrtfpTest.KernelV13
 import SrtfpTest.Text
+import SrtfpTest.Printer
 
 open SrtfpSpec
 
@@ -23,5 +24,6 @@ def main : IO UInt32 :=
     ("schubfach v13 live-kernel shortestUnsigned cross-check",
       [Srtfp.Tests.KernelV13.runTests]),
     ("text layer round-trip and dialect cross-check",
-      [Srtfp.Tests.Text.runRoundTripTests, Srtfp.Tests.Text.runDialectTests])
+      [Srtfp.Tests.Text.runRoundTripTests, Srtfp.Tests.Text.runDialectTests]),
+    ("reference printer vs live printer", [Srtfp.Tests.Printer.runTests])
   ]) []
