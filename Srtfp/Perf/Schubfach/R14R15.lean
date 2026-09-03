@@ -34,7 +34,7 @@
 
    that downstream Schubfach correctness proofs (M3.8.2+) can consume. -/
 
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 
 namespace Srtfp.Schubfach
 

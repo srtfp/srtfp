@@ -16,7 +16,7 @@ This file defines the 192-bit kernel and a `_v4` orchestration that uses
 it.  Proof bridges + csimp wiring live in `Uint64Bridge192.lean`
 (future commit).
 -/
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Perf.Orchestration
 import Srtfp.Perf.Pow10Table192
 import Srtfp.Perf.Uint64Kernel

@@ -8,7 +8,7 @@
    Once that holds we can re-target the `@[csimp]` registration
    from `shortestUnsigned_packed` to `shortestUnsigned_v2`, giving
    the runtime path the ~2× speedup measured at the v2 level. -/
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Perf.Orchestration
 import Srtfp.Perf.Uint64Kernel
 import Srtfp.Tactics

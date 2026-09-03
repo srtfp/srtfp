@@ -21,8 +21,8 @@
      `CloserToLower`. Symmetrically for `CloserToUpper` / `Equidistant`. -/
 
 import Srtfp.Proofs.CorrectnessSpec
-import Srtfp.Proofs.Schubfach.PickNearer
-import Srtfp.Proofs.Schubfach.Minimal
+import Srtfp.Perf.Schubfach.PickNearer
+import Srtfp.Perf.Schubfach.Minimal
 import Srtfp.Proofs.Clinger
 import Srtfp.Tactics
 import Srtfp.Proofs.Clinger.NatIntervalRat

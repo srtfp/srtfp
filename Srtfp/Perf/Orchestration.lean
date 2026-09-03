@@ -16,7 +16,7 @@
    round-trip, and `@[csimp]` registers `shortestUnsigned_packed` as
    the runtime implementation.
 -/
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Perf.KernelCorrectness
 import Srtfp.Perf.Kernel128
 import Srtfp.Perf.KernelR20

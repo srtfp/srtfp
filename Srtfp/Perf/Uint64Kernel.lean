@@ -20,7 +20,7 @@ from `decode : Float → Decoded`, since binary64 fixes
 `m ≤ 2^53`, `q ∈ [-1074, 971]`) delegate to the existing
 `shortestUnsigned_packed` for total correctness.
 -/
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Perf.Orchestration
 import Srtfp.Tactics
 

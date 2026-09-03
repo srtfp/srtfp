@@ -17,7 +17,7 @@
    witness. The Clinger correctness theorem (M4) can then consume the
    `inRoundingInterval` witness independently of any canonicalisation. -/
 
-import Srtfp.Proofs.Schubfach.Shorter
+import Srtfp.Perf.Schubfach.Shorter
 import Srtfp.Proofs.Bits
 
 namespace Srtfp.Schubfach

@@ -29,8 +29,8 @@
    The only axioms used are `propext, Quot.sound, Classical.choice`. -/
 
 import Srtfp.Proofs.CorrectnessSpec
-import Srtfp.Proofs.Schubfach.Shorter
-import Srtfp.Proofs.Schubfach.ToDecimal
+import Srtfp.Perf.Schubfach.Shorter
+import Srtfp.Perf.Schubfach.ToDecimal
 
 namespace Srtfp.Schubfach
 

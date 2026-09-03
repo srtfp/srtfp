@@ -75,9 +75,9 @@
 
    The only axioms used are `propext, Quot.sound, Classical.choice`. -/
 
-import Srtfp.Proofs.Schubfach.PickNearer
-import Srtfp.Proofs.Schubfach.ShiftedSig
-import Srtfp.Proofs.Schubfach.K
+import Srtfp.Perf.Schubfach.PickNearer
+import Srtfp.Perf.Schubfach.ShiftedSig
+import Srtfp.Perf.Schubfach.K
 import Srtfp.Proofs.Clinger.NatInterval
 
 namespace Srtfp.Schubfach

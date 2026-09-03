@@ -7,7 +7,7 @@
    `toStringFast` is the runtime form, proven equal pointwise and wired
    via `@[csimp]` so callers of `floatToStrRef` go through the fast path. -/
 
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Perf.Orchestration
 import Srtfp.Perf.Uint64Bridge
 import Srtfp.Perf.Kernel192Correctness

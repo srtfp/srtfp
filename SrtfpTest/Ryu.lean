@@ -34,7 +34,7 @@
    are commented inline with both Ryu's f32 string and our f64 value. -/
 
 import SrtfpTest.Spec
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Perf.StringFast
 import Srtfp.Clinger
 

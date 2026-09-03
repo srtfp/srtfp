@@ -21,7 +21,7 @@
    The combined theorem (~line 1962) is the user-facing one referenced from
    `Srtfp/Proofs/Correctness.lean`. -/
 
-import Srtfp.Proofs.Schubfach.Shortest
+import Srtfp.Perf.Schubfach.Shortest
 import Srtfp.Proofs.Decimal
 import Srtfp.Tactics
 

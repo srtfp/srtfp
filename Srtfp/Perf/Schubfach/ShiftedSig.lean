@@ -17,7 +17,7 @@
 
    The only axioms used are `propext, Quot.sound, Classical.choice`. -/
 
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Proofs.Clinger.NatInterval
 
 namespace Srtfp.Schubfach

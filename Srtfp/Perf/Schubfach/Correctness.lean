@@ -18,9 +18,9 @@
    canonical-parity upgrade) they are built from. -/
 
 import Srtfp.Proofs.CorrectnessSpec
-import Srtfp.Proofs.RoundTrip
-import Srtfp.Proofs.Schubfach.Minimal
-import Srtfp.Proofs.Schubfach.TieBreak
+import Srtfp.Perf.Schubfach.RoundTrip
+import Srtfp.Perf.Schubfach.Minimal
+import Srtfp.Perf.Schubfach.TieBreak
 import Srtfp.NatLog
 import Srtfp.Tactics
 

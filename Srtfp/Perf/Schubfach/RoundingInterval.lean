@@ -43,7 +43,7 @@
    - M3.8.4/5/6: shifted significand, pickNearer, shortest-form check.
    - This file is *purely* about the binary-side rounding interval. -/
 
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 
 namespace Srtfp.Schubfach
 

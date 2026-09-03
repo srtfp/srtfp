@@ -21,7 +21,7 @@
    These lemmas isolate the pure 192-bit arithmetic from the §9.6–§9.8
    error-bound reasoning that lives in `KernelCorrectness.lean`.
 -/
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Perf.Kernel128Defs
 import Srtfp.Perf.MulHigh128
 import Srtfp.Tactics

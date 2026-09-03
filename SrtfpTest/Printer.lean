@@ -5,7 +5,7 @@
 import SrtfpTest.Spec
 import SrtfpTest.Ryu
 import Srtfp.Printer
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Perf.KernelV6
 
 namespace Srtfp.Tests.Printer

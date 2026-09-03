@@ -17,7 +17,7 @@
 
 import Srtfp.Proofs.CorrectnessSpec
 import Srtfp.Clinger
-import Srtfp.Schubfach
+import Srtfp.Proofs.Clinger.NatIntervalDefs
 import Srtfp.Float.Bits
 
 namespace Srtfp.Clinger

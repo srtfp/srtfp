@@ -42,7 +42,7 @@
    `L + b ≤ b · g < b · 10^k · 2^h + b`, so `L < b · 10^k · 2^h`
    strictly and `a · 2^q < b · 10^k`.
 -/
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Tactics
 import Srtfp.Perf.Kernel192
 import Srtfp.Perf.TableInvariant

@@ -38,9 +38,9 @@
    No `native_decide`. The only axioms inherited from M3.8.1 are
    `propext, Quot.sound, Classical.choice`. -/
 
-import Srtfp.Schubfach
-import Srtfp.Proofs.Schubfach.R14R15
-import Srtfp.Proofs.Schubfach.RoundingInterval
+import Srtfp.Perf.Schubfach
+import Srtfp.Perf.Schubfach.R14R15
+import Srtfp.Perf.Schubfach.RoundingInterval
 import Srtfp.Tactics
 
 namespace Srtfp.Schubfach

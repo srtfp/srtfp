@@ -24,7 +24,7 @@
    kernels everywhere the reference `cmpScaledMixed` / `shiftedSig` appears,
    while definitional equality with the reference is preserved by the
    proofs in this file. -/
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Tactics
 import Srtfp.Perf.Kernel192
 import Srtfp.Perf.KernelCorrectness

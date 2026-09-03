@@ -6,7 +6,7 @@
    proof (see `Srtfp/Schubfach/Uint64Kernel.lean` TODO). -/
 
 import SrtfpTest.Spec
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Perf.Orchestration
 import Srtfp.Perf.Uint64Kernel
 import Srtfp.Perf.Uint64Bridge

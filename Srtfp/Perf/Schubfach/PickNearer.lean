@@ -35,9 +35,9 @@
 
    The only axioms used are `propext, Quot.sound, Classical.choice`. -/
 
-import Srtfp.Proofs.Schubfach.RoundingInterval
-import Srtfp.Proofs.Schubfach.K
-import Srtfp.Proofs.Schubfach.ShiftedSig
+import Srtfp.Perf.Schubfach.RoundingInterval
+import Srtfp.Perf.Schubfach.K
+import Srtfp.Perf.Schubfach.ShiftedSig
 import Srtfp.Proofs.Clinger.NatInterval
 
 namespace Srtfp.Schubfach

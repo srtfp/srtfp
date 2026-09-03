@@ -12,7 +12,7 @@
    `Schubfach.floatToStrRef` / `decimalToStrRef`.
 
      lake exe benchSpec <adversarial|nice|uniform> [--checksum]   (BENCH_N env) -/
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Corpora
 
 open Srtfp Srtfp.Schubfach

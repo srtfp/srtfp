@@ -1,6 +1,6 @@
 /- Verify cmpScaledMixed_fast2 and shiftedSig_fast2 agree with reference paths. -/
 
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Perf.Kernel128Defs
 import Srtfp.Float.Bits
 open Srtfp.Schubfach

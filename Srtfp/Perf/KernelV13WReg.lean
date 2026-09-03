@@ -9,7 +9,7 @@
 
 import Srtfp.Perf.Pow10Table128
 import Srtfp.Perf.TableInvariant
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 
 namespace Srtfp.Schubfach
 

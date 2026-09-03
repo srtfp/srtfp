@@ -11,6 +11,8 @@
    the reference implementation and its certification; deleting this
    directory (and this file) leaves that tier intact, only slower. -/
 
+import Srtfp.Perf.Schubfach
+import Srtfp.Perf.SchubfachEq
 import Srtfp.Perf.DecimalFast
 import Srtfp.Perf.MulHigh128
 import Srtfp.Perf.Pow10Table

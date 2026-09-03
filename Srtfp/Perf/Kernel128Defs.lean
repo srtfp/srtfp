@@ -21,7 +21,7 @@ module
    proven in `Kernel128.lean`, which also registers both as `@[csimp]`
    so natively compiled code runs the `UInt64` kernels. -/
 
-public import Srtfp.Schubfach
+public import Srtfp.Perf.Schubfach
 public import Srtfp.Perf.MulHigh128
 public import Srtfp.Perf.Pow10Table
 public import Srtfp.Perf.Pow10Table128

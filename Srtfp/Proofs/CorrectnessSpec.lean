@@ -8,7 +8,7 @@
 import Srtfp.Rat
 import Srtfp.Decimal
 import Srtfp.Float.Bits
-import Srtfp.Schubfach
+import Srtfp.Proofs.Clinger.NatIntervalDefs
 import Srtfp.Clinger
 
 open Srtfp.Compat

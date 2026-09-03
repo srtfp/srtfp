@@ -24,8 +24,8 @@
 
 import Srtfp.Proofs.Disjointness
 import Srtfp.Proofs.Decimal
-import Srtfp.Proofs.Schubfach.ToDecimal
-import Srtfp.Proofs.Schubfach.Shortest
+import Srtfp.Perf.Schubfach.ToDecimal
+import Srtfp.Perf.Schubfach.Shortest
 import Srtfp.Proofs.Clinger
 import Srtfp.Float.Bits
 import Srtfp.Proofs.Bits

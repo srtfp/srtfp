@@ -11,7 +11,7 @@
    suspenders runtime witness over the corpus. -/
 
 import SrtfpTest.Spec
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Perf.Uint64Kernel
 import Srtfp.Perf.KernelV13
 import Srtfp.Float.Bits

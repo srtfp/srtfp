@@ -1,7 +1,7 @@
 /- Stage-breakdown profiler for the Schubfach Float→String pipeline.
    Isolates: decode | kernel (shortestUnsigned) | canonicalise (toDecimal)
    | int→string (toString sig) | emit/append | full.  Run: lake exe benchProfile -/
-import Srtfp.Schubfach
+import Srtfp.Perf.Schubfach
 import Srtfp.Perf.KernelV13
 import Corpora
 open Srtfp Srtfp.Schubfach Srtfp.Float
