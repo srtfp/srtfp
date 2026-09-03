@@ -1,11 +1,14 @@
+module
 /- Shared u64/192-bit kernel support for the live `KernelV13` kernel:
    carry-chain 192-bit add/sub/shift, the flipped rounding-interval and
    pick-nearer verdicts, and the biased-index digit emit. Extracted
    verbatim (proofs included) from the superseded KernelV9-V12
    optimization generations when those modules were dropped. -/
 
-import Srtfp.Perf.DigitsFast
-import Srtfp.Tactics
+public import Srtfp.Perf.DigitsFast
+public import Srtfp.Tactics
+
+@[expose] public section
 
 open Srtfp.Compat
 

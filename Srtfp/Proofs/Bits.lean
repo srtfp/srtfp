@@ -1,9 +1,12 @@
+module
 /- Word algebra for `Srtfp.Float.Word`: field bounds and the packing
    round-trip. Pure `UInt64` arithmetic about the definitions in
    `Srtfp/Float/Bits.lean`; consumed by the proof stack and the `Float`
    bridge. -/
 
-import Srtfp.Float.Bits
+public import Srtfp.Float.Bits
+
+@[expose] public section
 
 namespace Srtfp.Float
 

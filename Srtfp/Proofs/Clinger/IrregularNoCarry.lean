@@ -1,3 +1,4 @@
+module
 /- Clinger Decimal→Float correctness — irregular no-carry branch (M4).
 
    Branch 2-irregular: when normal-spaced rounding produces `m = 2^52`
@@ -6,10 +7,12 @@
    `findBinaryExp` lower bound `2^52 · denom ≤ num`; the upper bound is
    the regular `(4m + 2)·denom ≥ 4·num` half-ULP. -/
 
-import Srtfp.Proofs.Clinger.Base
-import Srtfp.Proofs.Clinger.Regular
-import Srtfp.Proofs.Clinger.FindBinaryExp
-import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Proofs.Clinger.Base
+public import Srtfp.Proofs.Clinger.Regular
+public import Srtfp.Proofs.Clinger.FindBinaryExp
+public import Srtfp.Proofs.Clinger.NatInterval
+
+@[expose] public section
 
 namespace Srtfp.Clinger
 

@@ -1,3 +1,4 @@
+module
 /- Clinger Decimal→Float correctness — decode/pack bridge (M4).
 
    This module discharges `DecodeOfDecimalBridgeBits`: for a non-overflow
@@ -13,10 +14,12 @@
 
    The case-split mirrors `decodedAbsAB`'s if-tree (see `Base.lean`). -/
 
-import Srtfp.Proofs.Clinger.Base
-import Srtfp.Proofs.Clinger.FindBinaryExp
-import Srtfp.Tactics
-import Srtfp.Proofs.Bits
+public import Srtfp.Proofs.Clinger.Base
+public import Srtfp.Proofs.Clinger.FindBinaryExp
+public import Srtfp.Tactics
+public import Srtfp.Proofs.Bits
+
+@[expose] public section
 
 namespace Srtfp.Clinger
 

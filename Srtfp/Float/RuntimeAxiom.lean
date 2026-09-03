@@ -1,3 +1,4 @@
+module
 /- IEEE-754 binary64 runtime axiom.
 
    `Float.toBits` and `Float.ofBits` are `@[extern]` runtime functions
@@ -26,7 +27,9 @@
    `Srtfp.Bridge` umbrella) is the single opt-in for trusting the runtime
    contract. -/
 
-import Srtfp.Float.Bits
+public import Srtfp.Float.Bits
+
+@[expose] public section
 
 namespace Float
 

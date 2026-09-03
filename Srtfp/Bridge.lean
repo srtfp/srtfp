@@ -1,3 +1,4 @@
+module
 /- The `Float` tier of srtfp — OPT-IN for the runtime axiom.
 
    `import Srtfp` alone is fully axiom-free: every definition and theorem
@@ -15,8 +16,10 @@
    statements attach to the runtime `Float` type itself
    (`Srtfp/Bridge/Correctness.lean`). -/
 
-import Srtfp
-import Srtfp.Float.RuntimeAxiom
-import Srtfp.Bridge.Basic
-import Srtfp.Bridge.Clinger
-import Srtfp.Bridge.Correctness
+public import Srtfp
+public import Srtfp.Float.RuntimeAxiom
+public import Srtfp.Bridge.Basic
+public import Srtfp.Bridge.Clinger
+public import Srtfp.Bridge.Correctness
+
+@[expose] public section

@@ -1,3 +1,4 @@
+module
 /- Bridge tier, ground floor: the first consumers of the runtime axiom.
 
    Everything here is a word-level fact from `Srtfp/Float/Bits.lean`
@@ -5,8 +6,10 @@
    restricted runtime axiom `Float.toBits_ofBits`. No new bit algebra —
    just the `(Float.ofBits w).toBits = w` cancellation. -/
 
-import Srtfp.Float.RuntimeAxiom
-import Srtfp.Proofs.Bits
+public import Srtfp.Float.RuntimeAxiom
+public import Srtfp.Proofs.Bits
+
+@[expose] public section
 
 namespace Srtfp.Float
 

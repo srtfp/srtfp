@@ -1,10 +1,13 @@
+module
 /- The scan: `shortest` returns a hit on the coarsest grid that has one.
    Three facts are specific to binary64 — the grid `10^308` is above every
    value (T1), the grid `10^{-324}` always meets `R_v` (T2), and a tie
    between `9 · 10^i` and `10 · 10^i` cannot occur (T3). Everything else is
    the loop invariant. -/
-import Srtfp.Proofs.Printer.Length
-import Srtfp.Proofs.Clinger.NatIntervalRat
+public import Srtfp.Proofs.Printer.Length
+public import Srtfp.Proofs.Clinger.NatIntervalRat
+
+@[expose] public section
 
 open Srtfp.Compat
 

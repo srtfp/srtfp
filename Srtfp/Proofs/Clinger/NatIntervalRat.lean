@@ -1,12 +1,15 @@
+module
 /- Rational readings of the cleared comparisons, the sign/magnitude
    split of `toRat` and `wordVal`, and the word/decode bridges. Moved
    here unchanged from the old printer proof stack (`TieBreak.lean`,
    `RoundTrip.lean`) for the reader proofs. Retired by the reader rewrite. -/
-import Srtfp.Proofs.CorrectnessSpec
-import Srtfp.Proofs.Clinger.Bridge
-import Srtfp.Proofs.Clinger.NatInterval
-import Srtfp.Proofs.Bits
-import Srtfp.Tactics
+public import Srtfp.Proofs.CorrectnessSpec
+public import Srtfp.Proofs.Clinger.Bridge
+public import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Proofs.Bits
+public import Srtfp.Tactics
+
+@[expose] public section
 
 open Srtfp.Compat
 
@@ -20,7 +23,7 @@ namespace Schubfach
 
 /-- The common positive denominator-clearing factor for scale `(q,k)`:
 `2^{max(-q,0)} · 10^{max(-k,0)}` as a rational. -/
-private noncomputable def clearFactor (q k : Int) : ℚ :=
+noncomputable def clearFactor (q k : Int) : ℚ :=
   (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
     * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)
 

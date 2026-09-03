@@ -1,5 +1,8 @@
-import Srtfp.Perf.KernelCorrectness
-import Srtfp.Tactics
+module
+public import Srtfp.Perf.KernelCorrectness
+public import Srtfp.Tactics
+
+@[expose] public section
 
 /-!
 # R20 ceiling numerator and gap

@@ -1,3 +1,4 @@
+module
 /- Clinger bridge, `Float` tier.
 
    The word-level bridge results of `Srtfp/Proofs/Clinger/{Bridge,·}.lean`
@@ -5,8 +6,10 @@
    on the parser side funnels through the single application inside
    `ofDecimal_toBits`. -/
 
-import Srtfp.Proofs.Clinger
-import Srtfp.Bridge.Basic
+public import Srtfp.Proofs.Clinger
+public import Srtfp.Bridge.Basic
+
+@[expose] public section
 
 namespace Srtfp.Clinger
 

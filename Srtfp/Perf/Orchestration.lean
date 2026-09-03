@@ -1,3 +1,4 @@
+module
 /- Orchestration-layer perf refactor for Schubfach `toDecimal`.
 
    `shortestUnsigned m q` makes 4–7 calls to `cmpScaledMixed` and one
@@ -16,10 +17,12 @@
    round-trip, and `@[csimp]` registers `shortestUnsigned_packed` as
    the runtime implementation.
 -/
-import Srtfp.Perf.Schubfach
-import Srtfp.Perf.KernelCorrectness
-import Srtfp.Perf.Kernel128
-import Srtfp.Perf.KernelR20
+public import Srtfp.Perf.Schubfach
+public import Srtfp.Perf.KernelCorrectness
+public import Srtfp.Perf.Kernel128
+public import Srtfp.Perf.KernelR20
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

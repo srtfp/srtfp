@@ -1,4 +1,7 @@
-import Srtfp.Perf.R20BandSweepDefs
+module
+public import Srtfp.Perf.R20BandSweepDefs
+
+@[expose] public section
 
 /-! Band-1 kernel `decide` sweeps, first half (parallel-build split). -/
 

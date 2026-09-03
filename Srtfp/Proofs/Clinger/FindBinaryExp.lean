@@ -1,3 +1,4 @@
+module
 /- Clinger Decimal→Float correctness — `findBinaryExp` correctness (M4).
 
    The algorithm's `e := findBinaryExp a b` picks `e0 := log2 a − log2 b`
@@ -13,8 +14,10 @@
    The algebraic identity `num_pre · denom = 2 · num · denom_pre` ties
    the cleared forms at `q-1` and `q`. -/
 
-import Srtfp.Proofs.Clinger.Base
-import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Proofs.Clinger.Base
+public import Srtfp.Proofs.Clinger.NatInterval
+
+@[expose] public section
 
 namespace Srtfp.Clinger
 

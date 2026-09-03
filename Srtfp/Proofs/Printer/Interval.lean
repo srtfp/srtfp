@@ -1,7 +1,10 @@
+module
 /- §5: the rounding interval `R_v = [vl, vr]` of `v = m · 2^q`, with the
    endpoints included iff `m` is even (round-ties-to-even). Result R1 and
    the interval's width. -/
-import Srtfp.Proofs.Printer.Vocab
+public import Srtfp.Proofs.Printer.Vocab
+
+@[expose] public section
 
 open Srtfp.Compat
 

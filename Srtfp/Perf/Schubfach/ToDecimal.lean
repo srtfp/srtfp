@@ -1,3 +1,4 @@
+module
 /- `toDecimalBits` output lies in R_v (M3.8.7).
 
    This file wraps the M3.8.6 result `shortestUnsigned_mem_rv` together with
@@ -17,8 +18,10 @@
    witness. The Clinger correctness theorem (M4) can then consume the
    `inRoundingInterval` witness independently of any canonicalisation. -/
 
-import Srtfp.Perf.Schubfach.Shorter
-import Srtfp.Proofs.Bits
+public import Srtfp.Perf.Schubfach.Shorter
+public import Srtfp.Proofs.Bits
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

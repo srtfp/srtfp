@@ -1,3 +1,4 @@
+module
 /- R20 decode glue: the unconditional (`B`-unbounded) widened floor
    equality for the Schubfach fast kernel over the full binary64 domain.
 
@@ -24,10 +25,12 @@
    `B < 2^64` dispatch and route every real decode through the UInt64
    kernel.
 -/
-import Srtfp.Perf.R20BandSweep
-import Srtfp.Perf.KernelCorrectness
-import Srtfp.Perf.Kernel128
-import Srtfp.Tactics
+public import Srtfp.Perf.R20BandSweep
+public import Srtfp.Perf.KernelCorrectness
+public import Srtfp.Perf.Kernel128
+public import Srtfp.Tactics
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

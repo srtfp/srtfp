@@ -1,3 +1,4 @@
+module
 /- INTERNAL spec vocabulary for the correctness proofs.
 
    The public, self-contained statement is
@@ -5,11 +6,13 @@
    which restates everything below inline; the kernel certifies the two
    spellings agree.  Proof bodies: `Srtfp/Proofs/Correctness.lean`. -/
 
-import Srtfp.Rat
-import Srtfp.Decimal
-import Srtfp.Float.Bits
-import Srtfp.Proofs.Clinger.NatIntervalDefs
-import Srtfp.Clinger
+public import Srtfp.Rat
+public import Srtfp.Decimal
+public import Srtfp.Float.Bits
+public import Srtfp.Proofs.Clinger.NatIntervalDefs
+public import Srtfp.Clinger
+
+@[expose] public section
 
 open Srtfp.Compat
 

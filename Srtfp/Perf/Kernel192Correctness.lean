@@ -1,3 +1,4 @@
+module
 /- Correctness of the 256-bit (4-limb) multiply-shift kernel `shiftedSig_v4`.
 
    Mirrors `KernelCorrectness.lean` (128-bit) but for the 192-bit table and
@@ -16,12 +17,14 @@
    etc.) are obtained by re-using `shiftedSig_sandwich` (parametric in the
    precision) with `g ≥ 2^191` from `pow10Lookup192_g_ge`.
 -/
-import Srtfp.Perf.Uint64Kernel192
-import Srtfp.Perf.Uint64Kernel
-import Srtfp.Perf.Uint64Bridge
-import Srtfp.Perf.KernelCorrectness
-import Srtfp.Perf.TableInvariant192
-import Srtfp.Tactics
+public import Srtfp.Perf.Uint64Kernel192
+public import Srtfp.Perf.Uint64Kernel
+public import Srtfp.Perf.Uint64Bridge
+public import Srtfp.Perf.KernelCorrectness
+public import Srtfp.Perf.TableInvariant192
+public import Srtfp.Tactics
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

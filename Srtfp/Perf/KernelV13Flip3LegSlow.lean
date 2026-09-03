@@ -1,7 +1,10 @@
+module
 /- flip3 spec-proof, slow-digit leg (`shiftedSig < 10`). Split per-module for bounded peak RAM. -/
 
-import Srtfp.Perf.KernelV13Flip3Defs
-import Srtfp.Tactics
+public import Srtfp.Perf.KernelV13Flip3Defs
+public import Srtfp.Tactics
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

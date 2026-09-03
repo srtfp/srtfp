@@ -1,3 +1,4 @@
+module
 /- 192-bit UInt64-triple arithmetic model for the Schubfach multiply-shift
    kernel.
 
@@ -21,10 +22,12 @@
    These lemmas isolate the pure 192-bit arithmetic from the §9.6–§9.8
    error-bound reasoning that lives in `KernelCorrectness.lean`.
 -/
-import Srtfp.Perf.Schubfach
-import Srtfp.Perf.Kernel128Defs
-import Srtfp.Perf.MulHigh128
-import Srtfp.Tactics
+public import Srtfp.Perf.Schubfach
+public import Srtfp.Perf.Kernel128Defs
+public import Srtfp.Perf.MulHigh128
+public import Srtfp.Tactics
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

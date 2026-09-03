@@ -1,3 +1,4 @@
+module
 /- KernelV13, stage 0: band peelings, x10 residues, and `sFromP_floor`.
    Split out so the flip3 spec proof gets a process of its own. -/
 
@@ -20,9 +21,11 @@
    `w = 127` only on irregular bands (excluded by the runtime guard,
    falling back to the packed path). -/
 
-import Srtfp.Perf.KernelSupport
-import Srtfp.Perf.KernelV13WReg
-import Srtfp.Tactics
+public import Srtfp.Perf.KernelSupport
+public import Srtfp.Perf.KernelV13WReg
+public import Srtfp.Tactics
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

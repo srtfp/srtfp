@@ -1,3 +1,4 @@
+module
 /- Clinger Decimal→Float correctness — irregular carry branch (M4).
 
    Branch 3b (carry from pre-rounding): when normal-spaced rounding
@@ -7,10 +8,12 @@
    then translates to the irregular bound at scale `q` via the
    `num_pre · denom = 2 · num · denom_pre` algebraic identity. -/
 
-import Srtfp.Proofs.Clinger.Base
-import Srtfp.Proofs.Clinger.Regular
-import Srtfp.Proofs.Clinger.FindBinaryExp
-import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Proofs.Clinger.Base
+public import Srtfp.Proofs.Clinger.Regular
+public import Srtfp.Proofs.Clinger.FindBinaryExp
+public import Srtfp.Proofs.Clinger.NatInterval
+
+@[expose] public section
 
 namespace Srtfp.Clinger
 

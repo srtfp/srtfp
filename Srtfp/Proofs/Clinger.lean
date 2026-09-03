@@ -1,3 +1,4 @@
+module
 /- Clinger Decimal→Float correctness — main file (M4).
 
    ## What this file establishes
@@ -29,14 +30,16 @@
    both the word level (`ofDecimalBits_in_Rv`, axiom-free) and the
    `Float` level (`ofDecimal_in_Rv`). -/
 
-import Srtfp.Proofs.Clinger.Base
-import Srtfp.Proofs.Clinger.Regular
-import Srtfp.Proofs.Clinger.FindBinaryExp
-import Srtfp.Proofs.Clinger.IrregularNoCarry
-import Srtfp.Proofs.Clinger.IrregularCarry
-import Srtfp.Proofs.Clinger.Dispatch
-import Srtfp.Proofs.Clinger.Bridge
-import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Proofs.Clinger.Base
+public import Srtfp.Proofs.Clinger.Regular
+public import Srtfp.Proofs.Clinger.FindBinaryExp
+public import Srtfp.Proofs.Clinger.IrregularNoCarry
+public import Srtfp.Proofs.Clinger.IrregularCarry
+public import Srtfp.Proofs.Clinger.Dispatch
+public import Srtfp.Proofs.Clinger.Bridge
+public import Srtfp.Proofs.Clinger.NatInterval
+
+@[expose] public section
 
 namespace Srtfp.Clinger
 

@@ -1,3 +1,4 @@
+module
 /- Kernels v6-v8; `toDecimal_v7` at the bottom is the live `toDecimal`.
 
    v6: one biased table index, no dead guards.
@@ -8,8 +9,10 @@
    `kB := (k + 324).toNat` once; every lookup becomes scalar `Nat`
    index arithmetic (`648 - kB`, `kB + 1`, `kB`), and the implied
    guards are gone (their falsity is proven, not re-tested). -/
-import Srtfp.Perf.KernelV5
-import Srtfp.Perf.SchubfachEq
+public import Srtfp.Perf.KernelV5
+public import Srtfp.Perf.SchubfachEq
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

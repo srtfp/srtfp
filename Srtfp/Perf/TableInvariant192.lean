@@ -1,3 +1,4 @@
+module
 /- Numerical invariant of the 192-bit pow10 table.
 
    Mirrors `TableInvariant.lean` (128-bit) but for the wider 192-bit
@@ -17,7 +18,9 @@
    and exposes a per-lookup extraction theorem (mirror of
    `pow10Lookup128_invariant`).
 -/
-import Srtfp.Perf.Pow10Table192
+public import Srtfp.Perf.Pow10Table192
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

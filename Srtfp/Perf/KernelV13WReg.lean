@@ -1,3 +1,4 @@
+module
 /- The `wReg` table-width sweep for KernelV13, in its own module.
 
    Each `wRegChunk_*` is a kernel `decide` over a 93-element slice of the
@@ -7,9 +8,11 @@
    later chunks trip the kernel's memory guard, while in a fresh process
    the whole sweep fits comfortably. -/
 
-import Srtfp.Perf.Pow10Table128
-import Srtfp.Perf.TableInvariant
-import Srtfp.Perf.Schubfach
+public import Srtfp.Perf.Pow10Table128
+public import Srtfp.Perf.TableInvariant
+public import Srtfp.Perf.Schubfach
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

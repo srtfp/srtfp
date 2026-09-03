@@ -1,3 +1,4 @@
+module
 /- Clinger Decimal→Float correctness — dispatch (M4).
 
    This module discharges `BranchDispatch` (== `AbstractCorrectness`):
@@ -14,12 +15,14 @@
    concrete `(a, b)`, and `branch_dispatch` instantiates it twice (once
    per `exp ≥ 0` case). -/
 
-import Srtfp.Proofs.Clinger.Base
-import Srtfp.Proofs.Clinger.Regular
-import Srtfp.Proofs.Clinger.FindBinaryExp
-import Srtfp.Proofs.Clinger.IrregularNoCarry
-import Srtfp.Proofs.Clinger.IrregularCarry
-import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Proofs.Clinger.Base
+public import Srtfp.Proofs.Clinger.Regular
+public import Srtfp.Proofs.Clinger.FindBinaryExp
+public import Srtfp.Proofs.Clinger.IrregularNoCarry
+public import Srtfp.Proofs.Clinger.IrregularCarry
+public import Srtfp.Proofs.Clinger.NatInterval
+
+@[expose] public section
 
 namespace Srtfp.Clinger
 

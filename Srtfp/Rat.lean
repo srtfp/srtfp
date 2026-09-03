@@ -1,3 +1,4 @@
+module
 /- Core-only ℚ compatibility layer.
 
    The proof stack was written against Mathlib's rational-number surface;
@@ -8,6 +9,8 @@
    Everything lives in the `Srtfp.Compat` namespace with scoped
    notation, so importing srtfp never collides with Mathlib's root
    names; proof files start with `open Srtfp.Compat`. -/
+
+@[expose] public section
 
 namespace Srtfp.Compat
 

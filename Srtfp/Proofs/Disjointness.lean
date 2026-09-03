@@ -1,3 +1,4 @@
+module
 /- Disjointness of `inRoundingInterval` for distinct IEEE-754 canonical pairs.
 
    ## Statement
@@ -27,10 +28,12 @@
    half `inRoundingInterval_uniq_lt`, which case-analyses the structure
    of the IEEE-754 canonical encoding. -/
 
-import Srtfp.Proofs.Clinger.NatInterval
-import Srtfp.Proofs.Clinger
-import Srtfp.Tactics
-import Srtfp.Proofs.Bits
+public import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Proofs.Clinger
+public import Srtfp.Tactics
+public import Srtfp.Proofs.Bits
+
+@[expose] public section
 
 open Srtfp.Compat
 

@@ -1,11 +1,14 @@
+module
 /- KernelV13, flip3 kernel: 192-bit shift/top-extract helpers and the
    flip3 kernel definition. The per-leg spec proofs live in the
    KernelV13Flip3Leg* modules — one process each, because elaboration
    memory accumulates across a module's declarations on ≥4.32
    toolchains and the legs are individually multi-GB. -/
 
-import Srtfp.Perf.KernelV13Resid
-import Srtfp.Tactics
+public import Srtfp.Perf.KernelV13Resid
+public import Srtfp.Tactics
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

@@ -1,3 +1,4 @@
+module
 /- Bridge theorems: `shortestUnsigned_u64_opt m q = some v → shortestUnsigned_packed m q = v`.
 
    This file lifts the cmpScaledMixed-level bridge
@@ -8,10 +9,12 @@
    Once that holds we can re-target the `@[csimp]` registration
    from `shortestUnsigned_packed` to `shortestUnsigned_v2`, giving
    the runtime path the ~2× speedup measured at the v2 level. -/
-import Srtfp.Perf.Schubfach
-import Srtfp.Perf.Orchestration
-import Srtfp.Perf.Uint64Kernel
-import Srtfp.Tactics
+public import Srtfp.Perf.Schubfach
+public import Srtfp.Perf.Orchestration
+public import Srtfp.Perf.Uint64Kernel
+public import Srtfp.Tactics
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

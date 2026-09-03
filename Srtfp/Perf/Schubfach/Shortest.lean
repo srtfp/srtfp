@@ -1,3 +1,4 @@
+module
 /- Minimality of `shortestUnsigned` (M3.8.8).
 
    The Schubfach algorithm's `shortestUnsigned m q = (sig, exp)` produces
@@ -28,9 +29,11 @@
 
    The only axioms used are `propext, Quot.sound, Classical.choice`. -/
 
-import Srtfp.Proofs.CorrectnessSpec
-import Srtfp.Perf.Schubfach.Shorter
-import Srtfp.Perf.Schubfach.ToDecimal
+public import Srtfp.Proofs.CorrectnessSpec
+public import Srtfp.Perf.Schubfach.Shorter
+public import Srtfp.Perf.Schubfach.ToDecimal
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

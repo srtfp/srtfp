@@ -1,12 +1,15 @@
+module
 /- Vocabulary shared by the printer proofs, and the digit-count facts.
    `toRat`, `wordVal`, `digits` are definitionally the spec's
    (`Srtfp/Correctness.lean`); the kernel checks the agreement when the
    final theorems are assigned there. -/
-import Srtfp.Rat
-import Srtfp.NatLog
-import Srtfp.Decimal
-import Srtfp.Float.Bits
-import Srtfp.Printer
+public import Srtfp.Rat
+public import Srtfp.NatLog
+public import Srtfp.Decimal
+public import Srtfp.Float.Bits
+public import Srtfp.Printer
+
+@[expose] public section
 
 open Srtfp.Compat
 

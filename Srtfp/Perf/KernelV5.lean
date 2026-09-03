@@ -1,3 +1,4 @@
+module
 /- Kernel v5: erase the binary64 domain re-check from the hot path.
 
    `shiftedSig_v4` re-establishes its domain predicate
@@ -12,7 +13,9 @@
    Every caller already holds all five facts as `dite` binders, so v5
    passes them as a hypothesis instead — erased at runtime, certified at
    compile time. -/
-import Srtfp.Perf.Kernel192Correctness
+public import Srtfp.Perf.Kernel192Correctness
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

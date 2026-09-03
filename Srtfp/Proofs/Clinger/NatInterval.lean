@@ -1,11 +1,14 @@
+module
 /- The cleared-denominator interval vocabulary the reader proofs are
    written against: `inRoundingInterval` and `cmpScaledMixed` reified as
    `Nat`/`Int` comparisons of their cleared sides. Moved here unchanged
    from the old printer proof stack so the reader proofs depend on
    nothing Schubfach. Retired by the reader rewrite. -/
-import Srtfp.Proofs.Clinger.NatIntervalDefs
-import Srtfp.Rat
-import Srtfp.Tactics
+public import Srtfp.Proofs.Clinger.NatIntervalDefs
+public import Srtfp.Rat
+public import Srtfp.Tactics
+
+@[expose] public section
 
 open Srtfp.Compat
 

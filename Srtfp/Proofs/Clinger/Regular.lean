@@ -1,3 +1,4 @@
+module
 /- Clinger Decimal→Float correctness — regular branch (M4).
 
    This module discharges the *regular* sub-branches of `decodedAbs`:
@@ -5,8 +6,10 @@
    `regular_branch_correct` covers all six in a uniform cleared-form
    argument from the half-ULP bound + tie-to-even parity. -/
 
-import Srtfp.Proofs.Clinger.Base
-import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Proofs.Clinger.Base
+public import Srtfp.Proofs.Clinger.NatInterval
+
+@[expose] public section
 
 namespace Srtfp.Clinger
 

@@ -1,3 +1,4 @@
+module
 /- 192-bit power-of-10 table for the Schubfach multiply-shift kernel.
 
    For each `k ∈ [-324, 324]`, the table stores a 192-bit unsigned
@@ -28,7 +29,9 @@
    gain of exactly 64 bits).
 -/
 
-import Lean
+public import Lean
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 
@@ -103,7 +106,7 @@ def genPow10Table192 : Array (UInt64 × UInt64 × UInt64 × Int) :=
 open Lean Elab Term Meta in
 /-- Run the compiled `genPow10Table192` at elaboration time (via the
     `unsafe` `evalExpr`, which interprets compiled meta-level code). -/
-unsafe def evalGenPow10Table192Unsafe : MetaM (Array (UInt64 × UInt64 × UInt64 × Int)) :=
+meta unsafe def evalGenPow10Table192Unsafe : MetaM (Array (UInt64 × UInt64 × UInt64 × Int)) :=
   evalExpr (Array (UInt64 × UInt64 × UInt64 × Int))
     (ToExpr.toTypeExpr (Array (UInt64 × UInt64 × UInt64 × Int)))
     (mkConst ``genPow10Table192)

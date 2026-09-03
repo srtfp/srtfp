@@ -1,3 +1,4 @@
+module
 /- Reader correctness: `Clinger.ofDecimal` is THE round-to-nearest,
    ties-to-even `Decimal → Float` reader.
 
@@ -21,12 +22,14 @@
      analysis and `toBits_eq_of_decode_eq`; overflow via
      `decimalToFloat_overflow_inf`; zeros via `pack_proj`. -/
 
-import Srtfp.Proofs.CorrectnessSpec
-import Srtfp.Proofs.Clinger.NatIntervalRat
-import Srtfp.Proofs.Disjointness
-import Srtfp.Proofs.Clinger
-import Srtfp.Tactics
-import Srtfp.Proofs.Bits
+public import Srtfp.Proofs.CorrectnessSpec
+public import Srtfp.Proofs.Clinger.NatIntervalRat
+public import Srtfp.Proofs.Disjointness
+public import Srtfp.Proofs.Clinger
+public import Srtfp.Tactics
+public import Srtfp.Proofs.Bits
+
+@[expose] public section
 
 open Srtfp.Compat
 

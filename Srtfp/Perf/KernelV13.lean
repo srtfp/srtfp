@@ -1,5 +1,8 @@
-import Srtfp.Perf.KernelV13Flip3
-import Srtfp.Tactics
+module
+public import Srtfp.Perf.KernelV13Flip3
+public import Srtfp.Tactics
+
+@[expose] public section
 
 /- v13 — `s` from the boundary product (Giulietti §9 at 128 bits).
 

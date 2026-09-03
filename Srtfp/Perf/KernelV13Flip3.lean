@@ -1,9 +1,12 @@
+module
 /- flip3 fast-path correctness: dispatch over the per-leg modules. -/
 
-import Srtfp.Perf.KernelV13Flip3LegSlow
-import Srtfp.Perf.KernelV13Flip3LegUV
-import Srtfp.Perf.KernelV13Flip3LegWV
-import Srtfp.Perf.KernelV13Flip3LegPick
+public import Srtfp.Perf.KernelV13Flip3LegSlow
+public import Srtfp.Perf.KernelV13Flip3LegUV
+public import Srtfp.Perf.KernelV13Flip3LegWV
+public import Srtfp.Perf.KernelV13Flip3LegPick
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

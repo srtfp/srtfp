@@ -1,3 +1,4 @@
+module
 /- Numerical invariant of the 128-bit pow10 table.
 
    For each entry `(gHi, gLo, h)` at index `i` (i.e., for `k = kMin + i`):
@@ -12,7 +13,9 @@
    and exposes a per-lookup extraction theorem.  Downstream proofs
    (Schubfach §9.6–9.8 multiply-shift correctness) extract the invariant
    for the specific `(gHi, gLo, h) = pow10Lookup128 k` they need. -/
-import Srtfp.Perf.Pow10Table128
+public import Srtfp.Perf.Pow10Table128
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

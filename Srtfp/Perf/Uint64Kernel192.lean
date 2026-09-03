@@ -1,3 +1,4 @@
+module
 /- All-UInt64 192-bit `shiftedSig` kernel using the wider pow10 table.
 
 The 128-bit `shiftedSig_u64_kernel` (in `Uint64Kernel.lean`) requires the
@@ -16,11 +17,13 @@ This file defines the 192-bit kernel and a `_v4` orchestration that uses
 it.  Proof bridges + csimp wiring live in `Uint64Bridge192.lean`
 (future commit).
 -/
-import Srtfp.Perf.Schubfach
-import Srtfp.Perf.Orchestration
-import Srtfp.Perf.Pow10Table192
-import Srtfp.Perf.Uint64Kernel
-import Srtfp.Perf.MulHigh128
+public import Srtfp.Perf.Schubfach
+public import Srtfp.Perf.Orchestration
+public import Srtfp.Perf.Pow10Table192
+public import Srtfp.Perf.Uint64Kernel
+public import Srtfp.Perf.MulHigh128
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

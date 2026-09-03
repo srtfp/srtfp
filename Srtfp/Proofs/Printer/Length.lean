@@ -1,9 +1,12 @@
+module
 /- §6.2–6.3: lengths of decimals across grids. Result R2 (coarser grids
    sit inside finer ones), the core of R7 (consecutive grid points that
    avoid the coarser grid share a digit count) and of R6 (a canonical
    decimal on a finer grid, strictly between two consecutive coarse
    points, is longer than the lower one). -/
-import Srtfp.Proofs.Printer.Grid
+public import Srtfp.Proofs.Printer.Grid
+
+@[expose] public section
 
 open Srtfp.Compat
 

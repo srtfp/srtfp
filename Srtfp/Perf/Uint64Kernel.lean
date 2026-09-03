@@ -1,3 +1,4 @@
+module
 /- All-UInt64 fast-path kernels for Schubfach's `toDecimal` inner loop.
 
 The `_packed` kernels in `Orchestration.lean` already use UInt64 inside
@@ -20,9 +21,11 @@ from `decode : Float → Decoded`, since binary64 fixes
 `m ≤ 2^53`, `q ∈ [-1074, 971]`) delegate to the existing
 `shortestUnsigned_packed` for total correctness.
 -/
-import Srtfp.Perf.Schubfach
-import Srtfp.Perf.Orchestration
-import Srtfp.Tactics
+public import Srtfp.Perf.Schubfach
+public import Srtfp.Perf.Orchestration
+public import Srtfp.Tactics
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

@@ -1,3 +1,4 @@
+module
 /- Correctness of `kOfMQ` (M3.8.3).
 
    Schubfach's "decimal exponent" `k` is the unique integer such that the
@@ -38,10 +39,12 @@
    No `native_decide`. The only axioms inherited from M3.8.1 are
    `propext, Quot.sound, Classical.choice`. -/
 
-import Srtfp.Perf.Schubfach
-import Srtfp.Perf.Schubfach.R14R15
-import Srtfp.Perf.Schubfach.RoundingInterval
-import Srtfp.Tactics
+public import Srtfp.Perf.Schubfach
+public import Srtfp.Perf.Schubfach.R14R15
+public import Srtfp.Perf.Schubfach.RoundingInterval
+public import Srtfp.Tactics
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

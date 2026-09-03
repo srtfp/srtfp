@@ -1,6 +1,9 @@
-import Srtfp.Perf.R20Band2Sweep
-import Srtfp.Perf.R20Band1SweepA
-import Srtfp.Perf.R20Band1SweepB
+module
+public import Srtfp.Perf.R20Band2Sweep
+public import Srtfp.Perf.R20Band1SweepA
+public import Srtfp.Perf.R20Band1SweepB
+
+@[expose] public section
 
 /-!
 # R20 band sweeps: universal `farFromMultipleBelow` over the binary64 range

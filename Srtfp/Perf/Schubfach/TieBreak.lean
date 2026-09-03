@@ -1,3 +1,4 @@
+module
 /- The tie-breaker clause of Schubfach correctness.
 
    `correctness_proof` (in `Srtfp/Proofs/Correctness.lean`)
@@ -20,12 +21,14 @@
      is equivalent to `2v < u+w`, which the bridge connects to
      `CloserToLower`. Symmetrically for `CloserToUpper` / `Equidistant`. -/
 
-import Srtfp.Proofs.CorrectnessSpec
-import Srtfp.Perf.Schubfach.PickNearer
-import Srtfp.Perf.Schubfach.Minimal
-import Srtfp.Proofs.Clinger
-import Srtfp.Tactics
-import Srtfp.Proofs.Clinger.NatIntervalRat
+public import Srtfp.Proofs.CorrectnessSpec
+public import Srtfp.Perf.Schubfach.PickNearer
+public import Srtfp.Perf.Schubfach.Minimal
+public import Srtfp.Proofs.Clinger
+public import Srtfp.Tactics
+public import Srtfp.Proofs.Clinger.NatIntervalRat
+
+@[expose] public section
 
 open Srtfp.Compat
 

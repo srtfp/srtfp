@@ -1,3 +1,4 @@
+module
 /- Fast emit: minimize extern calls, not allocations.
 
    Every Lean string mutation is an out-of-line extern call (~6-10ns),
@@ -10,9 +11,11 @@
 
    Verified: `toStringFast2 = floatToStrRef`, wired via `@[csimp]`
    (overrides StringFast's registration; later csimps win). -/
-import Srtfp.Perf.StringFast
-import Srtfp.Perf.KernelV6
-import Srtfp.Tactics
+public import Srtfp.Perf.StringFast
+public import Srtfp.Perf.KernelV6
+public import Srtfp.Tactics
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

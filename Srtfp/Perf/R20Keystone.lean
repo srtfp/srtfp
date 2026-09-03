@@ -1,3 +1,4 @@
+module
 /- R20 keystone: the computable candidate-denominator sweep and its
    soundness (`farAll_of_sweep`).
 
@@ -9,10 +10,12 @@
    bound, and assembles the decidable sweep-to-`far` bridge used by
    `R20BandSweep.lean`. -/
 
-import Srtfp.Perf.R20Continuant
-import Srtfp.Perf.R20Legendre
-import Srtfp.Perf.KernelCorrectness
-import Srtfp.Tactics
+public import Srtfp.Perf.R20Continuant
+public import Srtfp.Perf.R20Legendre
+public import Srtfp.Perf.KernelCorrectness
+public import Srtfp.Tactics
+
+@[expose] public section
 
 open Srtfp.Compat
 

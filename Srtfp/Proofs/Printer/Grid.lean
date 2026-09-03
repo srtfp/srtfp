@@ -1,7 +1,10 @@
+module
 /- §6.1: one decimal grid `D_i = {n · 10^i}` and the two neighbours
    `u ≤ v < w` of `v` on it (Definition 2, Result R3), and what
    `candidate` returns. -/
-import Srtfp.Proofs.Printer.Interval
+public import Srtfp.Proofs.Printer.Interval
+
+@[expose] public section
 
 open Srtfp.Compat
 

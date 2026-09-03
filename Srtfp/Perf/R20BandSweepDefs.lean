@@ -1,5 +1,8 @@
-import Srtfp.Perf.R20Keystone
-import Srtfp.Perf.Schubfach
+module
+public import Srtfp.Perf.R20Keystone
+public import Srtfp.Perf.Schubfach
+
+@[expose] public section
 
 /-!
 # R20 band sweeps — checkers and range predicates

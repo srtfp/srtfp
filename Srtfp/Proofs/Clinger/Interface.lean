@@ -1,13 +1,16 @@
+module
 /- The one fact the printer proof needs from the reader: a decimal reads
    back to the finite nonzero word `w` iff it carries `w`'s sign and its
    magnitude lies in the rounding interval `R_w` (Giulietti §3.2.1, the
    assumption about `round`). Derived here from the existing reader
    results; a reader rewrite replaces this file and nothing else. -/
-import Srtfp.Proofs.Clinger
-import Srtfp.Proofs.Clinger.NatIntervalRat
-import Srtfp.Proofs.Disjointness
-import Srtfp.Proofs.ReaderCorrectness
-import Srtfp.Proofs.Printer.Interval
+public import Srtfp.Proofs.Clinger
+public import Srtfp.Proofs.Clinger.NatIntervalRat
+public import Srtfp.Proofs.Disjointness
+public import Srtfp.Proofs.ReaderCorrectness
+public import Srtfp.Proofs.Printer.Interval
+
+@[expose] public section
 
 open Srtfp.Compat
 

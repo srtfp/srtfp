@@ -1,3 +1,4 @@
+module
 /- Classical minimality of `toDecimal` on canonical Decimals (M3.8.9 re-scoped).
 
    The original M3.8.9 statement — "no Decimal with fewer digits rounds to v" —
@@ -21,9 +22,11 @@
    The combined theorem (~line 1962) is the user-facing one referenced from
    `Srtfp/Proofs/Correctness.lean`. -/
 
-import Srtfp.Perf.Schubfach.Shortest
-import Srtfp.Proofs.Decimal
-import Srtfp.Tactics
+public import Srtfp.Perf.Schubfach.Shortest
+public import Srtfp.Proofs.Decimal
+public import Srtfp.Tactics
+
+@[expose] public section
 
 open Srtfp.Compat
 

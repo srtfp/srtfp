@@ -1,3 +1,4 @@
+module
 /- Clinger Decimal→Float correctness — base layer (M4).
 
    This module contains the structural foundation for the Clinger
@@ -15,10 +16,12 @@
    each branch compile in parallel and keeps elaboration costs
    localized. -/
 
-import Srtfp.Proofs.CorrectnessSpec
-import Srtfp.Clinger
-import Srtfp.Proofs.Clinger.NatIntervalDefs
-import Srtfp.Float.Bits
+public import Srtfp.Proofs.CorrectnessSpec
+public import Srtfp.Clinger
+public import Srtfp.Proofs.Clinger.NatIntervalDefs
+public import Srtfp.Float.Bits
+
+@[expose] public section
 
 namespace Srtfp.Clinger
 

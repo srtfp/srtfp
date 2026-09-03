@@ -1,3 +1,4 @@
+module
 /- Rounding-interval characterisation R_v (M3.8.2).
 
    For a positive non-zero finite binary64 value `v = m·2^q`, the
@@ -43,7 +44,9 @@
    - M3.8.4/5/6: shifted significand, pickNearer, shortest-form check.
    - This file is *purely* about the binary-side rounding interval. -/
 
-import Srtfp.Perf.Schubfach
+public import Srtfp.Perf.Schubfach
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

@@ -1,3 +1,4 @@
+module
 /- Correctness of `pickNearer` (M3.8.5).
 
    `pickNearer s k m q` picks one of `s · 10^k` or `(s+1) · 10^k`
@@ -35,10 +36,12 @@
 
    The only axioms used are `propext, Quot.sound, Classical.choice`. -/
 
-import Srtfp.Perf.Schubfach.RoundingInterval
-import Srtfp.Perf.Schubfach.K
-import Srtfp.Perf.Schubfach.ShiftedSig
-import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Perf.Schubfach.RoundingInterval
+public import Srtfp.Perf.Schubfach.K
+public import Srtfp.Perf.Schubfach.ShiftedSig
+public import Srtfp.Proofs.Clinger.NatInterval
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

@@ -1,3 +1,4 @@
+module
 /- Round-trip theorem: `Clinger.ofDecimal (Schubfach.toDecimalBits w) = f` at
    the bit level.
 
@@ -22,15 +23,17 @@
    theorem at `.toBits` level so it consumes only the existing axiom
    budget; JSON's `floatLiteralStrict` consumes `.toBits` directly. -/
 
-import Srtfp.Proofs.Disjointness
-import Srtfp.Proofs.Decimal
-import Srtfp.Perf.Schubfach.ToDecimal
-import Srtfp.Perf.Schubfach.Shortest
-import Srtfp.Proofs.Clinger
-import Srtfp.Float.Bits
-import Srtfp.Proofs.Bits
-import Srtfp.Tactics
-import Srtfp.Proofs.Clinger.NatIntervalRat
+public import Srtfp.Proofs.Disjointness
+public import Srtfp.Proofs.Decimal
+public import Srtfp.Perf.Schubfach.ToDecimal
+public import Srtfp.Perf.Schubfach.Shortest
+public import Srtfp.Proofs.Clinger
+public import Srtfp.Float.Bits
+public import Srtfp.Proofs.Bits
+public import Srtfp.Tactics
+public import Srtfp.Proofs.Clinger.NatIntervalRat
+
+@[expose] public section
 
 open Srtfp.Compat
 

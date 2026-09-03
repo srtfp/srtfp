@@ -1,3 +1,4 @@
+module
 /- Correctness of `shiftedSig` (M3.8.4).
 
    `shiftedSig m q k` computes the integer floor of `m · 2^q · 10^(-k)`
@@ -17,8 +18,10 @@
 
    The only axioms used are `propext, Quot.sound, Classical.choice`. -/
 
-import Srtfp.Perf.Schubfach
-import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Perf.Schubfach
+public import Srtfp.Proofs.Clinger.NatInterval
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

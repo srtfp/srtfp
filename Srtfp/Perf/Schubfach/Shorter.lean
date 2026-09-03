@@ -1,3 +1,4 @@
+module
 /- Correctness of `shortestUnsigned` shorter-form selection (M3.8.6).
 
    The Schubfach printer's `shortestUnsigned m q` returns a pair
@@ -75,10 +76,12 @@
 
    The only axioms used are `propext, Quot.sound, Classical.choice`. -/
 
-import Srtfp.Perf.Schubfach.PickNearer
-import Srtfp.Perf.Schubfach.ShiftedSig
-import Srtfp.Perf.Schubfach.K
-import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Perf.Schubfach.PickNearer
+public import Srtfp.Perf.Schubfach.ShiftedSig
+public import Srtfp.Perf.Schubfach.K
+public import Srtfp.Proofs.Clinger.NatInterval
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

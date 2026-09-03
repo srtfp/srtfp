@@ -1,3 +1,4 @@
+module
 /- Schubfach + Clinger correctness: the Schubfach printer meets the
    specification. Now the Perf tier's justification for kernel 0 (see
    `Perf/SchubfachEq.lean`); the specification itself is certified by
@@ -20,12 +21,14 @@
    plus the clause-(3) tie-break machinery (same-digit-length analysis,
    canonical-parity upgrade) they are built from. -/
 
-import Srtfp.Proofs.CorrectnessSpec
-import Srtfp.Perf.Schubfach.RoundTrip
-import Srtfp.Perf.Schubfach.Minimal
-import Srtfp.Perf.Schubfach.TieBreak
-import Srtfp.NatLog
-import Srtfp.Tactics
+public import Srtfp.Proofs.CorrectnessSpec
+public import Srtfp.Perf.Schubfach.RoundTrip
+public import Srtfp.Perf.Schubfach.Minimal
+public import Srtfp.Perf.Schubfach.TieBreak
+public import Srtfp.NatLog
+public import Srtfp.Tactics
+
+@[expose] public section
 
 open Srtfp.Compat
 

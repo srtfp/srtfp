@@ -1,3 +1,4 @@
+module
 /- Build-time pin of the LIVE `@[csimp]` kernel registrations.
 
    The Schubfach optimization series replaced kernels via proven-equal
@@ -21,9 +22,11 @@
    Wired into `lake test` via AxiomCheck.lean. Not imported by `PP`
    (it pulls the Lean frontend, which library clients don't need). -/
 
-import Lean
-import Srtfp.Perf.KernelV6
-import Srtfp.Perf.KernelV13
+public meta import Lean
+public import Srtfp.Perf.KernelV6
+public import Srtfp.Perf.KernelV13
+
+@[expose] public section
 
 /- The csimp extension's map values changed type across toolchains
    (`Name` before v4.29-ish, `CSimp.Entry` after), so the check is

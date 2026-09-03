@@ -1,3 +1,4 @@
+module
 /- R14/R15 magic-constant correctness on the binary64 range (M3.8.1).
 
    The Schubfach printer (`Srtfp.Schubfach`) uses two integer
@@ -34,7 +35,9 @@
 
    that downstream Schubfach correctness proofs (M3.8.2+) can consume. -/
 
-import Srtfp.Perf.Schubfach
+public import Srtfp.Perf.Schubfach
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

@@ -1,3 +1,4 @@
+module
 /- Phase C: `Schubfach.toStringFast` — fused Float → String fast path.
 
    Skips the `Except String Decimal` boxing on the success path and the
@@ -7,13 +8,15 @@
    `toStringFast` is the runtime form, proven equal pointwise and wired
    via `@[csimp]` so callers of `floatToStrRef` go through the fast path. -/
 
-import Srtfp.Perf.Schubfach
-import Srtfp.Perf.Orchestration
-import Srtfp.Perf.Uint64Bridge
-import Srtfp.Perf.Kernel192Correctness
-import Srtfp.Perf.KernelV5
-import Srtfp.Perf.DecimalFast
-import Srtfp.Perf.SchubfachEq
+public import Srtfp.Perf.Schubfach
+public import Srtfp.Perf.Orchestration
+public import Srtfp.Perf.Uint64Bridge
+public import Srtfp.Perf.Kernel192Correctness
+public import Srtfp.Perf.KernelV5
+public import Srtfp.Perf.DecimalFast
+public import Srtfp.Perf.SchubfachEq
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

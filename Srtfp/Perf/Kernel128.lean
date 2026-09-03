@@ -1,3 +1,4 @@
+module
 /- Performance variants `cmpScaledMixed_fast2` and `shiftedSig_fast2`:
    the fast UInt64 multiply-shift kernels plus the `@[csimp]` registrations
    that swap them in for the reference `cmpScaledMixed` / `shiftedSig` at
@@ -24,11 +25,13 @@
    kernels everywhere the reference `cmpScaledMixed` / `shiftedSig` appears,
    while definitional equality with the reference is preserved by the
    proofs in this file. -/
-import Srtfp.Perf.Schubfach
-import Srtfp.Tactics
-import Srtfp.Perf.Kernel192
-import Srtfp.Perf.KernelCorrectness
-import Srtfp.Perf.TableInvariant
+public import Srtfp.Perf.Schubfach
+public import Srtfp.Tactics
+public import Srtfp.Perf.Kernel192
+public import Srtfp.Perf.KernelCorrectness
+public import Srtfp.Perf.TableInvariant
+
+@[expose] public section
 
 namespace Srtfp.Schubfach
 

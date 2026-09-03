@@ -1,3 +1,4 @@
+module
 /- Native integer continuant theory for the R20 sweep.
 
    Core-only replacement for the Mathlib continued-fraction machinery
@@ -13,8 +14,10 @@
    verbatim from `R20Keystone.lean`; the theory below replaces that
    file's bridge to Mathlib's `GenContFract`. -/
 
-import Srtfp.Rat
-import Srtfp.Tactics
+public import Srtfp.Rat
+public import Srtfp.Tactics
+
+@[expose] public section
 
 open Srtfp.Compat
 

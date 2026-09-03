@@ -1,7 +1,10 @@
+module
 /- Minimal core-only stand-ins for the Mathlib tactic surface this library
    uses, introduced when the Mathlib dependency was dropped. Each covers
    exactly the usage patterns found in this repo, not the full Mathlib
    feature set. -/
+
+@[expose] public section
 
 /-- Core-only replacement for the fragment of Mathlib's `push_neg` this
     library uses: negations of arithmetic comparisons and double negation.
