@@ -1,0 +1,267 @@
+/- §6.1: one decimal grid `D_i = {n · 10^i}` and the two neighbours
+   `u ≤ v < w` of `v` on it (Definition 2, Result R3), and what
+   `candidate` returns. -/
+import Srtfp.Proofs.Printer.Interval
+
+open Srtfp.Compat
+
+namespace Srtfp.Printer
+
+variable {m : Nat} {q i : Int} {x : ℚ} {n : Nat}
+
+/-- The floor `s_i(v) = ⌊v · 10^{-i}⌋` of Definition 2, as `candidate` computes it. -/
+def s (m : Nat) (q i : Int) : Nat := ((v m q) / (10 : ℚ) ^ i).floor.toNat
+
+/-- `u_i = s_i · 10^i`, the closest grid point at or below `v`. -/
+def u (m : Nat) (q i : Int) : ℚ := (s m q i : ℚ) * (10 : ℚ) ^ i
+
+/-- `w_i = (s_i + 1) · 10^i`, the closest grid point above `v`. -/
+def w (m : Nat) (q i : Int) : ℚ := ((s m q i : ℚ) + 1) * (10 : ℚ) ^ i
+
+/-- `x` is a non-negative multiple of `10^i` (the set `D_i`). -/
+def OnGrid (i : Int) (x : ℚ) : Prop := ∃ n : Nat, x = (n : ℚ) * (10 : ℚ) ^ i
+
+theorem v_pos (hm : 1 ≤ m) : 0 < v m q := by
+  unfold v
+  have hm' : (1 : ℚ) ≤ m := by exact_mod_cast hm
+  have := two_zpow_pos q
+  grind
+
+/-- The scaled value `V = v / 10^i` and its floor, with the floor read in `ℚ`. -/
+theorem s_cast (hm : 1 ≤ m) :
+    ((s m q i : Nat) : ℚ) = (((v m q) / (10 : ℚ) ^ i).floor : ℚ) := by
+  unfold s
+  have hV : 0 < v m q / (10 : ℚ) ^ i := by
+    have hv := v_pos (q := q) hm
+    have h10 := ten_zpow_pos i
+    exact (Rat.lt_div_iff h10).mpr (by simpa using hv)
+  have hfl : 0 ≤ (v m q / (10 : ℚ) ^ i).floor := by
+    rcases Int.lt_or_le (v m q / (10 : ℚ) ^ i).floor 0 with h | h
+    · exfalso
+      have := Rat.floor_lt_iff.mp h
+      simp at this
+      grind
+    · exact h
+  rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hfl]
+
+theorem u_le_v (hm : 1 ≤ m) : u m q i ≤ v m q := by
+  unfold u
+  rw [s_cast hm]
+  have h10 := ten_zpow_pos i
+  have hfl := Rat.floor_le (v m q / (10 : ℚ) ^ i)
+  have := Rat.mul_le_mul_of_nonneg_right hfl (le_of_lt h10)
+  rwa [Rat.div_mul_cancel (Rat.ne_of_gt h10)] at this
+
+theorem v_lt_w (hm : 1 ≤ m) : v m q < w m q i := by
+  unfold w
+  rw [s_cast hm]
+  have h10 := ten_zpow_pos i
+  have hfl : v m q / (10 : ℚ) ^ i < (((v m q / (10 : ℚ) ^ i).floor : ℚ) + 1) := by
+    have h := Rat.floor_lt_iff (a := v m q / (10 : ℚ) ^ i)
+      (x := (v m q / (10 : ℚ) ^ i).floor + 1) |>.mp (by omega)
+    simpa using h
+  have := Rat.mul_lt_mul_of_pos_right hfl h10
+  rwa [Rat.div_mul_cancel (Rat.ne_of_gt h10)] at this
+
+theorem s_pos_iff (hm : 1 ≤ m) : 1 ≤ s m q i ↔ (10 : ℚ) ^ i ≤ v m q := by
+  have h10 := ten_zpow_pos i
+  have hcast := s_cast (q := q) (i := i) hm
+  constructor
+  · intro hs
+    have : (1 : ℚ) ≤ s m q i := by exact_mod_cast hs
+    have hu := u_le_v (q := q) (i := i) hm
+    unfold u at hu
+    have := Rat.mul_le_mul_of_nonneg_right this (le_of_lt h10)
+    grind
+  · intro hv
+    have hV : (1 : ℚ) ≤ v m q / (10 : ℚ) ^ i := by
+      have hnot : ¬ (v m q / (10 : ℚ) ^ i < 1) := fun h => by
+        have := (Rat.div_lt_iff h10).mp h
+        simp at this
+        grind
+      exact Rat.not_lt.mp hnot
+    rcases Nat.lt_or_ge (s m q i) 1 with hs | hs
+    · exfalso
+      have hs0 : s m q i = 0 := by omega
+      have : ((s m q i : Nat) : ℚ) = 0 := by rw [hs0]; rfl
+      rw [hcast] at this
+      have hfl : (v m q / (10 : ℚ) ^ i).floor < 1 := by
+        have : (v m q / (10 : ℚ) ^ i).floor = 0 := by exact_mod_cast this
+        omega
+      have := Rat.floor_lt_iff.mp hfl
+      simp at this
+      grind
+    · exact hs
+
+theorem onGrid_u : OnGrid i (u m q i) := ⟨s m q i, rfl⟩
+
+theorem onGrid_w : OnGrid i (w m q i) := ⟨s m q i + 1, by unfold w; push_cast; rfl⟩
+
+/-- R3: on `D_i`, every point is at or below `u` or at or above `w`. -/
+theorem onGrid_le_u_or_w_le (hx : OnGrid i x) : x ≤ u m q i ∨ w m q i ≤ x := by
+  obtain ⟨k, rfl⟩ := hx
+  have h10 := ten_zpow_pos i
+  rcases Nat.lt_or_ge k (s m q i + 1) with hk | hk
+  · left
+    unfold u
+    exact Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast (show k ≤ s m q i by omega)) (le_of_lt h10)
+  · right
+    unfold w
+    have : ((s m q i : ℚ) + 1) ≤ k := by exact_mod_cast hk
+    exact Rat.mul_le_mul_of_nonneg_right this (le_of_lt h10)
+
+/-- The grid meets `R_v` iff a neighbour does (R3 and convexity). -/
+theorem hit_iff_neighbour (hm : 1 ≤ m) :
+    (∃ x, OnGrid i x ∧ InRv m q x = true) ↔
+      (InRv m q (u m q i) = true ∨ InRv m q (w m q i) = true) := by
+  constructor
+  · rintro ⟨x, hx, hxR⟩
+    rcases onGrid_le_u_or_w_le (m := m) (q := q) hx with hxu | hwx
+    · left
+      exact InRv_convex hxR (InRv_v hm) hxu (u_le_v hm)
+    · right
+      exact InRv_convex (InRv_v hm) hxR (le_of_lt (v_lt_w hm)) hwx
+  · rintro (h | h)
+    · exact ⟨_, onGrid_u, h⟩
+    · exact ⟨_, onGrid_w, h⟩
+
+/-! ## What `candidate` returns -/
+
+/-- `candidate` unfolded in terms of `s`, `u`, `w`. -/
+theorem candidate_def :
+    candidate m q i =
+      if s m q i = 0 then none else
+      match InRv m q (u m q i), InRv m q (w m q i) with
+      | true,  true  => some (if v m q - u m q i < w m q i - v m q
+                              ∨ (v m q - u m q i = w m q i - v m q ∧ s m q i % 2 = 0)
+                              then s m q i else s m q i + 1, i)
+      | true,  false => some (s m q i, i)
+      | false, true  => some (s m q i + 1, i)
+      | false, false => none := rfl
+
+theorem candidate_none_iff (hm : 1 ≤ m) :
+    candidate m q i = none ↔ (s m q i = 0 ∨ ¬ ∃ x, OnGrid i x ∧ InRv m q x = true) := by
+  rw [hit_iff_neighbour hm, candidate_def]
+  split
+  · simp [*]
+  · cases hu : InRv m q (u m q i) <;> cases hw : InRv m q (w m q i) <;> simp [*]
+
+/-- A grid point in `R_v` at or below `u` is no closer than `u`; one at or
+    above `w` is in `R_v` only if `w` is. -/
+private theorem grid_point_side (hm : 1 ≤ m) (hx : OnGrid i x) (hxR : InRv m q x = true) :
+    (x ≤ u m q i) ∨ (w m q i ≤ x ∧ InRv m q (w m q i) = true) := by
+  rcases onGrid_le_u_or_w_le (m := m) (q := q) hx with h | h
+  · exact Or.inl h
+  · exact Or.inr ⟨h, InRv_convex (InRv_v hm) hxR (le_of_lt (v_lt_w hm)) h⟩
+
+private theorem grid_point_side' (hm : 1 ≤ m) (hx : OnGrid i x) (hxR : InRv m q x = true) :
+    (w m q i ≤ x) ∨ (x ≤ u m q i ∧ InRv m q (u m q i) = true) := by
+  rcases onGrid_le_u_or_w_le (m := m) (q := q) hx with h | h
+  · exact Or.inr ⟨h, InRv_convex hxR (InRv_v hm) h (u_le_v hm)⟩
+  · exact Or.inl h
+
+private theorem close_u (hm : 1 ≤ m)
+    (hle : InRv m q (w m q i) = true → v m q - u m q i ≤ w m q i - v m q)
+    (hx : OnGrid i x) (hxR : InRv m q x = true) :
+    |v m q - u m q i| ≤ |v m q - x| := by
+  have huv := u_le_v (q := q) (i := i) hm
+  have hvw := v_lt_w (q := q) (i := i) hm
+  rw [abs_of_nonneg (by grind)]
+  rcases grid_point_side hm hx hxR with h | ⟨h, hw⟩
+  · rw [abs_of_nonneg (by grind)]; grind
+  · rw [abs_of_nonpos (by grind)]; have := hle hw; grind
+
+private theorem close_w (hm : 1 ≤ m)
+    (hle : InRv m q (u m q i) = true → w m q i - v m q ≤ v m q - u m q i)
+    (hx : OnGrid i x) (hxR : InRv m q x = true) :
+    |v m q - w m q i| ≤ |v m q - x| := by
+  have huv := u_le_v (q := q) (i := i) hm
+  have hvw := v_lt_w (q := q) (i := i) hm
+  rw [abs_of_nonpos (by grind)]
+  rcases grid_point_side' hm hx hxR with h | ⟨h, hu⟩
+  · rw [abs_of_nonpos (by grind)]; grind
+  · rw [abs_of_nonneg (by grind)]; have := hle hu; grind
+
+private theorem tie_u (hm : 1 ≤ m)
+    (hc : InRv m q (w m q i) = true →
+      v m q - u m q i < w m q i - v m q ∨ (v m q - u m q i = w m q i - v m q ∧ s m q i % 2 = 0))
+    (hx : OnGrid i x) (hxR : InRv m q x = true) (hne : x ≠ u m q i)
+    (heq : |v m q - u m q i| = |v m q - x|) : s m q i % 2 = 0 := by
+  have huv := u_le_v (q := q) (i := i) hm
+  have hvw := v_lt_w (q := q) (i := i) hm
+  rw [abs_of_nonneg (by grind)] at heq
+  rcases grid_point_side hm hx hxR with h | ⟨h, hw⟩
+  · rw [abs_of_nonneg (by grind)] at heq; exact absurd (by grind) hne
+  · rw [abs_of_nonpos (by grind)] at heq
+    rcases hc hw with hlt | ⟨_, he⟩
+    · exfalso; grind
+    · exact he
+
+private theorem tie_w (hm : 1 ≤ m)
+    (hc : InRv m q (u m q i) = true →
+      ¬ (v m q - u m q i < w m q i - v m q ∨ (v m q - u m q i = w m q i - v m q ∧ s m q i % 2 = 0)))
+    (hx : OnGrid i x) (hxR : InRv m q x = true) (hne : x ≠ w m q i)
+    (heq : |v m q - w m q i| = |v m q - x|) : (s m q i + 1) % 2 = 0 := by
+  have huv := u_le_v (q := q) (i := i) hm
+  have hvw := v_lt_w (q := q) (i := i) hm
+  rw [abs_of_nonpos (by grind)] at heq
+  rcases grid_point_side' hm hx hxR with h | ⟨h, hu⟩
+  · rw [abs_of_nonpos (by grind)] at heq; exact absurd (by grind) hne
+  · rw [abs_of_nonneg (by grind)] at heq
+    have hc' := hc hu
+    have hge : w m q i - v m q ≤ v m q - u m q i := by grind
+    have heqd : v m q - u m q i = w m q i - v m q := by grind
+    have hodd : s m q i % 2 ≠ 0 := fun he => hc' (Or.inr ⟨heqd, he⟩)
+    omega
+
+/-- What a hit returns: a neighbour in `R_v`, no farther from `v` than any
+    grid point in `R_v`, and even on an exact tie. -/
+theorem candidate_some (hm : 1 ≤ m) {j : Int} (h : candidate m q i = some (n, j)) :
+    j = i ∧ 1 ≤ s m q i ∧ (n = s m q i ∨ n = s m q i + 1)
+    ∧ InRv m q ((n : ℚ) * (10 : ℚ) ^ i) = true
+    ∧ (∀ x, OnGrid i x → InRv m q x = true → |v m q - n * (10 : ℚ) ^ i| ≤ |v m q - x|)
+    ∧ (∀ x, OnGrid i x → InRv m q x = true → x ≠ n * (10 : ℚ) ^ i →
+         |v m q - n * (10 : ℚ) ^ i| = |v m q - x| → n % 2 = 0) := by
+  rw [candidate_def] at h
+  split at h
+  · exact absurd h (by simp)
+  rename_i hs0
+  have hs : 1 ≤ s m q i := Nat.pos_of_ne_zero hs0
+  have hu_def : u m q i = (s m q i : ℚ) * (10 : ℚ) ^ i := rfl
+  have hw_def : w m q i = ((s m q i : ℚ) + 1) * (10 : ℚ) ^ i := rfl
+  have hw_cast : ((s m q i + 1 : Nat) : ℚ) * (10 : ℚ) ^ i = w m q i := by
+    rw [hw_def]; push_cast; rfl
+  cases hu : InRv m q (u m q i) <;> cases hw : InRv m q (w m q i) <;> rw [hu, hw] at h <;> simp at h
+  · -- only `w`
+    obtain ⟨rfl, rfl⟩ := h
+    refine ⟨rfl, hs, Or.inr rfl, by rw [hw_cast]; exact hw, ?_, ?_⟩
+    · intro x hx hxR; rw [hw_cast]
+      exact close_w hm (fun h' => by rw [hu] at h'; cases h') hx hxR
+    · intro x hx hxR hne heq; rw [hw_cast] at hne heq
+      exact tie_w hm (fun h' => by rw [hu] at h'; cases h') hx hxR hne heq
+  · -- only `u`
+    obtain ⟨rfl, rfl⟩ := h
+    refine ⟨rfl, hs, Or.inl rfl, hu, ?_, ?_⟩
+    · intro x hx hxR
+      exact close_u hm (fun h' => by rw [hw] at h'; cases h') hx hxR
+    · intro x hx hxR hne heq
+      exact tie_u hm (fun h' => by rw [hw] at h'; cases h') hx hxR hne heq
+  · -- both: the nearer, ties to even
+    obtain ⟨hn, rfl⟩ := h
+    split at hn
+    · rename_i hc
+      subst hn
+      refine ⟨rfl, hs, Or.inl rfl, hu, ?_, ?_⟩
+      · intro x hx hxR
+        exact close_u hm (fun _ => by rcases hc with h1 | ⟨h1, _⟩ <;> grind) hx hxR
+      · intro x hx hxR hne heq
+        exact tie_u hm (fun _ => hc) hx hxR hne heq
+    · rename_i hc
+      subst hn
+      refine ⟨rfl, hs, Or.inr rfl, by rw [hw_cast]; exact hw, ?_, ?_⟩
+      · intro x hx hxR; rw [hw_cast]
+        exact close_w hm (fun _ => by grind) hx hxR
+      · intro x hx hxR hne heq; rw [hw_cast] at hne heq
+        exact tie_w hm (fun _ => hc) hx hxR hne heq
+
+end Srtfp.Printer
