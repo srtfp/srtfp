@@ -10,7 +10,7 @@
 import Srtfp.Proofs.Clinger.Base
 import Srtfp.Proofs.Clinger.Regular
 import Srtfp.Proofs.Clinger.FindBinaryExp
-import Srtfp.Proofs.Schubfach.Shorter
+import Srtfp.Proofs.Clinger.NatInterval
 
 namespace Srtfp.Clinger
 

@@ -18,6 +18,7 @@
    The only axioms used are `propext, Quot.sound, Classical.choice`. -/
 
 import Srtfp.Schubfach
+import Srtfp.Proofs.Clinger.NatInterval
 
 namespace Srtfp.Schubfach
 
@@ -33,17 +34,9 @@ elaboration blowups in the cast-heavy irregular-Clinger proofs
 reduce the if-expression to its concrete branch, or `unfold` the
 constant explicitly when needed. -/
 
-/-- `2^{max q 0}`: the positive-side factor of `2^q`. -/
-def twoPosPow (q : Int) : Nat := 2 ^ (if q ≥ 0 then q.toNat else 0)
 
-/-- `2^{max -q 0}`: the negative-side factor of `2^q`. -/
-def twoNegPow (q : Int) : Nat := 2 ^ (if q < 0 then (-q).toNat else 0)
 
-/-- `10^{max k 0}`: the positive-side factor of `10^k`. -/
-def tenPosPow (k : Int) : Nat := 10 ^ (if k ≥ 0 then k.toNat else 0)
 
-/-- `10^{max -k 0}`: the negative-side factor of `10^k`. -/
-def tenNegPow (k : Int) : Nat := 10 ^ (if k < 0 then (-k).toNat else 0)
 
 /-! ## Branch characterising lemmas
 
@@ -71,41 +64,13 @@ re-traversing the if-expression. -/
   have : ¬ (q < 0) := Int.not_lt.mpr h
   rw [if_neg this]
 
-@[simp] theorem tenPosPow_nonneg {k : Int} (h : 0 ≤ k) :
-    tenPosPow k = 10 ^ k.toNat := by
-  unfold tenPosPow; rw [if_pos h]
 
-@[simp] theorem tenPosPow_neg {k : Int} (h : k < 0) :
-    tenPosPow k = 1 := by
-  unfold tenPosPow
-  have : ¬ (0 ≤ k) := Int.not_le.mpr h
-  rw [if_neg this]
 
-@[simp] theorem tenNegPow_neg {k : Int} (h : k < 0) :
-    tenNegPow k = 10 ^ (-k).toNat := by
-  unfold tenNegPow; rw [if_pos h]
 
-@[simp] theorem tenNegPow_nonneg {k : Int} (h : 0 ≤ k) :
-    tenNegPow k = 1 := by
-  unfold tenNegPow
-  have : ¬ (k < 0) := Int.not_lt.mpr h
-  rw [if_neg this]
 
-/-- Positivity of any `twoPosPow` factor (always non-zero). -/
-theorem twoPosPow_pos (q : Int) : 0 < twoPosPow q :=
-  Nat.pow_pos (a := 2) (by decide)
 
-/-- Positivity of any `twoNegPow` factor (always non-zero). -/
-theorem twoNegPow_pos (q : Int) : 0 < twoNegPow q :=
-  Nat.pow_pos (a := 2) (by decide)
 
-/-- Positivity of any `tenPosPow` factor (always non-zero). -/
-theorem tenPosPow_pos (k : Int) : 0 < tenPosPow k :=
-  Nat.pow_pos (a := 10) (by decide)
 
-/-- Positivity of any `tenNegPow` factor (always non-zero). -/
-theorem tenNegPow_pos (k : Int) : 0 < tenNegPow k :=
-  Nat.pow_pos (a := 10) (by decide)
 
 /-- Positivity of the cleared denominator `2^{max -q 0} · 10^{max k 0}`. -/
 theorem twoNeg_tenPos_pos (q k : Int) : 0 < twoNegPow q * tenPosPow k :=

@@ -19,7 +19,7 @@ import Srtfp.Proofs.Clinger.Regular
 import Srtfp.Proofs.Clinger.FindBinaryExp
 import Srtfp.Proofs.Clinger.IrregularNoCarry
 import Srtfp.Proofs.Clinger.IrregularCarry
-import Srtfp.Proofs.Schubfach.Shorter
+import Srtfp.Proofs.Clinger.NatInterval
 
 namespace Srtfp.Clinger
 

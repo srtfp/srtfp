@@ -14,7 +14,7 @@
    the cleared forms at `q-1` and `q`. -/
 
 import Srtfp.Proofs.Clinger.Base
-import Srtfp.Proofs.Schubfach.Shorter
+import Srtfp.Proofs.Clinger.NatInterval
 
 namespace Srtfp.Clinger
 

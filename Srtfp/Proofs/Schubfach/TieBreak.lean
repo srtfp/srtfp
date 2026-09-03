@@ -25,6 +25,7 @@ import Srtfp.Proofs.Schubfach.PickNearer
 import Srtfp.Proofs.Schubfach.Minimal
 import Srtfp.Proofs.Clinger
 import Srtfp.Tactics
+import Srtfp.Proofs.Clinger.NatIntervalRat
 
 open Srtfp.Compat
 
@@ -46,103 +47,15 @@ The proof multiplies the rational goal by the common positive factor
 `2^{max(-q,0)} · 10^{max(-k,0)}`, which clears both `zpow` denominators
 and produces exactly `lhs` vs `rhs`. -/
 
-/-- The common positive denominator-clearing factor for scale `(q,k)`:
-`2^{max(-q,0)} · 10^{max(-k,0)}` as a rational. -/
-private noncomputable def clearFactor (q k : Int) : ℚ :=
-  (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
-    * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)
 
-private theorem clearFactor_pos (q k : Int) : 0 < clearFactor q k := by
-  unfold clearFactor
-  apply Rat.mul_pos <;> (apply Rat.pow_pos; decide)
 
-/-- `b^q · b^{max(-q,0)} = b^{max(q,0)}` as rationals, for nonzero `b`. -/
-private theorem zpow_split_gen (b : ℚ) (hb : b ≠ 0) (q : Int) :
-    b ^ q * b ^ (if q < 0 then (-q).toNat else 0)
-      = b ^ (if q ≥ 0 then q.toNat else 0) := by
-  by_cases hq : q < 0
-  · rw [if_pos hq, if_neg (by omega : ¬ q ≥ 0)]
-    rw [← Rat.zpow_natCast b (-q).toNat, Int.toNat_of_nonneg (by omega : (0:Int) ≤ -q),
-        ← Rat.zpow_add hb]
-    rw [show q + -q = 0 from by omega, Rat.zpow_zero]
-    exact (Rat.pow_zero b).symm
-  · rw [if_neg hq, if_pos (by omega : q ≥ 0)]
-    rw [← Rat.zpow_natCast b q.toNat, Int.toNat_of_nonneg (by omega : (0:Int) ≤ q)]
-    simp
 
-/-- `2^q · 2^{max(-q,0)} = 2^{max(q,0)}` as rationals. -/
-private theorem zpow_two_split (q : Int) :
-    (2 : ℚ) ^ q * (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
-      = (2 : ℚ) ^ (if q ≥ 0 then q.toNat else 0) :=
-  zpow_split_gen 2 (by grind) q
 
-/-- `10^k · 10^{max(-k,0)} = 10^{max(k,0)}` as rationals. -/
-private theorem zpow_ten_split (k : Int) :
-    (10 : ℚ) ^ k * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)
-      = (10 : ℚ) ^ (if k ≥ 0 then k.toNat else 0) :=
-  zpow_split_gen 10 (by grind) k
 
-/-- Multiplying `(a:ℚ)·2^q` by the clearing factor yields `(lhs : ℚ)`. -/
-private theorem lhs_eq_clear (a : Int) (q k : Int) :
-    (cmpScaledMixed.lhs a q k : ℚ)
-      = ((a : ℚ) * (2 : ℚ) ^ q) * clearFactor q k := by
-  unfold cmpScaledMixed.lhs clearFactor
-  push_cast
-  have h2 := zpow_two_split q
-  calc (a : ℚ) * (2 : ℚ) ^ (if q ≥ 0 then q.toNat else 0)
-          * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)
-      = (a : ℚ) * ((2 : ℚ) ^ q * (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0))
-          * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0) := by rw [h2]
-    _ = (a : ℚ) * (2 : ℚ) ^ q
-          * ((2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
-             * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)) := by grind
 
-/-- Multiplying `(b:ℚ)·10^k` by the clearing factor yields `(rhs : ℚ)`. -/
-private theorem rhs_eq_clear (b : Int) (q k : Int) :
-    (cmpScaledMixed.rhs b q k : ℚ)
-      = ((b : ℚ) * (10 : ℚ) ^ k) * clearFactor q k := by
-  unfold cmpScaledMixed.rhs clearFactor
-  push_cast
-  have h10 := zpow_ten_split k
-  calc (b : ℚ) * (10 : ℚ) ^ (if k ≥ 0 then k.toNat else 0)
-          * (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
-      = (b : ℚ) * ((10 : ℚ) ^ k * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0))
-          * (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0) := by rw [h10]
-    _ = (b : ℚ) * (10 : ℚ) ^ k
-          * ((2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
-             * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)) := by grind
 
-/-- **(A) ℚ bridge, `<` direction.** The integer cleared comparison equals
-the rational comparison `(a:ℚ)·2^q < (b:ℚ)·10^k`. -/
-theorem cmpScaledMixed_lhs_lt_rhs_iff_rat (a : Int) (q : Int) (b : Int) (k : Int) :
-    cmpScaledMixed.lhs a q k < cmpScaledMixed.rhs b q k
-      ↔ (a : ℚ) * (2 : ℚ) ^ q < (b : ℚ) * (10 : ℚ) ^ k := by
-  rw [show (cmpScaledMixed.lhs a q k < cmpScaledMixed.rhs b q k)
-        ↔ (cmpScaledMixed.lhs a q k : ℚ) < (cmpScaledMixed.rhs b q k : ℚ) from
-        Int.cast_lt.symm]
-  rw [lhs_eq_clear, rhs_eq_clear]
-  exact mul_lt_mul_iff_of_pos_right (clearFactor_pos q k)
 
-/-- **(A) ℚ bridge, `=` direction.** -/
-theorem cmpScaledMixed_lhs_eq_rhs_iff_rat (a : Int) (q : Int) (b : Int) (k : Int) :
-    cmpScaledMixed.lhs a q k = cmpScaledMixed.rhs b q k
-      ↔ (a : ℚ) * (2 : ℚ) ^ q = (b : ℚ) * (10 : ℚ) ^ k := by
-  rw [show (cmpScaledMixed.lhs a q k = cmpScaledMixed.rhs b q k)
-        ↔ (cmpScaledMixed.lhs a q k : ℚ) = (cmpScaledMixed.rhs b q k : ℚ) from
-        Int.cast_inj.symm]
-  rw [lhs_eq_clear, rhs_eq_clear]
-  exact mul_left_inj' (Rat.ne_of_gt (clearFactor_pos q k))
 
-/-- **(A) ℚ bridge, `>` direction.** -/
-theorem cmpScaledMixed_lhs_gt_rhs_iff_rat (a : Int) (q : Int) (b : Int) (k : Int) :
-    cmpScaledMixed.lhs a q k > cmpScaledMixed.rhs b q k
-      ↔ (a : ℚ) * (2 : ℚ) ^ q > (b : ℚ) * (10 : ℚ) ^ k := by
-  rw [gt_iff_lt, gt_iff_lt]
-  rw [show (cmpScaledMixed.rhs b q k < cmpScaledMixed.lhs a q k)
-        ↔ (cmpScaledMixed.rhs b q k : ℚ) < (cmpScaledMixed.lhs a q k : ℚ) from
-        Int.cast_lt.symm]
-  rw [lhs_eq_clear, rhs_eq_clear]
-  exact mul_lt_mul_iff_of_pos_right (clearFactor_pos q k)
 
 /-! ## (B) ℚ closeness ↔ `cmp` predicates
 
@@ -154,8 +67,6 @@ exactly `|v - u| < |v - w|`, and for `u < w` this reduces to
 "closeness" statement to the corresponding `CloserTo*` / `Equidistant`
 predicate from `PickNearer.lean`. -/
 
-/-- The rational value of the decimal grid point `s · 10^k`. -/
-def gridVal (s : Nat) (k : Int) : ℚ := (s : ℚ) * (10 : ℚ) ^ k
 
 theorem gridVal_lt_succ (s : Nat) (k : Int) : gridVal s k < gridVal (s + 1) k := by
   unfold gridVal
@@ -219,18 +130,6 @@ theorem abs_gt_abs_iff_two_gt (v u w : ℚ) (h : u < w) :
     have := Rat.mul_pos hwu hX
     grind
 
-/-- Equidistance iff exactly at the midpoint. -/
-theorem abs_eq_abs_iff_two_eq (v u w : ℚ) (h : u < w) :
-    |v - u| = |v - w| ↔ 2 * v = u + w := by
-  rw [abs_eq_iff_mul_self_eq]
-  have hwu : w - u ≠ 0 := by grind
-  constructor
-  · intro hsq
-    have hfact : (2 * v - (u + w)) * (w - u) = 0 := by grind
-    rcases Rat.mul_eq_zero.mp hfact with h1 | h1
-    · grind
-    · exact absurd h1 hwu
-  · intro hmid; grind
 
 /-- **(B) CloserToLower bridge.** `v = magVal m q` is strictly closer to
 `gridVal s k` than to `gridVal (s+1) k` iff `CloserToLower s k m q`. -/
@@ -573,12 +472,7 @@ theorem tieBreak_unsigned_scaleK_pn (m : Nat) (q : Int)
 and (crucially) is invariant under the trailing-zero stripping performed by
 `Decimal.mk'`. -/
 
-/-- `signFactor s = (-1)^s` as a rational. -/
-def signFactor (s : Bool) : ℚ := if s then -1 else 1
 
-theorem toRat_eq_signFactor_gridVal (d : Decimal) :
-    d.toRat = signFactor d.sign * gridVal d.significand d.exponent := by
-  unfold Decimal.toRat signFactor gridVal; grind
 
 /-! ## (F) Sign handling
 
@@ -617,47 +511,8 @@ reducing the signed distance to the unsigned grid distance
 `|magVal m q - gridVal sig exp|` for which `tieBreak_unsigned_fallback`
 applies. -/
 
-/-- `wordVal w = signFactor (Word.decode w).sign · magVal …`. -/
-theorem wordVal_eq_signFactor_magVal (w : UInt64) :
-    wordVal w = signFactor (Srtfp.Float.Word.decode w).sign
-        * magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode w).q := by
-  unfold wordVal signFactor; rfl
 
-/-- `|±1·a - ±1·b| = |a - b|`: the shared sign factors out of the distance. -/
-theorem abs_signFactor_sub (sgn : Bool) (a b : ℚ) :
-    |signFactor sgn * a - signFactor sgn * b| = |a - b| := by
-  unfold signFactor
-  cases sgn
-  · simp
-  · -- (-1)*a - (-1)*b = -(a-b); |-(a-b)| = |a-b|.
-    rw [show ((if true then -1 else 1 : ℚ)) = -1 from rfl]
-    rw [show (-1 : ℚ) * a - (-1) * b = -(a - b) from by grind, abs_neg]
 
-/-- **Signed-distance reduction.** For a decimal `d'` whose sign matches
-`(Srtfp.Float.Word.decode w).sign`, the signed clause-(3) distance reduces to the
-unsigned grid distance against `v = magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode
-w).q`. -/
-theorem toRat_dist_eq_grid_dist (d' : Decimal) (w : UInt64)
-    (h_sign : d'.sign = (Srtfp.Float.Word.decode w).sign) :
-    |Decimal.toRat d' - wordVal w|
-      = |magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode w).q
-         - gridVal d'.significand d'.exponent| := by
-  rw [toRat_eq_signFactor_gridVal, wordVal_eq_signFactor_magVal, h_sign]
-  rw [show signFactor (Srtfp.Float.Word.decode w).sign
-            * gridVal d'.significand d'.exponent
-          - signFactor (Srtfp.Float.Word.decode w).sign
-            * magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode w).q
-        = signFactor (Srtfp.Float.Word.decode w).sign
-            * (gridVal d'.significand d'.exponent
-               - magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode w).q) from by
-        grind]
-  rw [show signFactor (Srtfp.Float.Word.decode w).sign
-            * (gridVal d'.significand d'.exponent
-               - magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode w).q)
-        = signFactor (Srtfp.Float.Word.decode w).sign * gridVal d'.significand d'.exponent
-          - signFactor (Srtfp.Float.Word.decode w).sign
-            * magVal (Srtfp.Float.Word.decode w).m (Srtfp.Float.Word.decode w).q from by grind]
-  rw [abs_signFactor_sub, abs_sub_comm]
 
 end Schubfach
 end Srtfp

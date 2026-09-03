@@ -27,10 +27,7 @@
    half `inRoundingInterval_uniq_lt`, which case-analyses the structure
    of the IEEE-754 canonical encoding. -/
 
-import Srtfp.Proofs.Schubfach.Shorter
-import Srtfp.Proofs.Schubfach.PickNearer
-import Srtfp.Proofs.Schubfach.RoundingInterval
-import Srtfp.Proofs.Schubfach.ToDecimal
+import Srtfp.Proofs.Clinger.NatInterval
 import Srtfp.Proofs.Clinger
 import Srtfp.Tactics
 import Srtfp.Proofs.Bits

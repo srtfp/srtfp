@@ -38,6 +38,7 @@
 import Srtfp.Proofs.Schubfach.RoundingInterval
 import Srtfp.Proofs.Schubfach.K
 import Srtfp.Proofs.Schubfach.ShiftedSig
+import Srtfp.Proofs.Clinger.NatInterval
 
 namespace Srtfp.Schubfach
 
@@ -48,58 +49,11 @@ namespace Srtfp.Schubfach
 rationals. We extract this trichotomy in the cleared-denominator form
 that all our downstream predicates use. -/
 
-/-- The cleared-denominator left-hand side:
-`a · 2^{max q 0} · 10^{max -k 0}`. -/
-def cmpScaledMixed.lhs (a : Int) (q k : Int) : Int :=
-  a * (2 ^ (if q ≥ 0 then q.toNat else 0) : Int)
-    * (10 ^ (if k < 0 then (-k).toNat else 0) : Int)
 
-/-- The cleared-denominator right-hand side:
-`b · 10^{max k 0} · 2^{max -q 0}`. -/
-def cmpScaledMixed.rhs (b : Int) (q k : Int) : Int :=
-  b * (10 ^ (if k ≥ 0 then k.toNat else 0) : Int)
-    * (2 ^ (if q < 0 then (-q).toNat else 0) : Int)
 
-/-- Reify `cmpScaledMixed` as the integer comparison of `lhs` vs `rhs`. -/
-theorem cmpScaledMixed_eq (a : Int) (q : Int) (b : Int) (k : Int) :
-    cmpScaledMixed a q b k =
-      (if cmpScaledMixed.lhs a q k < cmpScaledMixed.rhs b q k then -1
-       else if cmpScaledMixed.lhs a q k = cmpScaledMixed.rhs b q k then 0
-       else 1) := by
-  rfl
 
-/-- `cmpScaledMixed < 0 ↔ a · 2^q < b · 10^k` (in cleared form). -/
-theorem cmpScaledMixed_lt_iff (a : Int) (q : Int) (b : Int) (k : Int) :
-    cmpScaledMixed a q b k < 0 ↔
-      cmpScaledMixed.lhs a q k < cmpScaledMixed.rhs b q k := by
-  rw [cmpScaledMixed_eq]
-  by_cases h1 : cmpScaledMixed.lhs a q k < cmpScaledMixed.rhs b q k
-  · simp [h1]
-  · simp [h1]
-    by_cases h2 : cmpScaledMixed.lhs a q k = cmpScaledMixed.rhs b q k
-    · simp [h2]
-    · simp [h2]
 
-/-- `cmpScaledMixed = 0 ↔ a · 2^q = b · 10^k` (in cleared form). -/
-theorem cmpScaledMixed_eq_zero_iff (a : Int) (q : Int) (b : Int) (k : Int) :
-    cmpScaledMixed a q b k = 0 ↔
-      cmpScaledMixed.lhs a q k = cmpScaledMixed.rhs b q k := by
-  rw [cmpScaledMixed_eq]
-  by_cases h1 : cmpScaledMixed.lhs a q k < cmpScaledMixed.rhs b q k
-  · simp [h1]; intro h2; omega
-  · simp [h1]
 
-/-- `cmpScaledMixed > 0 ↔ a · 2^q > b · 10^k` (in cleared form). -/
-theorem cmpScaledMixed_gt_iff (a : Int) (q : Int) (b : Int) (k : Int) :
-    cmpScaledMixed a q b k > 0 ↔
-      cmpScaledMixed.lhs a q k > cmpScaledMixed.rhs b q k := by
-  rw [cmpScaledMixed_eq]
-  by_cases h1 : cmpScaledMixed.lhs a q k < cmpScaledMixed.rhs b q k
-  · simp [h1]; omega
-  · simp [h1]
-    by_cases h2 : cmpScaledMixed.lhs a q k = cmpScaledMixed.rhs b q k
-    · simp [h2]
-    · simp [h2]; omega
 
 /-- Trichotomy: `cmpScaledMixed` returns either `<0`, `=0`, or `>0`. -/
 theorem cmpScaledMixed_trichotomy (a : Int) (q : Int) (b : Int) (k : Int) :

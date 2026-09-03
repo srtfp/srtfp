@@ -22,8 +22,9 @@
      `decimalToFloat_overflow_inf`; zeros via `pack_proj`. -/
 
 import Srtfp.Proofs.CorrectnessSpec
-import Srtfp.Proofs.RoundTrip
-import Srtfp.Proofs.Schubfach.TieBreak
+import Srtfp.Proofs.Clinger.NatIntervalRat
+import Srtfp.Proofs.Disjointness
+import Srtfp.Proofs.Clinger
 import Srtfp.Tactics
 import Srtfp.Proofs.Bits
 

@@ -6,7 +6,7 @@
    argument from the half-ULP bound + tie-to-even parity. -/
 
 import Srtfp.Proofs.Clinger.Base
-import Srtfp.Proofs.Schubfach.Shorter
+import Srtfp.Proofs.Clinger.NatInterval
 
 namespace Srtfp.Clinger
 

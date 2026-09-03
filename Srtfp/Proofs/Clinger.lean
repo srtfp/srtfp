@@ -36,8 +36,7 @@ import Srtfp.Proofs.Clinger.IrregularNoCarry
 import Srtfp.Proofs.Clinger.IrregularCarry
 import Srtfp.Proofs.Clinger.Dispatch
 import Srtfp.Proofs.Clinger.Bridge
-import Srtfp.Proofs.Schubfach.Shorter
-import Srtfp.Proofs.Schubfach.ToDecimal
+import Srtfp.Proofs.Clinger.NatInterval
 
 namespace Srtfp.Clinger
 
