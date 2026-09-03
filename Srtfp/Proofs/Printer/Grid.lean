@@ -148,13 +148,13 @@ theorem candidate_none_iff (hm : 1 ≤ m) :
 
 /-- A grid point in `R_v` at or below `u` is no closer than `u`; one at or
     above `w` is in `R_v` only if `w` is. -/
-private theorem grid_point_side (hm : 1 ≤ m) (hx : OnGrid i x) (hxR : InRv m q x = true) :
+theorem grid_point_side (hm : 1 ≤ m) (hx : OnGrid i x) (hxR : InRv m q x = true) :
     (x ≤ u m q i) ∨ (w m q i ≤ x ∧ InRv m q (w m q i) = true) := by
   rcases onGrid_le_u_or_w_le (m := m) (q := q) hx with h | h
   · exact Or.inl h
   · exact Or.inr ⟨h, InRv_convex (InRv_v hm) hxR (le_of_lt (v_lt_w hm)) h⟩
 
-private theorem grid_point_side' (hm : 1 ≤ m) (hx : OnGrid i x) (hxR : InRv m q x = true) :
+theorem grid_point_side' (hm : 1 ≤ m) (hx : OnGrid i x) (hxR : InRv m q x = true) :
     (w m q i ≤ x) ∨ (x ≤ u m q i ∧ InRv m q (u m q i) = true) := by
   rcases onGrid_le_u_or_w_le (m := m) (q := q) hx with h | h
   · exact Or.inr ⟨h, InRv_convex hxR (InRv_v hm) h (u_le_v hm)⟩
