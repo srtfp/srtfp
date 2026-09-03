@@ -13,6 +13,7 @@ import Srtfp.Perf.Uint64Bridge
 import Srtfp.Perf.Kernel192Correctness
 import Srtfp.Perf.KernelV5
 import Srtfp.Perf.DecimalFast
+import Srtfp.Perf.SchubfachEq
 
 namespace Srtfp.Schubfach
 
@@ -39,7 +40,7 @@ def decimalToStrRef (d : _root_.Srtfp.Decimal) : String :=
 
 /-- Reference `Float → String`: the body of `floatToStr` in `BenchFloatToString.lean`. -/
 def floatToStrRef (f : _root_.Float) : String :=
-  match toDecimal f with
+  match Printer.toDecimal f with
   | .ok d => decimalToStrRef d
   | .error e => e
 
@@ -98,7 +99,9 @@ private theorem decimalToStrRef_mk' (sign : Bool) (sig : Nat) (exp : Int) :
   · rw [if_neg hsmod]
 
 theorem toStringFast_eq_ref (f : _root_.Float) : toStringFast f = floatToStrRef f := by
-  unfold toStringFast floatToStrRef toDecimal toDecimalBits
+  unfold toStringFast floatToStrRef
+  rw [← congrFun toDecimal_eq_printer f]
+  unfold toDecimal toDecimalBits
   simp only [← isNaNBits_word, ← isInfBits_word, ← signBit_word, ← decode_word]
   by_cases h1 : isNaNBits f = true
   · simp [h1]

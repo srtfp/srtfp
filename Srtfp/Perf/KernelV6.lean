@@ -9,6 +9,7 @@
    index arithmetic (`648 - kB`, `kB + 1`, `kB`), and the implied
    guards are gone (their falsity is proven, not re-tested). -/
 import Srtfp.Perf.KernelV5
+import Srtfp.Perf.SchubfachEq
 
 namespace Srtfp.Schubfach
 
@@ -635,6 +636,15 @@ theorem toDecimal_v7_eq (f : _root_.Float) :
 theorem toDecimal_eq_v7_csimp : @toDecimal = @toDecimal_v7 := by
   funext f
   exact (toDecimal_v7_eq f).symm
+
+/-- The live registration for the reference printer: `Printer.toDecimal`
+    compiles to the fused v7 kernel, through kernel 0. -/
+theorem toDecimal_v7_eq_printer (f : _root_.Float) : toDecimal_v7 f = Printer.toDecimal f := by
+  rw [toDecimal_v7_eq, ← congrFun toDecimal_eq_printer f]
+
+@[csimp]
+theorem printer_toDecimal_eq_v7_csimp : @Printer.toDecimal = @toDecimal_v7 :=
+  funext fun f => (toDecimal_v7_eq_printer f).symm
 
 /-! ## v8: all-UInt64 interface
 

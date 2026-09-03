@@ -1,21 +1,14 @@
-/- "Ours WITHOUT the @[csimp] kernel layer" bench.
-
-   Imports only the spec module `Srtfp.Schubfach` (and `Corpora`), NOT the
-   `Perf/*` kernel modules. The kernel `@[csimp]` redirects
-   (`shiftedSig`→fast, `toDecimal`→v7, `floatToStrRef`→`toStringFast9`, …) all
-   live under `Perf/`, so they are out of scope here and the pure-Nat spec
-   `toDecimal` runs. This measures the float→string path with the dominant
-   csimp layer disabled — directly comparable to `benchFloatToString`.
-
-   Nothing under `Perf/` is in scope, so Decimal canonicalisation runs
-   the `Nat` reference as well. The body below is a verbatim copy of
-   `Schubfach.floatToStrRef` / `decimalToStrRef`.
+/- "Ours WITHOUT the @[csimp] kernel layer" bench: the exact-rational
+   grid-scan reference `Printer.toDecimalBits`, which never gets a csimp
+   registration, so this measures the reference as written. Slow by
+   design; use a small BENCH_N. Directly comparable in shape to
+   `benchFloatToString`.
 
      lake exe benchSpec <adversarial|nice|uniform> [--checksum]   (BENCH_N env) -/
-import Srtfp.Perf.Schubfach
+import Srtfp.Printer
 import Corpora
 
-open Srtfp Srtfp.Schubfach
+open Srtfp
 
 /-- Verbatim copy of `Schubfach.decimalToStrRef`. -/
 def decimalToStrSpec (d : Decimal) : String :=
@@ -24,10 +17,9 @@ def decimalToStrSpec (d : Decimal) : String :=
     let signStr := if d.sign then "-" else ""
     signStr ++ toString d.significand ++ "e" ++ toString d.exponent
 
-/-- Verbatim copy of `Schubfach.floatToStrRef` — but compiled here with no
-    kernel csimp in scope, so `toDecimal` is the spec. -/
+/-- The shape of `Schubfach.floatToStrRef`, over the grid-scan reference. -/
 def floatToStrSpec (f : Float) : String :=
-  match toDecimal f with
+  match Printer.toDecimalBits f.toBits with
   | .ok d => decimalToStrSpec d
   | .error e => e
 

@@ -1,7 +1,7 @@
-/- The reference printer agrees with the live (csimp) Schubfach printer
-   on the Ryu corpus. `Printer.toDecimalBits` and `Printer.shortest`
-   deliberately never get a csimp registration, so this really runs the
-   exact-rational reference (only `Printer.toDecimal` is redirected). -/
+/- The reference printer agrees with the live printer on the Ryu corpus.
+   `Printer.toDecimalBits` and `Printer.shortest` deliberately never get a
+   csimp registration, so the left side really runs the exact-rational
+   reference; `Printer.toDecimal` is redirected to the v7 kernel. -/
 import SrtfpTest.Spec
 import SrtfpTest.Ryu
 import Srtfp.Printer
@@ -29,11 +29,11 @@ private def mismatches : Array (Float × Except String Decimal × Except String 
   let mut out := #[]
   for f in corpus do
     let r := Printer.toDecimalBits f.toBits
-    let s := Schubfach.toDecimal f
+    let s := Printer.toDecimal f
     if !sameResult r s then out := out.push (f, r, s)
   return out
 
 def runTests : TestSeq :=
-  test s!"Printer.toDecimalBits = live printer (corpus of {corpus.size})" mismatches.isEmpty
+  test s!"Printer.toDecimalBits (reference) = Printer.toDecimal (live) on {corpus.size} values" mismatches.isEmpty
 
 end Srtfp.Tests.Printer

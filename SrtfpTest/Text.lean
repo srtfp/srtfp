@@ -7,6 +7,7 @@ import SrtfpTest.Spec
 import SrtfpTest.Ryu
 import Srtfp.Text
 import Srtfp.Perf.Schubfach
+import Srtfp.Perf.KernelV6
 
 namespace Srtfp.Tests.Text
 
@@ -23,7 +24,7 @@ private def corpusFloats : Array Float :=
     boundaries). -/
 private def corpusDecimals : Array Decimal :=
   corpusFloats.filterMap (fun f =>
-    match Schubfach.toDecimal f with | .ok d => some d | .error _ => none)
+    match Printer.toDecimal f with | .ok d => some d | .error _ => none)
   ++ #[⟨true, 0, 0⟩, ⟨false, 0, 0⟩, ⟨false, 1, 0⟩, ⟨true, 15, -1⟩,
        ⟨false, 12345678901234567, 100⟩, ⟨false, 5, -324⟩, ⟨true, 1, 16⟩,
        ⟨false, 1, -5⟩, ⟨false, 9007199254740993, -22⟩]

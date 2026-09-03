@@ -35,6 +35,7 @@
 
 import SrtfpTest.Spec
 import Srtfp.Perf.Schubfach
+import Srtfp.Perf.KernelV6
 import Srtfp.Perf.StringFast
 import Srtfp.Clinger
 
@@ -75,7 +76,7 @@ abbrev Case := String × Float × Decimal
 /-- Run a single case. -/
 def runCase (groupName : String) (c : Case) : TestSeq :=
   let (desc, input, expected) := c
-  test s!"{groupName}: {desc}" (exceptEq (Schubfach.toDecimal input) (.ok expected))
+  test s!"{groupName}: {desc}" (exceptEq (Printer.toDecimal input) (.ok expected))
 
 /-- Run an entire group, flattening to a single `TestSeq`. -/
 def runGroup (groupName : String) (cases : Array Case) : TestSeq :=
