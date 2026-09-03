@@ -54,8 +54,6 @@ The library is three tiers, each a separate import:
   implementation contract of Lean's opaque `Float`, not provable within
   Lean.
 
-No `sorry` anywhere.
-
 ## Reading the code
 
 To trust the result, read [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean)

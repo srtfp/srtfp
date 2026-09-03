@@ -1,3 +1,4 @@
+module
 /- srtfp: a verified shortest round-trip float printer (and parser).
 
    Schubfach-based binary64 shortest-round-trip printing and
@@ -13,36 +14,40 @@
      - `Srtfp.Bridge` — the same theorems on the runtime `Float` type,
                         admitting the single axiom `Float.toBits_ofBits`. -/
 
-import Srtfp.Decimal
-import Srtfp.DecimalSyntax
-import Srtfp.Float.Bits
-import Srtfp.Clinger
-import Srtfp.Printer
-import Srtfp.Rat
-import Srtfp.NatLog
-import Srtfp.Tactics
-import Srtfp.Proofs.Clinger.Base
-import Srtfp.Proofs.Clinger.Bridge
-import Srtfp.Proofs.Clinger.Dispatch
-import Srtfp.Proofs.Clinger.FindBinaryExp
-import Srtfp.Proofs.Clinger.IrregularCarry
-import Srtfp.Proofs.Clinger.IrregularNoCarry
-import Srtfp.Proofs.Clinger.Regular
-import Srtfp.Proofs.Clinger
-import Srtfp.Proofs.Bits
-import Srtfp.Proofs.Decimal
-import Srtfp.Proofs.Decimal.Canonical
-import Srtfp.Proofs.Disjointness
-import Srtfp.Proofs.ReaderCorrectness
-import Srtfp.Proofs.CorrectnessSpec
-import Srtfp.Proofs.Clinger.NatIntervalDefs
-import Srtfp.Proofs.Clinger.Interface
-import Srtfp.Proofs.Printer.Vocab
-import Srtfp.Proofs.Printer.Interval
-import Srtfp.Proofs.Printer.Grid
-import Srtfp.Proofs.Printer.Length
-import Srtfp.Proofs.Printer.Scan
-import Srtfp.Proofs.Printer.Spec
-import Srtfp.Correctness
-import Srtfp.Text
-import Srtfp.Text.Roundtrip
+public import Srtfp.Decimal
+public import Srtfp.DecimalSyntax
+public import Srtfp.Float.Bits
+public import Srtfp.Clinger
+public import Srtfp.Printer
+public import Srtfp.Rat
+public import Srtfp.NatLog
+public import Srtfp.Tactics
+public import Srtfp.Proofs.Clinger.Base
+public import Srtfp.Proofs.Clinger.Bridge
+public import Srtfp.Proofs.Clinger.Dispatch
+public import Srtfp.Proofs.Clinger.FindBinaryExp
+public import Srtfp.Proofs.Clinger.IrregularCarry
+public import Srtfp.Proofs.Clinger.IrregularNoCarry
+public import Srtfp.Proofs.Clinger.Regular
+public import Srtfp.Proofs.Clinger
+public import Srtfp.Proofs.Bits
+public import Srtfp.Proofs.Decimal
+public import Srtfp.Proofs.Decimal.Canonical
+public import Srtfp.Proofs.Disjointness
+public import Srtfp.Proofs.ReaderCorrectness
+public import Srtfp.Proofs.CorrectnessSpec
+public import Srtfp.Proofs.Clinger.NatIntervalDefs
+public import Srtfp.Proofs.Clinger.Interface
+public import Srtfp.Proofs.Printer.Vocab
+public import Srtfp.Proofs.Printer.Interval
+public import Srtfp.Proofs.Printer.Grid
+public import Srtfp.Proofs.Printer.Length
+public import Srtfp.Proofs.Printer.Scan
+public import Srtfp.Proofs.Printer.Spec
+public import Srtfp.Spec
+public import Srtfp.Proofs.ReaderSpec
+public import Srtfp.Correctness
+public import Srtfp.Text
+public import Srtfp.Text.Roundtrip
+
+@[expose] public section

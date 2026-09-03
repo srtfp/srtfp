@@ -1,15 +1,42 @@
+module
 /- Kernel 0 of the Perf chain: the Nat-form Schubfach printer equals the
    reference. Derived from the specification's uniqueness for now (both
    satisfy it); the direct proof, the paper's R8–R12, is the backburner
    item of the design doc. -/
-import Srtfp.Correctness
-import Srtfp.Perf.Schubfach.Correctness
+public import Srtfp.Correctness
+public import Srtfp.Proofs.ReaderSpec
+public import Srtfp.Perf.Schubfach.Correctness
+
+@[expose] public section
+
+open Srtfp.Compat
 
 namespace Srtfp.Schubfach
 
+open Srtfp Srtfp.Float
+
+private theorem spec_dist_eq (d : Decimal) (w : UInt64) :
+    Spec.dist d w = |Decimal.toRat d - wordVal w| := by
+  rw [Clinger.spec_dist_eq, abs_sub_comm]
+
+/-- The old conjunction-form correctness predicate implies the spec's. -/
+theorem correctPrinter_of_bits {p : UInt64 → Except String Decimal}
+    (h : IsCorrectPrinterBits p) : Spec.CorrectPrinter p where
+  nan w hw := (h w).1 hw
+  inf w hw := (h w).2.1 hw
+  finite w hw := by
+    obtain ⟨d, hd, hc, hrt, hs⟩ := (h w).2.2 hw
+    refine ⟨d, hd, hc, hrt, fun d' hne hc' hrt' => ?_⟩
+    rcases hs d' hne hc' hrt' with h1 | ⟨h1, h2 | ⟨h2, h3⟩⟩
+    · exact .shorter (by rwa [decDigitLength_eq_log, decDigitLength_eq_log] at h1)
+    · exact .closer (by rwa [decDigitLength_eq_log, decDigitLength_eq_log] at h1)
+        (by rw [spec_dist_eq, spec_dist_eq]; exact h2)
+    · exact .even (by rwa [decDigitLength_eq_log, decDigitLength_eq_log] at h1)
+        (by rw [spec_dist_eq, spec_dist_eq]; exact h2) h3
+
 theorem toDecimalBits_eq_printer : Schubfach.toDecimalBits = Printer.toDecimalBits :=
   (Srtfp.Spec.correct_iff_toDecimal Schubfach.toDecimalBits).mp
-    ((Schubfach.correct_iff_toDecimal_proof Schubfach.toDecimalBits).mpr rfl)
+    (correctPrinter_of_bits correctness_proof)
 
 theorem toDecimal_eq_printer : Schubfach.toDecimal = Printer.toDecimal :=
   funext fun f => congrArg (· f.toBits) toDecimalBits_eq_printer

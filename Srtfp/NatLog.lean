@@ -1,19 +1,23 @@
+module
 /- Core-only `Nat.log`, definitionally matching Mathlib's, plus the three
    lemmas about it this library uses. Introduced when the Mathlib
    dependency was dropped: the digit-count spec is phrased in terms of
    `Nat.log 10`. -/
+
+@[expose] public section
 
 namespace Srtfp.Compat.Nat
 
 /-- Base-`b` logarithm of a natural number: largest `k` with `b ^ k ≤ n`,
     and `0` where that reading is meaningless (`n = 0` or `b ≤ 1`).
     Matches Mathlib's `Nat.log`. -/
-def log (b : Nat) : Nat → Nat
-  | n =>
-    if h : b ≤ n ∧ 1 < b then
-      have : n / b < n := Nat.div_lt_self (Nat.lt_of_lt_of_le (Nat.lt_of_lt_of_le Nat.zero_lt_one (Nat.le_of_lt h.2)) h.1) h.2
-      log b (n / b) + 1
-    else 0
+def log (b n : Nat) : Nat :=
+  if h : b ≤ n ∧ 1 < b then
+    have : n / b < n :=
+      Nat.div_lt_self (Nat.lt_of_lt_of_le (Nat.lt_of_lt_of_le Nat.zero_lt_one (Nat.le_of_lt h.2)) h.1) h.2
+    log b (n / b) + 1
+  else 0
+termination_by n
 
 theorem log_eq_log_div_add_one {b n : Nat} (h : b ≤ n) (hb : 1 < b) :
     log b n = log b (n / b) + 1 := by

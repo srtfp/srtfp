@@ -1,9 +1,13 @@
+module
 /- From the scan to the specification: `Printer.toDecimalBits w` is the
    unique decimal satisfying `Srtfp.Spec.ShortestDecimal w`. -/
-import Srtfp.Proofs.Printer.Scan
-import Srtfp.Proofs.Clinger.Interface
-import Srtfp.Proofs.Decimal.Canonical
-import Srtfp.Proofs.Decimal
+public import Srtfp.Spec
+public import Srtfp.Proofs.Printer.Scan
+public import Srtfp.Proofs.Clinger.Interface
+public import Srtfp.Proofs.Decimal.Canonical
+public import Srtfp.Proofs.Decimal
+
+@[expose] public section
 
 open Srtfp.Compat
 
@@ -675,5 +679,47 @@ theorem shortest_decimal_exists_unique_proof (w : UInt64) (h_fin : Word.isFinite
     ∃! d : Decimal, IsShortest w d := by
   obtain ⟨d, _, hd⟩ := toDecimalBits_spec h_fin
   exact ⟨d, hd, fun d' hd' => shortest_unique h_fin hd' hd⟩
+
+/-! ## In the vocabulary of `Srtfp/Spec.lean` -/
+
+theorem spec_wordVal_eq (w : UInt64) : Spec.wordVal w = wordVal w := by
+  unfold Spec.wordVal wordVal Spec.val v; rfl
+
+theorem spec_toRat_eq (d : Decimal) : Spec.toRat d = toRat d := rfl
+
+theorem spec_dist_eq (d : Decimal) (w : UInt64) : Spec.dist d w = |toRat d - wordVal w| := by
+  unfold Spec.dist; rw [spec_wordVal_eq, spec_toRat_eq, abs_sub_comm]
+
+theorem isShortest_iff (w : UInt64) (d : Decimal) : IsShortest w d ↔ Spec.ShortestDecimal w d := by
+  constructor
+  · rintro ⟨hc, hrt, h⟩
+    refine ⟨hc, hrt, fun d' hne hc' hrt' => ?_⟩
+    rcases h d' hne hc' hrt' with h1 | ⟨h1, h2 | ⟨h2, h3⟩⟩
+    · exact .shorter h1
+    · exact .closer h1 (by rw [spec_dist_eq, spec_dist_eq]; exact h2)
+    · exact .even h1 (by rw [spec_dist_eq, spec_dist_eq]; exact h2) h3
+  · rintro ⟨hc, hrt, h⟩
+    refine ⟨hc, hrt, fun d' hne hc' hrt' => ?_⟩
+    rcases h d' hne hc' hrt' with h1 | ⟨h1, h2⟩ | ⟨h1, h2, h3⟩
+    · exact Or.inl h1
+    · exact Or.inr ⟨h1, Or.inl (by rw [spec_dist_eq, spec_dist_eq] at h2; exact h2)⟩
+    · exact Or.inr ⟨h1, Or.inr ⟨by rw [spec_dist_eq, spec_dist_eq] at h2; exact h2, h3⟩⟩
+
+/-- **The printer theorem**, in the vocabulary of `Srtfp/Spec.lean`. -/
+theorem correctPrinter_iff_toDecimal (p : UInt64 → Except String Decimal) :
+    Spec.CorrectPrinter p ↔ p = toDecimalBits := by
+  rw [← correct_iff_toDecimal_proof p]
+  constructor
+  · intro h w
+    exact ⟨h.nan w, h.inf w, fun hw =>
+      let ⟨d, hd, hs⟩ := h.finite w hw; ⟨d, hd, (isShortest_iff w d).mpr hs⟩⟩
+  · intro h
+    exact ⟨fun w => (h w).1, fun w => (h w).2.1, fun w hw =>
+      let ⟨d, hd, hs⟩ := (h w).2.2 hw; ⟨d, hd, (isShortest_iff w d).mp hs⟩⟩
+
+theorem shortestDecimal_exists_unique (w : UInt64) (h_fin : Word.isFinite w = true) :
+    ∃! d : Decimal, Spec.ShortestDecimal w d := by
+  obtain ⟨d, hd, huniq⟩ := shortest_decimal_exists_unique_proof w h_fin
+  exact ⟨d, (isShortest_iff w d).mp hd, fun d' hd' => huniq d' ((isShortest_iff w d').mpr hd')⟩
 
 end Srtfp.Printer
