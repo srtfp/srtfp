@@ -1,12 +1,7 @@
 module
-/- Vocabulary shared by the printer proofs, and the digit-count facts.
-   `toRat`, `wordVal`, `digits` are definitionally the spec's
-   (`Srtfp/Correctness.lean`); the kernel checks the agreement when the
-   final theorems are assigned there. -/
-public import Srtfp.Rat
-public import Srtfp.NatLog
-public import Srtfp.Decimal
-public import Srtfp.Float.Bits
+/- Vocabulary shared by the printer proofs (`v`, the magnitude of a word,
+   and the spec's `digits`), and the digit-count facts. -/
+public import Srtfp.Spec
 public import Srtfp.Printer
 
 @[expose] public section
@@ -20,16 +15,8 @@ open Srtfp.Float
 /-- `v = m · 2^q`, the magnitude of a finite word. -/
 def v (m : Nat) (q : Int) : ℚ := (m : ℚ) * (2 : ℚ) ^ q
 
-/-- Exact rational value `(-1)^sign · significand · 10^exponent`. -/
-def toRat (d : Decimal) : ℚ :=
-  (if d.sign then -1 else 1) * ((d.significand : ℚ) * (10 : ℚ) ^ d.exponent)
-
-/-- The exact rational value a finite binary64 word denotes. -/
-def wordVal (w : UInt64) : ℚ :=
-  (if (Word.decode w).sign then -1 else 1) * v (Word.decode w).m (Word.decode w).q
-
-/-- Number of decimal digits of a natural number (`digits 0 = 1`). -/
-def digits (n : Nat) : Nat := Nat.log 10 n + 1
+-- `digits n`, the number of decimal digits (`digits 0 = 1`), is the spec's.
+export Spec (digits)
 
 /-! ## Digit counting
 

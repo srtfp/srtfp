@@ -1,6 +1,7 @@
 module
 /- From the scan to the specification: `Printer.toDecimalBits w` is the
-   unique decimal satisfying `Srtfp.Spec.ShortestDecimal w`. -/
+   unique decimal satisfying `Srtfp.Spec.ShortestDecimal w`, and so a
+   function is a correct printer iff it is `toDecimalBits`. -/
 public import Srtfp.Spec
 public import Srtfp.Proofs.Printer.Scan
 public import Srtfp.Proofs.Reader.Spec
@@ -15,18 +16,6 @@ namespace Srtfp.Printer
 
 open Srtfp Srtfp.Float Srtfp.Clinger
 
-/-- The spec's `ShortestDecimal`, spelled with this file's vocabulary
-    (definitionally the same clauses as `Srtfp.Spec.ShortestDecimal`). -/
-def IsShortest (w : UInt64) (d : Decimal) : Prop :=
-    d.IsCanonical
-  ∧ Clinger.ofDecimalBits d = w
-  ∧ (∀ d' : Decimal, d' ≠ d → d'.IsCanonical → Clinger.ofDecimalBits d' = w →
-       ( digits d.significand < digits d'.significand
-       ∨ ( digits d'.significand = digits d.significand
-         ∧ ( |toRat d - wordVal w| < |toRat d' - wordVal w|
-           ∨ ( |toRat d - wordVal w| = |toRat d' - wordVal w|
-               ∧ d.significand % 2 = 0 )))))
-
 variable {m : Nat} {q i : Int} {n : Nat} {wd : UInt64} {d : Decimal}
 
 /-! ## Vocabulary bridges -/
@@ -35,21 +24,6 @@ theorem inRange_of_decode (hw : Word.isFinite wd = true) (hm : 1 ≤ (Word.decod
     InRange (Word.decode wd).m (Word.decode wd).q := by
   have := decode_legal hw
   unfold Legal at this; unfold InRange; omega
-
-/-- The sign factor cancels out of the spec's distances. -/
-theorem dist_eq (sgn : Bool) (V x : ℚ) :
-    |(if sgn then -1 else 1) * x - (if sgn then -1 else 1) * V| = |V - x| := by
-  cases sgn
-  · show |1 * x - 1 * V| = |V - x|
-    rw [show (1 : ℚ) * x - 1 * V = x - V by grind, abs_sub_comm]
-  · show |-1 * x - -1 * V| = |V - x|
-    rw [show (-1 : ℚ) * x - -1 * V = V - x by grind]
-
-theorem toRat_eq (d : Decimal) :
-    toRat d = (if d.sign then -1 else 1) * ((d.significand : ℚ) * (10 : ℚ) ^ d.exponent) := rfl
-
-theorem wordVal_eq (w : UInt64) :
-    wordVal w = (if (Word.decode w).sign then -1 else 1) * v (Word.decode w).m (Word.decode w).q := rfl
 
 /-- A canonical decimal other than the signed zero has a positive significand
     with no trailing zero. -/
@@ -316,6 +290,19 @@ theorem between_grid {y : ℚ} (hy : 0 < y) (hyng : ¬ OnGrid i y) :
     push_cast at this ⊢
     exact this
 
+/-- With no hit on the next grid, every grid point of `R_v` has the output's length. -/
+theorem same_len (hnext : ¬ s m q (i + 1) = 0) {c : Nat} (hc1 : 1 ≤ c)
+    (hcR : InRv m q ((c : ℚ) * (10 : ℚ) ^ i) = true) : digits c = digits n := by
+  obtain ⟨hn, _, _, hmem, _, _⟩ := out_facts h hs
+  have hnohit : ∀ e : Nat, InRv m q ((e : ℚ) * (10 : ℚ) ^ i) = true
+      → ¬ OnGrid (i + 1) ((e : ℚ) * (10 : ℚ) ^ i) :=
+    fun e he hg => hnext (next_zero_of_hit h hs hg he)
+  rcases Nat.lt_or_ge c n with hlt | hge
+  · exact same_digits_on_grid hc1 (Nat.le_of_lt hlt)
+      (fun e hce hen => hnohit e (InRv_convex hcR hmem (grid_mono hce) (grid_mono hen)))
+  · exact (same_digits_on_grid hn hge
+      (fun e hne hec => hnohit e (InRv_convex hmem hcR (grid_mono hne) (grid_mono hec)))).symm
+
 /-- The spec's clauses against one competitor `f · 10^b` in `R_v`, other
     than the output; strengthened with the competitor's parity on a tie. -/
 theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
@@ -430,9 +417,7 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
           have h1R : InRv m q ((1 : ℕ) * (10 : ℚ) ^ i) = true :=
             InRv_convex hyR hmem (le_of_lt hhi) (grid_mono hn)
           have hdig : digits n = 1 := by
-            rw [← digits_eq_one_of_le_nine (n := 1) (by omega)]
-            exact (same_digits_on_grid (by omega) hn
-              (fun c h1c hcn => hnohit c (InRv_convex h1R hmem (grid_mono h1c) (grid_mono hcn)))).symm
+            rw [← same_len h hs hnext (by omega) h1R]; exact digits_eq_one_of_le_nine (by omega)
           have hstrict := below (lt_of_lt_of_le hhi (grid_mono (i := i) hs1))
           rcases Nat.lt_or_ge 1 (digits f) with hf | hf
           · left; omega
@@ -440,9 +425,7 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
         · -- `(dy + 1) · 10^i ∈ R_v` shares `n`'s length, and `dy + 1` is not a power of ten
           have hd1R : InRv m q (((dy + 1 : ℕ) : ℚ) * (10 : ℚ) ^ i) = true :=
             InRv_convex hyR hmem (by push_cast; exact le_of_lt hhi) (grid_mono (by omega))
-          have hdig1 : digits (dy + 1) = digits n :=
-            same_digits_on_grid (by omega) (by omega)
-              (fun c hc1 hcn => hnohit c (InRv_convex hd1R hmem (grid_mono hc1) (grid_mono hcn)))
+          have hdig1 : digits (dy + 1) = digits n := same_len h hs hnext (by omega) hd1R
           have h10' : (dy + 1) % 10 ≠ 0 := fun e => hnohit (dy + 1) hd1R (onGrid_succ_of_ten_dvd e)
           have hdig2 := digits_succ_of_not_ten_dvd hdy1 h10'
           have := finer_is_longer hb hdy1 hlo
@@ -450,9 +433,7 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
       · -- above the output: `dy · 10^i ∈ R_v` shares `n`'s length
         have hdR : InRv m q ((dy : ℚ) * (10 : ℚ) ^ i) = true :=
           InRv_convex hmem hyR (grid_mono hge) (le_of_lt hlo)
-        have hdig : digits dy = digits n :=
-          (same_digits_on_grid hn hge
-            (fun c hnc hcd => hnohit c (InRv_convex hmem hdR (grid_mono hnc) (grid_mono hcd)))).symm
+        have hdig : digits dy = digits n := same_len h hs hnext (by omega) hdR
         have := finer_is_longer hb (by omega) hlo
         left; omega
   · -- (B) the output's own grid
@@ -476,12 +457,7 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
       · left; omega
       · right; exact ⟨by omega, close_or_tie (Or.inr ⟨hD, by omega⟩)⟩
     · obtain ⟨hnohit, hn10, hD⟩ := nohit_case hnext
-      have hdig : digits f = digits n := by
-        rcases Nat.lt_or_ge f n with hlt | hge
-        · exact same_digits_on_grid hf1 (Nat.le_of_lt hlt)
-            (fun c hfc hcn => hnohit c (InRv_convex hyR hmem (grid_mono hfc) (grid_mono hcn)))
-        · exact (same_digits_on_grid hn hge
-            (fun c hnc hcf => hnohit c (InRv_convex hmem hyR (grid_mono hnc) (grid_mono hcf)))).symm
+      have hdig : digits f = digits n := same_len h hs hnext hf1 hyR
       right
       rw [hD]
       exact ⟨hdig, by have := close_or_tie (Or.inl hD); rw [hD] at this; exact this⟩
@@ -504,22 +480,40 @@ theorem toDecimalBits_of_finite (hw : Word.isFinite wd = true) :
   rw [word_isNaN_false_of_isFinite wd hw, isInf_false_of_isFinite hw]
   simp only [Bool.false_eq_true, if_false]
 
+/-- `Beats`, with the competitor's parity known on a tie: what the output
+    achieves, and what makes it unique. -/
+def BeatsOdd (w : UInt64) (d d' : Decimal) : Prop :=
+  digits d.significand < digits d'.significand
+  ∨ (digits d'.significand = digits d.significand
+     ∧ (Spec.dist d w < Spec.dist d' w
+        ∨ (Spec.dist d w = Spec.dist d' w ∧ d.significand % 2 = 0 ∧ d'.significand % 2 = 1)))
+
+theorem BeatsOdd.beats {w : UInt64} {d d' : Decimal} (h : BeatsOdd w d d') : Spec.Beats w d d' := by
+  rcases h with h | ⟨h1, h2 | ⟨h2, h3, -⟩⟩
+  · exact .shorter h
+  · exact .closer h1 h2
+  · exact .even h1 h2 h3
+
+/-- Nothing beats what beats it with an odd tie. -/
+theorem BeatsOdd.not_beats {w : UInt64} {d d' : Decimal} (h : BeatsOdd w d d')
+    (h' : Spec.Beats w d' d) : False := by
+  rcases h with h | ⟨h1, h2 | ⟨h2, h3, h4⟩⟩ <;> rcases h' with h' | ⟨h1', h2'⟩ | ⟨h1', h2', h3'⟩ <;> grind
+
 /-- Nonzero words: the output is canonical, reads back, and beats every
-    competitor, with the competitor's parity known on a tie. -/
+    competitor. -/
 theorem nonzero_output (hw : Word.isFinite wd = true) (hm : 1 ≤ (Word.decode wd).m) :
     ∃ d₀, toDecimalBits wd = .ok d₀ ∧ d₀.IsCanonical ∧ Clinger.ofDecimalBits d₀ = wd
       ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Clinger.ofDecimalBits d' = wd →
-          ( digits d₀.significand < digits d'.significand
-          ∨ ( digits d'.significand = digits d₀.significand
-            ∧ ( |toRat d₀ - wordVal wd| < |toRat d' - wordVal wd|
-              ∨ ( |toRat d₀ - wordVal wd| = |toRat d' - wordVal wd|
-                ∧ d₀.significand % 2 = 0 ∧ d'.significand % 2 = 1 )))) := by
+          BeatsOdd wd d₀ d' := by
   have h := inRange_of_decode hw hm
   have hri := reads_to_iff hw hm
-  have hwv := wordVal_eq wd
+  have hdist : ∀ z, Spec.dist z wd = |(if (Word.decode wd).sign then -1 else 1 : ℚ)
+      * v (Word.decode wd).m (Word.decode wd).q
+      - (if z.sign then -1 else 1 : ℚ) * ((z.significand : ℚ) * (10 : ℚ) ^ z.exponent)| :=
+    fun z => Clinger.dist_eq z wd
   rcases hdec : Word.decode wd with ⟨sgn, m, q⟩
-  rw [hdec] at h hri hm hwv
-  dsimp only at h hri hm hwv
+  rw [hdec] at h hri hm hdist
+  dsimp only at h hri hm hdist
   rcases hsh : shortest m q with ⟨n, i⟩
   have hsig := out_sig h hsh sgn
   have hsign := out_sign h hsh sgn
@@ -542,11 +536,11 @@ theorem nonzero_output (hw : Word.isFinite wd = true) (hm : 1 ≤ (Word.decode w
       apply canonical_eq_of_value_eq hc' hcan (by rw [hsign', hsign]) hf.1 (by rw [hsig]; exact hsig1)
       rw [e, hval]
     have hc := competitor h hsh hf.1 hf.2 hmem' hvne
-    -- translate the vocabulary
-    have hd₀ : |toRat (Decimal.mk' sgn n i) - wordVal wd| = |v m q - n * (10 : ℚ) ^ i| := by
-      rw [toRat_eq, hwv, hsign, hval, dist_eq]
-    have hd' : |toRat d' - wordVal wd| = |v m q - d'.significand * (10 : ℚ) ^ d'.exponent| := by
-      rw [toRat_eq, hwv, hsign', dist_eq]
+    have hd₀ : Spec.dist (Decimal.mk' sgn n i) wd = |v m q - n * (10 : ℚ) ^ i| := by
+      rw [hdist, hsign, hval]; exact dist_of_sign _ _ _
+    have hd' : Spec.dist d' wd = |v m q - d'.significand * (10 : ℚ) ^ d'.exponent| := by
+      rw [hdist, hsign']; exact dist_of_sign _ _ _
+    unfold BeatsOdd
     rw [hsig, hd₀, hd']
     exact hc
 
@@ -554,9 +548,7 @@ theorem nonzero_output (hw : Word.isFinite wd = true) (hm : 1 ≤ (Word.decode w
 theorem zero_output (hw : Word.isFinite wd = true) (hm : (Word.decode wd).m = 0) :
     ∃ d₀, toDecimalBits wd = .ok d₀ ∧ d₀.IsCanonical ∧ Clinger.ofDecimalBits d₀ = wd
       ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Clinger.ofDecimalBits d' = wd →
-          ( digits d₀.significand < digits d'.significand
-          ∨ ( digits d'.significand = digits d₀.significand
-            ∧ |toRat d₀ - wordVal wd| < |toRat d' - wordVal wd| )) := by
+          BeatsOdd wd d₀ d' := by
   refine ⟨⟨(Word.decode wd).sign, 0, 0⟩, ?_, Or.inl ⟨rfl, rfl⟩, ?_, ?_⟩
   · rw [toDecimalBits_of_finite hw, if_pos hm]
   · show Word.pack (Word.decode wd).sign 0 0 = wd
@@ -581,156 +573,78 @@ theorem zero_output (hw : Word.isFinite wd = true) (hm : (Word.decode wd).m = 0)
         · cases d'; simp_all
         · exact absurd h0 hne0
       · exact hpos
-    have hw0 : wordVal wd = 0 := by rw [wordVal_eq, hm]; unfold v; simp
-    have hd₀ : |toRat ⟨(Word.decode wd).sign, 0, 0⟩ - wordVal wd| = 0 := by
-      have h0 : toRat ⟨(Word.decode wd).sign, 0, 0⟩ = 0 := by unfold toRat; simp
-      rw [h0, hw0, Rat.sub_self]; rfl
-    have hd' : 0 < |toRat d' - wordVal wd| := by
-      rw [hw0, toRat_eq, sub_zero]
-      have h10 := ten_zpow_pos d'.exponent
-      have hpos : (0 : ℚ) < (d'.significand : ℚ) * 10 ^ d'.exponent :=
-        Rat.mul_pos (by exact_mod_cast hf1) h10
-      cases d'.sign
-      · show 0 < |1 * ((d'.significand : ℚ) * 10 ^ d'.exponent)|
-        rw [abs_of_nonneg (by grind)]; grind
-      · show 0 < |-1 * ((d'.significand : ℚ) * 10 ^ d'.exponent)|
-        rw [abs_of_nonpos (by grind)]; grind
+    have hv0 : v (Word.decode wd).m (Word.decode wd).q = 0 := by rw [hm]; exact v_zero_iff.mpr rfl
+    have hneg : ∀ a b : ℚ, a * 0 - b = -b := fun a b => by grind
+    have hd₀ : Spec.dist ⟨(Word.decode wd).sign, 0, 0⟩ wd = 0 := by
+      rw [Clinger.dist_eq, hv0]; simp; rw [Rat.sub_self]; exact abs_zero
+    have hd' : 0 < Spec.dist d' wd := by
+      rw [Clinger.dist_eq, hv0, hneg, abs_neg, sign_mul_abs]
+      exact abs_pos.mpr (Rat.ne_of_gt (Rat.mul_pos (by exact_mod_cast hf1) (ten_zpow_pos _)))
     rcases Nat.lt_or_ge 1 (digits d'.significand) with hd | hd
     · left; rw [digits_zero]; exact hd
     · right
       have := digits_pos d'.significand
-      exact ⟨by rw [digits_zero]; omega, by rw [hd₀]; exact hd'⟩
+      exact ⟨by rw [digits_zero]; omega, Or.inl (by rw [hd₀]; exact hd')⟩
 
 /-! ## The specification -/
 
-theorem toDecimalBits_spec (hw : Word.isFinite wd = true) :
-    ∃ d, toDecimalBits wd = .ok d ∧ IsShortest wd d := by
+/-- The output beats every competitor, with the competitor's parity on a tie. -/
+theorem output_beats (hw : Word.isFinite wd = true) :
+    ∃ d₀, toDecimalBits wd = .ok d₀ ∧ d₀.IsCanonical ∧ Clinger.ofDecimalBits d₀ = wd
+      ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Clinger.ofDecimalBits d' = wd →
+          BeatsOdd wd d₀ d' := by
   rcases Nat.eq_zero_or_pos (Word.decode wd).m with hm | hm
-  · obtain ⟨d₀, h₀, hc, hrt, hcomp⟩ := zero_output hw hm
-    refine ⟨d₀, h₀, hc, hrt, fun d' hne hc' hrt' => ?_⟩
-    rcases hcomp d' hne hc' hrt' with h1 | ⟨h1, h2⟩
-    · exact Or.inl h1
-    · exact Or.inr ⟨h1, Or.inl h2⟩
-  · obtain ⟨d₀, h₀, hc, hrt, hcomp⟩ := nonzero_output hw hm
-    refine ⟨d₀, h₀, hc, hrt, fun d' hne hc' hrt' => ?_⟩
-    rcases hcomp d' hne hc' hrt' with h1 | ⟨h1, h2 | ⟨h2, h3, _⟩⟩
-    · exact Or.inl h1
-    · exact Or.inr ⟨h1, Or.inl h2⟩
-    · exact Or.inr ⟨h1, Or.inr ⟨h2, h3⟩⟩
+  · exact zero_output hw hm
+  · exact nonzero_output hw hm
+
+theorem toDecimalBits_spec (hw : Word.isFinite wd = true) :
+    ∃ d, toDecimalBits wd = .ok d ∧ Spec.ShortestDecimal wd d :=
+  let ⟨d₀, h₀, hc, hrt, hb⟩ := output_beats hw
+  ⟨d₀, h₀, hc, hrt, fun d' hne hc' hrt' => (hb d' hne hc' hrt').beats⟩
 
 /-- Anything satisfying the specification is the output. -/
-theorem eq_output_of_isShortest (hw : Word.isFinite wd = true) {d d₀ : Decimal}
-    (h₀ : toDecimalBits wd = .ok d₀) (hd : IsShortest wd d) : d = d₀ := by
+theorem eq_output_of_shortest (hw : Word.isFinite wd = true) {d d₀ : Decimal}
+    (h₀ : toDecimalBits wd = .ok d₀) (hd : Spec.ShortestDecimal wd d) : d = d₀ := by
   by_cases hne : d = d₀
   · exact hne
-  exfalso
-  obtain ⟨hc, hrt, hcomp⟩ := hd
-  rcases Nat.eq_zero_or_pos (Word.decode wd).m with hm | hm
-  · obtain ⟨d₁, h₁, hc₁, hrt₁, hcomp₁⟩ := zero_output hw hm
-    rw [h₁] at h₀; obtain rfl := Except.ok.inj h₀
-    have hA := hcomp d₁ (Ne.symm hne) hc₁ hrt₁
-    have hB := hcomp₁ d hne hc hrt
-    rcases hA with hA | ⟨hA1, hA2 | ⟨hA2, _⟩⟩ <;> rcases hB with hB | ⟨hB1, hB2⟩ <;> grind
-  · obtain ⟨d₁, h₁, hc₁, hrt₁, hcomp₁⟩ := nonzero_output hw hm
-    rw [h₁] at h₀; obtain rfl := Except.ok.inj h₀
-    have hA := hcomp d₁ (Ne.symm hne) hc₁ hrt₁
-    have hB := hcomp₁ d hne hc hrt
-    rcases hA with hA | ⟨hA1, hA2 | ⟨hA2, hA3⟩⟩ <;>
-      rcases hB with hB | ⟨hB1, hB2 | ⟨hB2, hB3, hB4⟩⟩ <;> grind
+  obtain ⟨d₁, h₁, hc₁, hrt₁, hb⟩ := output_beats hw
+  rw [h₁] at h₀; obtain rfl := Except.ok.inj h₀
+  exact ((hb d hne hd.canonical hd.roundTrip).not_beats (hd.shortest d₁ (Ne.symm hne) hc₁ hrt₁)).elim
 
-theorem shortest_unique (hw : Word.isFinite wd = true) {d d' : Decimal}
-    (hd : IsShortest wd d) (hd' : IsShortest wd d') : d = d' := by
-  obtain ⟨d₀, h₀, _⟩ := toDecimalBits_spec hw
-  rw [eq_output_of_isShortest hw h₀ hd, eq_output_of_isShortest hw h₀ hd']
+theorem shortestDecimal_exists_unique (w : UInt64) (h_fin : Word.isFinite w = true) :
+    ∃! d : Decimal, Spec.ShortestDecimal w d :=
+  let ⟨d, h₀, hd⟩ := toDecimalBits_spec h_fin
+  ⟨d, hd, fun _ hd' => eq_output_of_shortest h_fin h₀ hd'⟩
 
-/-- What `toDecimalBits` returns on every word. -/
-theorem toDecimalBits_correct (w : UInt64) :
-    (Word.isNaN w = true → toDecimalBits w = .error "NaN")
-    ∧ (Word.isInf w = true →
-         toDecimalBits w = .error (if Word.signBit w then "-Infinity" else "Infinity"))
-    ∧ (Word.isFinite w = true → ∃ d, toDecimalBits w = .ok d ∧ IsShortest w d) := by
-  refine ⟨fun h => ?_, fun h => ?_, toDecimalBits_spec⟩
-  · unfold toDecimalBits; rw [h]; rfl
-  · have hn : Word.isNaN w = false := by
+/-- `toDecimalBits` is a correct printer. -/
+theorem correctPrinter_toDecimalBits : Spec.CorrectPrinter toDecimalBits where
+  nan w h := by unfold toDecimalBits; rw [h]; rfl
+  inf w h := by
+    have hn : Word.isNaN w = false := by
       unfold Word.isInf at h; unfold Word.isNaN; simp at h ⊢; omega
     unfold toDecimalBits; rw [hn, h]; rfl
+  finite _ hw := toDecimalBits_spec hw
 
-/-- **A function is a correct shortest-decimal printer iff it is
-`toDecimalBits`.** The statement is `Srtfp.Spec.correct_iff_toDecimal` with
-the vocabulary unfolded to this file's. -/
-theorem correct_iff_toDecimal_proof (p : UInt64 → Except String Decimal) :
-    ( ∀ w : UInt64,
-        (Word.isNaN w = true → p w = .error "NaN")
-      ∧ (Word.isInf w = true →
-           p w = .error (if Word.signBit w then "-Infinity" else "Infinity"))
-      ∧ (Word.isFinite w = true →
-           ∃ d : Decimal, p w = .ok d ∧ IsShortest w d) )
-    ↔ p = toDecimalBits := by
+/-- **The printer theorem.** A function is a correct printer iff it is
+`toDecimalBits`. -/
+theorem correctPrinter_iff_toDecimal (p : UInt64 → Except String Decimal) :
+    Spec.CorrectPrinter p ↔ p = toDecimalBits := by
   constructor
   · intro hp
     funext w
-    obtain ⟨hnan, hinf, hfin⟩ := hp w
-    obtain ⟨hnan', hinf', hfin'⟩ := toDecimalBits_correct w
     by_cases h1 : Word.isNaN w = true
-    · rw [hnan h1, hnan' h1]
+    · rw [hp.nan w h1, correctPrinter_toDecimalBits.nan w h1]
     by_cases h2 : Word.isInf w = true
-    · rw [hinf h2, hinf' h2]
+    · rw [hp.inf w h2, correctPrinter_toDecimalBits.inf w h2]
     have h3 : Word.isFinite w = true := by
       unfold Word.isNaN at h1; unfold Word.isInf at h2; unfold Word.isFinite
       simp at h1 h2 ⊢
       have := word_biasedExp_lt w
       omega
-    obtain ⟨d, hd, hds⟩ := hfin h3
-    obtain ⟨d', hd', hds'⟩ := hfin' h3
-    rw [hd, hd', shortest_unique h3 hds hds']
+    obtain ⟨d, hd, hds⟩ := hp.finite w h3
+    obtain ⟨d', hd', -⟩ := toDecimalBits_spec h3
+    rw [hd, hd', eq_output_of_shortest h3 hd' hds]
   · rintro rfl
-    exact toDecimalBits_correct
-
-theorem shortest_decimal_exists_unique_proof (w : UInt64) (h_fin : Word.isFinite w = true) :
-    ∃! d : Decimal, IsShortest w d := by
-  obtain ⟨d, _, hd⟩ := toDecimalBits_spec h_fin
-  exact ⟨d, hd, fun d' hd' => shortest_unique h_fin hd' hd⟩
-
-/-! ## In the vocabulary of `Srtfp/Spec.lean` -/
-
-theorem spec_wordVal_eq (w : UInt64) : Spec.wordVal w = wordVal w := by
-  unfold Spec.wordVal wordVal Spec.val v; rfl
-
-theorem spec_toRat_eq (d : Decimal) : Spec.toRat d = toRat d := rfl
-
-theorem spec_dist_eq (d : Decimal) (w : UInt64) : Spec.dist d w = |toRat d - wordVal w| := by
-  unfold Spec.dist; rw [spec_wordVal_eq, spec_toRat_eq, abs_sub_comm]
-
-theorem isShortest_iff (w : UInt64) (d : Decimal) : IsShortest w d ↔ Spec.ShortestDecimal w d := by
-  constructor
-  · rintro ⟨hc, hrt, h⟩
-    refine ⟨hc, hrt, fun d' hne hc' hrt' => ?_⟩
-    rcases h d' hne hc' hrt' with h1 | ⟨h1, h2 | ⟨h2, h3⟩⟩
-    · exact .shorter h1
-    · exact .closer h1 (by rw [spec_dist_eq, spec_dist_eq]; exact h2)
-    · exact .even h1 (by rw [spec_dist_eq, spec_dist_eq]; exact h2) h3
-  · rintro ⟨hc, hrt, h⟩
-    refine ⟨hc, hrt, fun d' hne hc' hrt' => ?_⟩
-    rcases h d' hne hc' hrt' with h1 | ⟨h1, h2⟩ | ⟨h1, h2, h3⟩
-    · exact Or.inl h1
-    · exact Or.inr ⟨h1, Or.inl (by rw [spec_dist_eq, spec_dist_eq] at h2; exact h2)⟩
-    · exact Or.inr ⟨h1, Or.inr ⟨by rw [spec_dist_eq, spec_dist_eq] at h2; exact h2, h3⟩⟩
-
-/-- **The printer theorem**, in the vocabulary of `Srtfp/Spec.lean`. -/
-theorem correctPrinter_iff_toDecimal (p : UInt64 → Except String Decimal) :
-    Spec.CorrectPrinter p ↔ p = toDecimalBits := by
-  rw [← correct_iff_toDecimal_proof p]
-  constructor
-  · intro h w
-    exact ⟨h.nan w, h.inf w, fun hw =>
-      let ⟨d, hd, hs⟩ := h.finite w hw; ⟨d, hd, (isShortest_iff w d).mpr hs⟩⟩
-  · intro h
-    exact ⟨fun w => (h w).1, fun w => (h w).2.1, fun w hw =>
-      let ⟨d, hd, hs⟩ := (h w).2.2 hw; ⟨d, hd, (isShortest_iff w d).mp hs⟩⟩
-
-theorem shortestDecimal_exists_unique (w : UInt64) (h_fin : Word.isFinite w = true) :
-    ∃! d : Decimal, Spec.ShortestDecimal w d := by
-  obtain ⟨d, hd, huniq⟩ := shortest_decimal_exists_unique_proof w h_fin
-  exact ⟨d, (isShortest_iff w d).mp hd, fun d' hd' => huniq d' ((isShortest_iff w d').mpr hd')⟩
+    exact correctPrinter_toDecimalBits
 
 end Srtfp.Printer
