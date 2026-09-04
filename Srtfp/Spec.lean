@@ -5,11 +5,9 @@ module
    unique such reader and printer are in `Srtfp/Correctness.lean`.
 
    Everything needed to read this file is defined in it or displayed
-   below; `|·|` is core's `Rat.abs`, and `Nat.log` is this library's own
-   definition (`Srtfp/NatLog.lean`). -/
+   below; `|·|` is core's `Rat.abs`. -/
 
 public import Srtfp.Rat
-public import Srtfp.NatLog
 public import Srtfp.Decimal
 public import Srtfp.Float.Bits
 public import Srtfp.Clinger
@@ -37,15 +35,11 @@ def wordVal (w : UInt64) : Rat :=
 /-- The distance between a decimal's value and a word's. -/
 def dist (d : Decimal) (w : UInt64) : Rat := |wordVal w - toRat d|
 
-/-- Number of base-10 digits. -/
-def digits (n : Nat) : Nat := Nat.log 10 n + 1
-example : digits 0 = 1 := by unfold digits; rw [Nat.log_eq_zero_of_not (by omega)]
+/-- Number of base-10 digits (`digits 0 = 1`). -/
+def digits (n : Nat) : Nat := if n < 10 then 1 else digits (n / 10) + 1
+termination_by n
+decreasing_by omega
 
-example (b n : Nat) :
-    Nat.log b n = if b ≤ n ∧ 1 < b then Nat.log b (n / b) + 1 else 0 := by
-  by_cases h : b ≤ n ∧ 1 < b
-  · rw [if_pos h, Nat.log_eq_log_div_add_one h.1 h.2]
-  · rw [if_neg h, Nat.log_eq_zero_of_not h]
 example (q : Rat) : |q| = if 0 ≤ q then q else -q := rfl
 
 /-! ## Referenced definitions, displayed here for convenience -/

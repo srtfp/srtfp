@@ -22,37 +22,33 @@ export Spec (digits)
 
 Everything follows from the two bounds `10^(digits n - 1) ≤ n < 10^(digits n)`. -/
 
-theorem digits_pos (n : Nat) : 1 ≤ digits n := by unfold digits; omega
+theorem digits_pos (n : Nat) : 1 ≤ digits n := by
+  rw [Spec.digits]; split <;> omega
 
 theorem lt_pow_digits (n : Nat) : n < 10 ^ digits n := by
   induction n using Nat.strongRecOn with
   | _ n ih =>
-    unfold digits
-    by_cases h : 10 ≤ n
-    · rw [Nat.log_eq_log_div_add_one h (by decide)]
-      have ih' := ih (n / 10) (Nat.div_lt_self (by omega) (by decide))
-      unfold digits at ih'
+    rw [Spec.digits]
+    split
+    · omega
+    · have := ih (n / 10) (Nat.div_lt_self (by omega) (by decide))
       rw [Nat.pow_succ]
-      omega
-    · rw [Nat.log_eq_zero_of_not (by omega)]
       omega
 
 theorem pow_digits_le {n : Nat} (h : 1 ≤ n) : 10 ^ (digits n - 1) ≤ n := by
   induction n using Nat.strongRecOn with
   | _ n ih =>
-    unfold digits
-    by_cases h10 : 10 ≤ n
-    · rw [Nat.log_eq_log_div_add_one h10 (by decide)]
-      have ih' := ih (n / 10) (Nat.div_lt_self (by omega) (by decide)) (by omega)
-      unfold digits at ih'
+    rw [Spec.digits]
+    split
+    · simpa using h
+    · have ih' := ih (n / 10) (Nat.div_lt_self (by omega) (by decide)) (by omega)
+      obtain ⟨k, hk⟩ : ∃ k, digits (n / 10) = k + 1 := ⟨digits (n / 10) - 1, by have := digits_pos (n / 10); omega⟩
+      rw [hk] at ih' ⊢
       simp only [Nat.add_sub_cancel] at ih' ⊢
       rw [Nat.pow_succ]
       omega
-    · rw [Nat.log_eq_zero_of_not (by omega)]
-      simpa using h
 
-theorem digits_zero : digits 0 = 1 := by
-  unfold digits; rw [Nat.log_eq_zero_of_not (by omega)]
+theorem digits_zero : digits 0 = 1 := by rw [Spec.digits]; simp
 
 theorem digits_le_of_le {a b : Nat} (h : a ≤ b) : digits a ≤ digits b := by
   rcases Nat.lt_or_ge (digits b) (digits a) with hlt | hle

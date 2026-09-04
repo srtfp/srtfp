@@ -31,10 +31,10 @@ theorem correctPrinter_of_bits {p : UInt64 → Except String Decimal}
     obtain ⟨d, hd, hc, hrt, hs⟩ := (h w).2.2 hw
     refine ⟨d, hd, hc, hrt, fun d' hne hc' hrt' => ?_⟩
     rcases hs d' hne hc' hrt' with h1 | ⟨h1, h2 | ⟨h2, h3⟩⟩
-    · exact .shorter (by rwa [decDigitLength_eq_log, decDigitLength_eq_log] at h1)
-    · exact .closer (by rwa [decDigitLength_eq_log, decDigitLength_eq_log] at h1)
+    · exact .shorter (by rwa [decDigitLength_eq_digits, decDigitLength_eq_digits] at h1)
+    · exact .closer (by rwa [decDigitLength_eq_digits, decDigitLength_eq_digits] at h1)
         (by rw [spec_dist_eq, spec_dist_eq]; exact h2)
-    · exact .even (by rwa [decDigitLength_eq_log, decDigitLength_eq_log] at h1)
+    · exact .even (by rwa [decDigitLength_eq_digits, decDigitLength_eq_digits] at h1)
         (by rw [spec_dist_eq, spec_dist_eq]; exact h2) h3
 
 theorem toDecimalBits_eq_printer : Schubfach.toDecimalBits = Printer.toDecimalBits :=

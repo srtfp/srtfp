@@ -66,7 +66,7 @@ theorem mk'_ten (sign : Bool) : Decimal.mk' sign 10 i = ⟨sign, 1, i + 1⟩ := 
       Decimal.canonicaliseAux_not_div 1 (i + 1) (by decide) (by decide)]
 
 theorem digits_eq_one_of_le_nine (hn : n ≤ 9) : digits n = 1 := by
-  unfold digits; rw [Nat.log_eq_zero_of_not (by omega)]
+  rw [Spec.digits, if_pos (by omega)]
 
 /-- Adding one changes the digit count only at a power of ten. -/
 theorem digits_succ_of_not_ten_dvd {a : Nat} (ha : 1 ≤ a) (h : (a + 1) % 10 ≠ 0) :

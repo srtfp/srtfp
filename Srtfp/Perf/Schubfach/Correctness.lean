@@ -22,10 +22,10 @@ module
    canonical-parity upgrade) they are built from. -/
 
 public import Srtfp.Perf.Schubfach.Spec
+public import Srtfp.Spec
 public import Srtfp.Perf.Schubfach.RoundTrip
 public import Srtfp.Perf.Schubfach.Minimal
 public import Srtfp.Perf.Schubfach.TieBreak
-public import Srtfp.NatLog
 public import Srtfp.Perf.Tactics
 
 @[expose] public section
@@ -1776,72 +1776,11 @@ theorem Schubfach.spec_output_exists_unique_proof (w : UInt64)
   cases e'
   rfl
 
-/-! ## Assembly in the public vocabulary
+/-! ## The digit-count bridge to `Srtfp/Spec.lean` -/
 
-The public file (`Srtfp/Correctness.lean`) restates the spec with
-`digits n = Nat.log 10 n + 1` and delegates to the two theorems below by
-`:=` — the kernel's definitional check of those delegations certifies the
-restatement.  `decDigitLength_eq_log` is the digit-count bridge. -/
-
-theorem Schubfach.decDigitLength_eq_log (n : Nat) :
-    decDigitLength n = Nat.log 10 n + 1 := by
+theorem Schubfach.decDigitLength_eq_digits (n : Nat) : decDigitLength n = Spec.digits n := by
   induction n using decDigitLength.induct with
-  | case1 n h =>
-    rw [decDigitLength.eq_def]
-    simp [Nat.log_eq_zero_iff, h]
-  | case2 n h ih =>
-    rw [decDigitLength.eq_def]
-    have hpos : 0 < Nat.log 10 n := Nat.log_pos (by omega) (by omega)
-    have hdiv : Nat.log 10 (n / 10) = Nat.log 10 n - 1 := Nat.log_div_base 10 n
-    simp only [if_neg h]
-    omega
-
-theorem Schubfach.correct_iff_toDecimal_proof
-    (p : UInt64 → Except String Decimal) :
-    ( ∀ w : UInt64,
-        (Word.isNaN w = true → p w = .error "NaN")
-      ∧ (Word.isInf w = true →
-           p w = .error (if Word.signBit w then "-Infinity" else "Infinity"))
-      ∧ (Word.isFinite w = true →
-           ∃ d : Decimal, p w = .ok d
-             ∧ ( Decimal.IsCanonical d
-               ∧ Schubfach.RoundTripsBits w d
-               ∧ (∀ d' : Decimal, d' ≠ d → Decimal.IsCanonical d' →
-                    Schubfach.RoundTripsBits w d' →
-                    ( Nat.log 10 d.significand + 1
-                        < Nat.log 10 d'.significand + 1
-                    ∨ ( Nat.log 10 d'.significand + 1
-                          = Nat.log 10 d.significand + 1
-                      ∧ ( |Decimal.toRat d - Schubfach.wordVal w|
-                            < |Decimal.toRat d' - Schubfach.wordVal w|
-                        ∨ ( |Decimal.toRat d - Schubfach.wordVal w|
-                              = |Decimal.toRat d' - Schubfach.wordVal w|
-                            ∧ d.significand % 2 = 0 ))))))) )
-    ↔ p = Schubfach.toDecimalBits := by
-  simp only [← Schubfach.decDigitLength_eq_log]
-  constructor
-  · intro h
-    exact Schubfach.printer_unique_proof p Schubfach.toDecimalBits h
-      Schubfach.correctness_proof
-  · rintro rfl
-    exact Schubfach.correctness_proof
-
-theorem Schubfach.shortest_decimal_exists_unique_proof (w : UInt64)
-    (h_fin : Word.isFinite w = true) :
-    ∃! d : Decimal,
-        Decimal.IsCanonical d
-      ∧ Schubfach.RoundTripsBits w d
-      ∧ (∀ d' : Decimal, d' ≠ d → Decimal.IsCanonical d' →
-           Schubfach.RoundTripsBits w d' →
-           ( Nat.log 10 d.significand + 1 < Nat.log 10 d'.significand + 1
-           ∨ ( Nat.log 10 d'.significand + 1 = Nat.log 10 d.significand + 1
-             ∧ ( |Decimal.toRat d - Schubfach.wordVal w|
-                   < |Decimal.toRat d' - Schubfach.wordVal w|
-               ∨ ( |Decimal.toRat d - Schubfach.wordVal w|
-                     = |Decimal.toRat d' - Schubfach.wordVal w|
-                   ∧ d.significand % 2 = 0 ))))) := by
-  have h := Schubfach.spec_output_exists_unique_proof w h_fin
-  unfold Schubfach.IsSpecOutputBits at h
-  simpa only [← Schubfach.decDigitLength_eq_log] using h
+  | case1 n h => rw [decDigitLength.eq_def, Spec.digits]; simp [h]
+  | case2 n h ih => rw [decDigitLength.eq_def, Spec.digits]; simp only [if_neg h, ih]
 
 end Srtfp

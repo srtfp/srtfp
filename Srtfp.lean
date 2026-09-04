@@ -21,7 +21,6 @@ public import Srtfp.Float.Bits
 public import Srtfp.Clinger
 public import Srtfp.Printer
 public import Srtfp.Rat
-public import Srtfp.NatLog
 public import Srtfp.Proofs.Bits
 public import Srtfp.Proofs.Decimal
 public import Srtfp.Proofs.Decimal.Canonical
