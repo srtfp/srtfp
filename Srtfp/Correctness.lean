@@ -38,7 +38,7 @@ theorem correct_iff_toDecimal (p : UInt64 → Except String Decimal) :
 /-- For each finite word, **exactly one** decimal is the shortest: the one
 `Printer.toDecimalBits` returns. -/
 theorem shortest_decimal_exists_unique (w : UInt64) (h_fin : Word.isFinite w) :
-    ∃! d : Decimal, ShortestDecimal w d :=
+    ∃ d : Decimal, ShortestDecimal w d ∧ ∀ d' : Decimal, ShortestDecimal w d' → d' = d :=
   Printer.shortestDecimal_exists_unique w h_fin
 
 end Srtfp.Spec

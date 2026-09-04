@@ -608,7 +608,7 @@ theorem eq_output_of_shortest (hw : Word.isFinite wd = true) {d d₀ : Decimal}
   exact ((hb d hne hd.canonical hd.roundTrip).not_beats (hd.shortest d₁ (Ne.symm hne) hc₁ hrt₁)).elim
 
 theorem shortestDecimal_exists_unique (w : UInt64) (h_fin : Word.isFinite w = true) :
-    ∃! d : Decimal, Spec.ShortestDecimal w d :=
+    ∃ d : Decimal, Spec.ShortestDecimal w d ∧ ∀ d' : Decimal, Spec.ShortestDecimal w d' → d' = d :=
   let ⟨d, h₀, hd⟩ := toDecimalBits_spec h_fin
   ⟨d, hd, fun _ hd' => eq_output_of_shortest h_fin h₀ hd'⟩
 

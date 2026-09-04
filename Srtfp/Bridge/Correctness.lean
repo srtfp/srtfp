@@ -177,7 +177,7 @@ theorem correct_iff_toDecimalF (p : Float → Except String Decimal) :
 
 /-- For each finite float, exactly one decimal is the shortest. -/
 theorem shortest_decimal_exists_uniqueF (f : Float) (h_fin : isFiniteBits f) :
-    ∃! d : Decimal, ShortestDecimalF f d := by
+    ∃ d : Decimal, ShortestDecimalF f d ∧ ∀ d' : Decimal, ShortestDecimalF f d' → d' = d := by
   obtain ⟨d, hd, huniq⟩ := shortest_decimal_exists_unique f.toBits h_fin
   exact ⟨d, (shortestDecimalF_iff f d).mpr hd,
          fun d' hd' => huniq d' ((shortestDecimalF_iff f d').mp hd')⟩

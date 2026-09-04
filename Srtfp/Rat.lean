@@ -3,7 +3,7 @@ module
 
    The proof stack was written against Mathlib's rational-number surface;
    core Lean (`Init.Data.Rat`) provides the type, field arithmetic, order,
-   `zpow` and `Rat.abs`, but not the `|·|` bars, `∃!`, or Mathlib's lemma
+   `zpow` and `Rat.abs`, but not the `|·|` bars or Mathlib's lemma
    names. This file supplies exactly that missing surface.
 
    Everything lives in the `Srtfp.Compat` namespace with scoped
@@ -205,14 +205,6 @@ protected theorem Rat.eq_or_lt_of_le {a b : Rat} (h : a ≤ b) : a = b ∨ a < b
 theorem mul_left_cancel₀ {a b c : Rat} (ha : a ≠ 0) (h : a * b = a * c) : b = c := by
   have h' : b * a = c * a := by grind
   exact (mul_left_inj' ha).mp h'
-
-/-- Mathlib-style unique existence (vendored: core has no `∃!`). -/
-def ExistsUnique {α : Sort u} (p : α → Prop) : Prop := ∃ x, p x ∧ ∀ y, p y → y = x
-
-open Lean in
-@[inherit_doc ExistsUnique]
-scoped macro "∃!" xs:explicitBinders ", " b:term : term => do
-  return ⟨← expandExplicitBinders ``ExistsUnique xs b⟩
 
 theorem abs_pos {a : Rat} : 0 < |a| ↔ a ≠ 0 := Rat.abs_pos_iff
 

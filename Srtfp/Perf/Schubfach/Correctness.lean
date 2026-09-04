@@ -1762,20 +1762,6 @@ theorem Schubfach.printer_unique_proof (p₁ p₂ : UInt64 → Except String Dec
       cases e₂
       rfl
 
-/-- Proof of `Schubfach.spec_output_exists_unique`. -/
-theorem Schubfach.spec_output_exists_unique_proof (w : UInt64)
-    (h_fin : Word.isFinite w = true) :
-    ∃! d : Decimal, Schubfach.IsSpecOutputBits w d := by
-  have h_corr := Schubfach.correctness_proof w
-  obtain ⟨_, _, h_main⟩ := h_corr
-  obtain ⟨d, h_eq, h_spec⟩ := h_main h_fin
-  refine ⟨d, h_spec, ?_⟩
-  intro d' h_spec'
-  have e' := Schubfach.specOutput_eq_output w h_fin d' h_spec'
-  rw [h_eq] at e'
-  cases e'
-  rfl
-
 /-! ## The digit-count bridge to `Srtfp/Spec.lean` -/
 
 theorem Schubfach.decDigitLength_eq_digits (n : Nat) : decDigitLength n = Spec.digits n := by
