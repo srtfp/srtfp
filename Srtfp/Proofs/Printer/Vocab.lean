@@ -1,6 +1,7 @@
 module
 /- Vocabulary shared by the printer proofs (`v`, the magnitude of a word,
    and the spec's `digits`), and the digit-count facts. -/
+public import Srtfp.Rat
 public import Srtfp.Spec
 public import Srtfp.Printer
 

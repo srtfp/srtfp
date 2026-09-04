@@ -5,9 +5,8 @@ module
    unique such reader and printer are in `Srtfp/Correctness.lean`.
 
    Everything needed to read this file is defined in it or displayed
-   below; `|·|` is core's `Rat.abs`. -/
+   below. -/
 
-public import Srtfp.Rat
 public import Srtfp.Decimal
 public import Srtfp.Float.Bits
 public import Srtfp.Clinger
@@ -16,7 +15,7 @@ public import Srtfp.Clinger
 
 namespace Srtfp.Spec
 
-open Compat Float
+open Float
 
 /-! ## Values -/
 
@@ -33,14 +32,14 @@ def wordVal (w : UInt64) : Rat :=
   val 2 sign m q
 
 /-- The distance between a decimal's value and a word's. -/
-def dist (d : Decimal) (w : UInt64) : Rat := |wordVal w - toRat d|
+def dist (d : Decimal) (w : UInt64) : Rat := Rat.abs (wordVal w - toRat d)
 
 /-- Number of base-10 digits (`digits 0 = 1`). -/
 def digits (n : Nat) : Nat := if n < 10 then 1 else digits (n / 10) + 1
 termination_by n
 decreasing_by omega
 
-example (q : Rat) : |q| = if 0 ≤ q then q else -q := rfl
+example (q : Rat) : Rat.abs q = if 0 ≤ q then q else -q := rfl
 
 /-! ## Referenced definitions, displayed here for convenience -/
 
@@ -92,8 +91,8 @@ pattern of the decimal's sign at or past the threshold `2^1024 - 2^970`,
 the midpoint between the largest finite value and its would-be successor
 (ties-to-even sends the midpoint itself to infinity). -/
 structure CorrectReader (p : Decimal → UInt64) : Prop where
-  inRange : ∀ d : Decimal, |toRat d| < 2 ^ 1024 - 2 ^ 970 → NearestWord d (p d)
-  overflow : ∀ d : Decimal, 2 ^ 1024 - 2 ^ 970 ≤ |toRat d| →
+  inRange : ∀ d : Decimal, Rat.abs (toRat d) < 2 ^ 1024 - 2 ^ 970 → NearestWord d (p d)
+  overflow : ∀ d : Decimal, 2 ^ 1024 - 2 ^ 970 ≤ Rat.abs (toRat d) →
     Word.isInf (p d) ∧ Word.signBit (p d) = d.sign
 
 /-! ## The printer -/

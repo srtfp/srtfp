@@ -20,7 +20,7 @@ public import Srtfp.Proofs.Printer.Spec
 
 namespace Srtfp.Spec
 
-open Compat Float
+open Float
 
 /-- **A function is a correct reader iff it is `Clinger.ofDecimalBits`**,
 bit for bit. -/
