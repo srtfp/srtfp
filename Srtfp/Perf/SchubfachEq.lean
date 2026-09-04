@@ -33,8 +33,8 @@ theorem correctPrinter_of_bits {p : UInt64 → Except String Decimal}
   finite w hw := by
     have hw' := (isFinite_iff w).mp hw
     obtain ⟨d, hd, hc, hrt, hs⟩ := (h w).2.2 hw'
-    refine ⟨d, hd, hc, (Clinger.readsTo_iff d w).mpr hrt, fun d' hne hc' hrt' => ?_⟩
-    rcases hs d' hne hc' ((Clinger.readsTo_iff d' w).mp hrt') with h1 | ⟨h1, h2 | ⟨h2, h3⟩⟩
+    refine ⟨d, hd, hc, (Reader.readsTo_iff d w).mpr hrt, fun d' hne hc' hrt' => ?_⟩
+    rcases hs d' hne hc' ((Reader.readsTo_iff d' w).mp hrt') with h1 | ⟨h1, h2 | ⟨h2, h3⟩⟩
     · exact .shorter (by rwa [decDigitLength_eq_digits, decDigitLength_eq_digits] at h1)
     · exact .closer (by rwa [decDigitLength_eq_digits, decDigitLength_eq_digits] at h1)
         (by rw [spec_dist_eq _ hw', spec_dist_eq _ hw']; exact h2)

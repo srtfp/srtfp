@@ -12,7 +12,7 @@ module
 public import Srtfp
 public import Srtfp.Float.Model
 public import Srtfp.Bridge.Basic
-public import Srtfp.Bridge.Clinger
+public import Srtfp.Bridge.Reader
 public import Srtfp.Bridge.Correctness
 
 @[expose] public section

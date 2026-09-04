@@ -487,21 +487,21 @@ this gives `d'.sign = (decode f).sign`. -/
 
 /-- `decodedAbs` preserves the sign field in every branch. -/
 theorem decodedAbs_sign (sign : Bool) (sig : Nat) (exp : Int) :
-    (Clinger.decodedAbs sign sig exp).sign = sign := by
-  unfold Clinger.decodedAbs
+    (Reader.decodedAbs sign sig exp).sign = sign := by
+  unfold Reader.decodedAbs
   dsimp only
   split_ifs <;> rfl
 
 /-- **(F)** A canonical `d'` with `IsFiniteAbs` flags whose `ofDecimal`
 round-trips bitwise to `f` shares `(decode f).sign`. -/
 theorem roundtrip_sign_eq (d' : Decimal) (w : UInt64)
-    (h_fin : Clinger.IsFiniteAbs d'.sign d'.significand d'.exponent)
-    (h_rt : Clinger.ofDecimalBits d' = w) :
+    (h_fin : Reader.IsFiniteAbs d'.sign d'.significand d'.exponent)
+    (h_rt : Reader.ofDecimalBits d' = w) :
     d'.sign = (Srtfp.Float.Word.decode w).sign := by
-  have h_bridge : Srtfp.Float.Word.decode (Clinger.ofDecimalBits d')
-      = Clinger.decodedAbs d'.sign d'.significand d'.exponent :=
-    Clinger.decode_of_decimal_bridge_bits d' h_fin
-  have h1 : (Srtfp.Float.Word.decode (Clinger.ofDecimalBits d')).sign = d'.sign := by
+  have h_bridge : Srtfp.Float.Word.decode (Reader.ofDecimalBits d')
+      = Reader.decodedAbs d'.sign d'.significand d'.exponent :=
+    Reader.decode_of_decimal_bridge_bits d' h_fin
+  have h1 : (Srtfp.Float.Word.decode (Reader.ofDecimalBits d')).sign = d'.sign := by
     rw [h_bridge, decodedAbs_sign]
   rw [← h1, h_rt]
 

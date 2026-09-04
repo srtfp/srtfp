@@ -5,7 +5,7 @@ module
    `Srtfp/Proofs/Printer/Spec.lean`.
 
    This file composes the per-stage results into a single statement of what
-   `Schubfach.toDecimal` and `Clinger.ofDecimal` together achieve.
+   `Schubfach.toDecimal` and `Reader.ofDecimal` together achieve.
 
    A reader can audit this file in isolation; everything that follows
    (`inRoundingInterval`, `decode`, `kOfMQ`, `pickNearer`, the per-stage
@@ -35,7 +35,7 @@ open Srtfp.Compat
 
 namespace Srtfp
 
-open Schubfach Clinger Srtfp.Float Decimal
+open Schubfach Reader Srtfp.Float Decimal
 open Srtfp.Schubfach (decDigitLength)
 
 /-! ## Bit-only facts about `decode` and `isFiniteBits`
@@ -114,9 +114,9 @@ private theorem Schubfach.isSpecOutput_iff (w : UInt64) (d : Decimal) :
 
 /-- The bits of `ofDecimal` on a sig-0 decimal, in `Word.pack` form. -/
 private theorem ofDecimal_sig0_bits (d : Decimal) (h : d.significand = 0) :
-    Clinger.ofDecimalBits d = Word.pack d.sign 0 0 := by
-  show Clinger.decimalToFloatBits d.sign d.significand d.exponent = _
-  unfold Clinger.decimalToFloatBits
+    Reader.ofDecimalBits d = Word.pack d.sign 0 0 := by
+  show Reader.decimalToFloatBits d.sign d.significand d.exponent = _
+  unfold Reader.decimalToFloatBits
   rw [if_pos h]
   rfl
 
@@ -1367,7 +1367,7 @@ private theorem Schubfach.correctness_fin_aux (w : UInt64)
   -- Shared competitor analysis: any canonical round-tripper `d'` has a
   -- nonzero canonical significand, `w`'s sign, and lies in `R_v(Word.decode w)`.
   have h_comp : ∀ d' : Decimal, Decimal.IsCanonical d' →
-      Clinger.ofDecimalBits d' = w →
+      Reader.ofDecimalBits d' = w →
       d'.significand ≠ 0 ∧ d'.significand % 10 ≠ 0 ∧ d'.sign = (Word.decode w).sign ∧
       inRoundingInterval d'.significand d'.exponent m q (isIrregular m q) = true := by
     intro d' h'_canon h'_rt
@@ -1383,7 +1383,7 @@ private theorem Schubfach.correctness_fin_aux (w : UInt64)
           decide
       exact h_nz h_m_zero
     have h'_finabs : IsFiniteAbs d'.sign d'.significand d'.exponent :=
-      Clinger.isFiniteAbs_of_roundtrip_bits d' w h'_sig_ne h_fin h'_rt
+      Reader.isFiniteAbs_of_roundtrip_bits d' w h'_sig_ne h_fin h'_rt
     have h'_mod : d'.significand % 10 ≠ 0 := by
       rcases h'_canon with ⟨h_zero, _⟩ | ⟨_, h_mod⟩
       · exact absurd h_zero h'_sig_ne
@@ -1392,10 +1392,10 @@ private theorem Schubfach.correctness_fin_aux (w : UInt64)
     have h'_in_Rv : inRoundingInterval d'.significand d'.exponent m q
         (isIrregular m q) = true := by
       have h0 : inRoundingInterval d'.significand d'.exponent
-          (Word.decode (Clinger.ofDecimalBits d')).m (Word.decode (Clinger.ofDecimalBits d')).q
-          (isIrregular (Word.decode (Clinger.ofDecimalBits d')).m
-                       (Word.decode (Clinger.ofDecimalBits d')).q) = true :=
-        Clinger.ofDecimalBits_in_Rv d' h'_sig_ne h'_finabs
+          (Word.decode (Reader.ofDecimalBits d')).m (Word.decode (Reader.ofDecimalBits d')).q
+          (isIrregular (Word.decode (Reader.ofDecimalBits d')).m
+                       (Word.decode (Reader.ofDecimalBits d')).q) = true :=
+        Reader.ofDecimalBits_in_Rv d' h'_sig_ne h'_finabs
       rwa [decode_eq_of_toBits_eq h'_rt] at h0
     exact ⟨h'_sig_ne, h'_mod, h'_sign, h'_in_Rv⟩
   refine ⟨d, h_eq, (Schubfach.isSpecOutput_iff w d).mpr
@@ -1537,14 +1537,14 @@ private theorem Schubfach.specOutput_eq_output_nz (w : UInt64)
         ∨ ( |Decimal.toRat d_star - Schubfach.wordVal w| = |Decimal.toRat d' - Schubfach.wordVal w|
             ∧ d_star.significand % 2 = 0 )) :
     Schubfach.toDecimalBits w = .ok d_star := by
-  have h_rt' : Clinger.ofDecimalBits d_star = w := h_rt
+  have h_rt' : Reader.ofDecimalBits d_star = w := h_rt
   -- The algorithm's own output and its spec properties.
   have h_corr := Schubfach.correctness_proof w
   obtain ⟨_, _, h_main⟩ := h_corr
   obtain ⟨d, h_eq, h_spec_d⟩ := h_main h_fin
   obtain ⟨h_canon_d, h_rt_d, h_min_d, h_tie_d⟩ :=
     (Schubfach.isSpecOutput_iff w d).mp h_spec_d
-  have h_rt_d' : Clinger.ofDecimalBits d = w := h_rt_d
+  have h_rt_d' : Reader.ofDecimalBits d = w := h_rt_d
   -- Reduce to d = d_star.
   suffices h_de : d = d_star by rw [h_de] at h_eq; exact h_eq
   -- Decode invariants and output decomposition.
@@ -1597,7 +1597,7 @@ private theorem Schubfach.specOutput_eq_output_nz (w : UInt64)
     · exact absurd h_zero h_star_sig_ne
     · exact h_mod
   have h_finabs : IsFiniteAbs d_star.sign d_star.significand d_star.exponent :=
-    Clinger.isFiniteAbs_of_roundtrip_bits d_star w h_star_sig_ne h_fin h_rt'
+    Reader.isFiniteAbs_of_roundtrip_bits d_star w h_star_sig_ne h_fin h_rt'
   -- Step 1: same digit length L.
   have h_le1 : decDigitLength d.significand ≤ decDigitLength d_star.significand :=
     h_min_d d_star h_canon h_rt
@@ -1656,10 +1656,10 @@ private theorem Schubfach.specOutput_eq_output_nz (w : UInt64)
       have h_star_in_Rv : inRoundingInterval d_star.significand d_star.exponent m q
                             (isIrregular m q) = true := by
         have h0 : inRoundingInterval d_star.significand d_star.exponent
-            (Word.decode (Clinger.ofDecimalBits d_star)).m (Word.decode (Clinger.ofDecimalBits d_star)).q
-            (isIrregular (Word.decode (Clinger.ofDecimalBits d_star)).m
-                         (Word.decode (Clinger.ofDecimalBits d_star)).q) = true :=
-          Clinger.ofDecimalBits_in_Rv d_star h_star_sig_ne h_finabs
+            (Word.decode (Reader.ofDecimalBits d_star)).m (Word.decode (Reader.ofDecimalBits d_star)).q
+            (isIrregular (Word.decode (Reader.ofDecimalBits d_star)).m
+                         (Word.decode (Reader.ofDecimalBits d_star)).q) = true :=
+          Reader.ofDecimalBits_in_Rv d_star h_star_sig_ne h_finabs
         rwa [decode_eq_of_toBits_eq h_rt'] at h0
       have h_distinct : ¬ (d_star.significand = d.significand ∧ d_star.exponent = d.exponent) :=
         h_same
@@ -1679,7 +1679,7 @@ theorem Schubfach.specOutput_eq_output (w : UInt64)
     (Schubfach.isSpecOutput_iff w d_star).mp h_spec
   by_cases h_nz : (Word.decode w).m = 0
   · -- `w = ±0`: the spec pins `d_star` to the signed canonical zero.
-    have h_rt' : Clinger.ofDecimalBits d_star = w := h_rt
+    have h_rt' : Reader.ofDecimalBits d_star = w := h_rt
     have h_dz_rt : Schubfach.RoundTripsBits w (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) :=
       ofDecimal_signedZero_bits w h_nz
     have h_dz_canon : Decimal.IsCanonical (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) :=
@@ -1712,7 +1712,7 @@ theorem Schubfach.specOutput_eq_output (w : UInt64)
       · exact h
       · exact absurd h_sig0 h
     have h_sign : d_star.sign = (Word.decode w).sign := by
-      have h1 : Clinger.ofDecimalBits d_star = Word.pack d_star.sign 0 0 :=
+      have h1 : Reader.ofDecimalBits d_star = Word.pack d_star.sign 0 0 :=
         ofDecimal_sig0_bits d_star h_sig0
       have h2 : Word.pack (Word.decode w).sign 0 0 = w := by
         rw [← ofDecimal_sig0_bits (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) rfl]

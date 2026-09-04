@@ -11,7 +11,7 @@ module
 
 public import Srtfp.Correctness
 public import Srtfp.Proofs.Bits
-public import Srtfp.Bridge.Clinger
+public import Srtfp.Bridge.Reader
 
 @[expose] public section
 
@@ -113,19 +113,19 @@ private theorem beatsF_iff (f : Float) (d d' : Decimal) :
 /-! ## The reader theorem, `Float` tier -/
 
 /-- **A function is a correct Decimal→`Float` reader iff it agrees with
-`Clinger.ofDecimal` bit for bit.** Float tier of
+`Reader.ofDecimal` bit for bit.** Float tier of
 `Srtfp.Spec.correct_iff_ofDecimal`. -/
 theorem correct_iff_ofDecimalF (p : Decimal → Float) :
-    CorrectReaderF p ↔ ∀ d : Decimal, (p d).toBits = (Clinger.ofDecimal d).toBits := by
+    CorrectReaderF p ↔ ∀ d : Decimal, (p d).toBits = (Reader.ofDecimal d).toBits := by
   have hbits := correct_iff_ofDecimal (fun d => (p d).toBits)
   constructor
   · intro h d
-    rw [Clinger.ofDecimal_toBits]
+    rw [Reader.ofDecimal_toBits]
     exact (hbits.mp ⟨fun d' hin => (nearestFloat_iff d' (p d')).mp (h.inRange d' hin),
                       fun d' hout => h.overflow d' hout⟩) d
   · intro h
-    have hb : ∀ c : Decimal, (p c).toBits = Clinger.ofDecimalBits c := by
-      intro c; rw [h c, Clinger.ofDecimal_toBits]
+    have hb : ∀ c : Decimal, (p c).toBits = Reader.ofDecimalBits c := by
+      intro c; rw [h c, Reader.ofDecimal_toBits]
     have hc := hbits.mpr hb
     exact ⟨fun d hin => (nearestFloat_iff d (p d)).mpr (hc.inRange d hin),
            fun d hout => hc.overflow d hout⟩
@@ -133,13 +133,13 @@ theorem correct_iff_ofDecimalF (p : Decimal → Float) :
 /-- Reading back under every correct `Float` reader is reading back under
 every correct word reader. -/
 private theorem readsToF_iff (d : Decimal) (f : Float) : ReadsToF d f ↔ ReadsTo d f.toBits := by
-  rw [Clinger.readsTo_iff]
+  rw [Reader.readsTo_iff]
   constructor
   · intro h
-    have := h Clinger.ofDecimal ((correct_iff_ofDecimalF _).mpr fun _ => rfl)
-    rwa [Clinger.ofDecimal_toBits] at this
+    have := h Reader.ofDecimal ((correct_iff_ofDecimalF _).mpr fun _ => rfl)
+    rwa [Reader.ofDecimal_toBits] at this
   · intro h p hp
-    rw [(correct_iff_ofDecimalF p).mp hp d, Clinger.ofDecimal_toBits, h]
+    rw [(correct_iff_ofDecimalF p).mp hp d, Reader.ofDecimal_toBits, h]
 
 /-- `ShortestDecimalF` at `f` is `ShortestDecimal` at `f.toBits`. -/
 private theorem shortestDecimalF_iff (f : Float) (d : Decimal) :

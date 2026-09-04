@@ -27,7 +27,7 @@ printer:
 These properties uniquely determine the printer's behavior, and
 likewise the parser's: a function is a correct shortest-decimal printer iff it is
 `Printer.toDecimalBits`, and a correct round-to-nearest reader iff it
-is `Clinger.ofDecimalBits`. For the exact statements, see
+is `Reader.ofDecimalBits`. For the exact statements, see
 [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean).
 
 The library is three tiers, each a separate import:
@@ -76,7 +76,7 @@ worth reading to understand the algorithms:
 | [`Srtfp/Decimal.lean`](Srtfp/Decimal.lean) | operations on the spec's `Decimal` (canonicalisation, constructors) |
 | [`Srtfp/Float/Bits.lean`](Srtfp/Float/Bits.lean) | binary64 word fields, decoding, packing |
 | [`Srtfp/Printer.lean`](Srtfp/Printer.lean) | the printer, `toDecimalBits` |
-| [`Srtfp/Clinger.lean`](Srtfp/Clinger.lean) | the reader, `ofDecimalBits` |
+| [`Srtfp/Reader.lean`](Srtfp/Reader.lean) | the reader, `ofDecimalBits` |
 
 Everything else is proof (`Srtfp/Proofs/`), the text layer
 (`Srtfp/Text.lean`, `Decimal` ↔ `String` for JSON, YAML, MLIR, …), the

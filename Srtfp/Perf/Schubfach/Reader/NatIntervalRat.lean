@@ -17,7 +17,7 @@ namespace Srtfp
 
 open Srtfp.Schubfach
 open Srtfp.Float
-open Srtfp.Clinger
+open Srtfp.Reader
 
 namespace Schubfach
 

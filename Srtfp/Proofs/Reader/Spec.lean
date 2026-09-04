@@ -1,6 +1,6 @@
 module
 /- The reader meets `Srtfp/Spec.lean`: a function is a correct reader iff
-   it is `Clinger.ofDecimalBits`. Also the one fact the printer proof uses
+   it is `Reader.ofDecimalBits`. Also the one fact the printer proof uses
    about the reader, `reads_to_iff`: a decimal reads back to a finite
    nonzero word iff it carries the word's sign and its magnitude lies in
    the word's rounding interval (Giulietti §3.2.1). -/
@@ -11,7 +11,7 @@ public import Srtfp.Proofs.Reader.Nearest
 
 open Srtfp.Compat
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Float Srtfp.Printer
 
@@ -68,7 +68,7 @@ theorem isFinite_pack_inf (sign : Bool) : Word.isFinite (Word.pack sign 2047 0) 
 
 /-! ## The reader theorem -/
 
-/-- `Clinger.ofDecimalBits` is a correct reader. -/
+/-- `Reader.ofDecimalBits` is a correct reader. -/
 theorem correctReader_ofDecimalBits : Spec.CorrectReader ofDecimalBits where
   inRange d hd := by
     rw [abs_toRat] at hd
@@ -82,7 +82,7 @@ theorem correctReader_ofDecimalBits : Spec.CorrectReader ofDecimalBits where
     unfold Word.isInf; rw [hb, hm]; decide
 
 /-- **The reader theorem.** A function is a correct reader iff it is
-`Clinger.ofDecimalBits`. -/
+`Reader.ofDecimalBits`. -/
 theorem correctReader_iff_ofDecimal (p : Decimal → UInt64) :
     Spec.CorrectReader p ↔ ∀ d : Decimal, p d = ofDecimalBits d := by
   constructor
@@ -152,4 +152,4 @@ theorem reads_to_iff {w : UInt64} (hw : Word.isFinite w = true) (hm : 1 ≤ (Wor
     obtain ⟨hfin, hs', hmem'⟩ := hspec.1 hd
     exact (eq_of_nearestWord (nearestWord_of_InRv hw hs.symm hmem) hfin hs' hmem').symm
 
-end Srtfp.Clinger
+end Srtfp.Reader

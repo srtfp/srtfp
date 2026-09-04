@@ -12,7 +12,7 @@ public import Srtfp.Proofs.Unpack
 
 open Srtfp.Compat
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Float Srtfp.Printer
 
@@ -223,4 +223,4 @@ theorem eq_of_nearestWord {d : Decimal} {w w' : UInt64} (h : Spec.NearestWord d 
       obtain ⟨rfl, -⟩ := v_inj hleg hlegN hval
       omega
 
-end Srtfp.Clinger
+end Srtfp.Reader

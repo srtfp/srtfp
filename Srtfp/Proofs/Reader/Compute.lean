@@ -3,7 +3,7 @@ module
    overflow threshold, `decimalToFloatBits` returns a finite word of the
    decimal's sign whose interval `R_w` contains the magnitude; at or past
    the threshold it returns the infinity of that sign. Read off the
-   branches of the definition in `Srtfp/Clinger.lean`. -/
+   branches of the definition in `Srtfp/Reader.lean`. -/
 public import Srtfp.Proofs.Reader.Round
 public import Srtfp.Proofs.Reader.Words
 
@@ -11,7 +11,7 @@ public import Srtfp.Proofs.Reader.Words
 
 open Srtfp.Compat
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Float Srtfp.Printer
 
@@ -324,4 +324,4 @@ theorem decimalToFloatBits_spec (sign : Bool) (sig : Nat) (exp : Int) :
         obtain ⟨hfin, hdec⟩ := subnormal_pack sign (n := n) (by omega)
         exact ⟨hfin, by rw [hdec], by rw [hdec]; exact hmem⟩
 
-end Srtfp.Clinger
+end Srtfp.Reader

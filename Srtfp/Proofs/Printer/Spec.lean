@@ -14,7 +14,7 @@ open Srtfp.Compat
 
 namespace Srtfp.Printer
 
-open Srtfp Srtfp.Float Srtfp.Clinger
+open Srtfp Srtfp.Float Srtfp.Reader
 
 variable {m : Nat} {q i : Int} {n : Nat} {wd : UInt64} {d : Decimal}
 
@@ -495,15 +495,15 @@ theorem BeatsOdd.not_beats {w : UInt64} {d d' : Decimal} (h : BeatsOdd w d d')
 /-- Nonzero words: the output is canonical, reads back, and beats every
     competitor. -/
 theorem nonzero_output (hw : Word.isFinite wd = true) (hm : 1 ≤ (Word.decode wd).m) :
-    ∃ d₀, toDecimalBits wd = .ok d₀ ∧ d₀.IsCanonical ∧ Clinger.ofDecimalBits d₀ = wd
-      ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Clinger.ofDecimalBits d' = wd →
+    ∃ d₀, toDecimalBits wd = .ok d₀ ∧ d₀.IsCanonical ∧ Reader.ofDecimalBits d₀ = wd
+      ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.ofDecimalBits d' = wd →
           BeatsOdd wd d₀ d' := by
   have h := inRange_of_decode hw hm
   have hri := reads_to_iff hw hm
   have hdist : ∀ z, Spec.dist z wd = |(if (Word.decode wd).sign then -1 else 1 : Rat)
       * v (Word.decode wd).m (Word.decode wd).q
       - (if z.sign then -1 else 1 : Rat) * ((z.significand : Rat) * (10 : Rat) ^ z.exponent)| :=
-    fun z => Clinger.dist_eq z hw
+    fun z => Reader.dist_eq z hw
   rcases hdec : Word.decode wd with ⟨sgn, m, q⟩
   rw [hdec] at h hri hm hdist
   dsimp only at h hri hm hdist
@@ -539,8 +539,8 @@ theorem nonzero_output (hw : Word.isFinite wd = true) (hm : 1 ≤ (Word.decode w
 
 /-- Zero words: the signed zero is the output; every competitor is farther. -/
 theorem zero_output (hw : Word.isFinite wd = true) (hm : (Word.decode wd).m = 0) :
-    ∃ d₀, toDecimalBits wd = .ok d₀ ∧ d₀.IsCanonical ∧ Clinger.ofDecimalBits d₀ = wd
-      ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Clinger.ofDecimalBits d' = wd →
+    ∃ d₀, toDecimalBits wd = .ok d₀ ∧ d₀.IsCanonical ∧ Reader.ofDecimalBits d₀ = wd
+      ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.ofDecimalBits d' = wd →
           BeatsOdd wd d₀ d' := by
   refine ⟨⟨(Word.decode wd).sign, 0, 0⟩, ?_, Or.inl ⟨rfl, rfl⟩, ?_, ?_⟩
   · rw [toDecimalBits_of_finite hw, if_pos hm]
@@ -569,9 +569,9 @@ theorem zero_output (hw : Word.isFinite wd = true) (hm : (Word.decode wd).m = 0)
     have hv0 : v (Word.decode wd).m (Word.decode wd).q = 0 := by rw [hm]; exact v_zero_iff.mpr rfl
     have hneg : ∀ a b : Rat, a * 0 - b = -b := fun a b => by grind
     have hd₀ : Spec.dist ⟨(Word.decode wd).sign, 0, 0⟩ wd = 0 := by
-      rw [Clinger.dist_eq _ hw, hv0]; simp; rw [Rat.sub_self]
+      rw [Reader.dist_eq _ hw, hv0]; simp; rw [Rat.sub_self]
     have hd' : 0 < Spec.dist d' wd := by
-      rw [Clinger.dist_eq _ hw, hv0, hneg, abs_neg, sign_mul_abs]
+      rw [Reader.dist_eq _ hw, hv0, hneg, abs_neg, sign_mul_abs]
       exact abs_pos.mpr (Rat.ne_of_gt (Rat.mul_pos (by exact_mod_cast hf1) (ten_zpow_pos _)))
     rcases Nat.lt_or_ge 1 (digits d'.significand) with hd | hd
     · left; rw [digits_zero]; exact hd
@@ -583,8 +583,8 @@ theorem zero_output (hw : Word.isFinite wd = true) (hm : (Word.decode wd).m = 0)
 
 /-- The output beats every competitor, with the competitor's parity on a tie. -/
 theorem output_beats (hw : Word.isFinite wd = true) :
-    ∃ d₀, toDecimalBits wd = .ok d₀ ∧ d₀.IsCanonical ∧ Clinger.ofDecimalBits d₀ = wd
-      ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Clinger.ofDecimalBits d' = wd →
+    ∃ d₀, toDecimalBits wd = .ok d₀ ∧ d₀.IsCanonical ∧ Reader.ofDecimalBits d₀ = wd
+      ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.ofDecimalBits d' = wd →
           BeatsOdd wd d₀ d' := by
   rcases Nat.eq_zero_or_pos (Word.decode wd).m with hm | hm
   · exact zero_output hw hm

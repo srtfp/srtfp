@@ -41,7 +41,7 @@ public import Srtfp.Perf.Schubfach.Reader.NatInterval
 
 @[expose] public section
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Float
 open Srtfp.Schubfach
@@ -52,7 +52,7 @@ open Srtfp
 /-! ## Headline correctness theorem -/
 
 /-- **Headline correctness theorem.** For a non-overflow nonzero
-`Decimal d`, `Clinger.ofDecimal d` decodes to a Float in the rounding
+`Decimal d`, `Reader.ofDecimal d` decodes to a Float in the rounding
 interval of `d = d.significand · 10^d.exponent`.
 
 The bridge from `decode (ofDecimal d)` to the abstract `decodedAbs`
@@ -73,4 +73,4 @@ theorem ofDecimalBits_in_Rv
   exact (abstract_correctness_of_dispatch branch_dispatch)
           d.sign d.significand d.exponent h_nonzero h_finite
 
-end Srtfp.Clinger
+end Srtfp.Reader

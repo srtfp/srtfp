@@ -37,7 +37,7 @@ import SrtfpTest.Spec
 import Srtfp.Perf.Schubfach
 import Srtfp.Perf.KernelV6
 import Srtfp.Perf.StringFast
-import Srtfp.Clinger
+import Srtfp.Reader
 
 namespace Srtfp.Tests.Ryu
 
@@ -461,7 +461,7 @@ def d2sExactTies : Array Case := #[
 also reads back to the same bits — only the even rule separates them. -/
 def tiePartnerRoundTrips : TestSeq :=
   test "tie partner 11258999068426243e-1 also reads back to 0x4310000000000001"
-    ((Clinger.ofDecimal ⟨false, 11258999068426243, -1⟩).toBits
+    ((Reader.ofDecimal ⟨false, 11258999068426243, -1⟩).toBits
       == (0x4310000000000001 : UInt64))
 
 /-- `intToStrRef` (the ++-spelled exponent-emit reference in StringFast)

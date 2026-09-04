@@ -10,7 +10,7 @@ public import Srtfp.Perf.RatExtra
 public import Srtfp.Decimal
 public import Srtfp.Float.Bits
 public import Srtfp.Perf.Schubfach.Reader.NatIntervalDefs
-public import Srtfp.Clinger
+public import Srtfp.Reader
 
 @[expose] public section
 
@@ -18,7 +18,7 @@ open Srtfp.Compat
 
 namespace Srtfp
 
-open Schubfach Clinger Srtfp.Float Decimal
+open Schubfach Reader Srtfp.Float Decimal
 
 /-! ## Vocabulary -/
 
@@ -51,12 +51,12 @@ decreasing_by exact Nat.div_lt_self (by omega) (by omega)
 
 /-- Reading `d` back through the verified reader reproduces `f`, bit for bit. -/
 def RoundTrips (f : _root_.Float) (d : Decimal) : Prop :=
-  (Clinger.ofDecimal d).toBits = f.toBits
+  (Reader.ofDecimal d).toBits = f.toBits
 
 /-- Bits-level round-trip: reading `d` back through the pure word reader
 reproduces the word `w` exactly. -/
 def RoundTripsBits (w : UInt64) (d : Decimal) : Prop :=
-  Clinger.ofDecimalBits d = w
+  Reader.ofDecimalBits d = w
 
 /-! ## The specification -/
 
@@ -106,7 +106,7 @@ def IsCorrectPrinterBits (p : UInt64 → Except String Decimal) : Prop :=
 
 end Schubfach
 
-namespace Clinger
+namespace Reader
 
 open Schubfach
 
@@ -147,6 +147,6 @@ def IsCorrectReaderBits (p : Decimal → UInt64) : Prop :=
     ∧ ((2 : Rat) ^ 1024 - 2 ^ 970 ≤ |Decimal.toRat d| →
          Word.isInf (p d) = true ∧ Word.signBit (p d) = d.sign)
 
-end Clinger
+end Reader
 
 end Srtfp

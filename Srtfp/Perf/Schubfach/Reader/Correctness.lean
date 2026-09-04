@@ -1,5 +1,5 @@
 module
-/- Reader correctness: `Clinger.ofDecimal` is THE round-to-nearest,
+/- Reader correctness: `Reader.ofDecimal` is THE round-to-nearest,
    ties-to-even `Decimal → Float` reader.
 
    Public statement: `Srtfp.Spec.correct_iff_ofDecimal`
@@ -33,7 +33,7 @@ public import Srtfp.Proofs.Bits
 
 open Srtfp.Compat
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Float
 open Srtfp.Schubfach
@@ -902,16 +902,16 @@ theorem decode_m_parity (w : UInt64) :
 /-- `ofDecimal` of a finite-range decimal is bit-level finite. -/
 theorem isFiniteBits_ofDecimal (d : Decimal)
     (h_fin : IsFiniteAbs d.sign d.significand d.exponent) :
-    Word.isFinite (Clinger.ofDecimalBits d) = true := by
-  have h_bridge := Clinger.decode_of_decimal_bridge_bits d h_fin
-  have h_dec_q : (Word.decode (Clinger.ofDecimalBits d)).q ≤ 971 := by
+    Word.isFinite (Reader.ofDecimalBits d) = true := by
+  have h_bridge := Reader.decode_of_decimal_bridge_bits d h_fin
+  have h_dec_q : (Word.decode (Reader.ofDecimalBits d)).q ≤ 971 := by
     rw [h_bridge]
     exact h_fin
   unfold Word.isFinite
-  by_cases he : Word.biasedExp (Clinger.ofDecimalBits d) = 0
+  by_cases he : Word.biasedExp (Reader.ofDecimalBits d) = 0
   · simp [he]
-  · have h_q_def : (Word.decode (Clinger.ofDecimalBits d)).q
-        = (Word.biasedExp (Clinger.ofDecimalBits d) : Int) - 1023 - 52 := by
+  · have h_q_def : (Word.decode (Reader.ofDecimalBits d)).q
+        = (Word.biasedExp (Reader.ofDecimalBits d) : Int) - 1023 - 52 := by
       unfold Word.decode
       rw [if_neg he]
     rw [h_q_def] at h_dec_q
@@ -920,8 +920,8 @@ theorem isFiniteBits_ofDecimal (d : Decimal)
 
 /-- On a zero significand, `ofDecimal` is the signed zero. -/
 theorem ofDecimal_sig_zero (d : Decimal) (h : d.significand = 0) :
-    Clinger.ofDecimalBits d = Word.pack d.sign 0 0 := by
-  unfold Clinger.ofDecimalBits Clinger.decimalToFloatBits
+    Reader.ofDecimalBits d = Word.pack d.sign 0 0 := by
+  unfold Reader.ofDecimalBits Reader.decimalToFloatBits
   rw [h]
   rfl
 
@@ -991,7 +991,7 @@ theorem rv_dist_le_u (s : Nat) (k : Int) (m : Nat) (q : Int)
 /-- In-range decimals: `ofDecimal` is the nearest float. -/
 theorem ofDecimalBits_isNearestWord (d : Decimal)
     (h_in : |Decimal.toRat d| < 2 ^ 1024 - 2 ^ 970) :
-    IsNearestWord d (Clinger.ofDecimalBits d) := by
+    IsNearestWord d (Reader.ofDecimalBits d) := by
   by_cases h_sig : d.significand = 0
   · -- Signed zero.
     have h_eq := ofDecimal_sig_zero d h_sig
@@ -1026,12 +1026,12 @@ theorem ofDecimalBits_isNearestWord (d : Decimal)
       have h_ge := bound_le_gridVal_of_not_finite d.sign d.significand d.exponent h_sig h_not
       rw [abs_toRat_eq_gridVal] at h_in
       exact absurd (lt_of_lt_of_le h_in h_ge) (lt_irrefl _)
-    have h_finBits : Word.isFinite (Clinger.ofDecimalBits d) = true :=
+    have h_finBits : Word.isFinite (Reader.ofDecimalBits d) = true :=
       isFiniteBits_ofDecimal d h_fin
-    have h_sign_f : (Word.decode (Clinger.ofDecimalBits d)).sign = d.sign := by
-      rw [Clinger.decode_of_decimal_bridge_bits d h_fin]
+    have h_sign_f : (Word.decode (Reader.ofDecimalBits d)).sign = d.sign := by
+      rw [Reader.decode_of_decimal_bridge_bits d h_fin]
       exact decodedAbs_sign d.sign d.significand d.exponent
-    have h_rv := Clinger.ofDecimalBits_in_Rv d h_sig h_fin
+    have h_rv := Reader.ofDecimalBits_in_Rv d h_sig h_fin
     simp only at h_rv
     have h_shape_f := decode_finShape _ h_finBits
     have h_df := wordVal_dist_reduce d _ h_sign_f
@@ -1053,7 +1053,7 @@ theorem ofDecimalBits_isNearestWord (d : Decimal)
       by_cases hgs : (Word.decode v).sign = d.sign
       · rw [h_df, wordVal_dist_reduce d v hgs] at h_eq'
         have h_mag_ne : magVal (Word.decode v).m (Word.decode v).q
-            ≠ magVal (Word.decode (Clinger.ofDecimalBits d)).m (Word.decode (Clinger.ofDecimalBits d)).q := by
+            ≠ magVal (Word.decode (Reader.ofDecimalBits d)).m (Word.decode (Reader.ofDecimalBits d)).q := by
           intro hmm
           apply h_ne
           rw [wordVal_eq_signFactor_magVal, wordVal_eq_signFactor_magVal,
@@ -1069,7 +1069,7 @@ theorem ofDecimalBits_isNearestWord (d : Decimal)
         have h_magg : magVal (Word.decode v).m (Word.decode v).q = 0 := by grind
         have h_v0 : wordVal v = 0 := by
           rw [wordVal_eq_signFactor_magVal, h_magg, mul_zero]
-        set mval := magVal (Word.decode (Clinger.ofDecimalBits d)).m (Word.decode (Clinger.ofDecimalBits d)).q
+        set mval := magVal (Word.decode (Reader.ofDecimalBits d)).m (Word.decode (Reader.ofDecimalBits d)).q
           with hmval
         set u := gridVal d.significand d.exponent with hu
         have h_dist_u : |mval - u| = u := by grind
@@ -1086,14 +1086,14 @@ theorem ofDecimalBits_isNearestWord (d : Decimal)
           · have : u - mval = u := by grind
             grind
         -- The left endpoint analysis kills every branch.
-        have hm_pos : (Word.decode (Clinger.ofDecimalBits d)).m ≠ 0 := by
+        have hm_pos : (Word.decode (Reader.ofDecimalBits d)).m ≠ 0 := by
           intro h0
           rw [hmval, h0, magVal_zero_eq] at h_v_pos
           exact lt_irrefl _ h_v_pos
-        have h2q := two_zpow_pos (Word.decode (Clinger.ofDecimalBits d)).q
-        have h_m_ge1 : (1 : Rat) ≤ ((Word.decode (Clinger.ofDecimalBits d)).m : Rat) := by
+        have h2q := two_zpow_pos (Word.decode (Reader.ofDecimalBits d)).q
+        have h_m_ge1 : (1 : Rat) ≤ ((Word.decode (Reader.ofDecimalBits d)).m : Rat) := by
           exact_mod_cast Nat.pos_of_ne_zero hm_pos
-        have h_v_ge : (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q ≤ mval := by
+        have h_v_ge : (2 : Rat) ^ (Word.decode (Reader.ofDecimalBits d)).q ≤ mval := by
           rw [hmval]
           unfold magVal
           have := Rat.mul_le_mul_of_nonneg_right h_m_ge1
@@ -1101,12 +1101,12 @@ theorem ofDecimalBits_isNearestWord (d : Decimal)
           grind
         rcases rv_left_rat d.significand d.exponent _ _ _ h_rv with h | ⟨h, heven⟩
         · -- Strict: 4mval - c·2^q < 4u = 2mval gives mval < 2^q, i.e. m < 1.
-          have hc_le : (if isIrregular (Word.decode (Clinger.ofDecimalBits d)).m
-                (Word.decode (Clinger.ofDecimalBits d)).q then (1 : Rat) else 2)
-                * (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q
-              ≤ 2 * (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q := by
-            have : (if isIrregular (Word.decode (Clinger.ofDecimalBits d)).m
-                (Word.decode (Clinger.ofDecimalBits d)).q then (1 : Rat) else 2) ≤ 2 := by
+          have hc_le : (if isIrregular (Word.decode (Reader.ofDecimalBits d)).m
+                (Word.decode (Reader.ofDecimalBits d)).q then (1 : Rat) else 2)
+                * (2 : Rat) ^ (Word.decode (Reader.ofDecimalBits d)).q
+              ≤ 2 * (2 : Rat) ^ (Word.decode (Reader.ofDecimalBits d)).q := by
+            have : (if isIrregular (Word.decode (Reader.ofDecimalBits d)).m
+                (Word.decode (Reader.ofDecimalBits d)).q then (1 : Rat) else 2) ≤ 2 := by
               split <;> grind
             grind
           rw [← hmval, ← hu] at h
@@ -1114,47 +1114,47 @@ theorem ofDecimalBits_isNearestWord (d : Decimal)
         · -- Endpoint: 2mval = c·2^q with c ∈ {1, 2}; c = 2 gives m = 1, odd;
           -- c = 1 gives 2m = 1, impossible.
           rw [← hmval, ← hu] at h
-          by_cases hirr : isIrregular (Word.decode (Clinger.ofDecimalBits d)).m
-              (Word.decode (Clinger.ofDecimalBits d)).q = true
+          by_cases hirr : isIrregular (Word.decode (Reader.ofDecimalBits d)).m
+              (Word.decode (Reader.ofDecimalBits d)).q = true
           · rw [if_pos hirr] at h
             -- 2mval = 2^q: 2m·2^q = 2^q so 2m = 1.
-            have h2m : 2 * ((Word.decode (Clinger.ofDecimalBits d)).m : Rat) = 1 := by
-              have hveq : 2 * mval = (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q := by
+            have h2m : 2 * ((Word.decode (Reader.ofDecimalBits d)).m : Rat) = 1 := by
+              have hveq : 2 * mval = (2 : Rat) ^ (Word.decode (Reader.ofDecimalBits d)).q := by
                 grind
               rw [hmval] at hveq
               unfold magVal at hveq
-              have hcanc := (mul_left_inj' (a := 2 * ((Word.decode (Clinger.ofDecimalBits d)).m : Rat))
+              have hcanc := (mul_left_inj' (a := 2 * ((Word.decode (Reader.ofDecimalBits d)).m : Rat))
                   (b := 1) (Rat.ne_of_gt h2q)).mp
-                (by grind : 2 * ((Word.decode (Clinger.ofDecimalBits d)).m : Rat)
-                    * (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q
-                  = 1 * (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q)
+                (by grind : 2 * ((Word.decode (Reader.ofDecimalBits d)).m : Rat)
+                    * (2 : Rat) ^ (Word.decode (Reader.ofDecimalBits d)).q
+                  = 1 * (2 : Rat) ^ (Word.decode (Reader.ofDecimalBits d)).q)
               grind
-            have : (2 * (Word.decode (Clinger.ofDecimalBits d)).m : Rat) = 1 := by
+            have : (2 * (Word.decode (Reader.ofDecimalBits d)).m : Rat) = 1 := by
               grind
-            have hnat : 2 * (Word.decode (Clinger.ofDecimalBits d)).m = 1 := by
+            have hnat : 2 * (Word.decode (Reader.ofDecimalBits d)).m = 1 := by
               exact_mod_cast this
             omega
           · rw [if_neg hirr] at h
             -- 2mval = 2·2^q: m = 1, but the endpoint demands m even.
-            have hveq : mval = (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q := by
+            have hveq : mval = (2 : Rat) ^ (Word.decode (Reader.ofDecimalBits d)).q := by
               grind
-            have hm1 : ((Word.decode (Clinger.ofDecimalBits d)).m : Rat) = 1 := by
+            have hm1 : ((Word.decode (Reader.ofDecimalBits d)).m : Rat) = 1 := by
               rw [hmval] at hveq
               unfold magVal at hveq
-              have hcanc := (mul_left_inj' (a := ((Word.decode (Clinger.ofDecimalBits d)).m : Rat))
+              have hcanc := (mul_left_inj' (a := ((Word.decode (Reader.ofDecimalBits d)).m : Rat))
                   (b := 1) (Rat.ne_of_gt h2q)).mp
-                (by grind : ((Word.decode (Clinger.ofDecimalBits d)).m : Rat)
-                    * (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q
-                  = 1 * (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q)
+                (by grind : ((Word.decode (Reader.ofDecimalBits d)).m : Rat)
+                    * (2 : Rat) ^ (Word.decode (Reader.ofDecimalBits d)).q
+                  = 1 * (2 : Rat) ^ (Word.decode (Reader.ofDecimalBits d)).q)
               grind
-            have hnat : (Word.decode (Clinger.ofDecimalBits d)).m = 1 := by exact_mod_cast hm1
+            have hnat : (Word.decode (Reader.ofDecimalBits d)).m = 1 := by exact_mod_cast hm1
             omega
 
 /-- Out-of-range decimals: `ofDecimal` is exactly the signed-infinity
 bit pattern. -/
 theorem ofDecimal_overflow_eq (d : Decimal)
     (h_out : (2 : Rat) ^ 1024 - 2 ^ 970 ≤ |Decimal.toRat d|) :
-    Clinger.ofDecimalBits d = Word.pack d.sign 2047 0 := by
+    Reader.ofDecimalBits d = Word.pack d.sign 2047 0 := by
   have hBpos : (0 : Rat) < 2 ^ 1024 - 2 ^ 970 :=
     sub_pos.mpr (rat_pow_lt_pow_right (show (1 : Rat) < 2 by grind)
       (show (970 : Nat) < 1024 by grind))
@@ -1165,18 +1165,18 @@ theorem ofDecimal_overflow_eq (d : Decimal)
     exact absurd (lt_of_lt_of_le hBpos h_out) (lt_irrefl _)
   have h_not : ¬ IsFiniteAbs d.sign d.significand d.exponent := by
     intro h_fin
-    have h_rv := Clinger.ofDecimalBits_in_Rv d h_sig h_fin
+    have h_rv := Reader.ofDecimalBits_in_Rv d h_sig h_fin
     simp only at h_rv
     have h_fb := isFiniteBits_ofDecimal d h_fin
     have h_lt := gridVal_lt_bound_of_rv _ _ _ _ (decode_finShape _ h_fb) h_rv
     rw [abs_toRat_eq_gridVal] at h_out
     exact absurd (lt_of_lt_of_le h_lt h_out) (lt_irrefl _)
-  exact Clinger.decimalToFloatBits_overflow_inf d.sign d.significand d.exponent h_sig h_not
+  exact Reader.decimalToFloatBits_overflow_inf d.sign d.significand d.exponent h_sig h_not
 
 /-- Out-of-range decimals: `ofDecimal` is the signed infinity. -/
 theorem ofDecimal_overflow (d : Decimal)
     (h_out : (2 : Rat) ^ 1024 - 2 ^ 970 ≤ |Decimal.toRat d|) :
-    Word.isInf (Clinger.ofDecimalBits d) = true ∧ Word.signBit (Clinger.ofDecimalBits d) = d.sign := by
+    Word.isInf (Reader.ofDecimalBits d) = true ∧ Word.signBit (Reader.ofDecimalBits d) = d.sign := by
   obtain ⟨h_sb, h_be, h_mb⟩ :=
     pack_proj d.sign 2047 0 (by grind) (by (first | exact Rat.zpow_pos (by decide) | exact Rat.pow_pos (by decide) | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | grind))
   rw [ofDecimal_overflow_eq d h_out]
@@ -1434,31 +1434,31 @@ theorem spec_toBits_eq (d : Decimal) (v : UInt64)
     (h_near : |Decimal.toRat d| < 2 ^ 1024 - 2 ^ 970 → IsNearestWord d v)
     (h_over : (2 : Rat) ^ 1024 - 2 ^ 970 ≤ |Decimal.toRat d| →
        Word.isInf v = true ∧ Word.signBit v = d.sign) :
-    v = Clinger.ofDecimalBits d := by
+    v = Reader.ofDecimalBits d := by
   rcases lt_or_ge |Decimal.toRat d| ((2 : Rat) ^ 1024 - 2 ^ 970) with h_in | h_out
   · -- In range: both are nearest floats, tie analysis forces equal values.
     obtain ⟨hgF, hgs, hg_near, hg_tie⟩ := h_near h_in
     obtain ⟨hfF, hfs, hf_near, hf_tie⟩ := ofDecimalBits_isNearestWord d h_in
     have hgs' : (Word.decode v).sign = d.sign := by
       rw [← signBit_eq_decode_sign']; exact hgs
-    have hfs' : (Word.decode (Clinger.ofDecimalBits d)).sign = d.sign := by
+    have hfs' : (Word.decode (Reader.ofDecimalBits d)).sign = d.sign := by
       rw [← signBit_eq_decode_sign']; exact hfs
     have h_dist : |wordVal v - Decimal.toRat d|
-        = |wordVal (Clinger.ofDecimalBits d) - Decimal.toRat d| :=
+        = |wordVal (Reader.ofDecimalBits d) - Decimal.toRat d| :=
       Rat.le_antisymm (hg_near _ hfF) (hf_near v hgF)
-    have h_val : wordVal v = wordVal (Clinger.ofDecimalBits d) := by
-      by_cases h : wordVal v = wordVal (Clinger.ofDecimalBits d)
+    have h_val : wordVal v = wordVal (Reader.ofDecimalBits d) := by
+      by_cases h : wordVal v = wordVal (Reader.ofDecimalBits d)
       · exact h
       · -- An exact two-sided tie: both tie clauses fire.
         have h_mg_even : Word.mantissa v % 2 = 0 :=
           hg_tie _ hfF (fun hh => h hh.symm) h_dist.symm
-        have h_mf_even : Word.mantissa (Clinger.ofDecimalBits d) % 2 = 0 :=
+        have h_mf_even : Word.mantissa (Reader.ofDecimalBits d) % 2 = 0 :=
           hf_tie v hgF h h_dist
-        exact tie_values_eq d (Clinger.ofDecimalBits d) v hfF hgF hfs' hgs'
+        exact tie_values_eq d (Reader.ofDecimalBits d) v hfF hgF hfs' hgs'
           hf_near hg_near h_mf_even h_mg_even h_dist
     -- Equal values, equal signs: identical decode, identical bits.
     have h_mag : magVal (Word.decode v).m (Word.decode v).q
-        = magVal (Word.decode (Clinger.ofDecimalBits d)).m (Word.decode (Clinger.ofDecimalBits d)).q := by
+        = magVal (Word.decode (Reader.ofDecimalBits d)).m (Word.decode (Reader.ofDecimalBits d)).q := by
       rw [wordVal_eq_signFactor_magVal, wordVal_eq_signFactor_magVal,
           hgs', hfs'] at h_val
       have hsf : signFactor d.sign ≠ 0 := by
@@ -1503,25 +1503,25 @@ private theorem isNearestWord_congr (d : Decimal) (w₁ w₂ : UInt64)
 
 /-- **The reader correctness theorem, internal form.** A function
 satisfies the round-to-nearest reader spec iff it agrees with
-`Clinger.ofDecimal` on every decimal, bit for bit. -/
+`Reader.ofDecimal` on every decimal, bit for bit. -/
 theorem correct_iff_ofDecimal_proof (p : Decimal → UInt64) :
     IsCorrectReaderBits p
-      ↔ ∀ d : Decimal, p d = Clinger.ofDecimalBits d := by
+      ↔ ∀ d : Decimal, p d = Reader.ofDecimalBits d := by
   constructor
   · intro h d
     exact spec_toBits_eq d (p d) (h d).1 (h d).2
   · intro h d
     refine ⟨?_, ?_⟩
     · intro h_in
-      exact isNearestWord_congr d (Clinger.ofDecimalBits d) (p d) (h d)
+      exact isNearestWord_congr d (Reader.ofDecimalBits d) (p d) (h d)
         (ofDecimalBits_isNearestWord d h_in)
     · intro h_out
       obtain ⟨hf_inf, hf_sb⟩ := ofDecimal_overflow d h_out
       have hb := h d
       constructor
-      · rw [show Word.isInf (p d) = Word.isInf (Clinger.ofDecimalBits d) from by rw [hb]]
+      · rw [show Word.isInf (p d) = Word.isInf (Reader.ofDecimalBits d) from by rw [hb]]
         exact hf_inf
-      · rw [show Word.signBit (p d) = Word.signBit (Clinger.ofDecimalBits d) from by rw [hb]]
+      · rw [show Word.signBit (p d) = Word.signBit (Reader.ofDecimalBits d) from by rw [hb]]
         exact hf_sb
 
-end Srtfp.Clinger
+end Srtfp.Reader

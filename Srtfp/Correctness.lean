@@ -1,6 +1,6 @@
 module
 /- The two correctness theorems, one per direction: a function is a
-   correct reader iff it is `Clinger.ofDecimalBits` (`Srtfp/Clinger.lean`),
+   correct reader iff it is `Reader.ofDecimalBits` (`Srtfp/Reader.lean`),
    and a correct printer iff it is `Printer.toDecimalBits`
    (`Srtfp/Printer.lean`). Correctness is defined in `Srtfp/Spec.lean`; the
    proofs are `Srtfp/Proofs/Reader/Spec.lean` and
@@ -12,7 +12,7 @@ module
    `Float.Model` (`Srtfp/Float/Model.lean`). -/
 
 public import Srtfp.Spec
-public import Srtfp.Clinger
+public import Srtfp.Reader
 public import Srtfp.Printer
 public import Srtfp.Proofs.Reader.Spec
 public import Srtfp.Proofs.Printer.Spec
@@ -22,11 +22,11 @@ public import Srtfp.Proofs.Printer.Spec
 namespace Srtfp.Spec
 
 
-/-- **A function is a correct reader iff it is `Clinger.ofDecimalBits`**,
+/-- **A function is a correct reader iff it is `Reader.ofDecimalBits`**,
 bit for bit. -/
 theorem correct_iff_ofDecimal (p : Decimal → UInt64) :
-    CorrectReader p ↔ ∀ d : Decimal, p d = Clinger.ofDecimalBits d :=
-  Clinger.correctReader_iff_ofDecimal p
+    CorrectReader p ↔ ∀ d : Decimal, p d = Reader.ofDecimalBits d :=
+  Reader.correctReader_iff_ofDecimal p
 
 /-- **A function is a correct printer iff it is `Printer.toDecimalBits`.**
 The forward direction gives uniqueness (nothing else satisfies the spec);

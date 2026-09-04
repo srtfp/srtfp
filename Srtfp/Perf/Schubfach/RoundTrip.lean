@@ -1,5 +1,5 @@
 module
-/- Round-trip theorem: `Clinger.ofDecimal (Schubfach.toDecimalBits w) = f` at
+/- Round-trip theorem: `Reader.ofDecimal (Schubfach.toDecimalBits w) = f` at
    the bit level.
 
    This chains:
@@ -14,7 +14,7 @@ module
    ## Statement (.toBits level)
 
    For finite f with `(Word.decode w).m ≠ 0`, there exists `d : Decimal` with
-   `Schubfach.toDecimalBits w = .ok d ∧ Clinger.ofDecimalBits d = w`.
+   `Schubfach.toDecimalBits w = .ok d ∧ Reader.ofDecimalBits d = w`.
 
    ## Why `.toBits` level?
 
@@ -41,7 +41,7 @@ namespace Srtfp
 
 open Srtfp.Schubfach
 open Srtfp.Float
-open Srtfp.Clinger
+open Srtfp.Reader
 
 /-! ## Sign of the Clinger output -/
 
@@ -99,7 +99,7 @@ private theorem inRoundingInterval_mk'_eq (sign : Bool) (sig : Nat) (exp : Int)
   rw [hsig_eq, hexp_eq]
   exact h_invariance
 
-/-! ## Sorry D: `(decode (Clinger.ofDecimal d)).m ≠ 0` helper -/
+/-! ## Sorry D: `(decode (Reader.ofDecimal d)).m ≠ 0` helper -/
 
 /-- If `(Word.decode v).m = 0`, then `g` is in the subnormal-zero bit branch:
     `Word.biasedExp v = 0`, hence `(Word.decode v).q = -1074`. The normal branch
@@ -1005,7 +1005,7 @@ set_option maxHeartbeats 1600000 in
 /-- **`R_v` membership characterises the round-trip.** Any decimal `c` with
     nonzero significand, the same sign as a finite nonzero `f`, and
     `(c.significand, c.exponent)` inside `f`'s rounding interval reads back
-    to exactly `f`'s bits through `Clinger.ofDecimal`.
+    to exactly `f`'s bits through `Reader.ofDecimal`.
 
     This is the Clinger-side assembly (M4 + the disjointness lemma
     `inRoundingInterval_uniq`), independent of how the witness decimal was
@@ -1020,7 +1020,7 @@ theorem ofDecimal_eq_bits_of_rv
     (h_rv : inRoundingInterval c.significand c.exponent
               (Word.decode w).m (Word.decode w).q
               (isIrregular (Word.decode w).m (Word.decode w).q) = true) :
-    Clinger.ofDecimalBits c = w := by
+    Reader.ofDecimalBits c = w := by
   set decoded_f := Word.decode w with h_decoded_f
   have h_legal_for_finite : LegalIEEE decoded_f.m decoded_f.q :=
     decode_legalIEEE_bits w h_fin h_nonzero
@@ -1028,48 +1028,48 @@ theorem ofDecimal_eq_bits_of_rv
     isFiniteAbs_of_rv c decoded_f.m decoded_f.q h_legal_for_finite h_c_sig_ne h_rv
   have h_rv_clinger :
       inRoundingInterval c.significand c.exponent
-        (Word.decode (Clinger.ofDecimalBits c)).m (Word.decode (Clinger.ofDecimalBits c)).q
-        (isIrregular (Word.decode (Clinger.ofDecimalBits c)).m (Word.decode (Clinger.ofDecimalBits c)).q) = true :=
-    Clinger.ofDecimalBits_in_Rv c h_c_sig_ne h_finite_abs
-  have h_bridge := Clinger.decode_of_decimal_bridge_bits c h_finite_abs
-  have h_fin_clinger : Word.isFinite (Clinger.ofDecimalBits c) = true := by
+        (Word.decode (Reader.ofDecimalBits c)).m (Word.decode (Reader.ofDecimalBits c)).q
+        (isIrregular (Word.decode (Reader.ofDecimalBits c)).m (Word.decode (Reader.ofDecimalBits c)).q) = true :=
+    Reader.ofDecimalBits_in_Rv c h_c_sig_ne h_finite_abs
+  have h_bridge := Reader.decode_of_decimal_bridge_bits c h_finite_abs
+  have h_fin_clinger : Word.isFinite (Reader.ofDecimalBits c) = true := by
     unfold Word.isFinite
-    have h_dec_q : (Word.decode (Clinger.ofDecimalBits c)).q ≤ 971 := by
+    have h_dec_q : (Word.decode (Reader.ofDecimalBits c)).q ≤ 971 := by
       rw [h_bridge]; exact h_finite_abs
-    by_cases he : Word.biasedExp (Clinger.ofDecimalBits c) = 0
+    by_cases he : Word.biasedExp (Reader.ofDecimalBits c) = 0
     · simp [he]
-    · have h_q_def : (Word.decode (Clinger.ofDecimalBits c)).q
-                   = (Word.biasedExp (Clinger.ofDecimalBits c) : Int) - 1023 - 52 := by
+    · have h_q_def : (Word.decode (Reader.ofDecimalBits c)).q
+                   = (Word.biasedExp (Reader.ofDecimalBits c) : Int) - 1023 - 52 := by
         unfold Word.decode; rw [if_neg he]
       rw [h_q_def] at h_dec_q
-      have h_be_le : (Word.biasedExp (Clinger.ofDecimalBits c) : Int) ≤ 2046 := by omega
-      have h_be_le_nat : Word.biasedExp (Clinger.ofDecimalBits c) ≤ 2046 := by omega
-      have : Word.biasedExp (Clinger.ofDecimalBits c) < 2047 := by omega
+      have h_be_le : (Word.biasedExp (Reader.ofDecimalBits c) : Int) ≤ 2046 := by omega
+      have h_be_le_nat : Word.biasedExp (Reader.ofDecimalBits c) ≤ 2046 := by omega
+      have : Word.biasedExp (Reader.ofDecimalBits c) < 2047 := by omega
       simpa using this
-  have h_decoded_clinger_legal : LegalIEEE (Word.decode (Clinger.ofDecimalBits c)).m
-                                            (Word.decode (Clinger.ofDecimalBits c)).q := by
+  have h_decoded_clinger_legal : LegalIEEE (Word.decode (Reader.ofDecimalBits c)).m
+                                            (Word.decode (Reader.ofDecimalBits c)).q := by
     apply decode_legalIEEE_bits _ h_fin_clinger
     intro h_m_zero
-    have h_q_eq : (Word.decode (Clinger.ofDecimalBits c)).q = -1074 :=
-      decode_m_zero_q (Clinger.ofDecimalBits c) h_m_zero
+    have h_q_eq : (Word.decode (Reader.ofDecimalBits c)).q = -1074 :=
+      decode_m_zero_q (Reader.ofDecimalBits c) h_m_zero
     exact clinger_decode_m_ne_zero_aux c
       decoded_f.m decoded_f.q h_legal_for_finite
-      (Word.decode (Clinger.ofDecimalBits c)).m (Word.decode (Clinger.ofDecimalBits c)).q
+      (Word.decode (Reader.ofDecimalBits c)).m (Word.decode (Reader.ofDecimalBits c)).q
       h_rv h_rv_clinger h_m_zero h_q_eq
   rw [h_bridge] at h_rv_clinger
   obtain ⟨hm_eq, hq_eq⟩ := inRoundingInterval_uniq
     c.significand c.exponent
-    decoded_f.m (Clinger.decodedAbs c.sign c.significand c.exponent).m
-    decoded_f.q (Clinger.decodedAbs c.sign c.significand c.exponent).q
+    decoded_f.m (Reader.decodedAbs c.sign c.significand c.exponent).m
+    decoded_f.q (Reader.decodedAbs c.sign c.significand c.exponent).q
     h_legal_for_finite
     (by rw [← h_bridge]; exact h_decoded_clinger_legal)
     h_rv
     h_rv_clinger
-  have h_sign_eq : Word.signBit w = Word.signBit (Clinger.ofDecimalBits c) := by
+  have h_sign_eq : Word.signBit w = Word.signBit (Reader.ofDecimalBits c) := by
     rw [signBit_eq_decode_sign' w, signBit_eq_decode_sign']
     rw [h_bridge, decodedAbs_sign c.sign c.significand c.exponent]
     rw [← h_c_sign]
-  apply (toBits_eq_of_decode_eq (Clinger.ofDecimalBits c) w h_fin_clinger h_fin
+  apply (toBits_eq_of_decode_eq (Reader.ofDecimalBits c) w h_fin_clinger h_fin
     h_sign_eq.symm ?_ ?_)
   · rw [h_bridge]; exact hm_eq.symm
   · rw [h_bridge]; exact hq_eq.symm
@@ -1077,7 +1077,7 @@ theorem ofDecimal_eq_bits_of_rv
 set_option maxHeartbeats 1600000 in
 /-- **Round-trip theorem (bits level, axiom-free).** For a finite, nonzero
     binary64 word `w`, printing then reading recovers `w` exactly:
-    `Clinger.ofDecimalBits (Schubfach.toDecimalBits w) = w`.
+    `Reader.ofDecimalBits (Schubfach.toDecimalBits w) = w`.
 
     Chains M3.8 (Schubfach correctness) and M4 (Clinger correctness)
     through the disjointness lemma `inRoundingInterval_uniq`. -/
@@ -1086,7 +1086,7 @@ theorem ofDecimal_toDecimal_eq_bits
     (h_fin : Word.isFinite w = true)
     (h_nonzero : (Word.decode w).m ≠ 0) :
     ∃ d, Schubfach.toDecimalBits w = .ok d ∧
-         Clinger.ofDecimalBits d = w := by
+         Reader.ofDecimalBits d = w := by
   -- Step 1: Apply M3.8 to get the Schubfach output and its witness.
   obtain ⟨d, hd_eq, sig, exp, hd_mk, h_rv_raw⟩ := toDecimalBits_in_Rv w h_fin h_nonzero
   refine ⟨d, hd_eq, ?_⟩
@@ -1132,7 +1132,7 @@ theorem pack_zero_sign_inj (s' s : Bool)
 back to exactly `w`'s bits. -/
 theorem ofDecimal_signedZero_bits (w : UInt64)
     (h_m : (Word.decode w).m = 0) :
-    Clinger.ofDecimalBits (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) = w := by
+    Reader.ofDecimalBits (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) = w := by
   have h_be : Word.biasedExp w = 0 := by
     by_contra he
     have hm_def : (Word.decode w).m = Word.mantissa w + (1 <<< 52) := by
@@ -1148,10 +1148,10 @@ theorem ofDecimal_signedZero_bits (w : UInt64)
   have h_sign : (Word.decode w).sign = Word.signBit w := by
     unfold Word.decode
     simp [h_be]
-  have h_lhs : Clinger.ofDecimalBits (⟨(Word.decode w).sign, 0, 0⟩ : Decimal)
+  have h_lhs : Reader.ofDecimalBits (⟨(Word.decode w).sign, 0, 0⟩ : Decimal)
       = Word.pack (Word.decode w).sign 0 0 := by
-    show Clinger.decimalToFloatBits (Word.decode w).sign 0 0 = _
-    unfold Clinger.decimalToFloatBits
+    show Reader.decimalToFloatBits (Word.decode w).sign 0 0 = _
+    unfold Reader.decimalToFloatBits
     rw [if_pos rfl]
     rfl
   have h2 : Word.pack (Word.signBit w) (Word.biasedExp w) (Word.mantissa w)
@@ -1166,12 +1166,12 @@ theorem ofDecimal_signedZero_bits (w : UInt64)
 
 /-- **Printer outputs read back exactly (bits level, axiom-free).**
     Whatever `Schubfach.toDecimalBits` returns on a finite word `w`,
-    `Clinger.ofDecimalBits` maps it back to `w` — the zero and nonzero
+    `Reader.ofDecimalBits` maps it back to `w` — the zero and nonzero
     cases of `ofDecimal_toDecimal_eq_bits` in one statement. -/
 theorem toDecimalBits_roundtrip (w : UInt64)
     (h_fin : Word.isFinite w = true)
     {d : Decimal} (h : Schubfach.toDecimalBits w = .ok d) :
-    Clinger.ofDecimalBits d = w := by
+    Reader.ofDecimalBits d = w := by
   by_cases h_mz : (Word.decode w).m = 0
   · rw [Schubfach.toDecimalBits_zero w h_fin h_mz] at h
     obtain rfl : (⟨(Word.decode w).sign, 0, 0⟩ : Decimal) = d := by

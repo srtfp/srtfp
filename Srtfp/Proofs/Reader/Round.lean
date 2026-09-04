@@ -1,15 +1,15 @@
 module
-/- The three arithmetic helpers of `Srtfp/Clinger.lean`, read over Rat:
+/- The three arithmetic helpers of `Srtfp/Reader.lean`, read over Rat:
    `roundNearestEven` is the nearest integer with ties to even,
    `findBinaryExp` the binary exponent, `scaleByPow2` an exact rescaling. -/
-public import Srtfp.Clinger
+public import Srtfp.Reader
 public import Srtfp.Proofs.Printer.Interval
 
 @[expose] public section
 
 open Srtfp.Compat
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Printer
 
@@ -214,4 +214,4 @@ theorem scaleByPow2_spec {a b : Nat} (hb : 0 < b) (k : Int) :
           rw [Rat.mul_assoc ((a : Rat) / b), Rat.mul_comm (b : Rat), ← Rat.mul_assoc ((2 : Rat) ^ k),
             hcancel, Rat.one_mul]
 
-end Srtfp.Clinger
+end Srtfp.Reader

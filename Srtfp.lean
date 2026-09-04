@@ -18,7 +18,7 @@ module
 public import Srtfp.Decimal
 public import Srtfp.DecimalSyntax
 public import Srtfp.Float.Bits
-public import Srtfp.Clinger
+public import Srtfp.Reader
 public import Srtfp.Printer
 public import Srtfp.Rat
 public import Srtfp.Proofs.Bits

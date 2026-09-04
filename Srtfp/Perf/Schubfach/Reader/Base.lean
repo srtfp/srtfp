@@ -17,13 +17,13 @@ module
    localized. -/
 
 public import Srtfp.Perf.Schubfach.Spec
-public import Srtfp.Clinger
+public import Srtfp.Reader
 public import Srtfp.Perf.Schubfach.Reader.NatIntervalDefs
 public import Srtfp.Float.Bits
 
 @[expose] public section
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Float
 open Srtfp.Schubfach
@@ -243,16 +243,16 @@ theorem scaleByPow2_denom_pos {a b : Nat} {k : Int} (hb : 0 < b) :
     | exact hb
     | exact Nat.mul_pos hb (Nat.two_pow_pos _)
 
-/-! ## Abstract decoded form of `Clinger.ofDecimal`
+/-! ## Abstract decoded form of `Reader.ofDecimal`
 
 `decodedAbs` is the abstract `Decoded` record produced by
-`Clinger.ofDecimal ⟨sign, sig, exp⟩`; `IsFiniteAbs` says its biased
+`Reader.ofDecimal ⟨sign, sig, exp⟩`; `IsFiniteAbs` says its biased
 exponent stays in the finite binary64 range. They are *proof
 vocabulary*: the public correctness statements no longer mention them
 (`isFiniteAbs_of_roundtrip` in `Bridge.lean` derives `IsFiniteAbs` from
 any bit-level round-trip to a finite float). -/
 
-/-- Abstract decoded representation of `Clinger.ofDecimal (⟨sign, sig, exp⟩)`.
+/-- Abstract decoded representation of `Reader.ofDecimal (⟨sign, sig, exp⟩)`.
     Marker values for overflow/NaN: `m = 0, q = 1024` indicate `±∞`
     (the algorithm produces `infWord sign` whose decoded biased
     exponent would be 2047). -/
@@ -455,7 +455,7 @@ theorem roundNearestEven_cleared_bound (a b : Nat) (hb : 0 < b) :
 
 /-! ## The runtime bridge -/
 
-/-- **Bridge predicate.** For any `Decimal d`, `decode (Clinger.ofDecimal
+/-- **Bridge predicate.** For any `Decimal d`, `decode (Reader.ofDecimal
 d)` equals the abstract `decodedAbs d.sign d.significand d.exponent`,
 modulo the IEEE-754 distinction between finite values and ±∞. -/
 def DecodeOfDecimalBridge : Prop :=
@@ -494,4 +494,4 @@ def BranchDispatch : Prop := AbstractCorrectness
 theorem abstract_correctness_of_dispatch (h : BranchDispatch) :
     AbstractCorrectness := h
 
-end Srtfp.Clinger
+end Srtfp.Reader

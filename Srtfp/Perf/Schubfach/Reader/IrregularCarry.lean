@@ -15,7 +15,7 @@ public import Srtfp.Perf.Schubfach.Reader.NatInterval
 
 @[expose] public section
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Float
 open Srtfp.Schubfach
@@ -360,4 +360,4 @@ theorem irregular_carry_correct
       omega
     omega
 
-end Srtfp.Clinger
+end Srtfp.Reader

@@ -19,7 +19,7 @@ public import Srtfp.Perf.Schubfach.Reader.NatInterval
 
 @[expose] public section
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Float
 open Srtfp.Schubfach
@@ -334,4 +334,4 @@ theorem num_pre_denom_eq (sig : Nat) (exp q : Int) :
     _ = 2 * (sig * tenPosPow exp * twoNegPow q : Int)
             * (tenNegPow exp * twoPosPow (q - 1)) := by grind
 
-end Srtfp.Clinger
+end Srtfp.Reader

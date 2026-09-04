@@ -21,7 +21,7 @@ public import Srtfp.Proofs.Bits
 
 @[expose] public section
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Float
 open Srtfp
@@ -551,7 +551,7 @@ theorem word_isFinite_inf (sign : Bool) :
   decide
 
 /-- **`IsFiniteAbs` is implied by a bit-level round-trip to a finite float**:
-if `Clinger.ofDecimal d` has the same bits as some finite `f`, the abstract
+if `Reader.ofDecimal d` has the same bits as some finite `f`, the abstract
 decode cannot have overflowed (overflow produces `±∞`, whose biased exponent
 `2047` cannot match a finite bit pattern). This removes `IsFiniteAbs` side
 conditions from any statement that already assumes the round-trip. -/
@@ -567,7 +567,7 @@ theorem isFiniteAbs_of_roundtrip_bits (d : Decimal) (w : UInt64)
   rw [h_inf, word_isFinite_inf, h_fin] at h_fb
   exact absurd h_fb (by decide)
 
-/-! ## `Clinger.ofDecimalBits` never produces a NaN bit pattern
+/-! ## `Reader.ofDecimalBits` never produces a NaN bit pattern
 
 Every leaf of `decimalToFloatBits`'s if-tree is `Word.pack sign be m` with
 either `m = 0` (zero / infinity / carry-overflow leaves) or `be < 2047`
@@ -642,7 +642,7 @@ private theorem not_nanPattern_AB
           exact pack_isNaNPattern_false sign 0 _ (by decide) h_m_lt
             (fun _ => by omega)
 
-/-- **`Clinger.ofDecimalBits` never produces a NaN pattern**, for any
+/-- **`Reader.ofDecimalBits` never produces a NaN pattern**, for any
 `Decimal` (zero, finite nonzero, or overflowing to `±∞` — none of the
 leaves of `decimalToFloatBits`'s if-tree can encode a NaN payload). -/
 theorem ofDecimalBits_not_nanPattern (d : Decimal) :
@@ -673,4 +673,4 @@ theorem ofDecimalBits_not_nanPattern (d : Decimal) :
         Nat.pow_pos (by decide : 0 < (10 : Nat))
       exact not_nanPattern_AB d.sign _ _ (Nat.pos_of_ne_zero h_sig) hb_pos
 
-end Srtfp.Clinger
+end Srtfp.Reader

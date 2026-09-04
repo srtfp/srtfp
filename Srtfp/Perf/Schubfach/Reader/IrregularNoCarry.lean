@@ -14,7 +14,7 @@ public import Srtfp.Perf.Schubfach.Reader.NatInterval
 
 @[expose] public section
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Float
 open Srtfp.Schubfach
@@ -160,4 +160,4 @@ theorem irregular_no_carry_correct
             (scaleByPow2 a b (52 - e)).1 (scaleByPow2 a b (52 - e)).2
             h_irreg hnum_int hdenom_int hm_eq hdenom_pos
 
-end Srtfp.Clinger
+end Srtfp.Reader

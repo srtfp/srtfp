@@ -11,7 +11,7 @@ public import Srtfp.Perf.Schubfach.Reader.NatInterval
 
 @[expose] public section
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Float
 open Srtfp.Schubfach
@@ -400,4 +400,4 @@ theorem rounded_in_regular_Rv'
       ≤ (4 * (m : Int) + 2) * ((twoPosPow q : Int) * (tenNegPow exp : Int)) :=
   rounded_in_regular_Rv sig exp q m num denom hnum_pos hdenom_pos hm hdenom
 
-end Srtfp.Clinger
+end Srtfp.Reader

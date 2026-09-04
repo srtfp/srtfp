@@ -1,5 +1,5 @@
 module
-/- Clinger reader — `Decimal` → binary64 (correctly rounded).
+/- The reader — `Decimal` → binary64 (correctly rounded), Clinger's algorithm.
 
    Given `(-1)^sign · sig · 10^exp`, produce the nearest representable
    binary64 value under round-to-nearest, ties-to-even (Clinger 1990,
@@ -19,7 +19,7 @@ public import Srtfp.Float.Bits
 
 @[expose] public section
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Float
 
@@ -121,4 +121,4 @@ theorem decimalToFloat_eq_bits (sign : Bool) (sig : Nat) (exp : Int) :
 theorem ofDecimal_eq_bits (d : Decimal) :
     ofDecimal d = _root_.Float.ofBits (ofDecimalBits d) := rfl
 
-end Srtfp.Clinger
+end Srtfp.Reader

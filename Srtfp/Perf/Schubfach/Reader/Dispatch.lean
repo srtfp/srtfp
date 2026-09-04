@@ -24,7 +24,7 @@ public import Srtfp.Perf.Schubfach.Reader.NatInterval
 
 @[expose] public section
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Float
 open Srtfp.Schubfach
@@ -319,4 +319,4 @@ theorem branch_dispatch : BranchDispatch := by
       Nat.pow_pos (by decide : 0 < (10 : Nat))
     exact branch_dispatch_AB sign sig exp _ _ ha_eq hb_eq ha_pos hb_pos h_finite
 
-end Srtfp.Clinger
+end Srtfp.Reader

@@ -8,7 +8,7 @@ public import Srtfp.Bridge.Basic
 
 @[expose] public section
 
-namespace Srtfp.Clinger
+namespace Srtfp.Reader
 
 open Srtfp.Float
 
@@ -35,4 +35,4 @@ theorem ofDecimal_toBits_not_nanPattern (d : Decimal) :
     _root_.Float.isNaNPattern (ofDecimal d).toBits = false := by
   rw [ofDecimal_toBits]; exact ofDecimalBits_not_nanPattern d
 
-end Srtfp.Clinger
+end Srtfp.Reader
