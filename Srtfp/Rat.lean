@@ -19,55 +19,12 @@ universe u
 /-- `|a|` is core's `Rat.abs`. -/
 scoped macro:max atomic("|" noWs) a:term noWs "|" : term => `(Rat.abs $a)
 
-namespace Rat
-
-/- `neg_neg` / `neg_zero` exist in newer cores but not in v4.27; private
-non-colliding copies keep this file toolchain-portable (they are only
-used within this file). -/
-private theorem rat_neg_neg (q : Rat) : -(-q) = q := by
-  calc -(-q) = -(-q) + 0 := (Rat.add_zero _).symm
-    _ = -(-q) + (-q + q) := by rw [Rat.neg_add_cancel]
-    _ = -(-q) + -q + q := by rw [Rat.add_assoc]
-    _ = 0 + q := by rw [Rat.neg_add_cancel]
-    _ = q := Rat.zero_add q
-
-private theorem rat_neg_zero : -(0 : Rat) = 0 := rfl
-
-protected theorem neg_nonneg {q : Rat} : 0 ≤ -q ↔ q ≤ 0 := by
-  constructor
-  · intro h
-    have := (Rat.le_iff_sub_nonneg 0 (-q)).mp h
-    simp only [Rat.sub_eq_add_neg, rat_neg_zero, Rat.add_zero] at this
-    exact (Rat.le_iff_sub_nonneg q 0).mpr (by
-      simp only [Rat.sub_eq_add_neg, Rat.zero_add]
-      exact this)
-  · intro h
-    have := (Rat.le_iff_sub_nonneg q 0).mp h
-    simp only [Rat.sub_eq_add_neg, Rat.zero_add] at this
-    exact this
-
-protected theorem neg_lt_zero {q : Rat} : -q < 0 ↔ 0 < q := by
-  constructor
-  · intro h
-    have := (Rat.lt_iff_sub_pos (-q) 0).mp h
-    simp only [Rat.sub_eq_add_neg, Rat.zero_add, rat_neg_neg] at this
-    exact this
-  · intro h
-    have := (Rat.lt_iff_sub_pos 0 q).mp h
-    apply (Rat.lt_iff_sub_pos (-q) 0).mpr
-    simp only [Rat.sub_eq_add_neg, rat_neg_zero, Rat.add_zero, Rat.zero_add, rat_neg_neg] at this ⊢
-    exact this
-
-end Rat
 
 section RatAbs
 
 theorem abs_def (q : Rat) : |q| = if 0 ≤ q then q else -q := rfl
 
 theorem abs_of_nonneg {q : Rat} (h : 0 ≤ q) : |q| = q := Rat.abs_of_nonneg h
-
-theorem abs_of_neg {q : Rat} (h : q < 0) : |q| = -q := by
-  rw [abs_def, if_neg (Rat.not_le.mpr h)]
 
 theorem abs_nonneg (q : Rat) : 0 ≤ |q| := Rat.abs_nonneg
 
@@ -149,8 +106,6 @@ theorem zero_mul (a : Rat) : 0 * a = 0 := Rat.zero_mul a
 
 theorem le_trans {a b c : Rat} : a ≤ b → b ≤ c → a ≤ c := Rat.le_trans
 
-theorem lt_irrefl (a : Rat) : ¬a < a := by grind
-
 theorem lt_of_lt_of_le {a b c : Rat} (h1 : a < b) (h2 : b ≤ c) : a < c := by grind
 
 protected theorem Rat.pow_add (a : Rat) (m n : Nat) : a ^ (m + n) = a ^ m * a ^ n := by
@@ -188,11 +143,6 @@ theorem lt_or_ge (a b : Rat) : a < b ∨ a ≥ b := by
   by_cases h : a < b
   · exact Or.inl h
   · exact Or.inr (Rat.not_lt.mp h)
-
-protected theorem Rat.le_or_gt (a b : Rat) : a ≤ b ∨ a > b := by
-  by_cases h : a ≤ b
-  · exact Or.inl h
-  · exact Or.inr (Rat.not_le.mp h)
 
 theorem lt_of_le_of_ne {a b : Rat} (h : a ≤ b) (hne : a ≠ b) : a < b :=
   Rat.lt_of_le_of_ne h hne
