@@ -4,7 +4,7 @@ module
    `Nat`/`Int` comparisons of their cleared sides. Moved here unchanged
    from the old printer proof stack so the reader proofs depend on
    nothing Schubfach. Retired by the reader rewrite. -/
-public import Srtfp.Proofs.Clinger.NatIntervalDefs
+public import Srtfp.Perf.Schubfach.Reader.NatIntervalDefs
 public import Srtfp.Rat
 public import Srtfp.Tactics
 

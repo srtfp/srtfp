@@ -6,8 +6,8 @@ module
    `regular_branch_correct` covers all six in a uniform cleared-form
    argument from the half-ULP bound + tie-to-even parity. -/
 
-public import Srtfp.Proofs.Clinger.Base
-public import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Perf.Schubfach.Reader.Base
+public import Srtfp.Perf.Schubfach.Reader.NatInterval
 
 @[expose] public section
 

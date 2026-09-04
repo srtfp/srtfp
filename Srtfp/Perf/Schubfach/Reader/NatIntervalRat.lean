@@ -3,9 +3,9 @@ module
    split of `toRat` and `wordVal`, and the word/decode bridges. Moved
    here unchanged from the old printer proof stack (`TieBreak.lean`,
    `RoundTrip.lean`) for the reader proofs. Retired by the reader rewrite. -/
-public import Srtfp.Proofs.CorrectnessSpec
-public import Srtfp.Proofs.Clinger.Bridge
-public import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Perf.Schubfach.Spec
+public import Srtfp.Perf.Schubfach.Reader.Bridge
+public import Srtfp.Perf.Schubfach.Reader.NatInterval
 public import Srtfp.Proofs.Bits
 public import Srtfp.Tactics
 
@@ -218,7 +218,7 @@ theorem decodedAbs_sign (sign : Bool) (sig : Nat) (exp : Int) :
     provided `f` is not NaN. This uses the restricted `Float.toBits_ofBits`
     and pure UInt64/Nat algebra: the three bit fields are disjoint, so their
     OR is a sum (`or_or_eq_add'`) and `omega` reassembles the word. -/
-theorem pack_decode_eq (w : UInt64) (_h : Word.isNaN w = false) :
+theorem pack_decode_eq' (w : UInt64) (_h : Word.isNaN w = false) :
     Word.pack (Word.signBit w) (Word.biasedExp w) (Word.mantissa w) = w := by
   unfold Word.pack Word.signBit Word.biasedExp Word.mantissa
   -- Goal: (signBit branch ||| biasedExp shifted ||| mantissa masked) = w.
@@ -288,7 +288,7 @@ theorem toBits_eq_of_decode_eq
   -- From decode: m and q determine (biasedExpBits, mantissaBits) when the bits are canonical.
   -- Strategy: use the Word.pack inverse to reassemble.
   -- Goal: w₁ = w₂.
-  -- We'll show via pack_decode_eq that w = (assembled bits from (sign, be, mb)).
+  -- We'll show via pack_decode_eq' that w = (assembled bits from (sign, be, mb)).
   -- Then comparing the assembled bits gives equality.
   -- decode determines biasedExpBits and mantissaBits:
   --   If biasedExpBits = 0: m = mantissaBits, q = -1074.
@@ -385,7 +385,7 @@ theorem toBits_eq_of_decode_eq
       have hm₂_def : (Word.decode w₂).m = Word.mantissa w₂ + (1 <<< 52) := by
         unfold Word.decode; rw [if_neg he₂]
       rw [hm₁_def, hm₂_def] at h_m; omega
-  -- Now use pack_decode_eq to recover both f₁ and f₂ (neither is NaN,
+  -- Now use pack_decode_eq' to recover both f₁ and f₂ (neither is NaN,
   -- since both are finite).
   have h_be_lt₁ : Word.biasedExp w₁ < 2047 := by unfold Word.isFinite at h_fin₁; simpa using h_fin₁
   have h_be_lt₂ : Word.biasedExp w₂ < 2047 := by unfold Word.isFinite at h_fin₂; simpa using h_fin₂
@@ -397,13 +397,13 @@ theorem toBits_eq_of_decode_eq
     unfold Word.isNaN
     have : ¬ Word.biasedExp w₂ = 2047 := by omega
     simp [this]
-  have hf₁ := pack_decode_eq w₁ h_nan₁
-  have hf₂ := pack_decode_eq w₂ h_nan₂
+  have hf₁ := pack_decode_eq' w₁ h_nan₁
+  have hf₂ := pack_decode_eq' w₂ h_nan₂
   rw [h_sign, h_be_eq, h_mb_eq] at hf₁
   exact hf₁.symm.trans hf₂
 
 /-- `Word.signBit w = (Word.decode w).sign`. -/
-theorem signBit_eq_decode_sign (w : UInt64) :
+theorem signBit_eq_decode_sign' (w : UInt64) :
     Word.signBit w = (Word.decode w).sign := by
   unfold Word.decode
   by_cases he : Word.biasedExp w = 0

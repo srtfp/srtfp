@@ -21,7 +21,7 @@ module
    plus the clause-(3) tie-break machinery (same-digit-length analysis,
    canonical-parity upgrade) they are built from. -/
 
-public import Srtfp.Proofs.CorrectnessSpec
+public import Srtfp.Perf.Schubfach.Spec
 public import Srtfp.Perf.Schubfach.RoundTrip
 public import Srtfp.Perf.Schubfach.Minimal
 public import Srtfp.Perf.Schubfach.TieBreak

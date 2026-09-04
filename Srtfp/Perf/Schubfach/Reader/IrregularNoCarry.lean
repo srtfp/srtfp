@@ -7,10 +7,10 @@ module
    `findBinaryExp` lower bound `2^52 · denom ≤ num`; the upper bound is
    the regular `(4m + 2)·denom ≥ 4·num` half-ULP. -/
 
-public import Srtfp.Proofs.Clinger.Base
-public import Srtfp.Proofs.Clinger.Regular
-public import Srtfp.Proofs.Clinger.FindBinaryExp
-public import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Perf.Schubfach.Reader.Base
+public import Srtfp.Perf.Schubfach.Reader.Regular
+public import Srtfp.Perf.Schubfach.Reader.FindBinaryExp
+public import Srtfp.Perf.Schubfach.Reader.NatInterval
 
 @[expose] public section
 

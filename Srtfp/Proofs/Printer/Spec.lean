@@ -3,7 +3,7 @@ module
    unique decimal satisfying `Srtfp.Spec.ShortestDecimal w`. -/
 public import Srtfp.Spec
 public import Srtfp.Proofs.Printer.Scan
-public import Srtfp.Proofs.Clinger.Interface
+public import Srtfp.Proofs.Reader.Spec
 public import Srtfp.Proofs.Decimal.Canonical
 public import Srtfp.Proofs.Decimal
 
@@ -13,7 +13,7 @@ open Srtfp.Compat
 
 namespace Srtfp.Printer
 
-open Srtfp Srtfp.Float Srtfp.Schubfach Srtfp.Clinger
+open Srtfp Srtfp.Float Srtfp.Clinger
 
 /-- The spec's `ShortestDecimal`, spelled with this file's vocabulary
     (definitionally the same clauses as `Srtfp.Spec.ShortestDecimal`). -/
@@ -33,8 +33,8 @@ variable {m : Nat} {q i : Int} {n : Nat} {wd : UInt64} {d : Decimal}
 
 theorem inRange_of_decode (hw : Word.isFinite wd = true) (hm : 1 ≤ (Word.decode wd).m) :
     InRange (Word.decode wd).m (Word.decode wd).q := by
-  have := decode_legalIEEE_bits wd hw (Nat.pos_iff_ne_zero.mp hm)
-  unfold LegalIEEE at this; unfold InRange; omega
+  have := decode_legal hw
+  unfold Legal at this; unfold InRange; omega
 
 /-- The sign factor cancels out of the spec's distances. -/
 theorem dist_eq (sgn : Bool) (V x : ℚ) :
@@ -559,7 +559,18 @@ theorem zero_output (hw : Word.isFinite wd = true) (hm : (Word.decode wd).m = 0)
             ∧ |toRat d₀ - wordVal wd| < |toRat d' - wordVal wd| )) := by
   refine ⟨⟨(Word.decode wd).sign, 0, 0⟩, ?_, Or.inl ⟨rfl, rfl⟩, ?_, ?_⟩
   · rw [toDecimalBits_of_finite hw, if_pos hm]
-  · rw [zero_reads_to_zero]; exact (word_of_decode_zero hw hm).symm
+  · show Word.pack (Word.decode wd).sign 0 0 = wd
+    apply eq_of_decode_eq
+    rw [decode_pack _ (by decide) (by decide), if_pos rfl]
+    have hq : (Word.decode wd).q = -1074 := by
+      unfold Word.decode at hm ⊢
+      by_cases he : Word.biasedExp wd = 0
+      · simp [he]
+      · exfalso; simp only [he, if_false, Nat.shiftLeft_eq] at hm; omega
+    rcases hdec : Word.decode wd with ⟨s, mm, qq⟩
+    rw [hdec] at hm hq
+    simp only at hm hq
+    rw [hm, hq]
   · intro d' hne hc' hrt'
     have hsign' := sign_of_reads_to hw hrt'
     have hf1 : 1 ≤ d'.significand := by

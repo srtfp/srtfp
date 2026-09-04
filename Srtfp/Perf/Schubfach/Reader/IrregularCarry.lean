@@ -8,10 +8,10 @@ module
    then translates to the irregular bound at scale `q` via the
    `num_pre · denom = 2 · num · denom_pre` algebraic identity. -/
 
-public import Srtfp.Proofs.Clinger.Base
-public import Srtfp.Proofs.Clinger.Regular
-public import Srtfp.Proofs.Clinger.FindBinaryExp
-public import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Perf.Schubfach.Reader.Base
+public import Srtfp.Perf.Schubfach.Reader.Regular
+public import Srtfp.Perf.Schubfach.Reader.FindBinaryExp
+public import Srtfp.Perf.Schubfach.Reader.NatInterval
 
 @[expose] public section
 

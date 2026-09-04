@@ -29,7 +29,7 @@ module
 
    The only axioms used are `propext, Quot.sound, Classical.choice`. -/
 
-public import Srtfp.Proofs.CorrectnessSpec
+public import Srtfp.Perf.Schubfach.Spec
 public import Srtfp.Perf.Schubfach.Shorter
 public import Srtfp.Perf.Schubfach.ToDecimal
 

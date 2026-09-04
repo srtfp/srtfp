@@ -14,8 +14,8 @@ module
    The algebraic identity `num_pre · denom = 2 · num · denom_pre` ties
    the cleared forms at `q-1` and `q`. -/
 
-public import Srtfp.Proofs.Clinger.Base
-public import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Perf.Schubfach.Reader.Base
+public import Srtfp.Perf.Schubfach.Reader.NatInterval
 
 @[expose] public section
 

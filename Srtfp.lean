@@ -1,9 +1,9 @@
 module
 /- srtfp: a verified shortest round-trip float printer (and parser).
 
-   Schubfach-based binary64 shortest-round-trip printing and
-   Clinger-style correctly-rounded parsing, with the round-trip
-   theorem proven at the `.toBits` level.
+   Shortest-round-trip binary64 printing and correctly-rounded
+   parsing, with the correctness theorems proven at the `.toBits`
+   level.
 
    This umbrella is the reference tier: the definitions, the proof
    stack, and the certification in `Srtfp/Correctness.lean`. It is
@@ -22,22 +22,14 @@ public import Srtfp.Printer
 public import Srtfp.Rat
 public import Srtfp.NatLog
 public import Srtfp.Tactics
-public import Srtfp.Proofs.Clinger.Base
-public import Srtfp.Proofs.Clinger.Bridge
-public import Srtfp.Proofs.Clinger.Dispatch
-public import Srtfp.Proofs.Clinger.FindBinaryExp
-public import Srtfp.Proofs.Clinger.IrregularCarry
-public import Srtfp.Proofs.Clinger.IrregularNoCarry
-public import Srtfp.Proofs.Clinger.Regular
-public import Srtfp.Proofs.Clinger
 public import Srtfp.Proofs.Bits
 public import Srtfp.Proofs.Decimal
 public import Srtfp.Proofs.Decimal.Canonical
-public import Srtfp.Proofs.Disjointness
-public import Srtfp.Proofs.ReaderCorrectness
-public import Srtfp.Proofs.CorrectnessSpec
-public import Srtfp.Proofs.Clinger.NatIntervalDefs
-public import Srtfp.Proofs.Clinger.Interface
+public import Srtfp.Proofs.Reader.Round
+public import Srtfp.Proofs.Reader.Words
+public import Srtfp.Proofs.Reader.Compute
+public import Srtfp.Proofs.Reader.Nearest
+public import Srtfp.Proofs.Reader.Spec
 public import Srtfp.Proofs.Printer.Vocab
 public import Srtfp.Proofs.Printer.Interval
 public import Srtfp.Proofs.Printer.Grid
@@ -45,7 +37,6 @@ public import Srtfp.Proofs.Printer.Length
 public import Srtfp.Proofs.Printer.Scan
 public import Srtfp.Proofs.Printer.Spec
 public import Srtfp.Spec
-public import Srtfp.Proofs.ReaderSpec
 public import Srtfp.Correctness
 public import Srtfp.Text
 public import Srtfp.Text.Roundtrip

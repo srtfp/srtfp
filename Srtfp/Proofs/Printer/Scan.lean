@@ -5,7 +5,6 @@ module
    between `9 · 10^i` and `10 · 10^i` cannot occur (T3). Everything else is
    the loop invariant. -/
 public import Srtfp.Proofs.Printer.Length
-public import Srtfp.Proofs.Clinger.NatIntervalRat
 
 @[expose] public section
 
@@ -192,8 +191,8 @@ theorem nine_ten_tie_impossible (h : InRange m q) :
     have : 2 * m ≤ 19 := by exact_mod_cast h2'
     omega
   -- clear the denominators: `2m · 2^a · 10^c' = 19 · 10^b · 2^a'` in `ℕ`
-  have hsplit2 := Srtfp.Schubfach.zpow_two_split q
-  have hsplit10 := Srtfp.Schubfach.zpow_ten_split i
+  have hsplit2 := zpow_two_split q
+  have hsplit10 := zpow_ten_split i
   have hnat : (2 * m * 2 ^ (if q ≥ 0 then q.toNat else 0) * 10 ^ (if i < 0 then (-i).toNat else 0) : ℕ)
       = 19 * 10 ^ (if i ≥ 0 then i.toNat else 0) * 2 ^ (if q < 0 then (-q).toNat else 0) := by
     have hq : (2 * m : ℚ) * (2 : ℚ) ^ q * (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)

@@ -159,10 +159,13 @@ theorem correct_iff_toDecimalF (p : Float → Except String Decimal) :
           have hlt := word_biasedExp_lt f.toBits
           omega
         have hm : Word.mantissa f.toBits = 0 := by
-          by_contra hm_ne
-          apply hN
-          unfold Word.isNaN
-          simp [hbe, hm_ne]
+          rcases Nat.eq_zero_or_pos (Word.mantissa f.toBits) with h0 | hpos
+          · exact h0
+          · exfalso
+            apply hN
+            unfold Word.isNaN
+            simp [hbe]
+            omega
         have hI : Word.isInf f.toBits = true := by
           unfold Word.isInf; simp [hbe, hm]
         rw [h.inf f hI, hprinter.inf f.toBits hI]; rfl

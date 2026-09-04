@@ -19,7 +19,7 @@ module
    The only axioms used are `propext, Quot.sound, Classical.choice`. -/
 
 public import Srtfp.Perf.Schubfach
-public import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Perf.Schubfach.Reader.NatInterval
 
 @[expose] public section
 

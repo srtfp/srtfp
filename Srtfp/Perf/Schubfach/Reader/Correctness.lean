@@ -22,10 +22,10 @@ module
      analysis and `toBits_eq_of_decode_eq`; overflow via
      `decimalToFloat_overflow_inf`; zeros via `pack_proj`. -/
 
-public import Srtfp.Proofs.CorrectnessSpec
-public import Srtfp.Proofs.Clinger.NatIntervalRat
-public import Srtfp.Proofs.Disjointness
-public import Srtfp.Proofs.Clinger
+public import Srtfp.Perf.Schubfach.Spec
+public import Srtfp.Perf.Schubfach.Reader.NatIntervalRat
+public import Srtfp.Perf.Schubfach.Reader.Disjointness
+public import Srtfp.Perf.Schubfach.Reader
 public import Srtfp.Tactics
 public import Srtfp.Proofs.Bits
 
@@ -1036,7 +1036,7 @@ theorem ofDecimalBits_isNearestWord (d : Decimal)
     have h_shape_f := decode_finShape _ h_finBits
     have h_df := wordVal_dist_reduce d _ h_sign_f
     refine ⟨h_finBits, ?_, ?_, ?_⟩
-    · rw [signBit_eq_decode_sign, h_sign_f]
+    · rw [signBit_eq_decode_sign', h_sign_f]
     · -- nearest
       intro v hg
       rw [h_df]
@@ -1201,7 +1201,7 @@ theorem exists_word_of_finShape (sign : Bool) (m : Nat) (q : Int)
     · unfold Word.isFinite
       rw [h_be]
       decide
-    · rw [← signBit_eq_decode_sign]
+    · rw [← signBit_eq_decode_sign']
       exact h_sb
     · unfold Word.decode
       rw [if_pos h_be]
@@ -1231,7 +1231,7 @@ theorem exists_word_of_finShape (sign : Bool) (m : Nat) (q : Int)
       rw [h_be]
       simp only [decide_eq_true_eq]
       omega
-    · rw [← signBit_eq_decode_sign]
+    · rw [← signBit_eq_decode_sign']
       exact h_sb
     · unfold Word.decode
       rw [if_neg h_be_ne]
@@ -1440,9 +1440,9 @@ theorem spec_toBits_eq (d : Decimal) (v : UInt64)
     obtain ⟨hgF, hgs, hg_near, hg_tie⟩ := h_near h_in
     obtain ⟨hfF, hfs, hf_near, hf_tie⟩ := ofDecimalBits_isNearestWord d h_in
     have hgs' : (Word.decode v).sign = d.sign := by
-      rw [← signBit_eq_decode_sign]; exact hgs
+      rw [← signBit_eq_decode_sign']; exact hgs
     have hfs' : (Word.decode (Clinger.ofDecimalBits d)).sign = d.sign := by
-      rw [← signBit_eq_decode_sign]; exact hfs
+      rw [← signBit_eq_decode_sign']; exact hfs
     have h_dist : |wordVal v - Decimal.toRat d|
         = |wordVal (Clinger.ofDecimalBits d) - Decimal.toRat d| :=
       Rat.le_antisymm (hg_near _ hfF) (hf_near v hgF)
@@ -1478,7 +1478,7 @@ theorem spec_toBits_eq (d : Decimal) (v : UInt64)
       unfold Word.isNaN
       rw [hg_fields.2]
       simp
-    have h1 := pack_decode_eq v hg_nan
+    have h1 := pack_decode_eq' v hg_nan
     rw [hg_sb, hg_fields.1, hg_fields.2] at h1
     rw [ofDecimal_overflow_eq d h_out]
     exact h1.symm

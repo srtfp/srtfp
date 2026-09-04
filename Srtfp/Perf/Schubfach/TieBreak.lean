@@ -21,12 +21,12 @@ module
      is equivalent to `2v < u+w`, which the bridge connects to
      `CloserToLower`. Symmetrically for `CloserToUpper` / `Equidistant`. -/
 
-public import Srtfp.Proofs.CorrectnessSpec
+public import Srtfp.Perf.Schubfach.Spec
 public import Srtfp.Perf.Schubfach.PickNearer
 public import Srtfp.Perf.Schubfach.Minimal
-public import Srtfp.Proofs.Clinger
+public import Srtfp.Perf.Schubfach.Reader
 public import Srtfp.Tactics
-public import Srtfp.Proofs.Clinger.NatIntervalRat
+public import Srtfp.Perf.Schubfach.Reader.NatIntervalRat
 
 @[expose] public section
 
@@ -36,7 +36,7 @@ namespace Srtfp
 
 -- `Decimal.toRat`, `Schubfach.magVal`, `Schubfach.floatVal` are the
 -- spec-level rational-value definitions from
--- `Srtfp.Proofs.CorrectnessSpec` (imported above).
+-- `Srtfp.Perf.Schubfach.Spec` (imported above).
 
 namespace Schubfach
 

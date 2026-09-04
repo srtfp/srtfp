@@ -28,8 +28,8 @@ module
    half `inRoundingInterval_uniq_lt`, which case-analyses the structure
    of the IEEE-754 canonical encoding. -/
 
-public import Srtfp.Proofs.Clinger.NatInterval
-public import Srtfp.Proofs.Clinger
+public import Srtfp.Perf.Schubfach.Reader.NatInterval
+public import Srtfp.Perf.Schubfach.Reader
 public import Srtfp.Tactics
 public import Srtfp.Proofs.Bits
 

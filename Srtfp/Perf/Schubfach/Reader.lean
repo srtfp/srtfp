@@ -5,24 +5,24 @@ module
 
    This file is the top-level entry point for M4 (Clinger
    correctly-rounded `Decimal → Float`). It re-exports the per-branch
-   correctness machinery from the `Clinger/` sub-modules, assembles the
+   correctness machinery from the `Reader/` sub-modules, assembles the
    abstract correctness theorem, and provides the unconditional
    headline theorem `ofDecimal_in_Rv` (via the runtime axiom
    `Float.toBits_ofBits`).
 
    ## Layering
 
-   * **`Clinger/Base.lean`** — `roundNearestEven`/`findBinaryExp`/
+   * **`Reader/Base.lean`** — `roundNearestEven`/`findBinaryExp`/
      `scaleByPow2` shape lemmas, the abstract decode `decodedAbs`,
      `DecodeOfDecimalBridge`.
-   * **`Clinger/Regular.lean`** — cleared-form scaling, parity at tie,
+   * **`Reader/Regular.lean`** — cleared-form scaling, parity at tie,
      `regular_branch_correct`.
-   * **`Clinger/FindBinaryExp.lean`** — `findBinaryExp` lower/upper
+   * **`Reader/FindBinaryExp.lean`** — `findBinaryExp` lower/upper
      bounds, `clinger_num_ge_2pow52_denom`,
      `clinger_num_lt_2pow53_denom`, `num_pre_denom_eq`.
-   * **`Clinger/IrregularNoCarry.lean`** — `irregular_no_carry_correct`.
-   * **`Clinger/IrregularCarry.lean`** — `irregular_carry_correct`.
-   * **`Clinger/Bridge.lean`** — the axiom-free bits-level bridge
+   * **`Reader/IrregularNoCarry.lean`** — `irregular_no_carry_correct`.
+   * **`Reader/IrregularCarry.lean`** — `irregular_carry_correct`.
+   * **`Reader/Bridge.lean`** — the axiom-free bits-level bridge
      `decode_of_decimal_bridge_bits`, plus its Float tier (which uses
      the `Float.toBits_ofBits` axiom).
 
@@ -30,14 +30,14 @@ module
    both the word level (`ofDecimalBits_in_Rv`, axiom-free) and the
    `Float` level (`ofDecimal_in_Rv`). -/
 
-public import Srtfp.Proofs.Clinger.Base
-public import Srtfp.Proofs.Clinger.Regular
-public import Srtfp.Proofs.Clinger.FindBinaryExp
-public import Srtfp.Proofs.Clinger.IrregularNoCarry
-public import Srtfp.Proofs.Clinger.IrregularCarry
-public import Srtfp.Proofs.Clinger.Dispatch
-public import Srtfp.Proofs.Clinger.Bridge
-public import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Perf.Schubfach.Reader.Base
+public import Srtfp.Perf.Schubfach.Reader.Regular
+public import Srtfp.Perf.Schubfach.Reader.FindBinaryExp
+public import Srtfp.Perf.Schubfach.Reader.IrregularNoCarry
+public import Srtfp.Perf.Schubfach.Reader.IrregularCarry
+public import Srtfp.Perf.Schubfach.Reader.Dispatch
+public import Srtfp.Perf.Schubfach.Reader.Bridge
+public import Srtfp.Perf.Schubfach.Reader.NatInterval
 
 @[expose] public section
 

@@ -14,8 +14,8 @@ module
 
    The case-split mirrors `decodedAbsAB`'s if-tree (see `Base.lean`). -/
 
-public import Srtfp.Proofs.Clinger.Base
-public import Srtfp.Proofs.Clinger.FindBinaryExp
+public import Srtfp.Perf.Schubfach.Reader.Base
+public import Srtfp.Perf.Schubfach.Reader.FindBinaryExp
 public import Srtfp.Tactics
 public import Srtfp.Proofs.Bits
 

@@ -15,12 +15,12 @@ module
    concrete `(a, b)`, and `branch_dispatch` instantiates it twice (once
    per `exp ≥ 0` case). -/
 
-public import Srtfp.Proofs.Clinger.Base
-public import Srtfp.Proofs.Clinger.Regular
-public import Srtfp.Proofs.Clinger.FindBinaryExp
-public import Srtfp.Proofs.Clinger.IrregularNoCarry
-public import Srtfp.Proofs.Clinger.IrregularCarry
-public import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Perf.Schubfach.Reader.Base
+public import Srtfp.Perf.Schubfach.Reader.Regular
+public import Srtfp.Perf.Schubfach.Reader.FindBinaryExp
+public import Srtfp.Perf.Schubfach.Reader.IrregularNoCarry
+public import Srtfp.Perf.Schubfach.Reader.IrregularCarry
+public import Srtfp.Perf.Schubfach.Reader.NatInterval
 
 @[expose] public section
 

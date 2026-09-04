@@ -4,7 +4,6 @@ module
    satisfy it); the direct proof, the paper's R8–R12, is the backburner
    item of the design doc. -/
 public import Srtfp.Correctness
-public import Srtfp.Proofs.ReaderSpec
 public import Srtfp.Perf.Schubfach.Correctness
 
 @[expose] public section
@@ -15,9 +14,13 @@ namespace Srtfp.Schubfach
 
 open Srtfp Srtfp.Float
 
+private theorem spec_wordVal_eq (w : UInt64) : Spec.wordVal w = wordVal w := by
+  unfold Spec.wordVal wordVal magVal Spec.val
+  rfl
+
 private theorem spec_dist_eq (d : Decimal) (w : UInt64) :
     Spec.dist d w = |Decimal.toRat d - wordVal w| := by
-  rw [Clinger.spec_dist_eq, abs_sub_comm]
+  unfold Spec.dist; rw [spec_wordVal_eq, abs_sub_comm]; rfl
 
 /-- The old conjunction-form correctness predicate implies the spec's. -/
 theorem correctPrinter_of_bits {p : UInt64 → Except String Decimal}

@@ -3,7 +3,7 @@ module
    correct reader iff it is `Clinger.ofDecimalBits` (`Srtfp/Clinger.lean`),
    and a correct printer iff it is `Printer.toDecimalBits`
    (`Srtfp/Printer.lean`). Correctness is defined in `Srtfp/Spec.lean`; the
-   proofs are `Srtfp/Proofs/ReaderSpec.lean` and
+   proofs are `Srtfp/Proofs/Reader/Spec.lean` and
    `Srtfp/Proofs/Printer/Spec.lean`.
 
    The same theorems on the runtime `Float` type are derived in
@@ -13,7 +13,7 @@ module
 
 public import Srtfp.Spec
 public import Srtfp.Printer
-public import Srtfp.Proofs.ReaderSpec
+public import Srtfp.Proofs.Reader.Spec
 public import Srtfp.Proofs.Printer.Spec
 
 @[expose] public section

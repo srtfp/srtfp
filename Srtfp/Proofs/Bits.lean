@@ -194,4 +194,116 @@ theorem word_mantissa_lt (w : UInt64) : Word.mantissa w < 2 ^ 52 := by
   have hpow : (2 : Nat) ^ 52 = 4503599627370496 := by decide
   omega
 
+/-! ## Decoding
+
+`Word.decode` of a packed word, and a word from its decoding. -/
+
+/-- The three fields reassemble the word (pure `UInt64` algebra). -/
+theorem pack_decode_eq (w : UInt64) :
+    Word.pack (Word.signBit w) (Word.biasedExp w) (Word.mantissa w) = w := by
+  unfold Word.pack Word.signBit Word.biasedExp Word.mantissa
+  -- Goal: (signBit branch ||| biasedExp shifted ||| mantissa masked) = w.
+  -- Pure UInt64 fact: OR of disjoint bit-field projections recovers W.
+  generalize w = W
+  -- Reduce the .toNat in biasedExpBits and mantissaBits casts.
+  show (if decide (W >>> 63 ≠ 0) = true then (1 : UInt64) <<< 63 else 0) |||
+       (UInt64.ofNat (((W >>> 52) &&& 0x7FF).toNat) &&& 0x7FF) <<< 52 |||
+       UInt64.ofNat ((W &&& 0x000F_FFFF_FFFF_FFFF).toNat) &&& 0x000F_FFFF_FFFF_FFFF = W
+  -- UInt64.ofNat ∘ UInt64.toNat = id on `< 2^64` values; all here are.
+  have h1 : UInt64.ofNat (((W >>> 52) &&& 0x7FF).toNat) = (W >>> 52) &&& 0x7FF :=
+    UInt64.toNat_inj.1 (Nat.mod_eq_of_lt (UInt64.toNat_lt _))
+  have h2 : UInt64.ofNat ((W &&& 0x000F_FFFF_FFFF_FFFF).toNat) = W &&& 0x000F_FFFF_FFFF_FFFF :=
+    UInt64.toNat_inj.1 (Nat.mod_eq_of_lt (UInt64.toNat_lt _))
+  rw [h1, h2]
+  -- Compare at the Nat level, where each field is a div/mod expression.
+  rw [← UInt64.toNat_inj, UInt64.toNat_or, UInt64.toNat_or]
+  have ha : W.toNat < 2 ^ 64 := UInt64.toNat_lt _
+  -- biased-exponent field value
+  have hbe : (((W >>> 52 &&& 2047) &&& 2047) <<< 52).toNat
+      = (W.toNat / 2 ^ 52 % 2048) * 2 ^ 52 := by
+    rw [UInt64.toNat_shiftLeft, UInt64.toNat_and, UInt64.toNat_and, UInt64.toNat_shiftRight,
+        show ((52 : UInt64)).toNat % 64 = 52 by decide,
+        show ((2047 : UInt64)).toNat = 2 ^ 11 - 1 by decide,
+        Nat.and_two_pow_sub_one_eq_mod, Nat.and_two_pow_sub_one_eq_mod,
+        Nat.shiftRight_eq_div_pow, Nat.shiftLeft_eq]
+    rw [Nat.mod_eq_of_lt (by omega)]
+    omega
+  -- mantissa field value
+  have hmnt : ((W &&& 4503599627370495) &&& 4503599627370495).toNat = W.toNat % 2 ^ 52 := by
+    rw [UInt64.toNat_and, UInt64.toNat_and,
+        show ((4503599627370495 : UInt64)).toNat = 2 ^ 52 - 1 by decide,
+        Nat.and_two_pow_sub_one_eq_mod, Nat.and_two_pow_sub_one_eq_mod]
+    omega
+  rw [hbe, hmnt]
+  by_cases hsgn : W >>> 63 = 0
+  · have hz : W.toNat / 2 ^ 63 = 0 := by
+      have := congrArg UInt64.toNat hsgn
+      rwa [UInt64.toNat_shiftRight, show ((63 : UInt64)).toNat % 64 = 63 by decide,
+           Nat.shiftRight_eq_div_pow] at this
+    simp only [hsgn, ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, if_false]
+    rw [or_or_eq_add' (Or.inl (by decide)) ⟨_, by omega, rfl⟩ (by omega),
+        show ((0 : UInt64)).toNat = 0 by decide]
+    omega
+  · have hz : W.toNat / 2 ^ 63 = 1 := by
+      have h0 : (W >>> 63).toNat ≠ 0 := fun h => hsgn (UInt64.toNat_inj.1 (by simpa using h))
+      rw [UInt64.toNat_shiftRight, show ((63 : UInt64)).toNat % 64 = 63 by decide,
+          Nat.shiftRight_eq_div_pow] at h0
+      omega
+    simp only [hsgn, ne_eq, not_false_eq_true, decide_true, if_true]
+    rw [show ((1 : UInt64) <<< 63).toNat = 2 ^ 63 by decide]
+    rw [or_or_eq_add' (Or.inr rfl) ⟨_, by omega, rfl⟩ (by omega)]
+    omega
+
+theorem signBit_eq_decode_sign (w : UInt64) : Word.signBit w = (Word.decode w).sign := by
+  unfold Word.decode
+  by_cases he : Word.biasedExp w = 0 <;> simp [he]
+
+/-- The mantissa field has the parity of the integer significand. -/
+theorem mantissa_mod_two (w : UInt64) : Word.mantissa w % 2 = (Word.decode w).m % 2 := by
+  unfold Word.decode
+  by_cases he : Word.biasedExp w = 0 <;> simp [he] <;> omega
+
+theorem isFinite_pack (sign : Bool) {biasedExp mantissa : Nat}
+    (h_be : biasedExp < 2047) (h_m : mantissa < 2 ^ 52) :
+    Word.isFinite (Word.pack sign biasedExp mantissa) = true := by
+  unfold Word.isFinite
+  rw [pack_biasedExp sign biasedExp mantissa (by omega) h_m]
+  simpa using h_be
+
+theorem decode_pack (sign : Bool) {biasedExp mantissa : Nat}
+    (h_be : biasedExp < 2048) (h_m : mantissa < 2 ^ 52) :
+    Word.decode (Word.pack sign biasedExp mantissa) =
+      if biasedExp = 0 then ⟨sign, mantissa, -1074⟩
+      else ⟨sign, mantissa + 2 ^ 52, (biasedExp : Int) - 1075⟩ := by
+  obtain ⟨hs, hb, hmn⟩ := pack_proj sign biasedExp mantissa h_be h_m
+  unfold Word.decode
+  rw [hs, hb, hmn]
+  by_cases he : biasedExp = 0
+  · simp [he]
+  · simp only [he, if_false, Nat.shiftLeft_eq, Decoded.mk.injEq, true_and]
+    omega
+
+/-- A word's fields, from its decoding. -/
+theorem fields_of_decode (w : UInt64) :
+    Word.biasedExp w = (if (Word.decode w).m < 2 ^ 52 then 0 else ((Word.decode w).q + 1075).toNat)
+    ∧ Word.mantissa w = (if (Word.decode w).m < 2 ^ 52 then (Word.decode w).m
+                          else (Word.decode w).m - 2 ^ 52) := by
+  have hm := word_mantissa_lt w
+  unfold Word.decode
+  by_cases he : Word.biasedExp w = 0
+  · simp only [he, if_true]
+    rw [if_pos hm, if_pos hm]; exact ⟨rfl, rfl⟩
+  · simp only [he, if_false, Nat.shiftLeft_eq]
+    rw [if_neg (by omega), if_neg (by omega)]
+    constructor
+    · omega
+    · omega
+
+/-- Words with the same decoding are the same word. -/
+theorem eq_of_decode_eq {w w' : UInt64} (h : Word.decode w = Word.decode w') : w = w' := by
+  obtain ⟨hb, hm⟩ := fields_of_decode w
+  obtain ⟨hb', hm'⟩ := fields_of_decode w'
+  rw [← pack_decode_eq w, ← pack_decode_eq w', signBit_eq_decode_sign, signBit_eq_decode_sign,
+    hb, hm, hb', hm', h]
+
 end Srtfp.Float

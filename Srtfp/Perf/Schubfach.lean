@@ -15,7 +15,7 @@ module
 
 public import Srtfp.Decimal
 public import Srtfp.Float.Bits
-public import Srtfp.Proofs.Clinger.NatIntervalDefs
+public import Srtfp.Perf.Schubfach.Reader.NatIntervalDefs
 
 @[expose] public section
 

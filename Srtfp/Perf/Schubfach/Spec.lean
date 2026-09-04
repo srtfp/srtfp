@@ -9,7 +9,7 @@ module
 public import Srtfp.Rat
 public import Srtfp.Decimal
 public import Srtfp.Float.Bits
-public import Srtfp.Proofs.Clinger.NatIntervalDefs
+public import Srtfp.Perf.Schubfach.Reader.NatIntervalDefs
 public import Srtfp.Clinger
 
 @[expose] public section

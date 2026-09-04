@@ -39,7 +39,7 @@ module
 public import Srtfp.Perf.Schubfach.RoundingInterval
 public import Srtfp.Perf.Schubfach.K
 public import Srtfp.Perf.Schubfach.ShiftedSig
-public import Srtfp.Proofs.Clinger.NatInterval
+public import Srtfp.Perf.Schubfach.Reader.NatInterval
 
 @[expose] public section
 

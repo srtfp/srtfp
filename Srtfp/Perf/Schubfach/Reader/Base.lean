@@ -16,9 +16,9 @@ module
    each branch compile in parallel and keeps elaboration costs
    localized. -/
 
-public import Srtfp.Proofs.CorrectnessSpec
+public import Srtfp.Perf.Schubfach.Spec
 public import Srtfp.Clinger
-public import Srtfp.Proofs.Clinger.NatIntervalDefs
+public import Srtfp.Perf.Schubfach.Reader.NatIntervalDefs
 public import Srtfp.Float.Bits
 
 @[expose] public section
@@ -486,8 +486,8 @@ def AbstractCorrectness : Prop :=
 /-- The dispatch residual: structurally equal to `AbstractCorrectness`.
 This is the part of the proof that performs the case-split on
 `decodedAbs`'s if-tree. The per-branch correctness is established
-in `Clinger/{Regular,IrregularNoCarry,IrregularCarry}.lean`; the
-case-split itself is discharged in `Clinger/Dispatch.lean`. -/
+in `Reader/{Regular,IrregularNoCarry,IrregularCarry}.lean`; the
+case-split itself is discharged in `Reader/Dispatch.lean`. -/
 def BranchDispatch : Prop := AbstractCorrectness
 
 /-- `AbstractCorrectness` reduces to `BranchDispatch` trivially. -/

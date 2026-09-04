@@ -23,15 +23,15 @@ module
    theorem at `.toBits` level so it consumes only the existing axiom
    budget; JSON's `floatLiteralStrict` consumes `.toBits` directly. -/
 
-public import Srtfp.Proofs.Disjointness
+public import Srtfp.Perf.Schubfach.Reader.Disjointness
 public import Srtfp.Proofs.Decimal
 public import Srtfp.Perf.Schubfach.ToDecimal
 public import Srtfp.Perf.Schubfach.Shortest
-public import Srtfp.Proofs.Clinger
+public import Srtfp.Perf.Schubfach.Reader
 public import Srtfp.Float.Bits
 public import Srtfp.Proofs.Bits
 public import Srtfp.Tactics
-public import Srtfp.Proofs.Clinger.NatIntervalRat
+public import Srtfp.Perf.Schubfach.Reader.NatIntervalRat
 
 @[expose] public section
 
@@ -1066,7 +1066,7 @@ theorem ofDecimal_eq_bits_of_rv
     h_rv
     h_rv_clinger
   have h_sign_eq : Word.signBit w = Word.signBit (Clinger.ofDecimalBits c) := by
-    rw [signBit_eq_decode_sign w, signBit_eq_decode_sign]
+    rw [signBit_eq_decode_sign' w, signBit_eq_decode_sign']
     rw [h_bridge, decodedAbs_sign c.sign c.significand c.exponent]
     rw [← h_c_sign]
   apply (toBits_eq_of_decode_eq (Clinger.ofDecimalBits c) w h_fin_clinger h_fin
@@ -1162,7 +1162,7 @@ theorem ofDecimal_signedZero_bits (w : UInt64)
     unfold Word.isNaN
     have : ¬ Word.biasedExp w = 2047 := by omega
     simp [this]
-  exact pack_decode_eq w h_nan
+  exact pack_decode_eq' w h_nan
 
 /-- **Printer outputs read back exactly (bits level, axiom-free).**
     Whatever `Schubfach.toDecimalBits` returns on a finite word `w`,
