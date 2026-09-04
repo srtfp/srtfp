@@ -387,8 +387,10 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
         * (10 : Rat) ^ (⟨Spec.negative s, 0, 0⟩ : Decimal).exponent = 0 := by simp
     rw [h0]
     apply InRv_of_strict
-    · unfold vl; rw [if_neg (by decide), show ((0 : Nat) : Rat) = 0 by simp]; grind
-    · unfold vr; rw [show ((0 : Nat) : Rat) = 0 by simp]; grind
+    · unfold vl; rw [if_neg (by decide), show ((0 : Nat) : Rat) = 0 by simp]
+      generalize (2 : Rat) ^ (-1074 : Int) = P at hP ⊢; grind
+    · unfold vr; rw [show ((0 : Nat) : Rat) = 0 by simp]
+      generalize (2 : Rat) ^ (-1074 : Int) = P at hP ⊢; grind
   · intro d' hne hc' hrt'
     obtain ⟨hsign', hmem'⟩ := (hri d').mp hrt'
     have hf1 : 1 ≤ d'.significand := by

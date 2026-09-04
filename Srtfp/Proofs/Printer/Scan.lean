@@ -33,25 +33,6 @@ theorem four_two_pow_1074_lt : 4 * (2 : Nat) ^ 1074 < 3 * 10 ^ 324 := by decide
 
 theorem zpow_natCast_lit (b : Rat) (n : Nat) : b ^ (n : Int) = b ^ n := rfl
 
-/-- `p · c^(-a) < r · d^(-b)` follows from `p · d^b < r · c^a`. -/
-theorem mul_zpow_neg_lt {c d a b p r : Nat} (hc : 0 < c) (hd : 0 < d) (h : p * d ^ b < r * c ^ a) :
-    (p : Rat) * (c : Rat) ^ (-(a : Int)) < (r : Rat) * (d : Rat) ^ (-(b : Int)) := by
-  have hA : (0 : Rat) < ((c ^ a : Nat) : Rat) := by exact_mod_cast Nat.pow_pos hc
-  have hB : (0 : Rat) < ((d ^ b : Nat) : Rat) := by exact_mod_cast Nat.pow_pos hd
-  have hh : (p : Rat) * ((d ^ b : Nat) : Rat) < (r : Rat) * ((c ^ a : Nat) : Rat) := by exact_mod_cast h
-  rw [Rat.zpow_neg, Rat.zpow_neg, Rat.zpow_natCast, Rat.zpow_natCast]
-  have e1 : ((c : Rat) ^ a) = ((c ^ a : Nat) : Rat) := by push_cast; rfl
-  have e2 : ((d : Rat) ^ b) = ((d ^ b : Nat) : Rat) := by push_cast; rfl
-  rw [e1, e2]
-  generalize ((c ^ a : Nat) : Rat) = A at *
-  generalize ((d ^ b : Nat) : Rat) = B at *
-  have hA' := Rat.mul_inv_cancel A (Rat.ne_of_gt hA)
-  have hB' := Rat.mul_inv_cancel B (Rat.ne_of_gt hB)
-  apply Rat.lt_of_mul_lt_mul_right (c := A * B) _ (le_of_lt (Rat.mul_pos hA hB))
-  calc (p : Rat) * A⁻¹ * (A * B) = p * B := by grind
-    _ < r * A := hh
-    _ = (r : Rat) * B⁻¹ * (A * B) := by grind
-
 /-! ## T1: no grid above `10^308` meets `R_v` -/
 
 theorem vr_lt_two_pow_1024 (h : InRange m q) : vr m q < (2 : Rat) ^ (1024 : Nat) := by
