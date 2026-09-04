@@ -572,7 +572,7 @@ theorem zero_output (hw : Word.isFinite wd = true) (hm : (Word.decode wd).m = 0)
     have hv0 : v (Word.decode wd).m (Word.decode wd).q = 0 := by rw [hm]; exact v_zero_iff.mpr rfl
     have hneg : ∀ a b : Rat, a * 0 - b = -b := fun a b => by grind
     have hd₀ : Spec.dist ⟨(Word.decode wd).sign, 0, 0⟩ wd = 0 := by
-      rw [Clinger.dist_eq, hv0]; simp; rw [Rat.sub_self]; exact abs_zero
+      rw [Clinger.dist_eq, hv0]; simp; rw [Rat.sub_self]
     have hd' : 0 < Spec.dist d' wd := by
       rw [Clinger.dist_eq, hv0, hneg, abs_neg, sign_mul_abs]
       exact abs_pos.mpr (Rat.ne_of_gt (Rat.mul_pos (by exact_mod_cast hf1) (ten_zpow_pos _)))

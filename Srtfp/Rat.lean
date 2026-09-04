@@ -3,8 +3,8 @@ module
 
    The proof stack was written against Mathlib's rational-number surface;
    core Lean (`Init.Data.Rat`) provides the type, field arithmetic, order,
-   and `zpow`, but not `abs` or the `|·|` bars. This file supplies exactly
-   that missing surface.
+   `zpow` and `Rat.abs`, but not the `|·|` bars, `∃!`, or Mathlib's lemma
+   names. This file supplies exactly that missing surface.
 
    Everything lives in the `Srtfp.Compat` namespace with scoped
    notation, so importing srtfp never collides with Mathlib's root
@@ -16,21 +16,8 @@ namespace Srtfp.Compat
 
 universe u
 
-/-- Absolute value on `Rat`. Deliberately NOT named `Rat.abs`: newer cores
-declare their own `Rat.abs` with a different (extensionally equal) body,
-and keeping our copy under a separate name preserves `abs_def` as `rfl`
-on every toolchain. -/
-def ratAbs (q : Rat) : Rat := if q < 0 then -q else q
-
-/-- Minimal stand-in for Mathlib's `Abs` class: just enough to give `|·|`
-    a home. -/
-class Abs (α : Type u) where
-  /-- The absolute value, written `|a|`. -/
-  abs : α → α
-
-instance : Abs Rat := ⟨ratAbs⟩
-
-scoped macro:max atomic("|" noWs) a:term noWs "|" : term => `(Abs.abs $a)
+/-- `|a|` is core's `Rat.abs`. -/
+scoped macro:max atomic("|" noWs) a:term noWs "|" : term => `(Rat.abs $a)
 
 namespace Rat
 
@@ -75,27 +62,16 @@ end Rat
 
 section RatAbs
 
-theorem abs_def (q : Rat) : |q| = if q < 0 then -q else q := rfl
+theorem abs_def (q : Rat) : |q| = if 0 ≤ q then q else -q := rfl
 
-theorem abs_of_nonneg {q : Rat} (h : 0 ≤ q) : |q| = q := by
-  rw [abs_def, if_neg (Rat.not_lt.mpr h)]
+theorem abs_of_nonneg {q : Rat} (h : 0 ≤ q) : |q| = q := Rat.abs_of_nonneg h
 
 theorem abs_of_neg {q : Rat} (h : q < 0) : |q| = -q := by
-  rw [abs_def, if_pos h]
+  rw [abs_def, if_neg (Rat.not_le.mpr h)]
 
-theorem abs_nonneg (q : Rat) : 0 ≤ |q| := by
-  rw [abs_def]; split
-  · rename_i h; exact Rat.neg_nonneg.mpr (Rat.le_of_lt h)
-  · rename_i h; exact Rat.not_lt.mp h
+theorem abs_nonneg (q : Rat) : 0 ≤ |q| := Rat.abs_nonneg
 
-theorem abs_neg (q : Rat) : |(-q)| = |q| := by
-  by_cases h : q < 0
-  · rw [abs_of_neg h, abs_of_nonneg (Rat.neg_nonneg.mpr (Rat.le_of_lt h))]
-  · have h' : 0 ≤ q := Rat.not_lt.mp h
-    by_cases h0 : q = 0
-    · subst h0; rfl
-    · have hpos : 0 < q := Rat.lt_of_le_of_ne h' (fun e => h0 e.symm)
-      rw [abs_of_nonneg h', abs_of_neg (Rat.neg_lt_zero.mpr hpos), Rat.rat_neg_neg]
+theorem abs_neg (q : Rat) : |(-q)| = |q| := Rat.abs_neg
 
 end RatAbs
 
@@ -122,12 +98,7 @@ theorem mul_left_inj' {a b c : Rat} (hc : c ≠ 0) : a * c = b * c ↔ a = b := 
 
 theorem not_lt {a b : Rat} : ¬a < b ↔ b ≤ a := Rat.not_lt
 
-theorem abs_of_nonpos {a : Rat} (h : a ≤ 0) : |a| = -a := by
-  by_cases h0 : a < 0
-  · exact abs_of_neg h0
-  · have ha : a = 0 := by grind
-    rw [ha]
-    rfl
+theorem abs_of_nonpos {a : Rat} (h : a ≤ 0) : |a| = -a := Rat.abs_of_nonpos h
 
 theorem le_of_lt {a b : Rat} : a < b → a ≤ b := Rat.le_of_lt
 
@@ -168,7 +139,7 @@ attribute [grind .] Rat.mul_le_mul_of_nonneg_left Rat.mul_le_mul_of_nonneg_right
   Rat.mul_lt_mul_of_pos_left Rat.mul_lt_mul_of_pos_right
   Rat.mul_pos Rat.mul_nonneg Rat.natCast_nonneg
 
-theorem abs_zero : |(0 : Rat)| = 0 := rfl
+theorem abs_zero : |(0 : Rat)| = 0 := Rat.abs_zero
 
 theorem sub_zero (a : Rat) : a - 0 = a := by grind
 
@@ -211,8 +182,7 @@ theorem mul_one (a : Rat) : a * 1 = a := Rat.mul_one a
 theorem le_of_mul_le_mul_right {a b c : Rat} (h : a * c ≤ b * c) (hc : 0 < c) : a ≤ b :=
   Rat.le_of_mul_le_mul_right h hc
 
-theorem abs_eq_zero {a : Rat} : |a| = 0 ↔ a = 0 := by
-  rw [abs_def]; split <;> grind
+theorem abs_eq_zero {a : Rat} : |a| = 0 ↔ a = 0 := Rat.abs_eq_zero_iff
 
 theorem lt_or_ge (a b : Rat) : a < b ∨ a ≥ b := by
   by_cases h : a < b
@@ -244,14 +214,6 @@ open Lean in
 scoped macro "∃!" xs:explicitBinders ", " b:term : term => do
   return ⟨← expandExplicitBinders ``ExistsUnique xs b⟩
 
-theorem abs_pos {a : Rat} : 0 < |a| ↔ a ≠ 0 := by
-  constructor
-  · intro h he
-    rw [he] at h
-    exact lt_irrefl _ h
-  · intro h
-    rcases (abs_nonneg a) |> Rat.eq_or_lt_of_le with he | hlt
-    · exact absurd (abs_eq_zero.mp he.symm) h
-    · exact hlt
+theorem abs_pos {a : Rat} : 0 < |a| ↔ a ≠ 0 := Rat.abs_pos_iff
 
 end Srtfp.Compat

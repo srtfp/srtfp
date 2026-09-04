@@ -5,8 +5,8 @@ module
    unique such reader and printer are in `Srtfp/Correctness.lean`.
 
    Everything needed to read this file is defined in it or displayed
-   below; `Nat.log` and `|·|` are this library's own definitions
-   (`Srtfp.Compat`, in `Srtfp/NatLog.lean` and `Srtfp/Rat.lean`). -/
+   below; `|·|` is core's `Rat.abs`, and `Nat.log` is this library's own
+   definition (`Srtfp/NatLog.lean`). -/
 
 public import Srtfp.Rat
 public import Srtfp.NatLog
@@ -46,7 +46,7 @@ example (b n : Nat) :
   by_cases h : b ≤ n ∧ 1 < b
   · rw [if_pos h, Nat.log_eq_log_div_add_one h.1 h.2]
   · rw [if_neg h, Nat.log_eq_zero_of_not h]
-example (q : Rat) : |q| = if q < 0 then -q else q := rfl
+example (q : Rat) : |q| = if 0 ≤ q then q else -q := rfl
 
 /-! ## Referenced definitions, displayed here for convenience -/
 
