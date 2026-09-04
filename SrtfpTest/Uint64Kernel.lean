@@ -10,7 +10,7 @@ import Srtfp.Perf.Schubfach
 import Srtfp.Perf.Orchestration
 import Srtfp.Perf.Uint64Kernel
 import Srtfp.Perf.Uint64Bridge
-import Srtfp.Float.Bits
+import Srtfp.Perf.Bits
 import SrtfpTest.Ryu
 
 namespace Srtfp.Tests.Uint64Kernel

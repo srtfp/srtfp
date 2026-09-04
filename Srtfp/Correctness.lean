@@ -9,7 +9,7 @@ module
    The same theorems on the runtime `Float` type are derived in
    `Srtfp/Bridge/Correctness.lean`; those cross to `Float` through the
    bit round-trip `Float.toBits_ofBits`, a theorem over core's
-   `Float.Model` (`Srtfp/Float/Model.lean`). -/
+   `Float.Model` (`Srtfp/Bridge/Basic.lean`). -/
 
 public import Srtfp.Spec
 public import Srtfp.Reader

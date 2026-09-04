@@ -1,41 +1,34 @@
 module
-/- Bridge tier, ground floor: word-level facts from `Srtfp/Float/Bits.lean`
-   (`pack_proj`, `pack_isNaNPattern_false`) transported across the bit
-   round-trip `Float.toBits_ofBits` (`Srtfp/Float/Model.lean`). No new bit
-   algebra — just the `(Float.ofBits w).toBits = w` cancellation. -/
+/- Bridge tier, ground floor: the bit round-trip `(Float.ofBits x).toBits = x`
+   for every word that is not a NaN, a theorem over core's `Float.Model`
+   (`Srtfp/Proofs/Model.lean`).
 
-public import Srtfp.Float.Model
-public import Srtfp.Proofs.Bits
+   Since Lean v4.33 `Float` is a structure around `Float.Model` (a `UInt64`
+   whose NaNs are canonical) and `Float.ofBits`, `Float.toBits` are
+   definitions over it; `@[extern]` only attaches the runtime
+   implementation. So the round-trip is provable: `pack ∘ unpack` is the
+   identity on valid words. What remains trusted is the compiler's
+   `@[extern]` contract, as for every primitive type. The round-trip fails
+   on NaN payloads (the runtime, like the model, canonicalises them; see
+   `SrtfpTest/RuntimeAxiomProbe.lean`), hence the side condition. -/
+public import Srtfp.Proofs.Model
 
 @[expose] public section
 
-namespace Srtfp.Float
+namespace Srtfp.Model
 
-/-- `fromBits`'s bits are exactly the packed word, when the fields are in
-range and don't encode a NaN payload. This is the axiom's cancellation in
-its rawest form; everything else in the bridge tier factors through it. -/
-theorem fromBits_toBits (sign : Bool) (biasedExp mantissa : Nat)
-    (h_be : biasedExp < 2048) (h_m : mantissa < 2 ^ 52)
-    (h_nan : biasedExp = 2047 → mantissa = 0) :
-    (fromBits sign biasedExp mantissa).toBits = Word.pack sign biasedExp mantissa := by
-  unfold fromBits
-  exact _root_.Float.toBits_ofBits _
-    (pack_isNaNPattern_false sign biasedExp mantissa h_be h_m h_nan)
+open Float.Model
 
-/-- Round-trip of `fromBits` through `(signBit, biasedExpBits,
-mantissaBits)`. When `biasedExp < 2048`, `mantissa < 2^52`, and the pair
-does not encode a NaN payload (`biasedExp = 2047 → mantissa = 0`), the
-bit-field projections recover the input. The word-level content is
-`pack_proj` (axiom-free); the NaN side condition discharges the restricted
-`toBits_ofBits` axiom via `pack_isNaNPattern_false`. -/
-theorem fromBits_proj (sign : Bool) (biasedExp : Nat) (mantissa : Nat)
-    (h_be : biasedExp < 2048) (h_m : mantissa < 2 ^ 52)
-    (h_nan : biasedExp = 2047 → mantissa = 0) :
-    signBit (fromBits sign biasedExp mantissa) = sign ∧
-    biasedExpBits (fromBits sign biasedExp mantissa) = biasedExp ∧
-    mantissaBits (fromBits sign biasedExp mantissa) = mantissa := by
-  unfold signBit biasedExpBits mantissaBits
-  rw [fromBits_toBits sign biasedExp mantissa h_be h_m h_nan]
-  exact pack_proj sign biasedExp mantissa h_be h_m
+/-- `Float.Model.ofBits` is the identity on words that are not a NaN. -/
+theorem toBits_ofBits (x : UInt64) (h : Spec.unpack x ≠ .notANumber) :
+    (Float.Model.ofBits x).toBits = x := by
+  show UInt64.ofBitVec (UnpackedFloat.pack Format.binary64
+    (UnpackedFloat.unpack Format.binary64 x.toBitVec)) = x
+  rw [pack_unpack _ (valid_of_ne_nan h)]
 
-end Srtfp.Float
+end Srtfp.Model
+
+/-- **The runtime bit round-trip**, for every word that is not a NaN. -/
+theorem Float.toBits_ofBits (x : UInt64) (h : Srtfp.Spec.unpack x ≠ .notANumber) :
+    (Float.ofBits x).toBits = x :=
+  Srtfp.Model.toBits_ofBits x h

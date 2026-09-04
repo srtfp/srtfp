@@ -3,8 +3,8 @@
 
 Fails (exit 1) if the default umbrella `Srtfp.lean` or the performance
 umbrella `Srtfp/Perf.lean` — or anything they transitively import —
-reaches `Srtfp.Float.Model` (the bit round-trip to the runtime `Float`)
-or any `Srtfp.Bridge.*` module (its consumers). The environment-level ground truth is
+reaches any `Srtfp.Bridge.*` module (the bit round-trip to the runtime
+`Float` and its consumers). The environment-level ground truth is
 `SrtfpBitsAxiomCheck.lean`; this walk just catches a stray import before
 a full build.
 """
@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-FORBIDDEN = re.compile(r"^Srtfp\.(Float\.Model$|Bridge($|\.))")
+FORBIDDEN = re.compile(r"^Srtfp\.Bridge(\.|$)")
 IMPORT_RE = re.compile(r"^(?:public |meta |public meta )?import (Srtfp[\w.]*)", re.M)
 
 
@@ -50,7 +50,7 @@ def main() -> int:
                 parent[dep] = mod
                 stack.append(dep)
     print(f"ok: the Srtfp and Srtfp.Perf import closure ({len(seen)} modules) "
-          "stays clear of Srtfp.Float.Model and Srtfp.Bridge.*")
+          "stays clear of Srtfp.Bridge.*")
     return 0
 
 

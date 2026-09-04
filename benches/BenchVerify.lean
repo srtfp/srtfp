@@ -2,7 +2,7 @@
 
 import Srtfp.Perf.Schubfach
 import Srtfp.Perf.Kernel128Defs
-import Srtfp.Float.Bits
+import Srtfp.Perf.Bits
 open Srtfp.Schubfach
 open Srtfp.Float
 

@@ -12,7 +12,6 @@ open Srtfp.Compat
 
 namespace Srtfp.Printer
 
-open Srtfp.Float
 
 /-- `v = m · 2^q`, the magnitude of a finite word. -/
 def v (m : Nat) (q : Int) : Rat := (m : Rat) * (2 : Rat) ^ q

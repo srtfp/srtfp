@@ -7,8 +7,11 @@ module
    Every grid above `10^(k+1)` is coarser than `R_v`, so that is exactly
    the scan's first hit, and the two decimals canonicalise alike. -/
 public import Srtfp.Correctness
+public import Srtfp.Proofs.Decimal
+public import Srtfp.Proofs.Decimal.Canonical
 public import Srtfp.Perf.Schubfach
 public import Srtfp.Perf.Schubfach.R14R15
+public import Srtfp.Perf.Unpack
 
 @[expose] public section
 
@@ -180,7 +183,7 @@ theorem denom_pos (b : Nat) (hb : 0 < b) (e : Int) :
 theorem k_spec (h : InRange m q) :
     (10 : Rat) ^ kOfMQ m q ≤ vr m q - vl m q ∧ vr m q - vl m q < (10 : Rat) ^ (kOfMQ m q + 1) := by
   have hq1 := h.2.2.1
-  have hq2 := h.2.2.2
+  have hq2 := h.2.2.2.1
   rw [width_eq]
   unfold kOfMQ
   by_cases hirr : isIrregular m q = true
@@ -339,16 +342,6 @@ theorem hit_of_le_width {j : Int} (hm : 1 ≤ m) (hj : (10 : Rat) ^ j ≤ vr m q
     have : 2 * m = 2 * c + 1 := by exact_mod_cast this
     omega
 
-/-- The scan's answer is determined by a hit with nothing above it. -/
-theorem shortest_eq_of (h : InRange m q) {n : Nat} {i : Int} (hc : candidate m q i = some (n, i))
-    (hnone : ∀ j, i < j → candidate m q j = none) : shortest m q = (n, i) := by
-  rcases hs : shortest m q with ⟨n', i'⟩
-  obtain ⟨-, -, -, hc', hnone'⟩ := scan_spec h hs
-  rcases Int.lt_trichotomy i i' with hlt | heq | hgt
-  · exact absurd hc' (by rw [hnone i' hlt]; simp)
-  · subst heq; rw [hc] at hc'; simpa using hc'.symm
-  · exact absurd hc (by rw [hnone' i hgt]; simp)
-
 /-! ## Schubfach's choice is the scan's -/
 
 theorem inRoundingInterval_eq (s : Nat) (k : Int) :
@@ -356,10 +349,10 @@ theorem inRoundingInterval_eq (s : Nat) (k : Int) :
   rw [Bool.eq_iff_iff]; exact inRoundingInterval_iff s k
 
 /-- On a grid that meets `R_v`, `pickNearer` is what `candidate` returns. -/
-theorem candidate_eq_pickNearer (_hm : 1 ≤ m) {k : Int} (hs : 1 ≤ Printer.s m q k)
+theorem candidate_eq_pickNearer (_hm : 1 ≤ m) {k : Int}
     (hhit : InRv m q (u m q k) = true ∨ InRv m q (w m q k) = true) :
-    candidate m q k = some (pickNearer (Printer.s m q k) k m q, k) := by
-  rw [candidate_def, if_neg (by omega)]
+    candidate m q k = some (pickNearer (Printer.s m q k) k m q) := by
+  rw [candidate_def]
   unfold pickNearer
   simp only [inRoundingInterval_eq, gt_iff_lt]
   have hu' : (Printer.s m q k : Rat) * 10 ^ k = u m q k := rfl
@@ -418,26 +411,16 @@ theorem shortestUnsigned_spec (h : InRange m q) :
   have hm := h.1
   rcases ho : shortest m q with ⟨n, i⟩
   obtain ⟨hn, -, -, hc, hnone⟩ := scan_spec h ho
-  obtain ⟨-, -, -, hmemn, -, -⟩ := candidate_some hm hc
+  obtain ⟨-, -, hmemn, -, -⟩ := candidate_some hm hc
   obtain ⟨hk1, hk2⟩ := k_spec h
   generalize hk : kOfMQ m q = k at hk1 hk2
-  have hsk : 1 ≤ Printer.s m q k := by
-    rw [s_pos_iff hm]
-    refine le_trans hk1 (le_trans width_le_two_zpow ?_)
-    unfold v
-    have hm' : (1 : Rat) ≤ m := by exact_mod_cast hm
-    have := Rat.mul_le_mul_of_nonneg_right hm' (le_of_lt (two_zpow_pos q))
-    rwa [Rat.one_mul] at this
   have hhitk : ∃ x, OnGrid k x ∧ InRv m q x = true := hit_of_le_width hm hk1
-  have hck : candidate m q k ≠ none := fun hno => by
-    rcases (candidate_none_iff hm).mp hno with h0 | h0
-    · omega
-    · exact h0 hhitk
+  have hck : candidate m q k ≠ none := fun hno => (candidate_none_iff hm).mp hno hhitk
   have hik : k ≤ i := Int.not_lt.mp fun hlt => hck (hnone k hlt)
   have hu' : (Printer.s m q k / 10 : Nat) = Printer.s m q (k + 1) := (s_succ hm k).symm
   -- with a hit on `10^k`, `pickNearer` is the scan's candidate
-  have hpick : candidate m q k = some (pickNearer (Printer.s m q k) k m q, k) :=
-    candidate_eq_pickNearer hm hsk ((hit_iff_neighbour hm).mp hhitk)
+  have hpick : candidate m q k = some (pickNearer (Printer.s m q k) k m q) :=
+    candidate_eq_pickNearer hm ((hit_iff_neighbour hm).mp hhitk)
   -- no hit on any grid above `k` forces `i = k` and `n` the pick
   have finish (hnohit : ∀ j, k < j → candidate m q j = none) :
       n = pickNearer (Printer.s m q k) k m q ∧ i = k := by
@@ -447,7 +430,7 @@ theorem shortestUnsigned_spec (h : InRange m q) :
       · exact heq.symm
     subst hik'
     rw [hpick] at hc
-    exact ⟨(Prod.mk.inj (Option.some.inj hc)).1.symm, rfl⟩
+    exact ⟨(Option.some.inj hc).symm, rfl⟩
   unfold shortestUnsigned
   simp only [hk, shiftedSig_eq, inRoundingInterval_eq]
   by_cases h10 : Printer.s m q k ≥ 10
@@ -461,18 +444,14 @@ theorem shortestUnsigned_spec (h : InRange m q) :
     -- a hit on `10^(k+1)` is unique, and above it the scan can hit nothing else
     have hval_of_hit (x : Rat) (hx : OnGrid (k + 1) x) (hxR : InRv m q x = true) :
         (n : Rat) * (10 : Rat) ^ i = x := by
-      have hlt : k + 1 ≤ i := Int.not_lt.mp fun hlt => by
-        have := hnone (k + 1) (by omega)
-        rcases (candidate_none_iff hm).mp this with h0 | h0
-        · omega
-        · exact h0 ⟨x, hx, hxR⟩
+      have hlt : k + 1 ≤ i := Int.not_lt.mp fun hlt =>
+        (candidate_none_iff hm).mp (hnone (k + 1) (by omega)) ⟨x, hx, hxR⟩
       exact eq_of_onGrid_coarse hk2 (onGrid_of_le hlt ⟨n, rfl⟩) hmemn hx hxR
     cases hU : InRv m q (u m q (k + 1)) <;> cases hW : InRv m q (w m q (k + 1)) <;>
       simp only [Bool.false_eq_true, if_false, if_true]
     · -- neither: no hit on `10^(k+1)`, hence none above `k`
       obtain ⟨rfl, rfl⟩ := finish fun j hj => by
         rw [candidate_none_iff hm]
-        right
         rintro ⟨x, hx, hxR⟩
         rcases (hit_iff_neighbour (i := k + 1) hm).mp ⟨x, onGrid_of_le (i := k + 1) (by omega) hx, hxR⟩
           with h1 | h1
@@ -487,45 +466,162 @@ theorem shortestUnsigned_spec (h : InRange m q) :
       have h10 := ten_zpow_pos (k + 1)
       grind
   · rw [if_neg h10]
-    obtain ⟨rfl, rfl⟩ := finish fun j hj => by
+    -- Schubfach picks on `10^k`. So does the scan, unless `10^(k+1) ∈ R_v`:
+    -- then the scan says `1 · 10^(k+1)`, and Schubfach `10 · 10^k`.
+    have hs0 : Printer.s m q (k + 1) = 0 := by omega
+    have hv10 : v m q < (10 : Rat) ^ (k + 1) :=
+      Rat.not_le.mp fun hle => by have := (s_pos_iff hm).mpr hle; omega
+    have hu0 : u m q (k + 1) = 0 := by unfold u; rw [hs0]; simp
+    have hw1 : w m q (k + 1) = (10 : Rat) ^ (k + 1) := by unfold w; rw [hs0]; grind
+    have hvl := vl_pos (q := q) hm
+    have hU0 : InRv m q (u m q (k + 1)) = false := by
+      rw [hu0]
+      cases hx : InRv m q 0
+      · rfl
+      · exfalso; have := (le_of_InRv hx).1; grind
+    have hT := ten_zpow_pos (k + 1)
+    -- nothing of `R_v` on any grid above `k + 1`
+    have hnone_above : ∀ j, k + 1 < j → candidate m q j = none := by
+      intro j hj
       rw [candidate_none_iff hm]
-      left
-      have h0 : Printer.s m q (k + 1) = 0 := by omega
-      have hv : v m q < (10 : Rat) ^ (k + 1) :=
-        Rat.not_le.mp fun hle => by have := (s_pos_iff hm).mpr hle; omega
-      rcases Nat.eq_zero_or_pos (Printer.s m q j) with hz | hz
-      · exact hz
-      · exfalso
-        have := (s_pos_iff hm).mp hz
-        have : (10 : Rat) ^ (k + 1) ≤ (10 : Rat) ^ j := zpow_le_zpow_right₀ (by decide) (by omega)
-        grind
-    exact ⟨hn, rfl⟩
+      rintro ⟨x, ⟨c, rfl⟩, hxR⟩
+      obtain ⟨hl, hr⟩ := le_of_InRv hxR
+      have hc : 1 ≤ c := by
+        rcases Nat.eq_zero_or_pos c with h0 | h0
+        · exfalso; subst h0; simp at hl; grind
+        · exact h0
+      have h1 : (10 : Rat) ^ (k + 2) ≤ (10 : Rat) ^ j := zpow_le_zpow_right₀ (by decide) (by omega)
+      have h2 : (10 : Rat) ^ (k + 2) = 10 ^ (k + 1) * 10 := by
+        rw [show k + 2 = (k + 1) + 1 by omega, Rat.zpow_add_one (by decide)]
+      have h3 : (1 : Rat) * 10 ^ j ≤ (c : Rat) * 10 ^ j :=
+        Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast hc) (le_of_lt (ten_zpow_pos j))
+      have hvlv := vl_lt_v (q := q) hm
+      grind
+    by_cases hW : InRv m q ((10 : Rat) ^ (k + 1)) = true
+    · -- the scan hits at `k + 1` with `1`
+      have hc1 : candidate m q (k + 1) = some 1 := by
+        rw [candidate_def, hU0, hw1, hW, hs0]
+      have hi : i = k + 1 := by
+        rcases Int.lt_trichotomy i (k + 1) with hlt | heq | hgt
+        · exfalso; have := hnone (k + 1) hlt; rw [hc1] at this; cases this
+        · exact heq
+        · exfalso; have := hnone_above i hgt; rw [this] at hc; cases hc
+      subst hi
+      rw [hc1] at hc
+      obtain rfl := Option.some.inj hc
+      -- `v` is above `9 · 10^k`: if `9 · 10^k ∈ R_v` by T3, else by convexity
+      have h10k := ten_zpow_pos k
+      have hTi : (10 : Rat) ^ (k + 1) = 10 ^ k * 10 := Rat.zpow_add_one (by decide) k
+      have hT3 : 9 * (10 : Rat) ^ k < v m q ∧
+          (InRv m q (9 * (10 : Rat) ^ k) = true → (10 : Rat) ^ (k + 1) - v m q < v m q - 9 * 10 ^ k) := by
+        have key (h9R : InRv m q (9 * (10 : Rat) ^ k) = true) :
+            (10 : Rat) ^ (k + 1) - v m q < v m q - 9 * 10 ^ k := by
+          have := ten_pow_closer h hW (by rw [show k + 1 - 1 = k by omega]; exact h9R)
+          rwa [show k + 1 - 1 = k by omega] at this
+        refine ⟨?_, key⟩
+        rcases lt_or_ge (9 * (10 : Rat) ^ k) (v m q) with hlt | hge
+        · exact hlt
+        · have h9R : InRv m q (9 * (10 : Rat) ^ k) = true :=
+            InRv_convex (InRv_v hm) hW hge (by rw [hTi]; grind)
+          have := key h9R
+          rw [hTi] at this
+          grind
+      -- so `s = 9`, and the pick is `10`
+      have hs9 : Printer.s m q k = 9 := by
+        have hfl : (9 : Int) ≤ (v m q / (10 : Rat) ^ k).floor :=
+          Rat.le_floor_iff.mpr (by rw [Reader.le_div_iff h10k]; push_cast; exact le_of_lt hT3.1)
+        have hsc : ((Printer.s m q k : Nat) : Int) = (v m q / (10 : Rat) ^ k).floor := by
+          exact_mod_cast s_cast (q := q) (i := k) hm
+        omega
+      obtain ⟨-, hcase, hmemp, hclose, -⟩ := candidate_some hm hpick
+      have hp10 : pickNearer (Printer.s m q k) k m q = 10 := by
+        rcases hcase with e | e
+        · exfalso
+          rw [e, hs9] at hmemp hclose
+          have h1 := hclose _ ⟨10, rfl⟩ (by rw [hTi] at hW; push_cast; rw [Rat.mul_comm]; exact hW)
+          have h2 := hT3.2 (by push_cast at hmemp; exact hmemp)
+          push_cast at h1
+          rw [hTi] at h2
+          rw [abs_of_nonneg (by grind), abs_of_nonpos (by grind)] at h1
+          grind
+        · omega
+      rw [hp10]
+      refine ⟨by omega, ?_⟩
+      push_cast
+      rw [hTi]; grind
+    · -- `10^(k+1) ∉ R_v`: nothing above `k`, so the scan's hit is Schubfach's pick
+      obtain ⟨rfl, rfl⟩ := finish fun j hj => by
+        rcases Int.lt_or_eq_of_le (show k + 1 ≤ j by omega) with hlt | heq
+        · exact hnone_above j hlt
+        · subst heq
+          rw [candidate_none_iff hm]
+          rintro ⟨x, hx, hxR⟩
+          rcases (hit_iff_neighbour hm).mp ⟨x, hx, hxR⟩ with h1 | h1
+          · rw [hU0] at h1; cases h1
+          · rw [hw1] at h1; exact hW h1
+      exact ⟨hn, rfl⟩
+
+/-- The finite case: Schubfach's canonicalised decimal is the scan's. -/
+theorem finite_eq (sb : Bool) (h : InRange m q) :
+    (Except.ok (Decimal.mk' sb (shortestUnsigned m q).1 (shortestUnsigned m q).2) : Except String Decimal)
+      = Except.ok ⟨sb, (shortest m q).1, (shortest m q).2⟩ := by
+  obtain ⟨hpos, hval⟩ := shortestUnsigned_spec h
+  rcases hr : shortestUnsigned m q with ⟨n', k'⟩
+  rcases ho : shortest m q with ⟨n, i⟩
+  have hn := (scan_spec h ho).1
+  have h10 := out_ten h ho
+  rw [hr, ho] at hval; rw [hr] at hpos
+  simp only at hval hpos
+  obtain ⟨hsign, hne, -, -, -⟩ := mk_pos_props sb n' k' (by omega)
+  have hd : Decimal.mk' sb n' k' = ⟨sb, n, i⟩ :=
+    canonical_eq_of_value_eq (d := Decimal.mk' sb n' k') (d' := ⟨sb, n, i⟩)
+      (Decimal.canonical_isCanonical ⟨sb, n', k'⟩)
+      (Or.inr ⟨Nat.pos_iff_ne_zero.mp hn, h10⟩) hsign (Nat.pos_of_ne_zero hne) hn
+      (by rw [mk'_value sb (by omega)]; exact hval)
+  rw [hd]
 
 /-- **Kernel 0 is the reference printer.** -/
 theorem toDecimalBits_eq_printer : Schubfach.toDecimalBits = Printer.toDecimalBits := by
   funext w
   unfold Schubfach.toDecimalBits Printer.toDecimalBits
-  by_cases hnan : Word.isNaN w = true
-  · simp [hnan]
-  by_cases hinf : Word.isInf w = true
-  · simp [hnan, hinf]
-  simp only [hnan, hinf, Bool.false_eq_true, if_false]
-  have hw : Word.isFinite w = true := by
-    unfold Word.isNaN at hnan; unfold Word.isInf at hinf; unfold Word.isFinite
-    simp at hnan hinf ⊢
-    have := word_biasedExp_lt w
-    omega
-  by_cases hm : (Word.decode w).m = 0
-  · simp [hm]
-  · simp only [hm, if_false]
-    have h : InRange (Word.decode w).m (Word.decode w).q := Printer.inRange_of_decode hw (by omega)
-    obtain ⟨hpos, hval⟩ := shortestUnsigned_spec h
-    rcases hr : shortestUnsigned (Word.decode w).m (Word.decode w).q with ⟨n', k'⟩
-    rcases ho : shortest (Word.decode w).m (Word.decode w).q with ⟨n, i⟩
-    have hn := (scan_spec h ho).1
-    rw [hr, ho] at hval; rw [hr] at hpos
-    simp only at hval hpos ⊢
-    rw [mk'_eq_of_value_eq (Word.decode w).sign hpos hn hval]
+  rw [unpack_eq]
+  have hb := word_biasedExp_lt w
+  have hmlt := word_mantissa_lt w
+  by_cases h1 : Word.biasedExp w = 2047
+  · -- NaN or infinity
+    rw [if_pos h1]
+    have hnan : Word.isNaN w = decide (Word.mantissa w ≠ 0) := by unfold Word.isNaN; simp [h1]
+    have hinf : Word.isInf w = decide (Word.mantissa w = 0) := by unfold Word.isInf; simp [h1]
+    by_cases h2 : Word.mantissa w = 0
+    · rw [if_pos h2]; simp [hnan, hinf, h2]; cases Word.signBit w <;> rfl
+    · rw [if_neg h2]; simp [hnan, h2]
+  · rw [if_neg h1]
+    have hnan : Word.isNaN w = false := by unfold Word.isNaN; simp [h1]
+    have hinf : Word.isInf w = false := by unfold Word.isInf; simp [h1]
+    rw [hnan, hinf]
+    simp only [Bool.false_eq_true, if_false]
+    by_cases h0 : Word.biasedExp w = 0
+    · rw [if_pos h0]
+      have hdec : Word.decode w = ⟨Word.signBit w, Word.mantissa w, -1074⟩ := by
+        unfold Word.decode; rw [if_pos h0]
+      rw [hdec]
+      by_cases h2 : Word.mantissa w = 0
+      · rw [dif_pos h2]; simp [h2, negative_sign]
+      · rw [dif_neg h2, if_neg h2]
+        dsimp only
+        rw [negative_sign]
+        exact finite_eq (Word.signBit w)
+          ⟨Nat.pos_of_ne_zero h2, by omega, by omega, by omega, fun h => absurd rfl h⟩
+    · rw [if_neg h0]
+      have hdec : Word.decode w =
+          ⟨Word.signBit w, Word.mantissa w + 2 ^ 52, (Word.biasedExp w : Int) - 1075⟩ := by
+        unfold Word.decode; rw [if_neg h0]
+        simp only [Decoded.mk.injEq, Nat.shiftLeft_eq, Nat.one_mul, true_and]
+        omega
+      rw [hdec, if_neg (by omega : ¬ (Word.mantissa w + 2 ^ 52 = 0))]
+      dsimp only
+      rw [negative_sign]
+      exact finite_eq (Word.signBit w) ⟨by omega, by omega, by omega, by omega, fun _ => by omega⟩
 
 theorem toDecimal_eq_printer : Schubfach.toDecimal = Printer.toDecimal :=
   funext fun f => congrArg (· f.toBits) toDecimalBits_eq_printer

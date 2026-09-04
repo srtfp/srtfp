@@ -4,7 +4,7 @@ module
    `Srtfp/Float/Bits.lean`; consumed by the proof stack and the `Float`
    bridge. -/
 
-public import Srtfp.Float.Bits
+public import Srtfp.Perf.Bits
 
 @[expose] public section
 

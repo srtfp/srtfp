@@ -133,21 +133,28 @@ theorem hit_iff_neighbour (hm : 1 ≤ m) :
 /-- `candidate` unfolded in terms of `s`, `u`, `w`. -/
 theorem candidate_def :
     candidate m q i =
-      if s m q i = 0 then none else
       match InRv m q (u m q i), InRv m q (w m q i) with
       | true,  true  => some (if v m q - u m q i < w m q i - v m q
                               ∨ (v m q - u m q i = w m q i - v m q ∧ s m q i % 2 = 0)
-                              then s m q i else s m q i + 1, i)
-      | true,  false => some (s m q i, i)
-      | false, true  => some (s m q i + 1, i)
+                              then s m q i else s m q i + 1)
+      | true,  false => some (s m q i)
+      | false, true  => some (s m q i + 1)
       | false, false => none := rfl
 
 theorem candidate_none_iff (hm : 1 ≤ m) :
-    candidate m q i = none ↔ (s m q i = 0 ∨ ¬ ∃ x, OnGrid i x ∧ InRv m q x = true) := by
+    candidate m q i = none ↔ ¬ ∃ x, OnGrid i x ∧ InRv m q x = true := by
   rw [hit_iff_neighbour hm, candidate_def]
-  split
-  · simp [*]
-  · cases hu : InRv m q (u m q i) <;> cases hw : InRv m q (w m q i) <;> simp [*]
+  cases hu : InRv m q (u m q i) <;> cases hw : InRv m q (w m q i) <;> simp [*]
+
+/-- `u` is in `R_v` only above the leading digit: `u = 0` is not. -/
+theorem s_pos_of_InRv_u (hm : 1 ≤ m) (hu : InRv m q (u m q i) = true) : 1 ≤ s m q i := by
+  rcases Nat.eq_zero_or_pos (s m q i) with h0 | h0
+  · exfalso
+    have h1 := (le_of_InRv hu).1
+    have h2 := vl_pos (q := q) hm
+    unfold u at h1; rw [h0] at h1; simp at h1
+    grind
+  · exact h0
 
 /-- A grid point in `R_v` at or below `u` is no closer than `u`; one at or
     above `w` is in `R_v` only if `w` is. -/
@@ -217,51 +224,46 @@ private theorem tie_w (hm : 1 ≤ m)
     have hodd : s m q i % 2 ≠ 0 := fun he => hc' (Or.inr ⟨heqd, he⟩)
     omega
 
-/-- What a hit returns: a neighbour in `R_v`, no farther from `v` than any
-    grid point in `R_v`, and even on an exact tie. -/
-theorem candidate_some (hm : 1 ≤ m) {j : Int} (h : candidate m q i = some (n, j)) :
-    j = i ∧ 1 ≤ s m q i ∧ (n = s m q i ∨ n = s m q i + 1)
+/-- What a hit returns: a positive neighbour in `R_v`, no farther from `v`
+    than any grid point in `R_v`, and even on an exact tie. -/
+theorem candidate_some (hm : 1 ≤ m) (h : candidate m q i = some n) :
+    1 ≤ n ∧ (n = s m q i ∨ n = s m q i + 1)
     ∧ InRv m q ((n : Rat) * (10 : Rat) ^ i) = true
     ∧ (∀ x, OnGrid i x → InRv m q x = true → |v m q - n * (10 : Rat) ^ i| ≤ |v m q - x|)
     ∧ (∀ x, OnGrid i x → InRv m q x = true → x ≠ n * (10 : Rat) ^ i →
          |v m q - n * (10 : Rat) ^ i| = |v m q - x| → n % 2 = 0) := by
   rw [candidate_def] at h
-  split at h
-  · exact absurd h (by simp)
-  rename_i hs0
-  have hs : 1 ≤ s m q i := Nat.pos_of_ne_zero hs0
   have hu_def : u m q i = (s m q i : Rat) * (10 : Rat) ^ i := rfl
   have hw_def : w m q i = ((s m q i : Rat) + 1) * (10 : Rat) ^ i := rfl
   have hw_cast : ((s m q i + 1 : Nat) : Rat) * (10 : Rat) ^ i = w m q i := by
     rw [hw_def]; push_cast; rfl
   cases hu : InRv m q (u m q i) <;> cases hw : InRv m q (w m q i) <;> rw [hu, hw] at h <;> simp at h
   · -- only `w`
-    obtain ⟨rfl, rfl⟩ := h
-    refine ⟨rfl, hs, Or.inr rfl, by rw [hw_cast]; exact hw, ?_, ?_⟩
+    subst h
+    refine ⟨by omega, Or.inr rfl, by rw [hw_cast]; exact hw, ?_, ?_⟩
     · intro x hx hxR; rw [hw_cast]
       exact close_w hm (fun h' => by rw [hu] at h'; cases h') hx hxR
     · intro x hx hxR hne heq; rw [hw_cast] at hne heq
       exact tie_w hm (fun h' => by rw [hu] at h'; cases h') hx hxR hne heq
   · -- only `u`
-    obtain ⟨rfl, rfl⟩ := h
-    refine ⟨rfl, hs, Or.inl rfl, hu, ?_, ?_⟩
+    subst h
+    refine ⟨s_pos_of_InRv_u hm hu, Or.inl rfl, hu, ?_, ?_⟩
     · intro x hx hxR
       exact close_u hm (fun h' => by rw [hw] at h'; cases h') hx hxR
     · intro x hx hxR hne heq
       exact tie_u hm (fun h' => by rw [hw] at h'; cases h') hx hxR hne heq
   · -- both: the nearer, ties to even
-    obtain ⟨hn, rfl⟩ := h
-    split at hn
+    split at h
     · rename_i hc
-      subst hn
-      refine ⟨rfl, hs, Or.inl rfl, hu, ?_, ?_⟩
+      subst h
+      refine ⟨s_pos_of_InRv_u hm hu, Or.inl rfl, hu, ?_, ?_⟩
       · intro x hx hxR
         exact close_u hm (fun _ => by rcases hc with h1 | ⟨h1, _⟩ <;> grind) hx hxR
       · intro x hx hxR hne heq
         exact tie_u hm (fun _ => hc) hx hxR hne heq
     · rename_i hc
-      subst hn
-      refine ⟨rfl, hs, Or.inr rfl, by rw [hw_cast]; exact hw, ?_, ?_⟩
+      subst h
+      refine ⟨by omega, Or.inr rfl, by rw [hw_cast]; exact hw, ?_, ?_⟩
       · intro x hx hxR; rw [hw_cast]
         exact close_w hm (fun _ => by grind) hx hxR
       · intro x hx hxR hne heq; rw [hw_cast] at hne heq

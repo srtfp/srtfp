@@ -14,7 +14,7 @@ module
    `Perf/Schubfach/`. -/
 
 public import Srtfp.Decimal
-public import Srtfp.Float.Bits
+public import Srtfp.Perf.Bits
 
 @[expose] public section
 

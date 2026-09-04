@@ -15,14 +15,15 @@ patterns do not transfer to the running system. The printer rejects
 NaN before any bit-level reasoning, so `correct_iff_toDecimal` needs
 the axiom only on non-NaN patterns, where this probe shows it exact.
 
-DONE (2026-07-02): the statement is restricted to `isNaNPattern x =
-false`, and every use site threads the side condition. Since v4.33 it is
-a theorem over core's `Float.Model` (`Srtfp/Float/Model.lean`); this probe
-now checks the runtime against the model. `isNaNPattern` (biased exponent
-`0x7FF` and mantissa nonzero) is checked below to agree exactly with
+DONE (2026-07-02): the statement is restricted to non-NaN words. Since
+v4.33 it is a theorem over core's `Float.Model`
+(`Srtfp/Bridge/Basic.lean`); this probe checks the runtime against the
+model. `isNaNPattern` (biased exponent `0x7FF` and mantissa nonzero, the
+Perf tier's bit-level NaN test) is checked below to agree exactly with
 the empirical NaN/non-NaN split observed above. -/
 
-import Srtfp.Float.Model
+import Srtfp.Bridge.Basic
+import Srtfp.Perf.Bits
 
 open Float (isNaNPattern)
 

@@ -5,13 +5,11 @@ module
    boundary: the reader returns `Float`s, the printer consumes them, and
    candidates range over `Float`s. Each proof is the bits-level theorem
    transported across the bit round-trip `Float.toBits_ofBits`
-   (`Srtfp/Float/Model.lean`), which realizes every finite word as a
-   `Float` (`Float.ofBits`) and cancels `(Float.ofBits w).toBits = w` on the
-   reader's outputs. -/
+   (`Srtfp/Bridge/Basic.lean`), which realizes every finite word as a
+   `Float` (`Float.ofBits`). -/
 
 public import Srtfp.Correctness
-public import Srtfp.Proofs.Bits
-public import Srtfp.Bridge.Reader
+public import Srtfp.Bridge.Basic
 
 @[expose] public section
 
@@ -19,7 +17,8 @@ open Srtfp.Compat
 
 namespace Srtfp.Spec
 
-open Srtfp Srtfp.Float
+open Srtfp
+open Float.Model (UnpackedFloat)
 
 /-! ## Float-level vocabulary
 
@@ -80,7 +79,8 @@ structure CorrectPrinterF (p : Float → Except String Decimal) : Prop where
 round-trip's contribution to the `Float` tier. -/
 private theorem exists_float_of_finite_word (v : UInt64) (h : (unpack v).isFinite = true) :
     ∃ g : Float, g.toBits = v :=
-  ⟨Float.ofBits v, _root_.Float.toBits_ofBits v (isNaNPattern_false_of_isFinite v ((isFinite_iff v).mp h))⟩
+  ⟨Float.ofBits v, _root_.Float.toBits_ofBits v
+    (fun e => by rw [e] at h; simp [UnpackedFloat.isFinite] at h)⟩
 
 private theorem distF_eq (d : Decimal) (g : Float) : distF d g = dist d g.toBits := rfl
 
@@ -192,11 +192,7 @@ theorem shortest_decimal_exists_uniqueF (f : Float) (h_fin : (unpackF f).isFinit
 
 end Srtfp.Spec
 
-/-- The round-trip's side condition, displayed for convenience: -/
-example (x : UInt64) : Float.isNaNPattern x =
-    (((x >>> 52) &&& 0x7FF == 0x7FF) && (x &&& 0xF_FFFF_FFFF_FFFF != 0)) := rfl
-
 /-- The bridge to `Float`: converting non-NaN bits to `Float` and back is the
-identity, a theorem over core's `Float.Model` (`Srtfp/Float/Model.lean`): -/
-example : ∀ x : UInt64, Float.isNaNPattern x = false → (Float.ofBits x).toBits = x :=
+identity, a theorem over core's `Float.Model` (`Srtfp/Bridge/Basic.lean`): -/
+example : ∀ x : UInt64, Srtfp.Spec.unpack x ≠ .notANumber → (Float.ofBits x).toBits = x :=
   Float.toBits_ofBits

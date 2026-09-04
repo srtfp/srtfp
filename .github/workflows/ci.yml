@@ -10,8 +10,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # v4.33.0: the pin (lean-toolchain), and the floor — `Srtfp/Float/
-        #   Model.lean` needs core's `Float.Model`. Consumers on older
+        # v4.33.0: the pin (lean-toolchain), and the floor — the spec and
+        #   `Srtfp/Proofs/Model.lean` need core's `Float.Model`. Consumers on older
         #   toolchains (QuadParsers on v4.27, VeIR on v4.32) pin an earlier
         #   srtfp commit. Tests must never assert on core Float
         #   parsing/printing (Float.ofScientific changed in lean4#14110),

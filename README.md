@@ -5,7 +5,7 @@ A Lean 4 library providing, for IEEE-754 binary64:
 - a **shortest round-trip printer**, as a dead-simple reference plus a
   verified fast path (the [Schubfach
   algorithm](https://drive.google.com/file/d/1IEeATSVnEE6TkrHlCYNY2GjaraBjOT4f/view)),
-- a **correctly rounded parser** (Clinger-style), and
+- a **correctly rounded parser**, and
 - a machine-checked certification connecting them.
 
 ## Specification
@@ -33,13 +33,14 @@ is `Reader.ofDecimalBits`. For the exact statements, see
 The library is three tiers, each a separate import:
 
 - **Reference (`import Srtfp`, the default)**: the specification made
-  effective. The printer walks the decimal grids from coarse to fine
-  and tests the two grid neighbours of the value against its rounding
-  interval, in exact rational arithmetic; the reader is Clinger's
-  unbounded-integer algorithm. Plus the proofs and the theorems above
-  stated on raw IEEE-754 bit patterns (`UInt64`). Uses nothing beyond
-  Lean's three standard axioms (`propext`, `Quot.sound`,
-  `Classical.choice`); a build-time audit enforces this.
+  effective, in exact rational arithmetic over Lean's own model of the
+  format. The printer walks the decimal grids from coarse to fine and
+  tests the two grid neighbours of the value against its rounding
+  interval; the reader rounds the value to the binary64 grid around it
+  and packs the result with core's `Float.Model.pack`. Plus the proofs
+  and the theorems above stated on raw IEEE-754 bit patterns (`UInt64`).
+  Uses nothing beyond Lean's three standard axioms (`propext`,
+  `Quot.sound`, `Classical.choice`); a build-time audit enforces this.
 - **Performance (`import Srtfp.Perf`, opt-in)**: the Schubfach
   algorithm and its fixed-width `UInt64` kernels and precomputed
   tables, each proven equal to the reference and registered as a
@@ -51,7 +52,7 @@ The library is three tiers, each a separate import:
   to the runtime `Float` type, across the bit round-trip
   `Float.toBits_ofBits` (constructing a non-NaN `Float` from bits and
   reading it back gives the same bits), proven over core's `Float.Model`
-  in `Srtfp/Float/Model.lean`. No axiom; what is trusted is that the
+  in `Srtfp/Bridge/Basic.lean`. No axiom; what is trusted is that the
   compiled `Float.ofBits` and `Float.toBits` implement their definitions,
   the `@[extern]` contract every primitive type carries.
 
@@ -68,19 +69,22 @@ specification *if and only if* it is the library's function. So the
 specification has exactly one model, and the implementation never
 needs to be inspected.
 
-The implementation itself is four short modules of exact arithmetic,
-worth reading to understand the algorithms:
+The implementation itself is two short modules of exact arithmetic,
+worth reading to understand the algorithms; both import only the
+specification:
 
 | Module | Contents |
 | --- | --- |
-| [`Srtfp/Decimal.lean`](Srtfp/Decimal.lean) | operations on the spec's `Decimal` (canonicalisation, constructors) |
-| [`Srtfp/Float/Bits.lean`](Srtfp/Float/Bits.lean) | binary64 word fields, decoding, packing |
-| [`Srtfp/Printer.lean`](Srtfp/Printer.lean) | the printer, `toDecimalBits` |
-| [`Srtfp/Reader.lean`](Srtfp/Reader.lean) | the reader, `ofDecimalBits` |
+| [`Srtfp/Printer.lean`](Srtfp/Printer.lean) | the printer, `toDecimalBits`: the rounding interval and the scan over decimal grids |
+| [`Srtfp/Reader.lean`](Srtfp/Reader.lean) | the reader, `ofDecimalBits`: round to the binary64 grid, pack with core's model |
 
-Everything else is proof (`Srtfp/Proofs/`), the text layer
-(`Srtfp/Text.lean`, `Decimal` ↔ `String` for JSON, YAML, MLIR, …), the
-performance tier (`Srtfp/Perf/`), or the `Float` bridge (`Srtfp/Bridge/`).
+Everything else is proof (`Srtfp/Proofs/`; `Proofs/Model.lean` relates
+core's `pack` and `unpack`, `Proofs/Reader/` and `Proofs/Printer/` are the
+two correctness proofs), operations on `Decimal`
+(`Srtfp/Decimal.lean`), the text layer (`Srtfp/Text.lean`, `Decimal` ↔
+`String` for JSON, YAML, MLIR, …), the performance tier (`Srtfp/Perf/`,
+where the bit-field arithmetic of the fast kernels also lives), or the
+`Float` bridge (`Srtfp/Bridge/`).
 
 Zero dependencies beyond the Lean toolchain: no mathlib, and the test
 suite runs on a small in-repo harness (`SrtfpTest/Spec.lean`). CI builds

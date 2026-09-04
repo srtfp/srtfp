@@ -4,7 +4,7 @@ module
    the implementation and its proofs use the bit fields of
    `Srtfp/Float/Bits.lean`. This file relates the two, field by field. -/
 public import Srtfp.Spec
-public import Srtfp.Proofs.Bits
+public import Srtfp.Perf.BitsLemmas
 public import Srtfp.Proofs.Printer.Vocab
 
 @[expose] public section
