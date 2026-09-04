@@ -16,8 +16,8 @@ namespace Srtfp.Clinger
 open Srtfp.Float Srtfp.Printer
 
 theorem abs_toRat (d : Decimal) :
-    |Spec.toRat d| = (d.significand : ℚ) * (10 : ℚ) ^ d.exponent := by
-  show |(if d.sign then -1 else 1 : ℚ) * _| = _
+    |Spec.toRat d| = (d.significand : Rat) * (10 : Rat) ^ d.exponent := by
+  show |(if d.sign then -1 else 1 : Rat) * _| = _
   rw [sign_mul_abs, abs_of_nonneg (mag_nonneg d)]
 
 theorem ofDecimalBits_eq (d : Decimal) :
@@ -25,31 +25,31 @@ theorem ofDecimalBits_eq (d : Decimal) :
 
 /-- Every value in `R_w` is below the overflow threshold: the largest
 interval's right endpoint is the threshold, excluded because `2^53 - 1` is odd. -/
-theorem lt_threshold_of_InRv {m : Nat} {q : Int} {x : ℚ} (h : Legal m q) (hx : InRv m q x = true) :
+theorem lt_threshold_of_InRv {m : Nat} {q : Int} {x : Rat} (h : Legal m q) (hx : InRv m q x = true) :
     x < 2 ^ 1024 - 2 ^ 970 := by
   have hr := (le_of_InRv hx).2
   have hev := even_of_eq_vr hx
   unfold vr at hr hev
-  have hm : (m : ℚ) + 1 ≤ 2 ^ 53 := by exact_mod_cast (show m + 1 ≤ 2 ^ 53 by have := h.1; omega)
+  have hm : (m : Rat) + 1 ≤ 2 ^ 53 := by exact_mod_cast (show m + 1 ≤ 2 ^ 53 by have := h.1; omega)
   rw [threshold_eq]
   rcases Int.lt_or_le q 971 with hq | hq
   · have hp := two_zpow_pos q
-    have h1 : (2 : ℚ) ^ q ≤ 2 ^ (970 : Int) := zpow_le_zpow_right₀ (by decide) (by omega)
-    have h2 : (2 : ℚ) ^ (971 : Int) = 2 ^ (970 : Int) * 2 := by
+    have h1 : (2 : Rat) ^ q ≤ 2 ^ (970 : Int) := zpow_le_zpow_right₀ (by decide) (by omega)
+    have h2 : (2 : Rat) ^ (971 : Int) = 2 ^ (970 : Int) * 2 := by
       rw [← Rat.zpow_add_one (by decide)]; rfl
-    have h3 : ((m : ℚ) + 1/2) * 2 ^ q < 2 ^ 53 * 2 ^ q := Rat.mul_lt_mul_of_pos_right (by grind) hp
-    have h4 : (2 : ℚ) ^ 53 * 2 ^ q ≤ 2 ^ 53 * 2 ^ (970 : Int) :=
+    have h3 : ((m : Rat) + 1/2) * 2 ^ q < 2 ^ 53 * 2 ^ q := Rat.mul_lt_mul_of_pos_right (by grind) hp
+    have h4 : (2 : Rat) ^ 53 * 2 ^ q ≤ 2 ^ 53 * 2 ^ (970 : Int) :=
       Rat.mul_le_mul_of_nonneg_left h1 (by grind)
-    generalize (2 : ℚ) ^ (970 : Int) = P at *
-    generalize (2 : ℚ) ^ q = Q at *
+    generalize (2 : Rat) ^ (970 : Int) = P at *
+    generalize (2 : Rat) ^ q = Q at *
     grind
   · have hq' : q = 971 := by have := h.2.2.1; omega
     subst hq'
-    have hle : ((m : ℚ) + 1/2) * 2 ^ (971 : Int) ≤ (2 ^ 53 - 1/2) * 2 ^ (971 : Int) :=
+    have hle : ((m : Rat) + 1/2) * 2 ^ (971 : Int) ≤ (2 ^ 53 - 1/2) * 2 ^ (971 : Int) :=
       Rat.mul_le_mul_of_nonneg_right (by grind) (le_of_lt (two_zpow_pos _))
-    by_cases heq : x = ((m : ℚ) + 1/2) * 2 ^ (971 : Int)
+    by_cases heq : x = ((m : Rat) + 1/2) * 2 ^ (971 : Int)
     · have he := hev heq
-      have hm2 : (m : ℚ) + 2 ≤ 2 ^ 53 := by
+      have hm2 : (m : Rat) + 2 ≤ 2 ^ 53 := by
         exact_mod_cast (show m + 2 ≤ 2 ^ 53 by have := h.1; omega)
       rw [heq]; exact Rat.mul_lt_mul_of_pos_right (by grind) (two_zpow_pos _)
     · exact lt_of_lt_of_le (lt_of_le_of_ne hr heq) hle
@@ -107,7 +107,7 @@ theorem sign_of_reads_to {w : UInt64} (hw : Word.isFinite w = true) {d : Decimal
     (h : ofDecimalBits d = w) : d.sign = (Word.decode w).sign := by
   rw [ofDecimalBits_eq] at h
   have hspec := decimalToFloatBits_spec d.sign d.significand d.exponent
-  rcases lt_or_ge ((d.significand : ℚ) * (10 : ℚ) ^ d.exponent) (2 ^ 1024 - 2 ^ 970) with hd | hd
+  rcases lt_or_ge ((d.significand : Rat) * (10 : Rat) ^ d.exponent) (2 ^ 1024 - 2 ^ 970) with hd | hd
   · rw [← h]; exact (hspec.1 hd).2.1.symm
   · exfalso
     rw [hspec.2 hd] at h
@@ -121,12 +121,12 @@ theorem reads_to_iff {w : UInt64} (hw : Word.isFinite w = true) (hm : 1 ≤ (Wor
     ofDecimalBits d = w ↔
       (d.significand ≠ 0 ∧ d.sign = (Word.decode w).sign
         ∧ InRv (Word.decode w).m (Word.decode w).q
-            ((d.significand : ℚ) * (10 : ℚ) ^ d.exponent) = true) := by
+            ((d.significand : Rat) * (10 : Rat) ^ d.exponent) = true) := by
   have hspec := decimalToFloatBits_spec d.sign d.significand d.exponent
   rw [ofDecimalBits_eq]
   constructor
   · intro h
-    rcases lt_or_ge ((d.significand : ℚ) * (10 : ℚ) ^ d.exponent) (2 ^ 1024 - 2 ^ 970) with hd | hd
+    rcases lt_or_ge ((d.significand : Rat) * (10 : Rat) ^ d.exponent) (2 ^ 1024 - 2 ^ 970) with hd | hd
     · obtain ⟨-, hs, hmem⟩ := hspec.1 hd
       rw [h] at hs hmem
       refine ⟨fun h0 => ?_, hs.symm, hmem⟩

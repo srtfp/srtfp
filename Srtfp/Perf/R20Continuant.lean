@@ -38,16 +38,16 @@ theorem rem_add_two (u M n : Nat) : rem u M (n+2) = rem u M n % rem u M (n+1) :=
 def qt (u M n : Nat) : Nat := rem u M n / rem u M (n+1)
 
 /-- Integer continuant denominators. -/
-def denI (u M : Nat) : Nat → ℤ
+def denI (u M : Nat) : Nat → Int
   | 0 => 1
-  | 1 => (qt u M 0 : ℤ)
-  | (n+2) => (qt u M (n+1) : ℤ) * denI u M (n+1) + denI u M n
+  | 1 => (qt u M 0 : Int)
+  | (n+2) => (qt u M (n+1) : Int) * denI u M (n+1) + denI u M n
 
 /-- Integer continuant numerators. -/
-def numI (u M : Nat) : Nat → ℤ
+def numI (u M : Nat) : Nat → Int
   | 0 => (u / M : Nat)
-  | 1 => (qt u M 0 : ℤ) * (u / M : Nat) + 1
-  | (n+2) => (qt u M (n+1) : ℤ) * numI u M (n+1) + numI u M n
+  | 1 => (qt u M 0 : Int) * (u / M : Nat) + 1
+  | (n+2) => (qt u M (n+1) : Int) * numI u M (n+1) + numI u M n
 
 /-- `Nat`-valued continuant denominator `(denI u M n).natAbs`. -/
 def denN (u M n : Nat) : Nat := (denI u M n).natAbs
@@ -61,54 +61,54 @@ theorem qt_mul_add_rem (u M n : Nat) :
   unfold qt
   grind
 
-/-- `qt_mul_add_rem`, cast to `ℤ` with the product distributed. -/
+/-- `qt_mul_add_rem`, cast to `Int` with the product distributed. -/
 theorem qt_mul_add_rem_int (u M n : Nat) :
-    (qt u M n : ℤ) * ((rem u M (n+1) : Nat) : ℤ) + ((rem u M (n+2) : Nat) : ℤ)
-      = ((rem u M n : Nat) : ℤ) := by
+    (qt u M n : Int) * ((rem u M (n+1) : Nat) : Int) + ((rem u M (n+2) : Nat) : Int)
+      = ((rem u M n : Nat) : Int) := by
   exact_mod_cast qt_mul_add_rem u M n
 
 /-! ## The error term and its invariant -/
 
 /-- Scaled approximation error of the `n`th convergent:
 `eI n = u · denI n − M · numI n`. -/
-def eI (u M : Nat) (n : Nat) : ℤ := (u : ℤ) * denI u M n - (M : ℤ) * numI u M n
+def eI (u M : Nat) (n : Nat) : Int := (u : Int) * denI u M n - (M : Int) * numI u M n
 
-theorem eI_zero (u M : Nat) : eI u M 0 = ((rem u M 1 : Nat) : ℤ) := by
-  show (u : ℤ) * 1 - (M : ℤ) * ((u / M : Nat) : ℤ) = ((u % M : Nat) : ℤ)
-  have hdm : (M : ℤ) * ((u / M : Nat) : ℤ) + ((u % M : Nat) : ℤ) = (u : ℤ) := by
+theorem eI_zero (u M : Nat) : eI u M 0 = ((rem u M 1 : Nat) : Int) := by
+  show (u : Int) * 1 - (M : Int) * ((u / M : Nat) : Int) = ((u % M : Nat) : Int)
+  have hdm : (M : Int) * ((u / M : Nat) : Int) + ((u % M : Nat) : Int) = (u : Int) := by
     exact_mod_cast Nat.div_add_mod u M
   omega
 
-theorem eI_one (u M : Nat) : eI u M 1 = -((rem u M 2 : Nat) : ℤ) := by
-  show (u : ℤ) * (qt u M 0 : ℤ) - (M : ℤ) * ((qt u M 0 : ℤ) * ((u / M : Nat) : ℤ) + 1)
-      = -((rem u M 2 : Nat) : ℤ)
-  have hdm : (M : ℤ) * ((u / M : Nat) : ℤ) + ((u % M : Nat) : ℤ) = (u : ℤ) := by
+theorem eI_one (u M : Nat) : eI u M 1 = -((rem u M 2 : Nat) : Int) := by
+  show (u : Int) * (qt u M 0 : Int) - (M : Int) * ((qt u M 0 : Int) * ((u / M : Nat) : Int) + 1)
+      = -((rem u M 2 : Nat) : Int)
+  have hdm : (M : Int) * ((u / M : Nat) : Int) + ((u % M : Nat) : Int) = (u : Int) := by
     exact_mod_cast Nat.div_add_mod u M
   have hq := qt_mul_add_rem_int u M 0
   simp only [Nat.zero_add] at hq
-  have hrem0 : ((rem u M 0 : Nat) : ℤ) = (M : ℤ) := rfl
-  have hrem1 : ((rem u M 1 : Nat) : ℤ) = ((u % M : Nat) : ℤ) := rfl
+  have hrem0 : ((rem u M 0 : Nat) : Int) = (M : Int) := rfl
+  have hrem1 : ((rem u M 1 : Nat) : Int) = ((u % M : Nat) : Int) := rfl
   rw [hrem0, hrem1] at hq
   -- u·q0 − M·(q0·(u/M) + 1) = q0·(u − M·(u/M)) − M = q0·(u%M) − M = −rem 2
-  have expand : (u : ℤ) * (qt u M 0 : ℤ) - (M : ℤ) * ((qt u M 0 : ℤ) * ((u / M : Nat) : ℤ) + 1)
-      = (qt u M 0 : ℤ) * ((u : ℤ) - (M : ℤ) * ((u / M : Nat) : ℤ)) - (M : ℤ) := by grind
+  have expand : (u : Int) * (qt u M 0 : Int) - (M : Int) * ((qt u M 0 : Int) * ((u / M : Nat) : Int) + 1)
+      = (qt u M 0 : Int) * ((u : Int) - (M : Int) * ((u / M : Nat) : Int)) - (M : Int) := by grind
   rw [expand]
-  have hfrac : (u : ℤ) - (M : ℤ) * ((u / M : Nat) : ℤ) = ((u % M : Nat) : ℤ) := by omega
+  have hfrac : (u : Int) - (M : Int) * ((u / M : Nat) : Int) = ((u % M : Nat) : Int) := by omega
   rw [hfrac]
   omega
 
 theorem eI_add_two (u M n : Nat) :
-    eI u M (n+2) = (qt u M (n+1) : ℤ) * eI u M (n+1) + eI u M n := by
-  show (u : ℤ) * ((qt u M (n+1) : ℤ) * denI u M (n+1) + denI u M n)
-      - (M : ℤ) * ((qt u M (n+1) : ℤ) * numI u M (n+1) + numI u M n)
-      = (qt u M (n+1) : ℤ) * ((u : ℤ) * denI u M (n+1) - (M : ℤ) * numI u M (n+1))
-        + ((u : ℤ) * denI u M n - (M : ℤ) * numI u M n)
+    eI u M (n+2) = (qt u M (n+1) : Int) * eI u M (n+1) + eI u M n := by
+  show (u : Int) * ((qt u M (n+1) : Int) * denI u M (n+1) + denI u M n)
+      - (M : Int) * ((qt u M (n+1) : Int) * numI u M (n+1) + numI u M n)
+      = (qt u M (n+1) : Int) * ((u : Int) * denI u M (n+1) - (M : Int) * numI u M (n+1))
+        + ((u : Int) * denI u M n - (M : Int) * numI u M n)
   grind
 
 /-- The Euclid invariant: `eI n = (−1)ⁿ · rem (n+1)`, phrased by parity. -/
 theorem eI_eq (u M : Nat) : ∀ n,
-    eI u M n = if n % 2 = 0 then ((rem u M (n+1) : Nat) : ℤ)
-               else -((rem u M (n+1) : Nat) : ℤ) := by
+    eI u M n = if n % 2 = 0 then ((rem u M (n+1) : Nat) : Int)
+               else -((rem u M (n+1) : Nat) : Int) := by
   intro n
   induction n using Nat.strongRecOn with
   | _ n IH =>
@@ -119,8 +119,8 @@ theorem eI_eq (u M : Nat) : ∀ n,
       rw [eI_add_two, IH (n+1) (by omega), IH n (by omega)]
       have hq := qt_mul_add_rem_int u M (n+1)
       simp only [show n+1+1 = n+2 from rfl, show n+1+2 = n+3 from rfl] at hq
-      have hdist : (qt u M (n+1) : ℤ) * -((rem u M (n+2) : Nat) : ℤ)
-          = -((qt u M (n+1) : ℤ) * ((rem u M (n+2) : Nat) : ℤ)) := by grind
+      have hdist : (qt u M (n+1) : Int) * -((rem u M (n+2) : Nat) : Int)
+          = -((qt u M (n+1) : Int) * ((rem u M (n+2) : Nat) : Int)) := by grind
       rcases Nat.mod_two_eq_zero_or_one n with hk | hk
       · rw [if_pos hk, if_neg (by omega : ¬((n+1) % 2 = 0)),
             if_pos (by omega : (n+2) % 2 = 0)]
@@ -140,15 +140,15 @@ theorem det_eq (u M : Nat) : ∀ n,
   intro n
   induction n with
   | zero =>
-    show ((qt u M 0 : ℤ) * ((u / M : Nat) : ℤ) + 1) * 1
-        - ((u / M : Nat) : ℤ) * (qt u M 0 : ℤ) = _
+    show ((qt u M 0 : Int) * ((u / M : Nat) : Int) + 1) * 1
+        - ((u / M : Nat) : Int) * (qt u M 0 : Int) = _
     simp only [show (0 : Nat) % 2 = 0 from rfl, reduceIte]
     grind
   | succ n IH =>
     have hstep : numI u M (n+2) * denI u M (n+1) - numI u M (n+1) * denI u M (n+2)
         = -(numI u M (n+1) * denI u M n - numI u M n * denI u M (n+1)) := by
-      show ((qt u M (n+1) : ℤ) * numI u M (n+1) + numI u M n) * denI u M (n+1)
-          - numI u M (n+1) * ((qt u M (n+1) : ℤ) * denI u M (n+1) + denI u M n) = _
+      show ((qt u M (n+1) : Int) * numI u M (n+1) + numI u M n) * denI u M (n+1)
+          - numI u M (n+1) * ((qt u M (n+1) : Int) * denI u M (n+1) + denI u M n) = _
       grind
     rw [hstep, IH]
     rcases Nat.mod_two_eq_zero_or_one n with hk | hk
@@ -159,23 +159,23 @@ theorem det_eq (u M : Nat) : ∀ n,
 /-! ## The fundamental identity `rem (n+1) · denI (n+1) + rem (n+2) · denI n = M` -/
 
 theorem rem_denI_identity (u M : Nat) : ∀ n,
-    ((rem u M (n+1) : Nat) : ℤ) * denI u M (n+1) + ((rem u M (n+2) : Nat) : ℤ) * denI u M n
-      = (M : ℤ) := by
+    ((rem u M (n+1) : Nat) : Int) * denI u M (n+1) + ((rem u M (n+2) : Nat) : Int) * denI u M n
+      = (M : Int) := by
   intro n
   induction n with
   | zero =>
-    show ((rem u M 1 : Nat) : ℤ) * (qt u M 0 : ℤ) + ((rem u M 2 : Nat) : ℤ) * 1 = (M : ℤ)
+    show ((rem u M 1 : Nat) : Int) * (qt u M 0 : Int) + ((rem u M 2 : Nat) : Int) * 1 = (M : Int)
     have hq := qt_mul_add_rem_int u M 0
-    have hrem0 : ((rem u M 0 : Nat) : ℤ) = (M : ℤ) := rfl
+    have hrem0 : ((rem u M 0 : Nat) : Int) = (M : Int) := rfl
     rw [hrem0] at hq
     grind
   | succ n IH =>
-    have hexp : ((rem u M (n+2) : Nat) : ℤ) * denI u M (n+2)
-        + ((rem u M (n+3) : Nat) : ℤ) * denI u M (n+1)
-        = ((rem u M (n+2) : Nat) : ℤ) * denI u M n
-          + (((qt u M (n+1) : ℤ) * ((rem u M (n+2) : Nat) : ℤ)
-              + ((rem u M (n+3) : Nat) : ℤ)) * denI u M (n+1)) := by
-      show ((rem u M (n+2) : Nat) : ℤ) * ((qt u M (n+1) : ℤ) * denI u M (n+1) + denI u M n)
+    have hexp : ((rem u M (n+2) : Nat) : Int) * denI u M (n+2)
+        + ((rem u M (n+3) : Nat) : Int) * denI u M (n+1)
+        = ((rem u M (n+2) : Nat) : Int) * denI u M n
+          + (((qt u M (n+1) : Int) * ((rem u M (n+2) : Nat) : Int)
+              + ((rem u M (n+3) : Nat) : Int)) * denI u M (n+1)) := by
+      show ((rem u M (n+2) : Nat) : Int) * ((qt u M (n+1) : Int) * denI u M (n+1) + denI u M n)
           + _ = _
       grind
     rw [hexp, qt_mul_add_rem_int u M (n+1)]
@@ -218,17 +218,17 @@ theorem denI_pos (u M : Nat) (hM : 0 < M) :
     match n with
     | 0 => exact Int.zero_lt_one
     | 1 =>
-      show (0 : ℤ) < (qt u M 0 : ℤ)
+      show (0 : Int) < (qt u M 0 : Int)
       exact_mod_cast qt_pos u M hM 0 (fun i hi => hpos i hi)
     | (n+2) =>
       have hq : 1 ≤ qt u M (n+1) := qt_pos u M hM (n+1) (fun i hi => hpos i hi)
       have h1 : 0 < denI u M (n+1) := IH (n+1) (by omega) (fun i hi => hpos i (by omega))
       have h0 : 0 < denI u M n := IH n (by omega) (fun i hi => hpos i (by omega))
-      show (0 : ℤ) < (qt u M (n+1) : ℤ) * denI u M (n+1) + denI u M n
-      have : (1 : ℤ) ≤ (qt u M (n+1) : ℤ) := by exact_mod_cast hq
-      have hmul : denI u M (n+1) ≤ (qt u M (n+1) : ℤ) * denI u M (n+1) := by
+      show (0 : Int) < (qt u M (n+1) : Int) * denI u M (n+1) + denI u M n
+      have : (1 : Int) ≤ (qt u M (n+1) : Int) := by exact_mod_cast hq
+      have hmul : denI u M (n+1) ≤ (qt u M (n+1) : Int) * denI u M (n+1) := by
         calc denI u M (n+1) = 1 * denI u M (n+1) := by grind
-          _ ≤ (qt u M (n+1) : ℤ) * denI u M (n+1) :=
+          _ ≤ (qt u M (n+1) : Int) * denI u M (n+1) :=
               Int.mul_le_mul_of_nonneg_right this (Int.le_of_lt h1)
       omega
 
@@ -246,7 +246,7 @@ theorem gcd_rem_invariant (u M : Nat) :
 /-- Termination detection: if `rem (n+2) = 0` inside the regime and `u, M`
 are coprime, then `rem (n+1) = 1` and hence `denI (n+1) = M`. -/
 theorem denI_eq_M_of_terminated (u M : Nat) (_hM : 0 < M) (hco : Nat.Coprime u M)    (n : Nat) (_hpos : ∀ i, i ≤ n+1 → 0 < rem u M i) (hz : rem u M (n+2) = 0) :
-    denI u M (n+1) = (M : ℤ) := by
+    denI u M (n+1) = (M : Int) := by
   have hgcd := gcd_rem_invariant u M (n+1)
   simp only [show n+1+1 = n+2 from rfl] at hgcd
   have hco' : Nat.gcd (rem u M 1) (rem u M 0) = 1 := by
@@ -258,7 +258,7 @@ theorem denI_eq_M_of_terminated (u M : Nat) (_hM : 0 < M) (hco : Nat.Coprime u M
     rw [hco', hz, Nat.gcd_zero_left] at hgcd
     exact hgcd
   have hid := rem_denI_identity u M n
-  rw [show ((rem u M (n+2) : Nat) : ℤ) = 0 by exact_mod_cast hz, hone] at hid
+  rw [show ((rem u M (n+2) : Nat) : Int) = 0 by exact_mod_cast hz, hone] at hid
   simpa using hid
 
 end Srtfp.Perf.R20Sweep
@@ -275,9 +275,9 @@ in scaled integer form. -/
 theorem bracket_eq_denI (u M p d n : Nat) (hM : 0 < M)
     (hpos : ∀ i, i ≤ n+1 → 0 < rem u M i)
     (hcop : Nat.gcd p d = 1) (hd : 0 < d)
-    (hlo : denI u M n ≤ (d : ℤ)) (hhi : (d : ℤ) < denI u M (n+1))
-    (hsmall : ((u : ℤ) * d - (M : ℤ) * p).natAbs * (2 * d) < M) :
-    (d : ℤ) = denI u M n := by
+    (hlo : denI u M n ≤ (d : Int)) (hhi : (d : Int) < denI u M (n+1))
+    (hsmall : ((u : Int) * d - (M : Int) * p).natAbs * (2 * d) < M) :
+    (d : Int) = denI u M n := by
   -- Abbreviations.
   have hD0 : 0 < denI u M n := denI_pos u M hM n (fun i hi => hpos i (by omega))
   have hD1 : 0 < denI u M (n+1) := denI_pos u M hM (n+1) hpos
@@ -289,30 +289,30 @@ theorem bracket_eq_denI (u M p d n : Nat) (hM : 0 < M)
     · left; rw [if_pos hk] at this; exact this
     · right; rw [if_neg (by omega)] at this; exact this
   -- Cramer coefficients.
-  set Δ : ℤ := numI u M (n+1) * denI u M n - numI u M n * denI u M (n+1) with hΔ_def
+  set Δ : Int := numI u M (n+1) * denI u M n - numI u M n * denI u M (n+1) with hΔ_def
   have hΔsq : Δ * Δ = 1 := by rcases hdet with h | h <;> (try rw [← hΔ_def] at h) <;> rw [h] <;> decide
-  set α : ℤ := Δ * ((d : ℤ) * numI u M (n+1) - (p : ℤ) * denI u M (n+1)) with hα_def
-  set β : ℤ := Δ * ((p : ℤ) * denI u M n - (d : ℤ) * numI u M n) with hβ_def
-  have eq1 : α * denI u M n + β * denI u M (n+1) = (d : ℤ) := by
+  set α : Int := Δ * ((d : Int) * numI u M (n+1) - (p : Int) * denI u M (n+1)) with hα_def
+  set β : Int := Δ * ((p : Int) * denI u M n - (d : Int) * numI u M n) with hβ_def
+  have eq1 : α * denI u M n + β * denI u M (n+1) = (d : Int) := by
     rw [hα_def, hβ_def]
-    have h1 : Δ * ((d : ℤ) * numI u M (n+1) - (p : ℤ) * denI u M (n+1)) * denI u M n
-        + Δ * ((p : ℤ) * denI u M n - (d : ℤ) * numI u M n) * denI u M (n+1)
-        = (Δ * Δ) * (d : ℤ) := by rw [← hΔ_def] at *; grind
+    have h1 : Δ * ((d : Int) * numI u M (n+1) - (p : Int) * denI u M (n+1)) * denI u M n
+        + Δ * ((p : Int) * denI u M n - (d : Int) * numI u M n) * denI u M (n+1)
+        = (Δ * Δ) * (d : Int) := by rw [← hΔ_def] at *; grind
     rw [h1, hΔsq]; grind
-  have eq2 : α * numI u M n + β * numI u M (n+1) = (p : ℤ) := by
+  have eq2 : α * numI u M n + β * numI u M (n+1) = (p : Int) := by
     rw [hα_def, hβ_def]
-    have h1 : Δ * ((d : ℤ) * numI u M (n+1) - (p : ℤ) * denI u M (n+1)) * numI u M n
-        + Δ * ((p : ℤ) * denI u M n - (d : ℤ) * numI u M n) * numI u M (n+1)
-        = (Δ * Δ) * (p : ℤ) := by rw [← hΔ_def] at *; grind
+    have h1 : Δ * ((d : Int) * numI u M (n+1) - (p : Int) * denI u M (n+1)) * numI u M n
+        + Δ * ((p : Int) * denI u M n - (d : Int) * numI u M n) * numI u M (n+1)
+        = (Δ * Δ) * (p : Int) := by rw [← hΔ_def] at *; grind
     rw [h1, hΔsq]; grind
   -- The error decomposition.
-  have heq3 : (u : ℤ) * d - (M : ℤ) * p = α * eI u M n + β * eI u M (n+1) := by
-    have h1 : (u : ℤ) * ((d : ℤ)) - (M : ℤ) * ((p : ℤ))
-        = (u : ℤ) * (α * denI u M n + β * denI u M (n+1))
-          - (M : ℤ) * (α * numI u M n + β * numI u M (n+1)) := by rw [eq1, eq2]
+  have heq3 : (u : Int) * d - (M : Int) * p = α * eI u M n + β * eI u M (n+1) := by
+    have h1 : (u : Int) * ((d : Int)) - (M : Int) * ((p : Int))
+        = (u : Int) * (α * denI u M n + β * denI u M (n+1))
+          - (M : Int) * (α * numI u M n + β * numI u M (n+1)) := by rw [eq1, eq2]
     rw [h1]
-    show _ = α * ((u : ℤ) * denI u M n - (M : ℤ) * numI u M n)
-        + β * ((u : ℤ) * denI u M (n+1) - (M : ℤ) * numI u M (n+1))
+    show _ = α * ((u : Int) * denI u M n - (M : Int) * numI u M n)
+        + β * ((u : Int) * denI u M (n+1) - (M : Int) * numI u M (n+1))
     grind
   by_cases hβ0 : β = 0
   · -- `d = α · denI n` with `gcd p d = 1` forces `α = 1`.
@@ -376,7 +376,7 @@ theorem bracket_eq_denI (u M p d n : Nat) (hM : 0 < M)
               Int.mul_le_mul_of_nonneg_right (by omega) (by omega)
             omega
           have hαD0_pos : 0 < α * denI u M n := by
-            have hexp : α * denI u M n = (d : ℤ) + (-β) * denI u M (n+1) := by grind
+            have hexp : α * denI u M n = (d : Int) + (-β) * denI u M (n+1) := by grind
             omega
           by_contra hcon
           push_neg at hcon
@@ -387,9 +387,9 @@ theorem bracket_eq_denI (u M p d n : Nat) (hM : 0 < M)
       -- Parity of the error terms.
       have hE0 := eI_eq u M n
       have hE1 := eI_eq u M (n+1)
-      set X : ℤ := (u : ℤ) * d - (M : ℤ) * p with hX_def
-      set R0 : ℤ := ((rem u M (n+1) : Nat) : ℤ) with hR0_def
-      set R1 : ℤ := ((rem u M (n+2) : Nat) : ℤ) with hR1_def
+      set X : Int := (u : Int) * d - (M : Int) * p with hX_def
+      set R0 : Int := ((rem u M (n+1) : Nat) : Int) with hR0_def
+      set R1 : Int := ((rem u M (n+2) : Nat) : Int) with hR1_def
       have hR0nn : 0 ≤ R0 := by rw [hR0_def]; omega
       have hR1nn : 0 ≤ R1 := by rw [hR1_def]; omega
       -- Best approximation: R0 ≤ |X|.
@@ -444,27 +444,27 @@ theorem bracket_eq_denI (u M p d n : Nat) (hM : 0 < M)
         rw [hR0_def] at hbest
         omega
       -- The contradiction: M ≤ M·|β| = |d·eI n − denI n·X| ≤ 2d·|X| < M.
-      have hkey : (M : ℤ) * Δ * β = (d : ℤ) * eI u M n - denI u M n * X := by
+      have hkey : (M : Int) * Δ * β = (d : Int) * eI u M n - denI u M n * X := by
         rw [hβ_def, hX_def]
-        show (M : ℤ) * Δ * (Δ * ((p : ℤ) * denI u M n - (d : ℤ) * numI u M n)) = _
-        have h1 : (M : ℤ) * Δ * (Δ * ((p : ℤ) * denI u M n - (d : ℤ) * numI u M n))
-            = (Δ * Δ) * ((M : ℤ) * ((p : ℤ) * denI u M n - (d : ℤ) * numI u M n)) := by grind
+        show (M : Int) * Δ * (Δ * ((p : Int) * denI u M n - (d : Int) * numI u M n)) = _
+        have h1 : (M : Int) * Δ * (Δ * ((p : Int) * denI u M n - (d : Int) * numI u M n))
+            = (Δ * Δ) * ((M : Int) * ((p : Int) * denI u M n - (d : Int) * numI u M n)) := by grind
         rw [h1, hΔsq, Int.one_mul]
-        show (M : ℤ) * ((p : ℤ) * denI u M n - (d : ℤ) * numI u M n)
-            = (d : ℤ) * ((u : ℤ) * denI u M n - (M : ℤ) * numI u M n)
-              - denI u M n * ((u : ℤ) * d - (M : ℤ) * p)
+        show (M : Int) * ((p : Int) * denI u M n - (d : Int) * numI u M n)
+            = (d : Int) * ((u : Int) * denI u M n - (M : Int) * numI u M n)
+              - denI u M n * ((u : Int) * d - (M : Int) * p)
         grind
       -- Pass to natAbs.
-      have hMβ_natAbs : M * β.natAbs = ((d : ℤ) * eI u M n - denI u M n * X).natAbs := by
+      have hMβ_natAbs : M * β.natAbs = ((d : Int) * eI u M n - denI u M n * X).natAbs := by
         have := congrArg Int.natAbs hkey
         rw [Int.natAbs_mul, Int.natAbs_mul] at this
         have hΔabs : Δ.natAbs = 1 := by rcases hdet with h | h <;> (try rw [← hΔ_def] at h) <;> rw [h] <;> rfl
         rw [hΔabs] at this
         simpa using this
-      have htri : ((d : ℤ) * eI u M n - denI u M n * X).natAbs
-          ≤ ((d : ℤ) * eI u M n).natAbs + (denI u M n * X).natAbs :=
+      have htri : ((d : Int) * eI u M n - denI u M n * X).natAbs
+          ≤ ((d : Int) * eI u M n).natAbs + (denI u M n * X).natAbs :=
         Int.natAbs_sub_le _ _
-      have h1 : ((d : ℤ) * eI u M n).natAbs = d * (eI u M n).natAbs := by
+      have h1 : ((d : Int) * eI u M n).natAbs = d * (eI u M n).natAbs := by
         rw [Int.natAbs_mul]; simp
       have h2 : (denI u M n * X).natAbs = (denI u M n).natAbs * X.natAbs := Int.natAbs_mul _ _
       have hE0abs : (eI u M n).natAbs = rem u M (n+1) := by
@@ -474,12 +474,12 @@ theorem bracket_eq_denI (u M p d n : Nat) (hM : 0 < M)
         · rw [if_neg (by omega)] at this; rw [this]; simp
       have hD0d : (denI u M n).natAbs ≤ d := by omega
       have hb1 : 1 ≤ β.natAbs := by omega
-      -- Chain it all in ℕ.
+      -- Chain it all in Nat.
       have hchain : M ≤ d * rem u M (n+1) + d * X.natAbs := by
         calc M = M * 1 := by omega
           _ ≤ M * β.natAbs := Nat.mul_le_mul_left M hb1
-          _ = ((d : ℤ) * eI u M n - denI u M n * X).natAbs := hMβ_natAbs
-          _ ≤ ((d : ℤ) * eI u M n).natAbs + (denI u M n * X).natAbs := htri
+          _ = ((d : Int) * eI u M n - denI u M n * X).natAbs := hMβ_natAbs
+          _ ≤ ((d : Int) * eI u M n).natAbs + (denI u M n * X).natAbs := htri
           _ = d * rem u M (n+1) + (denI u M n).natAbs * X.natAbs := by rw [h1, h2, hE0abs]
           _ ≤ d * rem u M (n+1) + d * X.natAbs := by
               have := Nat.mul_le_mul_right (X.natAbs) hD0d
@@ -520,7 +520,7 @@ continuant denominators inside the positivity regime. -/
 theorem exists_bracket (u M d : Nat) (hM : 0 < M) (hco : Nat.Coprime u M)
     (hd : 0 < d) (hdM : d < M) :
     ∃ n, (∀ i, i ≤ n+1 → 0 < rem u M i)
-      ∧ denI u M n ≤ (d : ℤ) ∧ (d : ℤ) < denI u M (n+1) := by
+      ∧ denI u M n ≤ (d : Int) ∧ (d : Int) < denI u M (n+1) := by
   have hM1 : 1 < M := by omega
   have hrem1 : 0 < rem u M 1 := by
     show 0 < u % M
@@ -532,15 +532,15 @@ theorem exists_bracket (u M d : Nat) (hM : 0 < M) (hco : Nat.Coprime u M)
       omega
     · exact h
   suffices aux : ∀ fuel k, M ≤ k + fuel → (∀ i, i ≤ k+1 → 0 < rem u M i) →
-      denI u M k ≤ (d : ℤ) →
+      denI u M k ≤ (d : Int) →
       ∃ n, (∀ i, i ≤ n+1 → 0 < rem u M i)
-        ∧ denI u M n ≤ (d : ℤ) ∧ (d : ℤ) < denI u M (n+1) by
+        ∧ denI u M n ≤ (d : Int) ∧ (d : Int) < denI u M (n+1) by
     apply aux M 0 (by omega)
     · intro i hi
       match i, hi with
       | 0, _ => exact hM
       | 1, _ => exact hrem1
-    · show (1 : ℤ) ≤ (d : ℤ)
+    · show (1 : Int) ≤ (d : Int)
       omega
   intro fuel
   induction fuel with
@@ -552,7 +552,7 @@ theorem exists_bracket (u M d : Nat) (hM : 0 < M) (hco : Nat.Coprime u M)
     omega
   | succ f IH =>
     intro k hk hreg hle
-    by_cases hbr : (d : ℤ) < denI u M (k+1)
+    by_cases hbr : (d : Int) < denI u M (k+1)
     · exact ⟨k, hreg, hle, hbr⟩
     · push_neg at hbr
       by_cases hz : rem u M (k+2) = 0
@@ -575,7 +575,7 @@ has `d` equal to a continuant denominator of the Euclidean expansion of
 `(u, M)`, at an index inside the positivity regime. -/
 theorem small_den_is_denN (u M p d : Nat) (hM : 0 < M) (hco : Nat.Coprime u M)
     (hcop : Nat.gcd p d = 1) (hd : 0 < d) (hdM : d < M)
-    (hsmall : ((u : ℤ) * d - (M : ℤ) * p).natAbs * (2 * d) < M) :
+    (hsmall : ((u : Int) * d - (M : Int) * p).natAbs * (2 * d) < M) :
     ∃ n, (∀ i, i ≤ n+1 → 0 < rem u M i) ∧ denN u M n = d := by
   obtain ⟨n, hreg, hlo, hhi⟩ := exists_bracket u M d hM hco hd hdM
   have heq := bracket_eq_denI u M p d n hM hreg hcop hd hlo hhi hsmall
@@ -606,15 +606,15 @@ theorem fib_add_two (n : Nat) : fib (n+2) = fib n + fib (n+1) := by
 
 /-- Continuant denominators grow at least as fast as Fibonacci. -/
 theorem fib_le_denI (u M : Nat) (hM : 0 < M) :
-    ∀ n, (∀ i, i ≤ n → 0 < rem u M i) → (fib (n+1) : ℤ) ≤ denI u M n := by
+    ∀ n, (∀ i, i ≤ n → 0 < rem u M i) → (fib (n+1) : Int) ≤ denI u M n := by
   intro n
   induction n using Nat.strongRecOn with
   | _ n IH =>
     intro hreg
     match n with
-    | 0 => show ((1 : Nat) : ℤ) ≤ 1; omega
+    | 0 => show ((1 : Nat) : Int) ≤ 1; omega
     | 1 =>
-      show ((fib 2 : Nat) : ℤ) ≤ (qt u M 0 : ℤ)
+      show ((fib 2 : Nat) : Int) ≤ (qt u M 0 : Int)
       have h := qt_pos u M hM 0 (fun i hi => hreg i hi)
       have : fib 2 = 1 := rfl
       omega
@@ -624,13 +624,13 @@ theorem fib_le_denI (u M : Nat) (hM : 0 < M) :
       have h0 := IH n (by omega) (fun i hi => hreg i (by omega))
       have hq : 1 ≤ qt u M (n+1) := qt_pos u M hM (n+1) (fun i hi => hreg i hi)
       have hD1 : 0 < denI u M (n+1) := denI_pos u M hM (n+1) (fun i hi => hreg i (by omega))
-      show ((fib (n+3) : Nat) : ℤ) ≤ (qt u M (n+1) : ℤ) * denI u M (n+1) + denI u M n
+      show ((fib (n+3) : Nat) : Int) ≤ (qt u M (n+1) : Int) * denI u M (n+1) + denI u M n
       have hfib : fib (n+3) = fib (n+1) + fib (n+2) := fib_add_two (n+1)
-      have hmul : denI u M (n+1) ≤ (qt u M (n+1) : ℤ) * denI u M (n+1) := by
-        have h' : (1 : ℤ) ≤ (qt u M (n+1) : ℤ) := by exact_mod_cast hq
+      have hmul : denI u M (n+1) ≤ (qt u M (n+1) : Int) * denI u M (n+1) := by
+        have h' : (1 : Int) ≤ (qt u M (n+1) : Int) := by exact_mod_cast hq
         have := Int.mul_le_mul_of_nonneg_right h' (Int.le_of_lt hD1)
         omega
-      have hcast : ((fib (n+3) : Nat) : ℤ) = ((fib (n+1) : Nat) : ℤ) + ((fib (n+2) : Nat) : ℤ) := by
+      have hcast : ((fib (n+3) : Nat) : Int) = ((fib (n+1) : Nat) : Int) + ((fib (n+2) : Nat) : Int) := by
         exact_mod_cast congrArg (Nat.cast : Nat → Int) hfib
       omega
 
@@ -645,7 +645,7 @@ theorem bracket_index_lt_78 (u M d n : Nat) (hM : 0 < M)
   push_neg at hge
   have hfib := fib_le_denI u M hM n (fun i hi => hreg i (by omega))
   have hD : 0 < denI u M n := denI_pos u M hM n (fun i hi => hreg i (by omega))
-  have hdenIval : denI u M n = (d : ℤ) := by unfold denN at hden; omega
+  have hdenIval : denI u M n = (d : Int) := by unfold denN at hden; omega
   have hfib78 : fib 79 ≤ fib (n+1) := by
     clear hfib hdenIval hden hd53 hD hreg
     have hmono : ∀ a b, a ≤ b → fib (a+2) ≤ fib (b+2) := by

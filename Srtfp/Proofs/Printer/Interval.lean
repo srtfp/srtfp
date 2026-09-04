@@ -10,25 +10,25 @@ open Srtfp.Compat
 
 namespace Srtfp.Printer
 
-variable {m : Nat} {q : Int} {x y z : ℚ}
+variable {m : Nat} {q : Int} {x y z : Rat}
 
-theorem two_zpow_pos (q : Int) : (0 : ℚ) < (2 : ℚ) ^ q := Rat.zpow_pos (by decide)
+theorem two_zpow_pos (q : Int) : (0 : Rat) < (2 : Rat) ^ q := Rat.zpow_pos (by decide)
 
-theorem ten_zpow_pos (i : Int) : (0 : ℚ) < (10 : ℚ) ^ i := Rat.zpow_pos (by decide)
+theorem ten_zpow_pos (i : Int) : (0 : Rat) < (10 : Rat) ^ i := Rat.zpow_pos (by decide)
 
-theorem two_zpow_natCast (n : Nat) : (2 : ℚ) ^ (n : Int) = ((2 ^ n : Nat) : ℚ) := by
+theorem two_zpow_natCast (n : Nat) : (2 : Rat) ^ (n : Int) = ((2 ^ n : Nat) : Rat) := by
   rw [Rat.zpow_natCast]; push_cast; rfl
 
-theorem two_zpow_mul_neg (e : Int) : (2 : ℚ) ^ e * (2 : ℚ) ^ (-e) = 1 := by
+theorem two_zpow_mul_neg (e : Int) : (2 : Rat) ^ e * (2 : Rat) ^ (-e) = 1 := by
   rw [← Rat.zpow_add (by decide), show e + -e = 0 by omega, Rat.zpow_zero]
 
 /-- A nonnegative integer exponent is a natural one. -/
-theorem two_zpow_toNat {e : Int} (he : 0 ≤ e) : (2 : ℚ) ^ e = (2 : ℚ) ^ e.toNat := by
+theorem two_zpow_toNat {e : Int} (he : 0 ≤ e) : (2 : Rat) ^ e = (2 : Rat) ^ e.toNat := by
   conv => lhs; rw [← Int.toNat_of_nonneg he]
   exact Rat.zpow_natCast _ _
 
 /-- `b^q · b^{max(-q,0)} = b^{max(q,0)}`, for nonzero `b`. -/
-theorem zpow_split_gen (b : ℚ) (hb : b ≠ 0) (q : Int) :
+theorem zpow_split_gen (b : Rat) (hb : b ≠ 0) (q : Int) :
     b ^ q * b ^ (if q < 0 then (-q).toNat else 0)
       = b ^ (if q ≥ 0 then q.toNat else 0) := by
   by_cases hq : q < 0
@@ -42,19 +42,19 @@ theorem zpow_split_gen (b : ℚ) (hb : b ≠ 0) (q : Int) :
     simp
 
 theorem zpow_two_split (q : Int) :
-    (2 : ℚ) ^ q * (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
-      = (2 : ℚ) ^ (if q ≥ 0 then q.toNat else 0) :=
+    (2 : Rat) ^ q * (2 : Rat) ^ (if q < 0 then (-q).toNat else 0)
+      = (2 : Rat) ^ (if q ≥ 0 then q.toNat else 0) :=
   zpow_split_gen 2 (by grind) q
 
 theorem zpow_ten_split (k : Int) :
-    (10 : ℚ) ^ k * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)
-      = (10 : ℚ) ^ (if k ≥ 0 then k.toNat else 0) :=
+    (10 : Rat) ^ k * (10 : Rat) ^ (if k < 0 then (-k).toNat else 0)
+      = (10 : Rat) ^ (if k ≥ 0 then k.toNat else 0) :=
   zpow_split_gen 10 (by grind) k
 
 theorem vl_lt_v (hm : 1 ≤ m) : vl m q < v m q := by
   unfold vl v
   have h2 := two_zpow_pos q
-  have hm' : (1 : ℚ) ≤ m := by exact_mod_cast hm
+  have hm' : (1 : Rat) ≤ m := by exact_mod_cast hm
   split <;> grind
 
 theorem v_lt_vr : v m q < vr m q := by
@@ -65,7 +65,7 @@ theorem v_lt_vr : v m q < vr m q := by
 theorem vl_pos (hm : 1 ≤ m) : 0 < vl m q := by
   unfold vl
   have h2 := two_zpow_pos q
-  have hm' : (1 : ℚ) ≤ m := by exact_mod_cast hm
+  have hm' : (1 : Rat) ≤ m := by exact_mod_cast hm
   split <;> grind
 
 theorem InRv_v (hm : 1 ≤ m) : InRv m q (v m q) = true := by
@@ -91,16 +91,16 @@ theorem InRv_convex (hx : InRv m q x = true) (hz : InRv m q z = true)
   split at hx <;> simp at hx hz ⊢ <;> grind
 
 theorem width_eq :
-    vr m q - vl m q = (if m = 2 ^ 52 ∧ q > -1074 then 3/4 else 1) * (2 : ℚ) ^ q := by
+    vr m q - vl m q = (if m = 2 ^ 52 ∧ q > -1074 then 3/4 else 1) * (2 : Rat) ^ q := by
   unfold vr vl
   split <;> grind
 
-theorem width_le_two_zpow : vr m q - vl m q ≤ (2 : ℚ) ^ q := by
+theorem width_le_two_zpow : vr m q - vl m q ≤ (2 : Rat) ^ q := by
   rw [width_eq]
   have h2 := two_zpow_pos q
   split <;> grind
 
-theorem width_ge : 3/4 * (2 : ℚ) ^ q ≤ vr m q - vl m q := by
+theorem width_ge : 3/4 * (2 : Rat) ^ q ≤ vr m q - vl m q := by
   rw [width_eq]
   have h2 := two_zpow_pos q
   split <;> grind

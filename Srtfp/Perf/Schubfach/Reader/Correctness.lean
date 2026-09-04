@@ -12,7 +12,7 @@ module
      upward and `2^q`/`2^(q-1)`-discrete downward (irregular binade
      bottom), values are injective, grid successors alternate mantissa
      parity.
-   * `R_v` semantics: `inRoundingInterval` membership converts to ℚ
+   * `R_v` semantics: `inRoundingInterval` membership converts to Rat
      brackets `v_l ≤/< u ≤/< v_r` around `v = magVal m q` via the
      `cmpScaledMixed_*_iff_rat` bridges from `Schubfach/TieBreak.lean`.
    * Nearest: the brackets plus grid discreteness give global distance
@@ -85,12 +85,12 @@ theorem decode_finShape (v : UInt64) (h_fin : Word.isFinite v = true) :
       omega
   · exact Or.inr (decode_legalIEEE_bits v h_fin hm)
 
-/-! ## Grid geometry in ℚ -/
+/-! ## Grid geometry in Rat -/
 
-private theorem two_zpow_pos (q : Int) : (0 : ℚ) < (2 : ℚ) ^ q :=
+private theorem two_zpow_pos (q : Int) : (0 : Rat) < (2 : Rat) ^ q :=
   Rat.zpow_pos (by decide)
 
-theorem magVal_nonneg (m : Nat) (q : Int) : (0 : ℚ) ≤ magVal m q :=
+theorem magVal_nonneg (m : Nat) (q : Int) : (0 : Rat) ≤ magVal m q :=
   Rat.mul_nonneg (Rat.natCast_nonneg) (le_of_lt (two_zpow_pos q))
 
 theorem magVal_zero_eq (q : Int) : magVal 0 q = 0 := by
@@ -99,14 +99,14 @@ theorem magVal_zero_eq (q : Int) : magVal 0 q = 0 := by
 /-- Rescale a magnitude to a lower exponent:
 `magVal m' q' = (m' · 2^(q'-q)) · 2^q` for `q ≤ q'`. -/
 private theorem magVal_shift (m' : Nat) (q q' : Int) (h : q ≤ q') :
-    magVal m' q' = ((m' * 2 ^ (q' - q).toNat : Nat) : ℚ) * (2 : ℚ) ^ q := by
+    magVal m' q' = ((m' * 2 ^ (q' - q).toNat : Nat) : Rat) * (2 : Rat) ^ q := by
   unfold magVal
   push_cast
-  rw [show (2 : ℚ) ^ ((q' - q).toNat) = (2 : ℚ) ^ ((q' - q : Int)) from by
+  rw [show (2 : Rat) ^ ((q' - q).toNat) = (2 : Rat) ^ ((q' - q : Int)) from by
         rw [← Rat.zpow_natCast]
         congr 1
         omega,
-      Rat.mul_assoc, ← Rat.zpow_add (by grind : (2:ℚ) ≠ 0)]
+      Rat.mul_assoc, ← Rat.zpow_add (by grind : (2:Rat) ≠ 0)]
   congr 2
   omega
 
@@ -115,19 +115,19 @@ above `magVal m q` is at least one step `2^q` above it. -/
 theorem magVal_gap_up (m m' : Nat) (q q' : Int)
     (hs : FinShape m q) (hs' : FinShape m' q')
     (hlt : magVal m q < magVal m' q') :
-    magVal m q + (2 : ℚ) ^ q ≤ magVal m' q' := by
+    magVal m q + (2 : Rat) ^ q ≤ magVal m' q' := by
   rcases le_or_gt q q' with hq | hq
   · -- q ≤ q': compare coefficients at scale 2^q.
     rw [magVal_shift m' q q' hq] at hlt ⊢
-    have hcoeff : (m : ℚ) < ((m' * 2 ^ (q' - q).toNat : Nat) : ℚ) := by
+    have hcoeff : (m : Rat) < ((m' * 2 ^ (q' - q).toNat : Nat) : Rat) := by
       unfold magVal at hlt
       exact (Rat.mul_lt_mul_right (two_zpow_pos q)).mp hlt
     have hnat : m < m' * 2 ^ (q' - q).toNat := by exact_mod_cast hcoeff
-    have hnat1 : (m : ℚ) + 1 ≤ ((m' * 2 ^ (q' - q).toNat : Nat) : ℚ) := by
+    have hnat1 : (m : Rat) + 1 ≤ ((m' * 2 ^ (q' - q).toNat : Nat) : Rat) := by
       have : m + 1 ≤ m' * 2 ^ (q' - q).toNat := hnat
       exact_mod_cast this
     unfold magVal
-    have hstep : ((m : ℚ) + 1) * (2:ℚ) ^ q ≤ ((m' * 2 ^ (q' - q).toNat : Nat) : ℚ) * (2:ℚ) ^ q :=
+    have hstep : ((m : Rat) + 1) * (2:Rat) ^ q ≤ ((m' * 2 ^ (q' - q).toNat : Nat) : Rat) * (2:Rat) ^ q :=
       Rat.mul_le_mul_of_nonneg_right hnat1 (Rat.le_of_lt (two_zpow_pos q))
     grind
   · -- q' < q: impossible for a strictly larger magnitude.
@@ -144,18 +144,18 @@ theorem magVal_gap_up (m m' : Nat) (q q' : Int)
     have h1 : magVal m' q' < magVal (2 ^ 53) q' := by
       unfold magVal
       have h2 := two_zpow_pos q'
-      have hlt' : (m' : ℚ) < ((2 ^ 53 : Nat) : ℚ) := by
+      have hlt' : (m' : Rat) < ((2 ^ 53 : Nat) : Rat) := by
         exact_mod_cast hs'.m_lt
       exact Rat.mul_lt_mul_of_pos_right hlt' h2
     have h2 : magVal (2 ^ 53) q' ≤ magVal (2 ^ 52) q := by
       unfold magVal
       -- 2^53 · 2^q' = 2^52 · 2^(q'+1) ≤ 2^52 · 2^q.
-      have hstep : (2 : ℚ) ^ (q' + 1) ≤ (2 : ℚ) ^ q :=
+      have hstep : (2 : Rat) ^ (q' + 1) ≤ (2 : Rat) ^ q :=
         zpow_le_zpow_right₀ (by grind) (by omega)
-      have h52 : (0 : ℚ) < ((2 ^ 52 : Nat) : ℚ) := by (first | exact Rat.zpow_pos (by decide) | exact Rat.pow_pos (by decide) | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | grind)
-      have hsplit : ((2 ^ 53 : Nat) : ℚ) * (2 : ℚ) ^ q'
-          = ((2 ^ 52 : Nat) : ℚ) * (2 : ℚ) ^ (q' + 1) := by
-        rw [Rat.zpow_add (by grind : (2:ℚ) ≠ 0)]
+      have h52 : (0 : Rat) < ((2 ^ 52 : Nat) : Rat) := by (first | exact Rat.zpow_pos (by decide) | exact Rat.pow_pos (by decide) | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | grind)
+      have hsplit : ((2 ^ 53 : Nat) : Rat) * (2 : Rat) ^ q'
+          = ((2 ^ 52 : Nat) : Rat) * (2 : Rat) ^ (q' + 1) := by
+        rw [Rat.zpow_add (by grind : (2:Rat) ≠ 0)]
         push_cast
         grind
       rw [hsplit]
@@ -163,13 +163,13 @@ theorem magVal_gap_up (m m' : Nat) (q q' : Int)
     have h3 : magVal (2 ^ 52) q ≤ magVal m q := by
       unfold magVal
       have h2q := two_zpow_pos q
-      have hle : ((2 ^ 52 : Nat) : ℚ) ≤ (m : ℚ) := by exact_mod_cast hm_ge
+      have hle : ((2 ^ 52 : Nat) : Rat) ≤ (m : Rat) := by exact_mod_cast hm_ge
       exact Rat.mul_le_mul_of_nonneg_right hle (Rat.le_of_lt h2q)
     grind
 
 /-- Cancel a shared positive `2^q` factor in an equality. -/
 private theorem coeff_eq_of_magVal (a b : Nat) (q : Int)
-    (h : (a : ℚ) * (2 : ℚ) ^ q = (b : ℚ) * (2 : ℚ) ^ q) : a = b := by
+    (h : (a : Rat) * (2 : Rat) ^ q = (b : Rat) * (2 : Rat) ^ q) : a = b := by
   have := (mul_left_inj' (Rat.ne_of_gt (two_zpow_pos q))).mp h
   exact_mod_cast this
 
@@ -180,9 +180,9 @@ theorem magVal_gap_down (m m' : Nat) (q q' : Int)
     (hleg : LegalIEEE m q) (hs' : FinShape m' q')
     (hlt : magVal m' q' < magVal m q) :
     magVal m' q'
-      ≤ magVal m q - (if isIrregular m q then (2 : ℚ) ^ (q - 1) else (2 : ℚ) ^ q) := by
-  have hstep_le : (if isIrregular m q then (2 : ℚ) ^ (q - 1) else (2 : ℚ) ^ q)
-      ≤ (2 : ℚ) ^ q := by
+      ≤ magVal m q - (if isIrregular m q then (2 : Rat) ^ (q - 1) else (2 : Rat) ^ q) := by
+  have hstep_le : (if isIrregular m q then (2 : Rat) ^ (q - 1) else (2 : Rat) ^ q)
+      ≤ (2 : Rat) ^ q := by
     split
     · exact zpow_le_zpow_right₀ (by grind) (by omega)
     · exact le_refl _
@@ -191,32 +191,32 @@ theorem magVal_gap_down (m m' : Nat) (q q' : Int)
     rcases hleg with ⟨_, _, hqe⟩ | ⟨_, _, hge, _⟩ <;> omega
   rcases lt_trichotomy q' q with hq | hq | hq
   · -- q' < q: bound mag' by (2^53 - 1) · 2^(q-1) and compare.
-    have hm'_le : (m' : ℚ) ≤ (2 : ℚ) ^ (53 : ℕ) - 1 := by
+    have hm'_le : (m' : Rat) ≤ (2 : Rat) ^ (53 : Nat) - 1 := by
       have h1 : m' ≤ 2 ^ 53 - 1 := by have := hs'.m_lt; omega
-      have h2 : (m' : ℚ) ≤ ((2 ^ 53 - 1 : Nat) : ℚ) := by exact_mod_cast h1
-      have h3 : ((2 ^ 53 - 1 : Nat) : ℚ) = (2 : ℚ) ^ (53 : ℕ) - 1 := by
-        have h1 : ((2 ^ 53 - 1 : Nat) : ℚ) + 1 = (2 : ℚ) ^ (53 : ℕ) := by
-          rw [show (1:ℚ) = ((1 : Nat) : ℚ) from rfl, ← Rat.natCast_add,
+      have h2 : (m' : Rat) ≤ ((2 ^ 53 - 1 : Nat) : Rat) := by exact_mod_cast h1
+      have h3 : ((2 ^ 53 - 1 : Nat) : Rat) = (2 : Rat) ^ (53 : Nat) - 1 := by
+        have h1 : ((2 ^ 53 - 1 : Nat) : Rat) + 1 = (2 : Rat) ^ (53 : Nat) := by
+          rw [show (1:Rat) = ((1 : Nat) : Rat) from rfl, ← Rat.natCast_add,
               show (2 ^ 53 - 1 + 1 : Nat) = 2 ^ 53 from by omega, Rat.natCast_pow]
           rfl
         grind
       grind
-    have hpow_le : (2 : ℚ) ^ q' ≤ (2 : ℚ) ^ (q - 1) :=
+    have hpow_le : (2 : Rat) ^ q' ≤ (2 : Rat) ^ (q - 1) :=
       zpow_le_zpow_right₀ (by grind) (by omega)
-    have hmag'_le : (m' : ℚ) * (2 : ℚ) ^ q'
-        ≤ ((2 : ℚ) ^ (53 : ℕ) - 1) * (2 : ℚ) ^ (q - 1) := by
-      have h1 : (0 : ℚ) ≤ (m' : ℚ) := Rat.natCast_nonneg
-      calc (m' : ℚ) * (2:ℚ)^q' ≤ (m' : ℚ) * (2:ℚ)^(q-1) :=
+    have hmag'_le : (m' : Rat) * (2 : Rat) ^ q'
+        ≤ ((2 : Rat) ^ (53 : Nat) - 1) * (2 : Rat) ^ (q - 1) := by
+      have h1 : (0 : Rat) ≤ (m' : Rat) := Rat.natCast_nonneg
+      calc (m' : Rat) * (2:Rat)^q' ≤ (m' : Rat) * (2:Rat)^(q-1) :=
             Rat.mul_le_mul_of_nonneg_left hpow_le h1
-        _ ≤ ((2:ℚ)^(53:ℕ) - 1) * (2:ℚ)^(q-1) :=
+        _ ≤ ((2:Rat)^(53:Nat) - 1) * (2:Rat)^(q-1) :=
             Rat.mul_le_mul_of_nonneg_right hm'_le (Rat.le_of_lt (two_zpow_pos (q-1)))
     -- q' < q forces m normal (q > -1074).
     have hm_norm : 2 ^ 52 ≤ m := by
       rcases hleg with ⟨_, _, hqe⟩ | ⟨hge, _⟩
       · omega
       · exact hge
-    have hsplit : (2 : ℚ) ^ q = 2 * (2 : ℚ) ^ (q - 1) := by
-      rw [show q = (q - 1) + 1 from by omega, Rat.zpow_add (by grind : (2:ℚ) ≠ 0),
+    have hsplit : (2 : Rat) ^ q = 2 * (2 : Rat) ^ (q - 1) := by
+      rw [show q = (q - 1) + 1 from by omega, Rat.zpow_add (by grind : (2:Rat) ≠ 0),
           Rat.zpow_one]
       grind
     unfold magVal
@@ -228,8 +228,8 @@ theorem magVal_gap_down (m m' : Nat) (q q' : Int)
         have := hirr.1
         omega
       rw [if_pos hirr, hm_eq, hsplit]
-      have hcast : ((2 ^ 52 : Nat) : ℚ) * (2 * (2 : ℚ) ^ (q - 1)) - (2 : ℚ) ^ (q - 1)
-          = ((2 : ℚ) ^ (53 : ℕ) - 1) * (2 : ℚ) ^ (q - 1) := by
+      have hcast : ((2 ^ 52 : Nat) : Rat) * (2 * (2 : Rat) ^ (q - 1)) - (2 : Rat) ^ (q - 1)
+          = ((2 : Rat) ^ (53 : Nat) - 1) * (2 : Rat) ^ (q - 1) := by
         push_cast
         grind
       rw [hcast]
@@ -249,30 +249,30 @@ theorem magVal_gap_down (m m' : Nat) (q q' : Int)
           omega
         · omega
       rw [if_neg hirr, hsplit]
-      have hm_cast : (2 : ℚ) ^ (52 : ℕ) + 1 ≤ (m : ℚ) := by
-        have h1 : ((2 ^ 52 + 1 : Nat) : ℚ) ≤ (m : ℚ) := by exact_mod_cast hm_gt
-        have h2 : ((2 ^ 52 + 1 : Nat) : ℚ) = (2 : ℚ) ^ (52 : ℕ) + 1 := by
+      have hm_cast : (2 : Rat) ^ (52 : Nat) + 1 ≤ (m : Rat) := by
+        have h1 : ((2 ^ 52 + 1 : Nat) : Rat) ≤ (m : Rat) := by exact_mod_cast hm_gt
+        have h2 : ((2 ^ 52 + 1 : Nat) : Rat) = (2 : Rat) ^ (52 : Nat) + 1 := by
           rw [show (2 ^ 52 + 1 : Nat) = 2 ^ 52 + 1 from rfl, Rat.natCast_add, Rat.natCast_pow]
           rfl
         grind
-      have hpow53 : (2 : ℚ) ^ (53 : ℕ) = 2 * (2 : ℚ) ^ (52 : ℕ) := by grind
-      have hb : ((2:ℚ)^(53:ℕ) - 1) * (2:ℚ)^(q-1) ≤ ((m : ℚ) * 2 - 2) * (2:ℚ)^(q-1) :=
+      have hpow53 : (2 : Rat) ^ (53 : Nat) = 2 * (2 : Rat) ^ (52 : Nat) := by grind
+      have hb : ((2:Rat)^(53:Nat) - 1) * (2:Rat)^(q-1) ≤ ((m : Rat) * 2 - 2) * (2:Rat)^(q-1) :=
         Rat.mul_le_mul_of_nonneg_right (by grind) (Rat.le_of_lt (two_zpow_pos (q-1)))
       grind
   · -- q' = q: integer coefficient drop.
     subst hq
-    have hcoeff : (m' : ℚ) < (m : ℚ) := by
+    have hcoeff : (m' : Rat) < (m : Rat) := by
       unfold magVal at hlt
       exact (Rat.mul_lt_mul_right (two_zpow_pos q')).mp hlt
     have hnat : m' < m := by exact_mod_cast hcoeff
-    have hle : (m' : ℚ) ≤ (m : ℚ) - 1 := by
+    have hle : (m' : Rat) ≤ (m : Rat) - 1 := by
       have : m' + 1 ≤ m := hnat
-      have : (m' : ℚ) + 1 ≤ (m : ℚ) := by exact_mod_cast this
+      have : (m' : Rat) + 1 ≤ (m : Rat) := by exact_mod_cast this
       grind
-    have : magVal m' q' ≤ magVal m q' - (2 : ℚ) ^ q' := by
+    have : magVal m' q' ≤ magVal m q' - (2 : Rat) ^ q' := by
       unfold magVal
       have h2 := two_zpow_pos q'
-      have hstep : ((m' : ℚ) + 1) * (2:ℚ)^q' ≤ (m : ℚ) * (2:ℚ)^q' :=
+      have hstep : ((m' : Rat) + 1) * (2:Rat)^q' ≤ (m : Rat) * (2:Rat)^q' :=
         Rat.mul_le_mul_of_nonneg_right (by grind) (Rat.le_of_lt h2)
       grind
     grind
@@ -286,29 +286,29 @@ theorem magVal_gap_down (m m' : Nat) (q q' : Int)
     have h1 : magVal (2 ^ 52) q' ≤ magVal m' q' := by
       unfold magVal
       have h2 := two_zpow_pos q'
-      have : ((2 ^ 52 : Nat) : ℚ) ≤ (m' : ℚ) := by exact_mod_cast hm'_norm
+      have : ((2 ^ 52 : Nat) : Rat) ≤ (m' : Rat) := by exact_mod_cast hm'_norm
       grind
     have h2 : magVal m q < magVal (2 ^ 52) q' := by
       unfold magVal
       -- m · 2^q < 2^53 · 2^q = 2^52 · 2^(q+1) ≤ 2^52 · 2^q'.
-      have hstep : (2 : ℚ) ^ (q + 1) ≤ (2 : ℚ) ^ q' :=
+      have hstep : (2 : Rat) ^ (q + 1) ≤ (2 : Rat) ^ q' :=
         zpow_le_zpow_right₀ (by grind) (by omega)
-      have hm_lt : (m : ℚ) < ((2 ^ 53 : Nat) : ℚ) := by
+      have hm_lt : (m : Rat) < ((2 ^ 53 : Nat) : Rat) := by
         have : m < 2 ^ 53 := by
           rcases hleg with ⟨_, hlt', _⟩ | ⟨_, hlt', _⟩ <;> omega
         exact_mod_cast this
-      have hsplit : ((2 ^ 53 : Nat) : ℚ) * (2 : ℚ) ^ q
-          = ((2 ^ 52 : Nat) : ℚ) * (2 : ℚ) ^ (q + 1) := by
-        rw [Rat.zpow_add (by grind : (2:ℚ) ≠ 0)]
+      have hsplit : ((2 ^ 53 : Nat) : Rat) * (2 : Rat) ^ q
+          = ((2 ^ 52 : Nat) : Rat) * (2 : Rat) ^ (q + 1) := by
+        rw [Rat.zpow_add (by grind : (2:Rat) ≠ 0)]
         push_cast
         grind
       have h2q := two_zpow_pos q
-      have h52 : (0 : ℚ) < ((2 ^ 52 : Nat) : ℚ) := by
+      have h52 : (0 : Rat) < ((2 ^ 52 : Nat) : Rat) := by
         have h := Nat.pow_pos (n := 52) (show 0 < 2 by omega)
         exact_mod_cast h
-      have hb1 : (m : ℚ) * (2:ℚ)^q < ((2^53 : Nat) : ℚ) * (2:ℚ)^q :=
+      have hb1 : (m : Rat) * (2:Rat)^q < ((2^53 : Nat) : Rat) * (2:Rat)^q :=
         Rat.mul_lt_mul_of_pos_right hm_lt h2q
-      have hb2 : ((2^52 : Nat) : ℚ) * (2:ℚ)^(q+1) ≤ ((2^52 : Nat) : ℚ) * (2:ℚ)^q' :=
+      have hb2 : ((2^52 : Nat) : Rat) * (2:Rat)^(q+1) ≤ ((2^52 : Nat) : Rat) * (2:Rat)^q' :=
         Rat.mul_le_mul_of_nonneg_left hstep (Rat.le_of_lt h52)
       grind
     grind
@@ -323,10 +323,10 @@ theorem magVal_inj (m m' : Nat) (q q' : Int)
     rw [magVal_zero_eq] at heq
     have hm' : m' = 0 := by
       by_contra hne
-      have hpos : (0 : ℚ) < magVal m' q' := by
+      have hpos : (0 : Rat) < magVal m' q' := by
         unfold magVal
         have h2 := two_zpow_pos q'
-        have : (0 : ℚ) < (m' : ℚ) := by
+        have : (0 : Rat) < (m' : Rat) := by
           exact_mod_cast Nat.pos_of_ne_zero hne
         grind
       grind
@@ -344,10 +344,10 @@ theorem magVal_inj (m m' : Nat) (q q' : Int)
       intro h0
       subst h0
       rw [magVal_zero_eq] at heq
-      have hpos : (0 : ℚ) < magVal m q := by
+      have hpos : (0 : Rat) < magVal m q := by
         unfold magVal
         have h2 := two_zpow_pos q
-        have : (0 : ℚ) < (m : ℚ) := by exact_mod_cast Nat.pos_of_ne_zero hm
+        have : (0 : Rat) < (m : Rat) := by exact_mod_cast Nat.pos_of_ne_zero hm
         grind
       grind
     -- Both legal; wlog via trichotomy on q, q'.
@@ -395,7 +395,7 @@ theorem magVal_inj (m m' : Nat) (q q' : Int)
 finite-shape `magVal m q` has mantissa parity opposite to `m`'s. -/
 theorem magVal_succ_parity (m m' : Nat) (q q' : Int)
     (hs : FinShape m q) (hleg' : LegalIEEE m' q')
-    (heq : magVal m' q' = magVal m q + (2 : ℚ) ^ q) :
+    (heq : magVal m' q' = magVal m q + (2 : Rat) ^ q) :
     m' % 2 ≠ m % 2 := by
   have hsucc : magVal m' q' = magVal (m + 1) q := by
     rw [heq]
@@ -455,7 +455,7 @@ theorem magVal_succ_parity (m m' : Nat) (q q' : Int)
       rcases hleg' with ⟨_, h, _⟩ | ⟨_, h, _⟩ <;> omega
     omega
 
-/-! ## `R_v` membership in ℚ
+/-! ## `R_v` membership in Rat
 
 `inRoundingInterval s k m q irreg` says the decimal grid value
 `u = gridVal s k` lies between the rounding-interval endpoints of
@@ -465,8 +465,8 @@ and `4·v_r = 4v + 2·2^q`. -/
 
 theorem rv_left_rat (s : Nat) (k : Int) (m : Nat) (q : Int) (irreg : Bool)
     (h : inRoundingInterval s k m q irreg = true) :
-    4 * magVal m q - (if irreg then (1 : ℚ) else 2) * (2 : ℚ) ^ q < 4 * gridVal s k
-    ∨ (4 * magVal m q - (if irreg then (1 : ℚ) else 2) * (2 : ℚ) ^ q = 4 * gridVal s k
+    4 * magVal m q - (if irreg then (1 : Rat) else 2) * (2 : Rat) ^ q < 4 * gridVal s k
+    ∨ (4 * magVal m q - (if irreg then (1 : Rat) else 2) * (2 : Rat) ^ q = 4 * gridVal s k
        ∧ m % 2 = 0) := by
   have hL := ((inRoundingInterval_iff s k m q irreg).mp h).1
   rcases hL with hlt | ⟨heq, heven⟩
@@ -490,8 +490,8 @@ theorem rv_left_rat (s : Nat) (k : Int) (m : Nat) (q : Int) (irreg : Bool)
 
 theorem rv_right_rat (s : Nat) (k : Int) (m : Nat) (q : Int) (irreg : Bool)
     (h : inRoundingInterval s k m q irreg = true) :
-    4 * gridVal s k < 4 * magVal m q + 2 * (2 : ℚ) ^ q
-    ∨ (4 * gridVal s k = 4 * magVal m q + 2 * (2 : ℚ) ^ q ∧ m % 2 = 0) := by
+    4 * gridVal s k < 4 * magVal m q + 2 * (2 : Rat) ^ q
+    ∨ (4 * gridVal s k = 4 * magVal m q + 2 * (2 : Rat) ^ q ∧ m % 2 = 0) := by
   have hR := ((inRoundingInterval_iff s k m q irreg).mp h).2
   rcases hR with hlt | ⟨heq, heven⟩
   · left
@@ -520,14 +520,14 @@ theorem rv_nearest_mag (s : Nat) (k : Int) (m m' : Nat) (q q' : Int)
   set v := magVal m q with hv
   set w := magVal m' q' with hw
   set u := gridVal s k with hu
-  set c : ℚ := if isIrregular m q then 1 else 2 with hc
+  set c : Rat := if isIrregular m q then 1 else 2 with hc
   have h2q := two_zpow_pos q
   have hc_pos : 0 < c := by rw [hc]; split <;> grind
-  have hL : 4 * v - c * (2 : ℚ) ^ q ≤ 4 * u := by
+  have hL : 4 * v - c * (2 : Rat) ^ q ≤ 4 * u := by
     rcases rv_left_rat s k m q _ h_rv with h | ⟨h, _⟩
     · rw [hc]; grind
     · rw [hc]; grind
-  have hR : 4 * u ≤ 4 * v + 2 * (2 : ℚ) ^ q := by
+  have hR : 4 * u ≤ 4 * v + 2 * (2 : Rat) ^ q := by
     rcases rv_right_rat s k m q _ h_rv with h | ⟨h, _⟩
     · grind
     · grind
@@ -536,14 +536,14 @@ theorem rv_nearest_mag (s : Nat) (k : Int) (m m' : Nat) (q q' : Int)
     have hm_pos : m ≠ 0 := by
       intro h0
       have hv0 : v = 0 := by rw [hv, h0]; exact magVal_zero_eq q
-      have hw0 : (0 : ℚ) ≤ w := hw ▸ magVal_nonneg m' q'
+      have hw0 : (0 : Rat) ≤ w := hw ▸ magVal_nonneg m' q'
       grind
     have hgap := magVal_gap_down m m' q q' (hs.legal_of_ne hm_pos) hs' hwv
-    have hsplit : (2 : ℚ) ^ q = 2 * (2 : ℚ) ^ (q - 1) := by
-      rw [show q = (q - 1) + 1 from by omega, Rat.zpow_add (by grind : (2:ℚ) ≠ 0),
+    have hsplit : (2 : Rat) ^ q = 2 * (2 : Rat) ^ (q - 1) := by
+      rw [show q = (q - 1) + 1 from by omega, Rat.zpow_add (by grind : (2:Rat) ≠ 0),
           Rat.zpow_one]
       grind
-    have hgap4 : 4 * w ≤ 4 * v - 2 * c * (2 : ℚ) ^ q := by
+    have hgap4 : 4 * w ≤ 4 * v - 2 * c * (2 : Rat) ^ q := by
       by_cases hirr : isIrregular m q = true
       · rw [if_pos hirr] at hgap
         rw [hc, if_pos hirr]
@@ -573,14 +573,14 @@ theorem rv_tie_even_mag (s : Nat) (k : Int) (m m' : Nat) (q q' : Int)
   set v := magVal m q with hv
   set w := magVal m' q' with hw
   set u := gridVal s k with hu
-  set c : ℚ := if isIrregular m q then 1 else 2 with hc
+  set c : Rat := if isIrregular m q then 1 else 2 with hc
   have h2q := two_zpow_pos q
   have hc_pos : 0 < c := by rw [hc]; split <;> grind
-  have hL : 4 * v - c * (2 : ℚ) ^ q ≤ 4 * u := by
+  have hL : 4 * v - c * (2 : Rat) ^ q ≤ 4 * u := by
     rcases rv_left_rat s k m q _ h_rv with h | ⟨h, _⟩
     · rw [hc]; grind
     · rw [hc]; grind
-  have hR : 4 * u ≤ 4 * v + 2 * (2 : ℚ) ^ q := by
+  have hR : 4 * u ≤ 4 * v + 2 * (2 : Rat) ^ q := by
     rcases rv_right_rat s k m q _ h_rv with h | ⟨h, _⟩
     · grind
     · grind
@@ -589,14 +589,14 @@ theorem rv_tie_even_mag (s : Nat) (k : Int) (m m' : Nat) (q q' : Int)
     have hm_pos : m ≠ 0 := by
       intro h0
       have hv0 : v = 0 := by rw [hv, h0]; exact magVal_zero_eq q
-      have hw0 : (0 : ℚ) ≤ w := hw ▸ magVal_nonneg m' q'
+      have hw0 : (0 : Rat) ≤ w := hw ▸ magVal_nonneg m' q'
       grind
     have hgap := magVal_gap_down m m' q q' (hs.legal_of_ne hm_pos) hs' hwv
-    have hsplit : (2 : ℚ) ^ q = 2 * (2 : ℚ) ^ (q - 1) := by
-      rw [show q = (q - 1) + 1 from by omega, Rat.zpow_add (by grind : (2:ℚ) ≠ 0),
+    have hsplit : (2 : Rat) ^ q = 2 * (2 : Rat) ^ (q - 1) := by
+      rw [show q = (q - 1) + 1 from by omega, Rat.zpow_add (by grind : (2:Rat) ≠ 0),
           Rat.zpow_one]
       grind
-    have hgap4 : 4 * w ≤ 4 * v - 2 * c * (2 : ℚ) ^ q := by
+    have hgap4 : 4 * w ≤ 4 * v - 2 * c * (2 : Rat) ^ q := by
       by_cases hirr : isIrregular m q = true
       · rw [if_pos hirr] at hgap
         rw [hc, if_pos hirr]
@@ -609,7 +609,7 @@ theorem rv_tie_even_mag (s : Nat) (k : Int) (m m' : Nat) (q q' : Int)
     rcases Rat.le_or_gt u v with huv | huv
     · -- u ≤ v: |v - u| = v - u; equality chain pins 4u = 4v - c·2^q.
       rw [show |v - u| = v - u from abs_of_nonneg (by grind)] at h_eq
-      have h4 : 4 * u = 4 * v - c * (2 : ℚ) ^ q := by grind
+      have h4 : 4 * u = 4 * v - c * (2 : Rat) ^ q := by grind
       rcases rv_left_rat s k m q _ h_rv with h | ⟨_, heven⟩
       · exfalso
         rw [← hc] at h
@@ -633,7 +633,7 @@ theorem rv_tie_even_mag (s : Nat) (k : Int) (m m' : Nat) (q q' : Int)
       exact h_ne (by rw [hw, hv] at this; exact this)
     · -- u > v: equality chain pins 4u = 4v + 2·2^q.
       rw [show |v - u| = u - v from by rw [abs_of_nonpos (by grind)]; grind] at h_eq
-      have h4 : 4 * u = 4 * v + 2 * (2 : ℚ) ^ q := by grind
+      have h4 : 4 * u = 4 * v + 2 * (2 : Rat) ^ q := by grind
       rcases rv_right_rat s k m q _ h_rv with h | ⟨_, heven⟩
       · exfalso
         grind
@@ -648,7 +648,7 @@ exactly: values strictly below produce a finite float, values at or
 above produce `±∞` (the midpoint itself rounds up, to the even
 `m = 2^53`). -/
 
-theorem gridVal_nonneg (s : Nat) (k : Int) : (0 : ℚ) ≤ gridVal s k :=
+theorem gridVal_nonneg (s : Nat) (k : Int) : (0 : Rat) ≤ gridVal s k :=
   Rat.mul_nonneg Rat.natCast_nonneg (le_of_lt (Rat.zpow_pos (by decide)))
 
 /-- `|toRat d|` is the unsigned decimal grid value. -/
@@ -706,7 +706,7 @@ private theorem overflow_bound_AB (sign : Bool) (a b : Nat) (ha : 0 < a) (hb : 0
             rw [hP]
             exact Nat.mul_pos hb (Nat.pow_pos (by omega))
           have hp971 : (2 : Nat) ^ 971 = 2 ^ 970 * 2 := by
-            rw [show (971 : ℕ) = 970 + 1 from rfl, Nat.pow_succ]
+            rw [show (971 : Nat) = 970 + 1 from rfl, Nat.pow_succ]
           rcases roundNearestEven_eq_floor_or_ceil a P with h_fl | h_ce
           · -- floor: a / P ≥ 2^53 forces a ≥ 2^53 · P.
             rw [h_fl] at h_m
@@ -751,22 +751,22 @@ set_option exponentiation.threshold 2048 in
 as overflow has `|value| ≥ 2^1024 - 2^970`. -/
 theorem bound_le_gridVal_of_not_finite (sign : Bool) (sig : Nat) (exp : Int)
     (h_sig : sig ≠ 0) (h_not : ¬ IsFiniteAbs sign sig exp) :
-    (2 : ℚ) ^ (1024 : ℕ) - (2 : ℚ) ^ (970 : ℕ) ≤ gridVal sig exp := by
+    (2 : Rat) ^ (1024 : Nat) - (2 : Rat) ^ (970 : Nat) ≤ gridVal sig exp := by
   unfold IsFiniteAbs at h_not
-  have hB_cast : ((( 2 ^ 54 - 1) * 2 ^ 970 : Nat) : ℚ)
-      = (2 : ℚ) ^ (1024 : ℕ) - (2 : ℚ) ^ (970 : ℕ) := by
+  have hB_cast : ((( 2 ^ 54 - 1) * 2 ^ 970 : Nat) : Rat)
+      = (2 : Rat) ^ (1024 : Nat) - (2 : Rat) ^ (970 : Nat) := by
     push_cast
-    rw [show (1024 : ℕ) = 54 + 970 from by grind, Rat.pow_add]
+    rw [show (1024 : Nat) = 54 + 970 from by grind, Rat.pow_add]
     grind
   by_cases hexp : exp ≥ 0
   · rw [decodedAbs_eq_decodedAbsAB_pos sign sig exp h_sig hexp] at h_not
     have hbound := overflow_bound_AB sign (sig * 10 ^ exp.toNat) 1
       (Nat.mul_pos (Nat.pos_of_ne_zero h_sig) (Nat.pow_pos (by omega))) (by omega) h_not
-    -- gridVal sig exp = (sig · 10^exp.toNat : ℚ).
-    have h_grid : gridVal sig exp = ((sig * 10 ^ exp.toNat : Nat) : ℚ) := by
+    -- gridVal sig exp = (sig · 10^exp.toNat : Rat).
+    have h_grid : gridVal sig exp = ((sig * 10 ^ exp.toNat : Nat) : Rat) := by
       unfold gridVal
       push_cast
-      rw [show (10 : ℚ) ^ exp = (10 : ℚ) ^ exp.toNat from by
+      rw [show (10 : Rat) ^ exp = (10 : Rat) ^ exp.toNat from by
             rw [← Rat.zpow_natCast]
             congr 1
             omega]
@@ -776,21 +776,21 @@ theorem bound_le_gridVal_of_not_finite (sign : Bool) (sig : Nat) (exp : Int)
     have hbound := overflow_bound_AB sign sig (10 ^ (-exp).toNat)
       (Nat.pos_of_ne_zero h_sig) (by (first | exact Rat.zpow_pos (by decide) | exact Rat.pow_pos (by decide) | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | grind)) h_not
     -- gridVal sig exp · 10^(-exp).toNat = sig.
-    have h_clear : gridVal sig exp * ((10 ^ (-exp).toNat : Nat) : ℚ) = (sig : ℚ) := by
+    have h_clear : gridVal sig exp * ((10 ^ (-exp).toNat : Nat) : Rat) = (sig : Rat) := by
       unfold gridVal
       push_cast
-      rw [Rat.mul_assoc, show (10 : ℚ) ^ exp * (10 : ℚ) ^ ((-exp).toNat : ℕ) = 1 from by
-            rw [← Rat.zpow_natCast, ← Rat.zpow_add (by grind : (10:ℚ) ≠ 0)]
-            rw [show exp + ((-exp).toNat : ℤ) = 0 from by omega]
+      rw [Rat.mul_assoc, show (10 : Rat) ^ exp * (10 : Rat) ^ ((-exp).toNat : Nat) = 1 from by
+            rw [← Rat.zpow_natCast, ← Rat.zpow_add (by grind : (10:Rat) ≠ 0)]
+            rw [show exp + ((-exp).toNat : Int) = 0 from by omega]
             rfl,
           mul_one]
-    have h10_pos : (0 : ℚ) < ((10 ^ (-exp).toNat : Nat) : ℚ) := by
+    have h10_pos : (0 : Rat) < ((10 ^ (-exp).toNat : Nat) : Rat) := by
       have h := Nat.pow_pos (n := (-exp).toNat) (show 0 < 10 by omega)
       exact_mod_cast h
-    have hbound_q : ((( 2 ^ 54 - 1) * 2 ^ 970 : Nat) : ℚ) * ((10 ^ (-exp).toNat : Nat) : ℚ)
-        ≤ (sig : ℚ) := by
-      rw [show ((( 2 ^ 54 - 1) * 2 ^ 970 : Nat) : ℚ) * ((10 ^ (-exp).toNat : Nat) : ℚ)
-            = (((2 ^ 54 - 1) * 2 ^ 970 * 10 ^ (-exp).toNat : Nat) : ℚ) from by push_cast; grind]
+    have hbound_q : ((( 2 ^ 54 - 1) * 2 ^ 970 : Nat) : Rat) * ((10 ^ (-exp).toNat : Nat) : Rat)
+        ≤ (sig : Rat) := by
+      rw [show ((( 2 ^ 54 - 1) * 2 ^ 970 : Nat) : Rat) * ((10 ^ (-exp).toNat : Nat) : Rat)
+            = (((2 ^ 54 - 1) * 2 ^ 970 * 10 ^ (-exp).toNat : Nat) : Rat) from by push_cast; grind]
       exact_mod_cast hbound
     rw [← hB_cast]
     rw [← h_clear] at hbound_q
@@ -802,83 +802,83 @@ membership witness is strictly below the threshold. -/
 theorem gridVal_lt_bound_of_rv (s : Nat) (k : Int) (m : Nat) (q : Int)
     (hs : FinShape m q)
     (h_rv : inRoundingInterval s k m q (isIrregular m q) = true) :
-    gridVal s k < (2 : ℚ) ^ (1024 : ℕ) - (2 : ℚ) ^ (970 : ℕ) := by
+    gridVal s k < (2 : Rat) ^ (1024 : Nat) - (2 : Rat) ^ (970 : Nat) := by
   have h2q := two_zpow_pos q
-  have hX : (2 : ℚ) ^ q ≤ (2 : ℚ) ^ (971 : ℤ) :=
+  have hX : (2 : Rat) ^ q ≤ (2 : Rat) ^ (971 : Int) :=
     zpow_le_zpow_right₀ (by grind) hs.q_le
-  have hX_eq : (2 : ℚ) ^ (971 : ℤ) = (2 : ℚ) ^ (971 : ℕ) := by
+  have hX_eq : (2 : Rat) ^ (971 : Int) = (2 : Rat) ^ (971 : Nat) := by
     rw [← Rat.zpow_natCast]
     grind
-  have hXpos : (0 : ℚ) < (2 : ℚ) ^ (971 : ℕ) := Rat.pow_pos (by decide)
-  have h_pow_split : (2 : ℚ) ^ (1024 : ℕ) = (2 : ℚ) ^ (53 : ℕ) * (2 : ℚ) ^ (971 : ℕ) := by
+  have hXpos : (0 : Rat) < (2 : Rat) ^ (971 : Nat) := Rat.pow_pos (by decide)
+  have h_pow_split : (2 : Rat) ^ (1024 : Nat) = (2 : Rat) ^ (53 : Nat) * (2 : Rat) ^ (971 : Nat) := by
     rw [← Rat.pow_add]
-  have h_pow_split' : (2 : ℚ) ^ (971 : ℕ) = 2 * (2 : ℚ) ^ (970 : ℕ) := by
-    rw [show (971 : ℕ) = 1 + 970 from rfl, Rat.pow_add]
+  have h_pow_split' : (2 : Rat) ^ (971 : Nat) = 2 * (2 : Rat) ^ (970 : Nat) := by
+    rw [show (971 : Nat) = 1 + 970 from rfl, Rat.pow_add]
     grind
-  have hv_le : magVal m q ≤ ((2 : ℚ) ^ (53 : ℕ) - 1) * (2 : ℚ) ^ q := by
+  have hv_le : magVal m q ≤ ((2 : Rat) ^ (53 : Nat) - 1) * (2 : Rat) ^ q := by
     unfold magVal
-    have hm : (m : ℚ) ≤ (2 : ℚ) ^ (53 : ℕ) - 1 := by
+    have hm : (m : Rat) ≤ (2 : Rat) ^ (53 : Nat) - 1 := by
       have h1 : m ≤ 2 ^ 53 - 1 := by have := hs.m_lt; omega
-      have h2 : (m : ℚ) ≤ ((2 ^ 53 - 1 : Nat) : ℚ) := by exact_mod_cast h1
-      have h3 : ((2 ^ 53 - 1 : Nat) : ℚ) = (2 : ℚ) ^ (53 : ℕ) - 1 := by
-        have h1 : ((2 ^ 53 - 1 : Nat) : ℚ) + 1 = (2 : ℚ) ^ (53 : ℕ) := by
-          rw [show (1:ℚ) = ((1 : Nat) : ℚ) from rfl, ← Rat.natCast_add,
+      have h2 : (m : Rat) ≤ ((2 ^ 53 - 1 : Nat) : Rat) := by exact_mod_cast h1
+      have h3 : ((2 ^ 53 - 1 : Nat) : Rat) = (2 : Rat) ^ (53 : Nat) - 1 := by
+        have h1 : ((2 ^ 53 - 1 : Nat) : Rat) + 1 = (2 : Rat) ^ (53 : Nat) := by
+          rw [show (1:Rat) = ((1 : Nat) : Rat) from rfl, ← Rat.natCast_add,
               show (2 ^ 53 - 1 + 1 : Nat) = 2 ^ 53 from by omega, Rat.natCast_pow]
           rfl
         grind
       grind
     grind
-  have h970pos : (0 : ℚ) < (2 : ℚ) ^ (970 : ℕ) := Rat.pow_pos (by decide)
+  have h970pos : (0 : Rat) < (2 : Rat) ^ (970 : Nat) := Rat.pow_pos (by decide)
   rcases rv_right_rat s k m q _ h_rv with h | ⟨h, heven⟩
   · -- Strict right bracket: 4u < 4v + 2·2^q ≤ (2^55 - 2)·2^971 = 4·bound.
-    have h1 : 4 * magVal m q + 2 * (2 : ℚ) ^ q
-        ≤ (4 * ((2 : ℚ) ^ (53 : ℕ) - 1) + 2) * (2 : ℚ) ^ q := by grind
-    have h2 : (4 * ((2 : ℚ) ^ (53 : ℕ) - 1) + 2) * (2 : ℚ) ^ q
-        ≤ (4 * ((2 : ℚ) ^ (53 : ℕ) - 1) + 2) * (2 : ℚ) ^ (971 : ℕ) := by
+    have h1 : 4 * magVal m q + 2 * (2 : Rat) ^ q
+        ≤ (4 * ((2 : Rat) ^ (53 : Nat) - 1) + 2) * (2 : Rat) ^ q := by grind
+    have h2 : (4 * ((2 : Rat) ^ (53 : Nat) - 1) + 2) * (2 : Rat) ^ q
+        ≤ (4 * ((2 : Rat) ^ (53 : Nat) - 1) + 2) * (2 : Rat) ^ (971 : Nat) := by
       rw [← hX_eq]
       grind
-    have hkey : (4 * ((2 : ℚ) ^ (53 : ℕ) - 1) + 2) * (2 : ℚ) ^ (971 : ℕ)
-        = 4 * ((2 : ℚ) ^ (1024 : ℕ) - (2 : ℚ) ^ (970 : ℕ)) := by
+    have hkey : (4 * ((2 : Rat) ^ (53 : Nat) - 1) + 2) * (2 : Rat) ^ (971 : Nat)
+        = 4 * ((2 : Rat) ^ (1024 : Nat) - (2 : Rat) ^ (970 : Nat)) := by
       rw [h_pow_split, h_pow_split']
       grind
     have hchain := lt_of_lt_of_le (lt_of_lt_of_le h h1) h2
     rw [hkey] at hchain
-    exact Rat.lt_of_mul_lt_mul_left hchain (by grind : (0 : ℚ) ≤ 4)
+    exact Rat.lt_of_mul_lt_mul_left hchain (by grind : (0 : Rat) ≤ 4)
   · -- Endpoint: m even, so m ≤ 2^53 - 2 and the bound tightens.
-    have hm : (m : ℚ) ≤ (2 : ℚ) ^ (53 : ℕ) - 2 := by
+    have hm : (m : Rat) ≤ (2 : Rat) ^ (53 : Nat) - 2 := by
       have h1 : m ≤ 2 ^ 53 - 2 := by
         have := hs.m_lt
         omega
-      have h2 : (m : ℚ) ≤ ((2 ^ 53 - 2 : Nat) : ℚ) := by exact_mod_cast h1
-      have h3 : ((2 ^ 53 - 2 : Nat) : ℚ) = (2 : ℚ) ^ (53 : ℕ) - 2 := by
+      have h2 : (m : Rat) ≤ ((2 ^ 53 - 2 : Nat) : Rat) := by exact_mod_cast h1
+      have h3 : ((2 ^ 53 - 2 : Nat) : Rat) = (2 : Rat) ^ (53 : Nat) - 2 := by
         push_cast
         grind
       grind
-    have hv_le' : magVal m q ≤ ((2 : ℚ) ^ (53 : ℕ) - 2) * (2 : ℚ) ^ q := by
+    have hv_le' : magVal m q ≤ ((2 : Rat) ^ (53 : Nat) - 2) * (2 : Rat) ^ q := by
       unfold magVal
       grind
-    have h1 : 4 * magVal m q + 2 * (2 : ℚ) ^ q
-        ≤ (4 * ((2 : ℚ) ^ (53 : ℕ) - 2) + 2) * (2 : ℚ) ^ q := by grind
-    have h2 : (4 * ((2 : ℚ) ^ (53 : ℕ) - 2) + 2) * (2 : ℚ) ^ q
-        ≤ (4 * ((2 : ℚ) ^ (53 : ℕ) - 2) + 2) * (2 : ℚ) ^ (971 : ℕ) := by
+    have h1 : 4 * magVal m q + 2 * (2 : Rat) ^ q
+        ≤ (4 * ((2 : Rat) ^ (53 : Nat) - 2) + 2) * (2 : Rat) ^ q := by grind
+    have h2 : (4 * ((2 : Rat) ^ (53 : Nat) - 2) + 2) * (2 : Rat) ^ q
+        ≤ (4 * ((2 : Rat) ^ (53 : Nat) - 2) + 2) * (2 : Rat) ^ (971 : Nat) := by
       rw [← hX_eq]
-      have hcoef : (0 : ℚ) < 4 * ((2 : ℚ) ^ (53 : ℕ) - 2) + 2 := by (first | exact Rat.zpow_pos (by decide) | exact Rat.pow_pos (by decide) | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | grind)
+      have hcoef : (0 : Rat) < 4 * ((2 : Rat) ^ (53 : Nat) - 2) + 2 := by (first | exact Rat.zpow_pos (by decide) | exact Rat.pow_pos (by decide) | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | grind)
       grind
-    have hkey : (4 * ((2 : ℚ) ^ (53 : ℕ) - 2) + 2) * (2 : ℚ) ^ (971 : ℕ)
-        = 4 * (2 : ℚ) ^ (1024 : ℕ) - 12 * (2 : ℚ) ^ (970 : ℕ) := by
+    have hkey : (4 * ((2 : Rat) ^ (53 : Nat) - 2) + 2) * (2 : Rat) ^ (971 : Nat)
+        = 4 * (2 : Rat) ^ (1024 : Nat) - 12 * (2 : Rat) ^ (970 : Nat) := by
       rw [h_pow_split, h_pow_split']
       grind
     have hchain := le_trans (le_of_eq h) (le_trans h1 h2)
     rw [hkey] at hchain
-    have hstep : 4 * (2 : ℚ) ^ (1024 : ℕ) - 12 * (2 : ℚ) ^ (970 : ℕ)
-        < 4 * ((2 : ℚ) ^ (1024 : ℕ) - (2 : ℚ) ^ (970 : ℕ)) := by
-      have h412 : 4 * (2 : ℚ) ^ (970 : ℕ) < 12 * (2 : ℚ) ^ (970 : ℕ) :=
+    have hstep : 4 * (2 : Rat) ^ (1024 : Nat) - 12 * (2 : Rat) ^ (970 : Nat)
+        < 4 * ((2 : Rat) ^ (1024 : Nat) - (2 : Rat) ^ (970 : Nat)) := by
+      have h412 : 4 * (2 : Rat) ^ (970 : Nat) < 12 * (2 : Rat) ^ (970 : Nat) :=
         Rat.mul_lt_mul_of_pos_right (by grind) h970pos
-      have := sub_lt_sub_left h412 (4 * (2 : ℚ) ^ (1024 : ℕ))
-      calc 4 * (2 : ℚ) ^ (1024 : ℕ) - 12 * (2 : ℚ) ^ (970 : ℕ)
-          < 4 * (2 : ℚ) ^ (1024 : ℕ) - 4 * (2 : ℚ) ^ (970 : ℕ) := this
-      _ = 4 * ((2 : ℚ) ^ (1024 : ℕ) - (2 : ℚ) ^ (970 : ℕ)) := by grind
-    exact Rat.lt_of_mul_lt_mul_left (lt_of_le_of_lt hchain hstep) (by grind : (0 : ℚ) ≤ 4)
+      have := sub_lt_sub_left h412 (4 * (2 : Rat) ^ (1024 : Nat))
+      calc 4 * (2 : Rat) ^ (1024 : Nat) - 12 * (2 : Rat) ^ (970 : Nat)
+          < 4 * (2 : Rat) ^ (1024 : Nat) - 4 * (2 : Rat) ^ (970 : Nat) := this
+      _ = 4 * ((2 : Rat) ^ (1024 : Nat) - (2 : Rat) ^ (970 : Nat)) := by grind
+    exact Rat.lt_of_mul_lt_mul_left (lt_of_le_of_lt hchain hstep) (by grind : (0 : Rat) ≤ 4)
 
 /-! ## Float-level plumbing -/
 
@@ -969,16 +969,16 @@ theorem rv_dist_le_u (s : Nat) (k : Int) (m : Nat) (q : Int)
     rw [magVal_zero_eq, abs_of_nonpos (by grind)]
     grind
   · have h2q := two_zpow_pos q
-    have hc_le : (if isIrregular m q then (1 : ℚ) else 2) * (2 : ℚ) ^ q
-        ≤ 2 * (2 : ℚ) ^ q := by
-      have : (if isIrregular m q then (1 : ℚ) else 2) ≤ 2 := by
+    have hc_le : (if isIrregular m q then (1 : Rat) else 2) * (2 : Rat) ^ q
+        ≤ 2 * (2 : Rat) ^ q := by
+      have : (if isIrregular m q then (1 : Rat) else 2) ≤ 2 := by
         split <;> grind
       grind
-    have hL : 4 * magVal m q - 2 * (2 : ℚ) ^ q ≤ 4 * gridVal s k := by
+    have hL : 4 * magVal m q - 2 * (2 : Rat) ^ q ≤ 4 * gridVal s k := by
       rcases rv_left_rat s k m q _ h_rv with h | ⟨h, _⟩ <;> grind
-    have hstep_le_v : (2 : ℚ) ^ q ≤ magVal m q := by
+    have hstep_le_v : (2 : Rat) ^ q ≤ magVal m q := by
       unfold magVal
-      have h1 : (1 : ℚ) ≤ (m : ℚ) := by
+      have h1 : (1 : Rat) ≤ (m : Rat) := by
         exact_mod_cast Nat.pos_of_ne_zero hm
       have := Rat.mul_le_mul_of_nonneg_right h1 (Rat.le_of_lt (two_zpow_pos q))
       grind
@@ -1012,7 +1012,7 @@ theorem ofDecimalBits_isNearestWord (d : Decimal)
       decide
     · intro v hg
       rw [h_fv, h_toRat]
-      rw [show (0:ℚ) - 0 = 0 from by grind, abs_zero]
+      rw [show (0:Rat) - 0 = 0 from by grind, abs_zero]
       exact abs_nonneg _
     · intro v hg h_ne h_eq'
       exfalso
@@ -1091,9 +1091,9 @@ theorem ofDecimalBits_isNearestWord (d : Decimal)
           rw [hmval, h0, magVal_zero_eq] at h_v_pos
           exact lt_irrefl _ h_v_pos
         have h2q := two_zpow_pos (Word.decode (Clinger.ofDecimalBits d)).q
-        have h_m_ge1 : (1 : ℚ) ≤ ((Word.decode (Clinger.ofDecimalBits d)).m : ℚ) := by
+        have h_m_ge1 : (1 : Rat) ≤ ((Word.decode (Clinger.ofDecimalBits d)).m : Rat) := by
           exact_mod_cast Nat.pos_of_ne_zero hm_pos
-        have h_v_ge : (2 : ℚ) ^ (Word.decode (Clinger.ofDecimalBits d)).q ≤ mval := by
+        have h_v_ge : (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q ≤ mval := by
           rw [hmval]
           unfold magVal
           have := Rat.mul_le_mul_of_nonneg_right h_m_ge1
@@ -1102,11 +1102,11 @@ theorem ofDecimalBits_isNearestWord (d : Decimal)
         rcases rv_left_rat d.significand d.exponent _ _ _ h_rv with h | ⟨h, heven⟩
         · -- Strict: 4mval - c·2^q < 4u = 2mval gives mval < 2^q, i.e. m < 1.
           have hc_le : (if isIrregular (Word.decode (Clinger.ofDecimalBits d)).m
-                (Word.decode (Clinger.ofDecimalBits d)).q then (1 : ℚ) else 2)
-                * (2 : ℚ) ^ (Word.decode (Clinger.ofDecimalBits d)).q
-              ≤ 2 * (2 : ℚ) ^ (Word.decode (Clinger.ofDecimalBits d)).q := by
+                (Word.decode (Clinger.ofDecimalBits d)).q then (1 : Rat) else 2)
+                * (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q
+              ≤ 2 * (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q := by
             have : (if isIrregular (Word.decode (Clinger.ofDecimalBits d)).m
-                (Word.decode (Clinger.ofDecimalBits d)).q then (1 : ℚ) else 2) ≤ 2 := by
+                (Word.decode (Clinger.ofDecimalBits d)).q then (1 : Rat) else 2) ≤ 2 := by
               split <;> grind
             grind
           rw [← hmval, ← hu] at h
@@ -1118,34 +1118,34 @@ theorem ofDecimalBits_isNearestWord (d : Decimal)
               (Word.decode (Clinger.ofDecimalBits d)).q = true
           · rw [if_pos hirr] at h
             -- 2mval = 2^q: 2m·2^q = 2^q so 2m = 1.
-            have h2m : 2 * ((Word.decode (Clinger.ofDecimalBits d)).m : ℚ) = 1 := by
-              have hveq : 2 * mval = (2 : ℚ) ^ (Word.decode (Clinger.ofDecimalBits d)).q := by
+            have h2m : 2 * ((Word.decode (Clinger.ofDecimalBits d)).m : Rat) = 1 := by
+              have hveq : 2 * mval = (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q := by
                 grind
               rw [hmval] at hveq
               unfold magVal at hveq
-              have hcanc := (mul_left_inj' (a := 2 * ((Word.decode (Clinger.ofDecimalBits d)).m : ℚ))
+              have hcanc := (mul_left_inj' (a := 2 * ((Word.decode (Clinger.ofDecimalBits d)).m : Rat))
                   (b := 1) (Rat.ne_of_gt h2q)).mp
-                (by grind : 2 * ((Word.decode (Clinger.ofDecimalBits d)).m : ℚ)
-                    * (2 : ℚ) ^ (Word.decode (Clinger.ofDecimalBits d)).q
-                  = 1 * (2 : ℚ) ^ (Word.decode (Clinger.ofDecimalBits d)).q)
+                (by grind : 2 * ((Word.decode (Clinger.ofDecimalBits d)).m : Rat)
+                    * (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q
+                  = 1 * (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q)
               grind
-            have : (2 * (Word.decode (Clinger.ofDecimalBits d)).m : ℚ) = 1 := by
+            have : (2 * (Word.decode (Clinger.ofDecimalBits d)).m : Rat) = 1 := by
               grind
             have hnat : 2 * (Word.decode (Clinger.ofDecimalBits d)).m = 1 := by
               exact_mod_cast this
             omega
           · rw [if_neg hirr] at h
             -- 2mval = 2·2^q: m = 1, but the endpoint demands m even.
-            have hveq : mval = (2 : ℚ) ^ (Word.decode (Clinger.ofDecimalBits d)).q := by
+            have hveq : mval = (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q := by
               grind
-            have hm1 : ((Word.decode (Clinger.ofDecimalBits d)).m : ℚ) = 1 := by
+            have hm1 : ((Word.decode (Clinger.ofDecimalBits d)).m : Rat) = 1 := by
               rw [hmval] at hveq
               unfold magVal at hveq
-              have hcanc := (mul_left_inj' (a := ((Word.decode (Clinger.ofDecimalBits d)).m : ℚ))
+              have hcanc := (mul_left_inj' (a := ((Word.decode (Clinger.ofDecimalBits d)).m : Rat))
                   (b := 1) (Rat.ne_of_gt h2q)).mp
-                (by grind : ((Word.decode (Clinger.ofDecimalBits d)).m : ℚ)
-                    * (2 : ℚ) ^ (Word.decode (Clinger.ofDecimalBits d)).q
-                  = 1 * (2 : ℚ) ^ (Word.decode (Clinger.ofDecimalBits d)).q)
+                (by grind : ((Word.decode (Clinger.ofDecimalBits d)).m : Rat)
+                    * (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q
+                  = 1 * (2 : Rat) ^ (Word.decode (Clinger.ofDecimalBits d)).q)
               grind
             have hnat : (Word.decode (Clinger.ofDecimalBits d)).m = 1 := by exact_mod_cast hm1
             omega
@@ -1153,11 +1153,11 @@ theorem ofDecimalBits_isNearestWord (d : Decimal)
 /-- Out-of-range decimals: `ofDecimal` is exactly the signed-infinity
 bit pattern. -/
 theorem ofDecimal_overflow_eq (d : Decimal)
-    (h_out : (2 : ℚ) ^ 1024 - 2 ^ 970 ≤ |Decimal.toRat d|) :
+    (h_out : (2 : Rat) ^ 1024 - 2 ^ 970 ≤ |Decimal.toRat d|) :
     Clinger.ofDecimalBits d = Word.pack d.sign 2047 0 := by
-  have hBpos : (0 : ℚ) < 2 ^ 1024 - 2 ^ 970 :=
-    sub_pos.mpr (rat_pow_lt_pow_right (show (1 : ℚ) < 2 by grind)
-      (show (970 : ℕ) < 1024 by grind))
+  have hBpos : (0 : Rat) < 2 ^ 1024 - 2 ^ 970 :=
+    sub_pos.mpr (rat_pow_lt_pow_right (show (1 : Rat) < 2 by grind)
+      (show (970 : Nat) < 1024 by grind))
   have h_sig : d.significand ≠ 0 := by
     intro h0
     rw [toRat_of_sig_zero d h0] at h_out
@@ -1175,7 +1175,7 @@ theorem ofDecimal_overflow_eq (d : Decimal)
 
 /-- Out-of-range decimals: `ofDecimal` is the signed infinity. -/
 theorem ofDecimal_overflow (d : Decimal)
-    (h_out : (2 : ℚ) ^ 1024 - 2 ^ 970 ≤ |Decimal.toRat d|) :
+    (h_out : (2 : Rat) ^ 1024 - 2 ^ 970 ≤ |Decimal.toRat d|) :
     Word.isInf (Clinger.ofDecimalBits d) = true ∧ Word.signBit (Clinger.ofDecimalBits d) = d.sign := by
   obtain ⟨h_sb, h_be, h_mb⟩ :=
     pack_proj d.sign 2047 0 (by grind) (by (first | exact Rat.zpow_pos (by decide) | exact Rat.pow_pos (by decide) | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | grind))
@@ -1252,7 +1252,7 @@ theorem succ_finShape (m : Nat) (q : Int) (m' : Nat) (q' : Int)
     (hs : FinShape m q) (hleg' : LegalIEEE m' q')
     (h_lt : magVal m q < magVal m' q') :
     ∃ (ms : Nat) (qs : Int), FinShape ms qs
-      ∧ magVal ms qs = magVal m q + (2 : ℚ) ^ q := by
+      ∧ magVal ms qs = magVal m q + (2 : Rat) ^ q := by
   by_cases hm1 : m + 1 < 2 ^ 53
   · refine ⟨m + 1, q, ?_, ?_⟩
     · rcases hs with ⟨rfl, rfl⟩ | (⟨h1, h2, h3⟩ | ⟨h1, h2, h3, h4⟩)
@@ -1267,50 +1267,50 @@ theorem succ_finShape (m : Nat) (q : Int) (m' : Nat) (q' : Int)
   · -- m + 1 = 2^53: renormalise into the next binade.
     have hm_lt := hs.m_lt
     have hm_eq : m + 1 = 2 ^ 53 := by omega
-    have hm_cast : ((m : ℚ)) + 1 = 2 ^ (53 : ℕ) := by
-      have h1 : ((m + 1 : Nat) : ℚ) = ((2 ^ 53 : Nat) : ℚ) := by rw [hm_eq]
+    have hm_cast : ((m : Rat)) + 1 = 2 ^ (53 : Nat) := by
+      have h1 : ((m + 1 : Nat) : Rat) = ((2 ^ 53 : Nat) : Rat) := by rw [hm_eq]
       push_cast at h1
       grind
-    have h_val_id : magVal m q + (2 : ℚ) ^ q
-        = ((2 ^ 52 : Nat) : ℚ) * (2 : ℚ) ^ (q + 1) := by
+    have h_val_id : magVal m q + (2 : Rat) ^ q
+        = ((2 ^ 52 : Nat) : Rat) * (2 : Rat) ^ (q + 1) := by
       unfold magVal
-      rw [Rat.zpow_add (by grind : (2 : ℚ) ≠ 0), Rat.zpow_one]
+      rw [Rat.zpow_add (by grind : (2 : Rat) ≠ 0), Rat.zpow_one]
       push_cast
-      have hm' : (m : ℚ) = 2 ^ (53 : ℕ) - 1 := by grind
-      rw [hm', show (2 : ℚ) ^ (53 : ℕ) = 2 ^ (52 : ℕ) * 2 from by grind]
+      have hm' : (m : Rat) = 2 ^ (53 : Nat) - 1 := by grind
+      rw [hm', show (2 : Rat) ^ (53 : Nat) = 2 ^ (52 : Nat) * 2 from by grind]
       grind
     have hgap := magVal_gap_up m m' q q' hs (Or.inr hleg') h_lt
     have hq1_le : q + 1 ≤ 971 := by
       by_contra hgt
       -- Then v + 2^q = 2^52·2^(q+1) ≥ 2^52·2^972 = 2^1024 exceeds every legal value.
-      have h972 : (2 : ℚ) ^ (972 : ℤ) ≤ (2 : ℚ) ^ (q + 1) :=
+      have h972 : (2 : Rat) ^ (972 : Int) ≤ (2 : Rat) ^ (q + 1) :=
         zpow_le_zpow_right₀ (by grind) (by omega)
-      have h_v'_lt : magVal m' q' < ((2 ^ 53 : Nat) : ℚ) * (2 : ℚ) ^ (971 : ℤ) := by
+      have h_v'_lt : magVal m' q' < ((2 ^ 53 : Nat) : Rat) * (2 : Rat) ^ (971 : Int) := by
         unfold magVal
-        have hm'_lt : (m' : ℚ) < ((2 ^ 53 : Nat) : ℚ) := by
+        have hm'_lt : (m' : Rat) < ((2 ^ 53 : Nat) : Rat) := by
           have : m' < 2 ^ 53 := by
             rcases hleg' with ⟨_, h, _⟩ | ⟨_, h, _⟩ <;> omega
           exact_mod_cast this
-        have hq'_le : (2 : ℚ) ^ q' ≤ (2 : ℚ) ^ (971 : ℤ) :=
+        have hq'_le : (2 : Rat) ^ q' ≤ (2 : Rat) ^ (971 : Int) :=
           zpow_le_zpow_right₀ (by grind) (by
             rcases hleg' with ⟨_, _, hqe⟩ | ⟨_, _, _, hle⟩ <;> omega)
-        have h2_971 := two_zpow_pos (971 : ℤ)
-        calc (m' : ℚ) * (2 : ℚ) ^ q' ≤ (m' : ℚ) * (2 : ℚ) ^ (971 : ℤ) :=
+        have h2_971 := two_zpow_pos (971 : Int)
+        calc (m' : Rat) * (2 : Rat) ^ q' ≤ (m' : Rat) * (2 : Rat) ^ (971 : Int) :=
               Rat.mul_le_mul_of_nonneg_left hq'_le (Rat.natCast_nonneg)
-        _ < ((2 ^ 53 : Nat) : ℚ) * (2 : ℚ) ^ (971 : ℤ) :=
+        _ < ((2 ^ 53 : Nat) : Rat) * (2 : Rat) ^ (971 : Int) :=
               Rat.mul_lt_mul_of_pos_right hm'_lt h2_971
-      have h_id : ((2 ^ 53 : Nat) : ℚ) * (2 : ℚ) ^ (971 : ℤ)
-          = ((2 ^ 52 : Nat) : ℚ) * (2 : ℚ) ^ (972 : ℤ) := by
-        rw [show (972 : ℤ) = 971 + 1 from rfl, Rat.zpow_add (by grind : (2 : ℚ) ≠ 0),
+      have h_id : ((2 ^ 53 : Nat) : Rat) * (2 : Rat) ^ (971 : Int)
+          = ((2 ^ 52 : Nat) : Rat) * (2 : Rat) ^ (972 : Int) := by
+        rw [show (972 : Int) = 971 + 1 from rfl, Rat.zpow_add (by grind : (2 : Rat) ≠ 0),
             Rat.zpow_one]
         push_cast
         grind
-      have h_52_pos : (0 : ℚ) < ((2 ^ 52 : Nat) : ℚ) := by (first | exact Rat.zpow_pos (by decide) | exact Rat.pow_pos (by decide) | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | grind)
-      have h_chain : magVal m' q' < magVal m q + (2 : ℚ) ^ q := by
+      have h_52_pos : (0 : Rat) < ((2 ^ 52 : Nat) : Rat) := by (first | exact Rat.zpow_pos (by decide) | exact Rat.pow_pos (by decide) | exact Int.pow_nonneg (by omega) | exact Int.pow_pos (by omega) | exact Nat.pow_pos (by omega) | grind)
+      have h_chain : magVal m' q' < magVal m q + (2 : Rat) ^ q := by
         rw [h_val_id]
-        calc magVal m' q' < ((2 ^ 53 : Nat) : ℚ) * (2 : ℚ) ^ (971 : ℤ) := h_v'_lt
-        _ = ((2 ^ 52 : Nat) : ℚ) * (2 : ℚ) ^ (972 : ℤ) := h_id
-        _ ≤ ((2 ^ 52 : Nat) : ℚ) * (2 : ℚ) ^ (q + 1) :=
+        calc magVal m' q' < ((2 ^ 53 : Nat) : Rat) * (2 : Rat) ^ (971 : Int) := h_v'_lt
+        _ = ((2 ^ 52 : Nat) : Rat) * (2 : Rat) ^ (972 : Int) := h_id
+        _ ≤ ((2 ^ 52 : Nat) : Rat) * (2 : Rat) ^ (q + 1) :=
               Rat.mul_le_mul_of_nonneg_left h972 (le_of_lt h_52_pos)
       grind
     refine ⟨2 ^ 52, q + 1,
@@ -1432,10 +1432,10 @@ private theorem tie_values_eq (d : Decimal) (wf wg : UInt64)
 exactly `ofDecimal d`'s bits. -/
 theorem spec_toBits_eq (d : Decimal) (v : UInt64)
     (h_near : |Decimal.toRat d| < 2 ^ 1024 - 2 ^ 970 → IsNearestWord d v)
-    (h_over : (2 : ℚ) ^ 1024 - 2 ^ 970 ≤ |Decimal.toRat d| →
+    (h_over : (2 : Rat) ^ 1024 - 2 ^ 970 ≤ |Decimal.toRat d| →
        Word.isInf v = true ∧ Word.signBit v = d.sign) :
     v = Clinger.ofDecimalBits d := by
-  rcases lt_or_ge |Decimal.toRat d| ((2 : ℚ) ^ 1024 - 2 ^ 970) with h_in | h_out
+  rcases lt_or_ge |Decimal.toRat d| ((2 : Rat) ^ 1024 - 2 ^ 970) with h_in | h_out
   · -- In range: both are nearest floats, tie analysis forces equal values.
     obtain ⟨hgF, hgs, hg_near, hg_tie⟩ := h_near h_in
     obtain ⟨hfF, hfs, hf_near, hf_tie⟩ := ofDecimalBits_isNearestWord d h_in

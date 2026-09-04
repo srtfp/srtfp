@@ -6,7 +6,7 @@ module
       ∈ [10^max(k,0) · 2^max(h,0),  10^max(k,0) · 2^max(h,0) + 10^max(-k,0) · 2^max(-h,0))`
    where `g = gHi · 2^64 + gLo`.
 
-   Equivalently (in ℚ): `g · 2^{-h}` is the ceiling-rounded approximation
+   Equivalently (in Rat): `g · 2^{-h}` is the ceiling-rounded approximation
    of `10^k` to within `2^{-h}`.
 
    This file verifies the property via `decide +kernel` on the table data

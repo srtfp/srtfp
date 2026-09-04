@@ -11,12 +11,12 @@ module
    The argument is laid out in the file in the stages described in the
    accompanying design note:
 
-   * **(A) ℚ bridge.** `cmpScaledMixed a q b k` compares `a·2^q` with
+   * **(A) Rat bridge.** `cmpScaledMixed a q b k` compares `a·2^q` with
      `b·10^k` as rationals. We lift the existing *integer* trichotomy
      (`cmpScaledMixed_lt_iff` etc., cleared-denominator form) to genuine
-     ℚ inequalities `(a:ℚ)·2^q < (b:ℚ)·10^k`.
+     Rat inequalities `(a:Rat)·2^q < (b:Rat)·10^k`.
 
-   * **(B) ℚ closeness.** For `v = m·2^q` and the two grid neighbours
+   * **(B) Rat closeness.** For `v = m·2^q` and the two grid neighbours
      `u = s·10^k`, `w = (s+1)·10^k`, "closer to `u`" (`|v-u| < |v-w|`)
      is equivalent to `2v < u+w`, which the bridge connects to
      `CloserToLower`. Symmetrically for `CloserToUpper` / `Equidistant`. -/
@@ -40,11 +40,11 @@ namespace Srtfp
 
 namespace Schubfach
 
-/-! ## (A) ℚ bridge for `cmpScaledMixed`
+/-! ## (A) Rat bridge for `cmpScaledMixed`
 
 We show that the integer cleared-denominator comparison
 `cmpScaledMixed.lhs a q k  ⋚  cmpScaledMixed.rhs b q k` agrees with the
-genuine rational comparison `(a:ℚ)·2^q ⋚ (b:ℚ)·10^k`.
+genuine rational comparison `(a:Rat)·2^q ⋚ (b:Rat)·10^k`.
 
 The proof multiplies the rational goal by the common positive factor
 `2^{max(-q,0)} · 10^{max(-k,0)}`, which clears both `zpow` denominators
@@ -60,7 +60,7 @@ and produces exactly `lhs` vs `rhs`. -/
 
 
 
-/-! ## (B) ℚ closeness ↔ `cmp` predicates
+/-! ## (B) Rat closeness ↔ `cmp` predicates
 
 For the value `v = magVal m q`, write the two adjacent decimal grid
 neighbours at scale `k` as `gridVal s k = s · 10^k`. The relation
@@ -73,9 +73,9 @@ predicate from `PickNearer.lean`. -/
 
 theorem gridVal_lt_succ (s : Nat) (k : Int) : gridVal s k < gridVal (s + 1) k := by
   unfold gridVal
-  have hpos : (0 : ℚ) < (10 : ℚ) ^ k := Rat.zpow_pos (by decide)
+  have hpos : (0 : Rat) < (10 : Rat) ^ k := Rat.zpow_pos (by decide)
   push_cast
-  have : (s : ℚ) < (s : ℚ) + 1 := by grind
+  have : (s : Rat) < (s : Rat) + 1 := by grind
   exact (mul_lt_mul_iff_of_pos_right hpos).mpr this
 
 /-- **Scale-shift of a grid point.** Multiplying the significand by `10^j` and
@@ -85,51 +85,51 @@ theorem gridVal_mul_pow10 (s : Nat) (j : Nat) (k : Int) :
     gridVal (s * 10 ^ j) k = gridVal s (k + (j : Int)) := by
   unfold gridVal
   push_cast
-  rw [Rat.zpow_add (by grind : (10 : ℚ) ≠ 0) k (j : Int), Rat.zpow_natCast]
+  rw [Rat.zpow_add (by grind : (10 : Rat) ≠ 0) k (j : Int), Rat.zpow_natCast]
   grind
 
 /-- Midpoint identity: `gridVal s k + gridVal (s+1) k = (2s+1)·10^k`. -/
 private theorem gridVal_add_succ (s : Nat) (k : Int) :
-    gridVal s k + gridVal (s + 1) k = ((2 * (s : Int) + 1 : Int) : ℚ) * (10 : ℚ) ^ k := by
+    gridVal s k + gridVal (s + 1) k = ((2 * (s : Int) + 1 : Int) : Rat) * (10 : Rat) ^ k := by
   unfold gridVal; push_cast; grind
 
 /-- `2·magVal = (2m)·2^q` as the bridge's left-hand side. -/
 private theorem two_magVal_eq (m : Nat) (q : Int) :
-    2 * magVal m q = ((2 * (m : Int) : Int) : ℚ) * (2 : ℚ) ^ q := by
+    2 * magVal m q = ((2 * (m : Int) : Int) : Rat) * (2 : Rat) ^ q := by
   unfold magVal; push_cast; grind
 
 /-- **Elementary closeness fact.** For `u < w`, `v` is strictly closer to
 `u` than to `w` iff `v` is strictly below the midpoint, i.e. `2v < u + w`. -/
-theorem abs_lt_abs_iff_two_lt (v u w : ℚ) (h : u < w) :
+theorem abs_lt_abs_iff_two_lt (v u w : Rat) (h : u < w) :
     |v - u| < |v - w| ↔ 2 * v < u + w := by
   rw [abs_lt_iff_mul_self_lt]
   have hkey : (v - w) * (v - w) - (v - u) * (v - u) = (w - u) * ((u + w) - 2 * v) := by
     grind
-  have hwu : (0 : ℚ) < w - u := by grind
+  have hwu : (0 : Rat) < w - u := by grind
   constructor
   · intro hsq
     have hpos : 0 < (w - u) * ((u + w) - 2 * v) := by grind
     have := (Rat.mul_pos_iff_of_pos_left hwu).mp hpos
     grind
   · intro hmid
-    have hX : (0 : ℚ) < (u + w) - 2 * v := by grind
+    have hX : (0 : Rat) < (u + w) - 2 * v := by grind
     have := Rat.mul_pos hwu hX
     grind
 
 /-- Symmetric: closer to `w` iff above the midpoint. -/
-theorem abs_gt_abs_iff_two_gt (v u w : ℚ) (h : u < w) :
+theorem abs_gt_abs_iff_two_gt (v u w : Rat) (h : u < w) :
     |v - w| < |v - u| ↔ u + w < 2 * v := by
   rw [abs_lt_iff_mul_self_lt]
   have hkey : (v - u) * (v - u) - (v - w) * (v - w) = (w - u) * (2 * v - (u + w)) := by
     grind
-  have hwu : (0 : ℚ) < w - u := by grind
+  have hwu : (0 : Rat) < w - u := by grind
   constructor
   · intro hsq
     have hpos : 0 < (w - u) * (2 * v - (u + w)) := by grind
     have := (Rat.mul_pos_iff_of_pos_left hwu).mp hpos
     grind
   · intro hmid
-    have hX : (0 : ℚ) < 2 * v - (u + w) := by grind
+    have hX : (0 : Rat) < 2 * v - (u + w) := by grind
     have := Rat.mul_pos hwu hX
     grind
 
@@ -169,7 +169,7 @@ When both grid neighbours `s, s+1` lie in `R_v`, `pickNearer` returns the
 one whose grid value is the rational nearer to `v = magVal m q`, breaking
 exact ties toward the candidate with an *even* significand. We lift the
 integer-comparison statement `pickNearer_closer_or_tie_even` into the
-genuine ℚ distance statement, expressed against the *other* neighbour. -/
+genuine Rat distance statement, expressed against the *other* neighbour. -/
 
 /-- **(C)** With both neighbours in `R_v`, the `pickNearer` output `pn`
 satisfies, against the *other* neighbour `other ∈ {s, s+1} \ {pn}`:
@@ -255,17 +255,17 @@ theorem grid_far_of_outside (m : Nat) (q : Int) (k : Int) (s sig' : Nat)
     (sig' + 1 ≤ s → |magVal m q - gridVal s k| < |magVal m q - gridVal sig' k|)
       ∧ (s + 2 ≤ sig' → |magVal m q - gridVal (s + 1) k| < |magVal m q - gridVal sig' k|) := by
   obtain ⟨h_lo, h_hi⟩ := magVal_bracket m q k s hs
-  have hstep_pos : (0 : ℚ) < (10 : ℚ) ^ k := Rat.zpow_pos (by decide)
+  have hstep_pos : (0 : Rat) < (10 : Rat) ^ k := Rat.zpow_pos (by decide)
   refine ⟨?_, ?_⟩
   · intro h_below
     -- sig' ≤ s - 1, so gridVal sig' k ≤ gridVal s k - 10^k.
-    have h_sig_le : gridVal sig' k ≤ gridVal s k - (10 : ℚ) ^ k := by
-      have h1 : gridVal s k - gridVal sig' k = ((s : ℚ) - (sig' : ℚ)) * (10:ℚ)^k := by
+    have h_sig_le : gridVal sig' k ≤ gridVal s k - (10 : Rat) ^ k := by
+      have h1 : gridVal s k - gridVal sig' k = ((s : Rat) - (sig' : Rat)) * (10:Rat)^k := by
         unfold gridVal; grind
-      have hsig : (1 : ℚ) ≤ (s : ℚ) - (sig' : ℚ) := by
-        have : (sig' : ℚ) + 1 ≤ (s : ℚ) := by exact_mod_cast h_below
+      have hsig : (1 : Rat) ≤ (s : Rat) - (sig' : Rat) := by
+        have : (sig' : Rat) + 1 ≤ (s : Rat) := by exact_mod_cast h_below
         grind
-      have hmono : 1 * (10:ℚ)^k ≤ ((s : ℚ) - (sig' : ℚ)) * (10:ℚ)^k :=
+      have hmono : 1 * (10:Rat)^k ≤ ((s : Rat) - (sig' : Rat)) * (10:Rat)^k :=
         Rat.mul_le_mul_of_nonneg_right hsig (Rat.le_of_lt hstep_pos)
       grind
     have h_abs_sig : |magVal m q - gridVal sig' k| = magVal m q - gridVal sig' k :=
@@ -275,17 +275,17 @@ theorem grid_far_of_outside (m : Nat) (q : Int) (k : Int) (s sig' : Nat)
     rw [h_abs_s, h_abs_sig]; grind
   · intro h_above
     -- sig' ≥ s + 2, so gridVal sig' k ≥ gridVal (s+1) k + 10^k.
-    have h_sig_ge : gridVal (s + 1) k + (10 : ℚ) ^ k ≤ gridVal sig' k := by
+    have h_sig_ge : gridVal (s + 1) k + (10 : Rat) ^ k ≤ gridVal sig' k := by
       have h1 : gridVal sig' k - gridVal (s + 1) k
-          = ((sig' : ℚ) - ((s : ℚ) + 1)) * (10:ℚ)^k := by
+          = ((sig' : Rat) - ((s : Rat) + 1)) * (10:Rat)^k := by
         unfold gridVal; push_cast; grind
-      have hsig : (1 : ℚ) ≤ (sig' : ℚ) - ((s : ℚ) + 1) := by
-        have : ((s : ℚ) + 1) + 1 ≤ (sig' : ℚ) := by exact_mod_cast h_above
+      have hsig : (1 : Rat) ≤ (sig' : Rat) - ((s : Rat) + 1) := by
+        have : ((s : Rat) + 1) + 1 ≤ (sig' : Rat) := by exact_mod_cast h_above
         grind
-      have hmono : 1 * (10:ℚ)^k ≤ ((sig' : ℚ) - ((s : ℚ) + 1)) * (10:ℚ)^k :=
+      have hmono : 1 * (10:Rat)^k ≤ ((sig' : Rat) - ((s : Rat) + 1)) * (10:Rat)^k :=
         Rat.mul_le_mul_of_nonneg_right hsig (Rat.le_of_lt hstep_pos)
       grind
-    have h_s1_val : gridVal (s + 1) k = gridVal s k + (10:ℚ)^k := by
+    have h_s1_val : gridVal (s + 1) k = gridVal s k + (10:Rat)^k := by
       unfold gridVal; push_cast; grind
     have h_v_lt_sig : magVal m q < gridVal sig' k := by grind
     have h_v_lt_s1 : magVal m q < gridVal (s + 1) k := h_hi

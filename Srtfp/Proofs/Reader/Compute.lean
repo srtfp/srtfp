@@ -17,24 +17,24 @@ open Srtfp.Float Srtfp.Printer
 
 /-! ## The overflow threshold -/
 
-theorem two_pow_eq_zpow (n : Nat) : (2 : ℚ) ^ n = (2 : ℚ) ^ (n : Int) := (Rat.zpow_natCast _ _).symm
+theorem two_pow_eq_zpow (n : Nat) : (2 : Rat) ^ n = (2 : Rat) ^ (n : Int) := (Rat.zpow_natCast _ _).symm
 
 /-- `2^1024 - 2^970 = (2^53 - 1/2) · 2^971`: the midpoint between the largest
 finite value and its would-be successor. -/
-theorem threshold_eq : (2 : ℚ) ^ 1024 - 2 ^ 970 = (2 ^ 53 - 1/2) * (2 : ℚ) ^ (971 : Int) := by
+theorem threshold_eq : (2 : Rat) ^ 1024 - 2 ^ 970 = (2 ^ 53 - 1/2) * (2 : Rat) ^ (971 : Int) := by
   rw [two_pow_eq_zpow 1024, two_pow_eq_zpow 970, show ((1024 : Nat) : Int) = 53 + 971 by decide,
     Rat.zpow_add (by decide), ← Rat.zpow_natCast,
-    show (2 : ℚ) ^ (971 : Int) = 2 ^ (((970 : Nat) : Int)) * 2 by
+    show (2 : Rat) ^ (971 : Int) = 2 ^ (((970 : Nat) : Int)) * 2 by
       rw [← Rat.zpow_add_one (by decide)]; rfl]
-  generalize (2 : ℚ) ^ (((970 : Nat) : Int)) = P
+  generalize (2 : Rat) ^ (((970 : Nat) : Int)) = P
   grind
 
-theorem threshold_pos : (0 : ℚ) < 2 ^ 1024 - 2 ^ 970 := by
+theorem threshold_pos : (0 : Rat) < 2 ^ 1024 - 2 ^ 970 := by
   rw [threshold_eq]
   exact Rat.mul_pos (by grind) (two_zpow_pos _)
 
 /-- `2^1023 ≤` the threshold. -/
-theorem two_zpow_1023_le : (2 : ℚ) ^ (1023 : Int) ≤ 2 ^ 1024 - 2 ^ 970 := by
+theorem two_zpow_1023_le : (2 : Rat) ^ (1023 : Int) ≤ 2 ^ 1024 - 2 ^ 970 := by
   rw [threshold_eq, show (1023 : Int) = 52 + 971 by decide, Rat.zpow_add (by decide),
     ← Rat.zpow_natCast]
   have := two_zpow_pos (971 : Int)
@@ -45,11 +45,11 @@ theorem two_zpow_1023_le : (2 : ℚ) ^ (1023 : Int) ≤ 2 ^ 1024 - 2 ^ 970 := by
 /-- The nearest-integer conditions on `t` put `t · 2^k` in `R_{n·2^k}`; at the
 bottom of a binade the interval is narrower on the left, so there `t ≥ n`
 is required. -/
-theorem InRv_of_round {n : Nat} {k : Int} {t : ℚ}
-    (hl : (n : ℚ) - 1/2 ≤ t) (hr : t ≤ n + 1/2)
+theorem InRv_of_round {n : Nat} {k : Int} {t : Rat}
+    (hl : (n : Rat) - 1/2 ≤ t) (hr : t ≤ n + 1/2)
     (hl' : t = n - 1/2 → n % 2 = 0) (hr' : t = n + 1/2 → n % 2 = 0)
-    (hirr : n = 2 ^ 52 ∧ k > -1074 → (n : ℚ) ≤ t) :
-    InRv n k (t * (2 : ℚ) ^ k) = true := by
+    (hirr : n = 2 ^ 52 ∧ k > -1074 → (n : Rat) ≤ t) :
+    InRv n k (t * (2 : Rat) ^ k) = true := by
   have hp := two_zpow_pos k
   have h1 := Rat.mul_le_mul_of_nonneg_right hl (le_of_lt hp)
   have h2 := Rat.mul_le_mul_of_nonneg_right hr (le_of_lt hp)
@@ -59,12 +59,12 @@ theorem InRv_of_round {n : Nat} {k : Int} {t : ℚ}
     simp only [decide_eq_true_eq]
     split
     · have h3 := Rat.mul_le_mul_of_nonneg_right (hirr ‹_›) (le_of_lt hp)
-      generalize (2 : ℚ) ^ k = p at *
+      generalize (2 : Rat) ^ k = p at *
       grind
     · exact ⟨h1, h2⟩
   · rw [if_neg he]
     simp only [decide_eq_true_eq]
-    have hl2 : (n : ℚ) - 1/2 < t := lt_of_le_of_ne hl (fun h => he (hl' h.symm))
+    have hl2 : (n : Rat) - 1/2 < t := lt_of_le_of_ne hl (fun h => he (hl' h.symm))
     have hr2 : t < n + 1/2 := lt_of_le_of_ne hr (fun h => he (hr' h))
     have h3 := Rat.mul_lt_mul_of_pos_right hl2 hp
     have h4 := Rat.mul_lt_mul_of_pos_right hr2 hp
@@ -103,24 +103,25 @@ theorem min_normal_pack (sign : Bool) :
 
 /-- Scale `x = a / b` by `2^j` and round: `n` is the nearest integer to
 `t = x · 2^j`, ties to even, and `x = t · 2^(-j)`. -/
-theorem scale_round {a b : Nat} (hb : 0 < b) {x : ℚ} (hab : (a : ℚ) = x * b) (j : Int) :
-    let t := x * (2 : ℚ) ^ j
+theorem scale_round {a b : Nat} (hb : 0 < b) {x : Rat} (hab : (a : Rat) = x * b) (j : Int) :
+    let t := x * (2 : Rat) ^ j
     let nd := scaleByPow2 a b j
     let n := roundNearestEven nd.1 nd.2
-    x = t * (2 : ℚ) ^ (-j) ∧ 0 < nd.2 ∧ (nd.1 : ℚ) / nd.2 = t
-    ∧ (n : ℚ) - 1/2 ≤ t ∧ t ≤ n + 1/2 ∧ (t = n - 1/2 → n % 2 = 0) ∧ (t = n + 1/2 → n % 2 = 0) := by
+    x = t * (2 : Rat) ^ (-j) ∧ 0 < nd.2 ∧ (nd.1 : Rat) / nd.2 = t
+    ∧ (n : Rat) - 1/2 ≤ t ∧ t ≤ n + 1/2 ∧ (t = n - 1/2 → n % 2 = 0) ∧ (t = n + 1/2 → n % 2 = 0) := by
   intro t nd n
   obtain ⟨hden, hscale⟩ := scaleByPow2_spec hb j
-  have hbq : (b : ℚ) ≠ 0 := by have : (0 : ℚ) < b := by exact_mod_cast hb
-                               grind
-  have ht : (nd.1 : ℚ) / nd.2 = t := by rw [hscale, hab, Rat.mul_div_cancel hbq]
+  have hbq : (b : Rat) ≠ 0 := by
+    have : (0 : Rat) < b := by exact_mod_cast hb
+    grind
+  have ht : (nd.1 : Rat) / nd.2 = t := by rw [hscale, hab, Rat.mul_div_cancel hbq]
   obtain ⟨hl, hr, hl', hr'⟩ := roundNearestEven_spec (num := nd.1) hden
   rw [ht] at hl hr hl' hr'
   exact ⟨by show x = x * _ * _; rw [Rat.mul_assoc, two_zpow_mul_neg, Rat.mul_one], hden, ht,
     hl, hr, hl', hr'⟩
 
 /-- Below `2^1023` is below the threshold. -/
-theorem lt_threshold_of_lt {x : ℚ} {e : Int} (hx : x < (2 : ℚ) ^ (e + 1)) (he : e + 1 ≤ 1023) :
+theorem lt_threshold_of_lt {x : Rat} {e : Int} (hx : x < (2 : Rat) ^ (e + 1)) (he : e + 1 ≤ 1023) :
     x < 2 ^ 1024 - 2 ^ 970 :=
   lt_of_lt_of_le hx (le_trans (zpow_le_zpow_right₀ (by decide) he) two_zpow_1023_le)
 
@@ -129,22 +130,22 @@ theorem lt_threshold_of_lt {x : ℚ} {e : Int} (hx : x < (2 : ℚ) ^ (e + 1)) (h
 /-- The reader's fraction for `sig · 10^exp`. -/
 theorem fraction_spec {sig : Nat} (hsig : sig ≠ 0) (exp : Int) :
     let ab : Nat × Nat := if exp ≥ 0 then (sig * 10 ^ exp.toNat, 1) else (sig, 10 ^ (-exp).toNat)
-    0 < ab.1 ∧ 0 < ab.2 ∧ (ab.1 : ℚ) = (sig : ℚ) * (10 : ℚ) ^ exp * ab.2 := by
+    0 < ab.1 ∧ 0 < ab.2 ∧ (ab.1 : Rat) = (sig : Rat) * (10 : Rat) ^ exp * ab.2 := by
   intro ab
   have hs : 0 < sig := Nat.pos_of_ne_zero hsig
   by_cases he : exp ≥ 0
   · simp only [ab, if_pos he]
     refine ⟨Nat.mul_pos hs (Nat.pow_pos (by decide)), by decide, ?_⟩
-    have : (10 : ℚ) ^ exp = (10 : ℚ) ^ exp.toNat := by
+    have : (10 : Rat) ^ exp = (10 : Rat) ^ exp.toNat := by
       conv => lhs; rw [← Int.toNat_of_nonneg he]
       exact Rat.zpow_natCast _ _
     rw [this]; push_cast; rw [Rat.mul_one]
   · simp only [ab, if_neg he]
     refine ⟨hs, Nat.pow_pos (by decide), ?_⟩
-    have hN : (10 : ℚ) ^ (-exp) = (10 : ℚ) ^ (-exp).toNat := by
+    have hN : (10 : Rat) ^ (-exp) = (10 : Rat) ^ (-exp).toNat := by
       conv => lhs; rw [← Int.toNat_of_nonneg (by omega : 0 ≤ -exp)]
       exact Rat.zpow_natCast _ _
-    have hcancel : (10 : ℚ) ^ exp * (10 : ℚ) ^ (-exp) = 1 := by
+    have hcancel : (10 : Rat) ^ exp * (10 : Rat) ^ (-exp) = 1 := by
       rw [← Rat.zpow_add (by decide), show exp + -exp = 0 by omega, Rat.zpow_zero]
     push_cast
     rw [← hN, Rat.mul_assoc, hcancel, Rat.mul_one]
@@ -155,14 +156,14 @@ theorem fraction_spec {sig : Nat} (hsig : sig ≠ 0) (exp : Int) :
 returns a finite word of the given sign whose interval contains
 `sig · 10^exp`; at or past it, the infinity of that sign. -/
 theorem decimalToFloatBits_spec (sign : Bool) (sig : Nat) (exp : Int) :
-    ((sig : ℚ) * (10 : ℚ) ^ exp < 2 ^ 1024 - 2 ^ 970 →
+    ((sig : Rat) * (10 : Rat) ^ exp < 2 ^ 1024 - 2 ^ 970 →
         Word.isFinite (decimalToFloatBits sign sig exp) = true
         ∧ (Word.decode (decimalToFloatBits sign sig exp)).sign = sign
         ∧ InRv (Word.decode (decimalToFloatBits sign sig exp)).m
-            (Word.decode (decimalToFloatBits sign sig exp)).q ((sig : ℚ) * (10 : ℚ) ^ exp) = true)
-    ∧ (2 ^ 1024 - 2 ^ 970 ≤ (sig : ℚ) * (10 : ℚ) ^ exp →
+            (Word.decode (decimalToFloatBits sign sig exp)).q ((sig : Rat) * (10 : Rat) ^ exp) = true)
+    ∧ (2 ^ 1024 - 2 ^ 970 ≤ (sig : Rat) * (10 : Rat) ^ exp →
         decimalToFloatBits sign sig exp = Word.pack sign 2047 0) := by
-  generalize hx : (sig : ℚ) * (10 : ℚ) ^ exp = x
+  generalize hx : (sig : Rat) * (10 : Rat) ^ exp = x
   have hthr := threshold_pos
   unfold decimalToFloatBits
   by_cases hsig : sig = 0
@@ -188,21 +189,21 @@ theorem decimalToFloatBits_spec (sign : Bool) (sig : Nat) (exp : Int) :
     at ha hb hab ⊢
   obtain ⟨a, b⟩ := ab
   simp only at ha hb hab ⊢
-  have hbq : (0 : ℚ) < b := by exact_mod_cast hb
+  have hbq : (0 : Rat) < b := by exact_mod_cast hb
   -- the binary exponent: `2^e ≤ x < 2^(e+1)`
   obtain ⟨he1, he2⟩ := findBinaryExp_spec ha hb
   generalize findBinaryExp a b = e at he1 he2 ⊢
   rw [hab] at he1 he2
-  have hxl : (2 : ℚ) ^ e ≤ x := Rat.le_of_mul_le_mul_right he1 hbq
-  have hxr : x < (2 : ℚ) ^ (e + 1) := Rat.lt_of_mul_lt_mul_right he2 (le_of_lt hbq)
+  have hxl : (2 : Rat) ^ e ≤ x := Rat.le_of_mul_le_mul_right he1 hbq
+  have hxr : x < (2 : Rat) ^ (e + 1) := Rat.lt_of_mul_lt_mul_right he2 (le_of_lt hbq)
   have hxpos : 0 < x := lt_of_lt_of_le (two_zpow_pos e) hxl
   by_cases hover : e > 1023
   · -- `x ≥ 2^1024`: overflow
     rw [if_pos hover]
-    have h1 : (2 : ℚ) ^ ((1024 : Nat) : Int) ≤ 2 ^ e := zpow_le_zpow_right₀ (by decide) (by omega)
-    have h2 : (2 : ℚ) ^ 1024 - 2 ^ 970 ≤ (2 : ℚ) ^ ((1024 : Nat) : Int) := by
+    have h1 : (2 : Rat) ^ ((1024 : Nat) : Int) ≤ 2 ^ e := zpow_le_zpow_right₀ (by decide) (by omega)
+    have h2 : (2 : Rat) ^ 1024 - 2 ^ 970 ≤ (2 : Rat) ^ ((1024 : Nat) : Int) := by
       rw [← two_pow_eq_zpow]
-      have := Rat.pow_pos (a := (2 : ℚ)) (n := 970) (by decide)
+      have := Rat.pow_pos (a := (2 : Rat)) (n := 970) (by decide)
       grind
     exact ⟨fun h => absurd h (Rat.not_lt.mpr (le_trans h2 (le_trans h1 hxl))), fun _ => rfl⟩
   rw [if_neg hover]
@@ -217,16 +218,16 @@ theorem decimalToFloatBits_spec (sign : Bool) (sig : Nat) (exp : Int) :
     have hp := two_zpow_pos (52 - e)
     have hp' := two_zpow_pos (e - 52)
     -- `2^52 ≤ t < 2^53`
-    have htl : ((2 ^ 52 : Nat) : ℚ) ≤ x * (2 : ℚ) ^ (52 - e) := by
+    have htl : ((2 ^ 52 : Nat) : Rat) ≤ x * (2 : Rat) ^ (52 - e) := by
       rw [← two_zpow_natCast, show ((52 : Nat) : Int) = e + (52 - e) by omega, Rat.zpow_add (by decide)]
       exact Rat.mul_le_mul_of_nonneg_right hxl (le_of_lt hp)
-    have htr : x * (2 : ℚ) ^ (52 - e) < ((2 ^ 53 : Nat) : ℚ) := by
+    have htr : x * (2 : Rat) ^ (52 - e) < ((2 ^ 53 : Nat) : Rat) := by
       rw [← two_zpow_natCast, show ((53 : Nat) : Int) = (e + 1) + (52 - e) by omega, Rat.zpow_add (by decide)]
       exact Rat.mul_lt_mul_of_pos_right hxr hp
     obtain ⟨hml, hmr⟩ := roundNearestEven_bounds hden (by rw [ht]; exact htl) (by rw [ht]; exact htr)
     generalize roundNearestEven num denom = n at hl hr hl' hr' hml hmr ⊢
-    generalize x * (2 : ℚ) ^ (52 - e) = t at hl hr hl' hr' htl htr hxt
-    have htr' : t < (2 : ℚ) ^ 53 := by rw [two_pow_eq_zpow, two_zpow_natCast]; exact htr
+    generalize x * (2 : Rat) ^ (52 - e) = t at hl hr hl' hr' htl htr hxt
+    have htr' : t < (2 : Rat) ^ 53 := by rw [two_pow_eq_zpow, two_zpow_natCast]; exact htr
     by_cases hcarry : n ≥ 2 ^ 53
     · -- rounded up to `2^53`: the next binade
       rw [if_pos hcarry]
@@ -238,7 +239,7 @@ theorem decimalToFloatBits_spec (sign : Bool) (sig : Nat) (exp : Int) :
         have he : e = 1023 := by omega
         subst he
         -- `x ≥ (2^53 - 1/2) · 2^971`: the threshold
-        have : (2 ^ 53 - 1/2 : ℚ) * (2 : ℚ) ^ (971 : Int) ≤ x := by
+        have : (2 ^ 53 - 1/2 : Rat) * (2 : Rat) ^ (971 : Int) ≤ x := by
           rw [hxt, show (1023 : Int) - 52 = 971 by decide]
           exact Rat.mul_le_mul_of_nonneg_right hl (le_of_lt (two_zpow_pos _))
         rw [← threshold_eq] at this
@@ -246,7 +247,7 @@ theorem decimalToFloatBits_spec (sign : Bool) (sig : Nat) (exp : Int) :
       · rw [if_neg hover']
         obtain ⟨hfin, hdec⟩ := normal_pack sign (e := e + 1) (by omega) (n := 2 ^ 52) (by decide)
         have hmem : InRv (2 ^ 52) (e + 1 - 52) x = true := by
-          have h2 : (2 : ℚ) ^ (e + 1 - 52) = 2 ^ (e - 52) * 2 := by
+          have h2 : (2 : Rat) ^ (e + 1 - 52) = 2 ^ (e - 52) * 2 := by
             rw [← Rat.zpow_add_one (by decide), show e - 52 + 1 = e + 1 - 52 by omega]
           unfold InRv vl vr
           rw [if_pos (by decide), if_pos ⟨rfl, by omega⟩, h2]
@@ -254,7 +255,7 @@ theorem decimalToFloatBits_spec (sign : Bool) (sig : Nat) (exp : Int) :
           push_cast
           have h3 := Rat.mul_le_mul_of_nonneg_right hl (le_of_lt hp')
           have h4 := Rat.mul_lt_mul_of_pos_right htr' hp'
-          generalize (2 : ℚ) ^ (e - 52) = p at *
+          generalize (2 : Rat) ^ (e - 52) = p at *
           rw [hxt]
           constructor <;> grind
         exact ⟨fun _ => ⟨hfin, by rw [hdec], by rw [hdec]; exact hmem⟩,
@@ -273,8 +274,8 @@ theorem decimalToFloatBits_spec (sign : Bool) (sig : Nat) (exp : Int) :
       have he : e = 1023 := by omega
       subst he
       rw [show (1023 : Int) - 52 = 971 by decide] at hxt hp'
-      have hn' : (n : ℚ) + 1 ≤ 2 ^ 53 := by exact_mod_cast (show n + 1 ≤ 2 ^ 53 by omega)
-      have hxup : x ≤ (2 ^ 53 - 1/2) * (2 : ℚ) ^ (971 : Int) := by
+      have hn' : (n : Rat) + 1 ≤ 2 ^ 53 := by exact_mod_cast (show n + 1 ≤ 2 ^ 53 by omega)
+      have hxup : x ≤ (2 ^ 53 - 1/2) * (2 : Rat) ^ (971 : Int) := by
         rw [hxt]; exact Rat.mul_le_mul_of_nonneg_right (by grind) (le_of_lt hp')
       rw [threshold_eq]
       refine lt_of_le_of_ne hxup fun heq' => ?_
@@ -282,7 +283,7 @@ theorem decimalToFloatBits_spec (sign : Bool) (sig : Nat) (exp : Int) :
         rw [hxt] at heq'
         exact (mul_left_inj' (by grind)).mp heq'
       have h6 := hr' (by grind)
-      have h8 : n + 1 = 2 ^ 53 := by exact_mod_cast (show (n : ℚ) + 1 = 2 ^ 53 by grind)
+      have h8 : n + 1 = 2 ^ 53 := by exact_mod_cast (show (n : Rat) + 1 = 2 ^ 53 by grind)
       omega
   · -- subnormal: round `x · 2^1074` to an integer in `[0, 2^52]`
     rw [if_neg hnorm]
@@ -291,17 +292,17 @@ theorem decimalToFloatBits_spec (sign : Bool) (sig : Nat) (exp : Int) :
     obtain ⟨num, denom⟩ := nd
     try simp only at hden ht hl hr hl' hr' ⊢
     have hp := two_zpow_pos (1074 : Int)
-    have htl : ((0 : Nat) : ℚ) ≤ x * (2 : ℚ) ^ (1074 : Int) := by
-      have h0 : (0 : ℚ) ≤ x * (2 : ℚ) ^ (1074 : Int) := Rat.mul_nonneg (le_of_lt hxpos) (le_of_lt hp)
-      generalize x * (2 : ℚ) ^ (1074 : Int) = y at h0 ⊢
+    have htl : ((0 : Nat) : Rat) ≤ x * (2 : Rat) ^ (1074 : Int) := by
+      have h0 : (0 : Rat) ≤ x * (2 : Rat) ^ (1074 : Int) := Rat.mul_nonneg (le_of_lt hxpos) (le_of_lt hp)
+      generalize x * (2 : Rat) ^ (1074 : Int) = y at h0 ⊢
       exact_mod_cast h0
-    have htr : x * (2 : ℚ) ^ (1074 : Int) < ((2 ^ 52 : Nat) : ℚ) := by
+    have htr : x * (2 : Rat) ^ (1074 : Int) < ((2 ^ 52 : Nat) : Rat) := by
       rw [← two_zpow_natCast, show ((52 : Nat) : Int) = -1022 + 1074 by decide, Rat.zpow_add (by decide)]
-      have : (2 : ℚ) ^ (e + 1) ≤ (2 : ℚ) ^ (-1022 : Int) := zpow_le_zpow_right₀ (by decide) (by omega)
+      have : (2 : Rat) ^ (e + 1) ≤ (2 : Rat) ^ (-1022 : Int) := zpow_le_zpow_right₀ (by decide) (by omega)
       exact Rat.mul_lt_mul_of_pos_right (lt_of_lt_of_le hxr this) hp
     obtain ⟨-, hmr⟩ := roundNearestEven_bounds hden (by rw [ht]; exact htl) (by rw [ht]; exact htr)
     generalize roundNearestEven num denom = n at hl hr hl' hr' hmr ⊢
-    generalize x * (2 : ℚ) ^ (1074 : Int) = t at hl hr hl' hr' htl htr hxt
+    generalize x * (2 : Rat) ^ (1074 : Int) = t at hl hr hl' hr' htl htr hxt
     have hmem : InRv n (-1074) x = true := by
       rw [hxt]
       exact InRv_of_round hl hr hl' hr' (fun h => absurd h.2 (by decide))

@@ -10,36 +10,36 @@ open Srtfp.Compat
 
 namespace Srtfp.Printer
 
-variable {m : Nat} {q i : Int} {x : ℚ} {n : Nat}
+variable {m : Nat} {q i : Int} {x : Rat} {n : Nat}
 
 /-- The floor `s_i(v) = ⌊v · 10^{-i}⌋` of Definition 2, as `candidate` computes it. -/
-def s (m : Nat) (q i : Int) : Nat := ((v m q) / (10 : ℚ) ^ i).floor.toNat
+def s (m : Nat) (q i : Int) : Nat := ((v m q) / (10 : Rat) ^ i).floor.toNat
 
 /-- `u_i = s_i · 10^i`, the closest grid point at or below `v`. -/
-def u (m : Nat) (q i : Int) : ℚ := (s m q i : ℚ) * (10 : ℚ) ^ i
+def u (m : Nat) (q i : Int) : Rat := (s m q i : Rat) * (10 : Rat) ^ i
 
 /-- `w_i = (s_i + 1) · 10^i`, the closest grid point above `v`. -/
-def w (m : Nat) (q i : Int) : ℚ := ((s m q i : ℚ) + 1) * (10 : ℚ) ^ i
+def w (m : Nat) (q i : Int) : Rat := ((s m q i : Rat) + 1) * (10 : Rat) ^ i
 
 /-- `x` is a non-negative multiple of `10^i` (the set `D_i`). -/
-def OnGrid (i : Int) (x : ℚ) : Prop := ∃ n : Nat, x = (n : ℚ) * (10 : ℚ) ^ i
+def OnGrid (i : Int) (x : Rat) : Prop := ∃ n : Nat, x = (n : Rat) * (10 : Rat) ^ i
 
 theorem v_pos (hm : 1 ≤ m) : 0 < v m q := by
   unfold v
-  have hm' : (1 : ℚ) ≤ m := by exact_mod_cast hm
+  have hm' : (1 : Rat) ≤ m := by exact_mod_cast hm
   have := two_zpow_pos q
   grind
 
-/-- The scaled value `V = v / 10^i` and its floor, with the floor read in `ℚ`. -/
+/-- The scaled value `V = v / 10^i` and its floor, with the floor read in `Rat`. -/
 theorem s_cast (hm : 1 ≤ m) :
-    ((s m q i : Nat) : ℚ) = (((v m q) / (10 : ℚ) ^ i).floor : ℚ) := by
+    ((s m q i : Nat) : Rat) = (((v m q) / (10 : Rat) ^ i).floor : Rat) := by
   unfold s
-  have hV : 0 < v m q / (10 : ℚ) ^ i := by
+  have hV : 0 < v m q / (10 : Rat) ^ i := by
     have hv := v_pos (q := q) hm
     have h10 := ten_zpow_pos i
     exact (Rat.lt_div_iff h10).mpr (by simpa using hv)
-  have hfl : 0 ≤ (v m q / (10 : ℚ) ^ i).floor := by
-    rcases Int.lt_or_le (v m q / (10 : ℚ) ^ i).floor 0 with h | h
+  have hfl : 0 ≤ (v m q / (10 : Rat) ^ i).floor := by
+    rcases Int.lt_or_le (v m q / (10 : Rat) ^ i).floor 0 with h | h
     · exfalso
       have := Rat.floor_lt_iff.mp h
       simp at this
@@ -51,7 +51,7 @@ theorem u_le_v (hm : 1 ≤ m) : u m q i ≤ v m q := by
   unfold u
   rw [s_cast hm]
   have h10 := ten_zpow_pos i
-  have hfl := Rat.floor_le (v m q / (10 : ℚ) ^ i)
+  have hfl := Rat.floor_le (v m q / (10 : Rat) ^ i)
   have := Rat.mul_le_mul_of_nonneg_right hfl (le_of_lt h10)
   rwa [Rat.div_mul_cancel (Rat.ne_of_gt h10)] at this
 
@@ -59,26 +59,26 @@ theorem v_lt_w (hm : 1 ≤ m) : v m q < w m q i := by
   unfold w
   rw [s_cast hm]
   have h10 := ten_zpow_pos i
-  have hfl : v m q / (10 : ℚ) ^ i < (((v m q / (10 : ℚ) ^ i).floor : ℚ) + 1) := by
-    have h := Rat.floor_lt_iff (a := v m q / (10 : ℚ) ^ i)
-      (x := (v m q / (10 : ℚ) ^ i).floor + 1) |>.mp (by omega)
+  have hfl : v m q / (10 : Rat) ^ i < (((v m q / (10 : Rat) ^ i).floor : Rat) + 1) := by
+    have h := Rat.floor_lt_iff (a := v m q / (10 : Rat) ^ i)
+      (x := (v m q / (10 : Rat) ^ i).floor + 1) |>.mp (by omega)
     simpa using h
   have := Rat.mul_lt_mul_of_pos_right hfl h10
   rwa [Rat.div_mul_cancel (Rat.ne_of_gt h10)] at this
 
-theorem s_pos_iff (hm : 1 ≤ m) : 1 ≤ s m q i ↔ (10 : ℚ) ^ i ≤ v m q := by
+theorem s_pos_iff (hm : 1 ≤ m) : 1 ≤ s m q i ↔ (10 : Rat) ^ i ≤ v m q := by
   have h10 := ten_zpow_pos i
   have hcast := s_cast (q := q) (i := i) hm
   constructor
   · intro hs
-    have : (1 : ℚ) ≤ s m q i := by exact_mod_cast hs
+    have : (1 : Rat) ≤ s m q i := by exact_mod_cast hs
     have hu := u_le_v (q := q) (i := i) hm
     unfold u at hu
     have := Rat.mul_le_mul_of_nonneg_right this (le_of_lt h10)
     grind
   · intro hv
-    have hV : (1 : ℚ) ≤ v m q / (10 : ℚ) ^ i := by
-      have hnot : ¬ (v m q / (10 : ℚ) ^ i < 1) := fun h => by
+    have hV : (1 : Rat) ≤ v m q / (10 : Rat) ^ i := by
+      have hnot : ¬ (v m q / (10 : Rat) ^ i < 1) := fun h => by
         have := (Rat.div_lt_iff h10).mp h
         simp at this
         grind
@@ -86,10 +86,10 @@ theorem s_pos_iff (hm : 1 ≤ m) : 1 ≤ s m q i ↔ (10 : ℚ) ^ i ≤ v m q :=
     rcases Nat.lt_or_ge (s m q i) 1 with hs | hs
     · exfalso
       have hs0 : s m q i = 0 := by omega
-      have : ((s m q i : Nat) : ℚ) = 0 := by rw [hs0]; rfl
+      have : ((s m q i : Nat) : Rat) = 0 := by rw [hs0]; rfl
       rw [hcast] at this
-      have hfl : (v m q / (10 : ℚ) ^ i).floor < 1 := by
-        have : (v m q / (10 : ℚ) ^ i).floor = 0 := by exact_mod_cast this
+      have hfl : (v m q / (10 : Rat) ^ i).floor < 1 := by
+        have : (v m q / (10 : Rat) ^ i).floor = 0 := by exact_mod_cast this
         omega
       have := Rat.floor_lt_iff.mp hfl
       simp at this
@@ -110,7 +110,7 @@ theorem onGrid_le_u_or_w_le (hx : OnGrid i x) : x ≤ u m q i ∨ w m q i ≤ x 
     exact Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast (show k ≤ s m q i by omega)) (le_of_lt h10)
   · right
     unfold w
-    have : ((s m q i : ℚ) + 1) ≤ k := by exact_mod_cast hk
+    have : ((s m q i : Rat) + 1) ≤ k := by exact_mod_cast hk
     exact Rat.mul_le_mul_of_nonneg_right this (le_of_lt h10)
 
 /-- The grid meets `R_v` iff a neighbour does (R3 and convexity). -/
@@ -221,18 +221,18 @@ private theorem tie_w (hm : 1 ≤ m)
     grid point in `R_v`, and even on an exact tie. -/
 theorem candidate_some (hm : 1 ≤ m) {j : Int} (h : candidate m q i = some (n, j)) :
     j = i ∧ 1 ≤ s m q i ∧ (n = s m q i ∨ n = s m q i + 1)
-    ∧ InRv m q ((n : ℚ) * (10 : ℚ) ^ i) = true
-    ∧ (∀ x, OnGrid i x → InRv m q x = true → |v m q - n * (10 : ℚ) ^ i| ≤ |v m q - x|)
-    ∧ (∀ x, OnGrid i x → InRv m q x = true → x ≠ n * (10 : ℚ) ^ i →
-         |v m q - n * (10 : ℚ) ^ i| = |v m q - x| → n % 2 = 0) := by
+    ∧ InRv m q ((n : Rat) * (10 : Rat) ^ i) = true
+    ∧ (∀ x, OnGrid i x → InRv m q x = true → |v m q - n * (10 : Rat) ^ i| ≤ |v m q - x|)
+    ∧ (∀ x, OnGrid i x → InRv m q x = true → x ≠ n * (10 : Rat) ^ i →
+         |v m q - n * (10 : Rat) ^ i| = |v m q - x| → n % 2 = 0) := by
   rw [candidate_def] at h
   split at h
   · exact absurd h (by simp)
   rename_i hs0
   have hs : 1 ≤ s m q i := Nat.pos_of_ne_zero hs0
-  have hu_def : u m q i = (s m q i : ℚ) * (10 : ℚ) ^ i := rfl
-  have hw_def : w m q i = ((s m q i : ℚ) + 1) * (10 : ℚ) ^ i := rfl
-  have hw_cast : ((s m q i + 1 : Nat) : ℚ) * (10 : ℚ) ^ i = w m q i := by
+  have hu_def : u m q i = (s m q i : Rat) * (10 : Rat) ^ i := rfl
+  have hw_def : w m q i = ((s m q i : Rat) + 1) * (10 : Rat) ^ i := rfl
+  have hw_cast : ((s m q i + 1 : Nat) : Rat) * (10 : Rat) ^ i = w m q i := by
     rw [hw_def]; push_cast; rfl
   cases hu : InRv m q (u m q i) <;> cases hw : InRv m q (w m q i) <;> rw [hu, hw] at h <;> simp at h
   · -- only `w`

@@ -23,22 +23,22 @@ open Schubfach Clinger Srtfp.Float Decimal
 /-! ## Vocabulary -/
 
 /-- Exact rational value `(-1)^sign · significand · 10^exponent`. -/
-def Decimal.toRat (d : Decimal) : ℚ :=
-  (if d.sign then -1 else 1) * ((d.significand : ℚ) * (10 : ℚ) ^ d.exponent)
+def Decimal.toRat (d : Decimal) : Rat :=
+  (if d.sign then -1 else 1) * ((d.significand : Rat) * (10 : Rat) ^ d.exponent)
 
 namespace Schubfach
 
 /-- Unsigned magnitude value `v = m · 2^q`. -/
-def magVal (m : Nat) (q : Int) : ℚ := (m : ℚ) * (2 : ℚ) ^ q
+def magVal (m : Nat) (q : Int) : Rat := (m : Rat) * (2 : Rat) ^ q
 
 /-- Exact rational value of a finite binary64 word, read off its IEEE-754
 bit fields. -/
-def wordVal (w : UInt64) : ℚ :=
+def wordVal (w : UInt64) : Rat :=
   (if (Word.decode w).sign then -1 else 1)
     * magVal (Word.decode w).m (Word.decode w).q
 
 /-- Exact rational value of a finite float, read off its IEEE-754 bit fields. -/
-def floatVal (f : _root_.Float) : ℚ :=
+def floatVal (f : _root_.Float) : Rat :=
   (if (Srtfp.Float.decode f).sign then -1 else 1)
     * magVal (Srtfp.Float.decode f).m (Srtfp.Float.decode f).q
 
@@ -144,7 +144,7 @@ def IsNearestWord (d : Decimal) (w : UInt64) : Prop :=
 def IsCorrectReaderBits (p : Decimal → UInt64) : Prop :=
   ∀ d : Decimal,
       (|Decimal.toRat d| < 2 ^ 1024 - 2 ^ 970 → IsNearestWord d (p d))
-    ∧ ((2 : ℚ) ^ 1024 - 2 ^ 970 ≤ |Decimal.toRat d| →
+    ∧ ((2 : Rat) ^ 1024 - 2 ^ 970 ≤ |Decimal.toRat d| →
          Word.isInf (p d) = true ∧ Word.signBit (p d) = d.sign)
 
 end Clinger

@@ -23,16 +23,16 @@ namespace Schubfach
 
 /-- The common positive denominator-clearing factor for scale `(q,k)`:
 `2^{max(-q,0)} · 10^{max(-k,0)}` as a rational. -/
-noncomputable def clearFactor (q k : Int) : ℚ :=
-  (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
-    * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)
+noncomputable def clearFactor (q k : Int) : Rat :=
+  (2 : Rat) ^ (if q < 0 then (-q).toNat else 0)
+    * (10 : Rat) ^ (if k < 0 then (-k).toNat else 0)
 
 theorem clearFactor_pos (q k : Int) : 0 < clearFactor q k := by
   unfold clearFactor
   apply Rat.mul_pos <;> (apply Rat.pow_pos; decide)
 
 /-- `b^q · b^{max(-q,0)} = b^{max(q,0)}` as rationals, for nonzero `b`. -/
-theorem zpow_split_gen (b : ℚ) (hb : b ≠ 0) (q : Int) :
+theorem zpow_split_gen (b : Rat) (hb : b ≠ 0) (q : Int) :
     b ^ q * b ^ (if q < 0 then (-q).toNat else 0)
       = b ^ (if q ≥ 0 then q.toNat else 0) := by
   by_cases hq : q < 0
@@ -47,83 +47,83 @@ theorem zpow_split_gen (b : ℚ) (hb : b ≠ 0) (q : Int) :
 
 /-- `2^q · 2^{max(-q,0)} = 2^{max(q,0)}` as rationals. -/
 theorem zpow_two_split (q : Int) :
-    (2 : ℚ) ^ q * (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
-      = (2 : ℚ) ^ (if q ≥ 0 then q.toNat else 0) :=
+    (2 : Rat) ^ q * (2 : Rat) ^ (if q < 0 then (-q).toNat else 0)
+      = (2 : Rat) ^ (if q ≥ 0 then q.toNat else 0) :=
   zpow_split_gen 2 (by grind) q
 
 /-- `10^k · 10^{max(-k,0)} = 10^{max(k,0)}` as rationals. -/
 theorem zpow_ten_split (k : Int) :
-    (10 : ℚ) ^ k * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)
-      = (10 : ℚ) ^ (if k ≥ 0 then k.toNat else 0) :=
+    (10 : Rat) ^ k * (10 : Rat) ^ (if k < 0 then (-k).toNat else 0)
+      = (10 : Rat) ^ (if k ≥ 0 then k.toNat else 0) :=
   zpow_split_gen 10 (by grind) k
 
-/-- Multiplying `(a:ℚ)·2^q` by the clearing factor yields `(lhs : ℚ)`. -/
+/-- Multiplying `(a:Rat)·2^q` by the clearing factor yields `(lhs : Rat)`. -/
 theorem lhs_eq_clear (a : Int) (q k : Int) :
-    (cmpScaledMixed.lhs a q k : ℚ)
-      = ((a : ℚ) * (2 : ℚ) ^ q) * clearFactor q k := by
+    (cmpScaledMixed.lhs a q k : Rat)
+      = ((a : Rat) * (2 : Rat) ^ q) * clearFactor q k := by
   unfold cmpScaledMixed.lhs clearFactor
   push_cast
   have h2 := zpow_two_split q
-  calc (a : ℚ) * (2 : ℚ) ^ (if q ≥ 0 then q.toNat else 0)
-          * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)
-      = (a : ℚ) * ((2 : ℚ) ^ q * (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0))
-          * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0) := by rw [h2]
-    _ = (a : ℚ) * (2 : ℚ) ^ q
-          * ((2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
-             * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)) := by grind
+  calc (a : Rat) * (2 : Rat) ^ (if q ≥ 0 then q.toNat else 0)
+          * (10 : Rat) ^ (if k < 0 then (-k).toNat else 0)
+      = (a : Rat) * ((2 : Rat) ^ q * (2 : Rat) ^ (if q < 0 then (-q).toNat else 0))
+          * (10 : Rat) ^ (if k < 0 then (-k).toNat else 0) := by rw [h2]
+    _ = (a : Rat) * (2 : Rat) ^ q
+          * ((2 : Rat) ^ (if q < 0 then (-q).toNat else 0)
+             * (10 : Rat) ^ (if k < 0 then (-k).toNat else 0)) := by grind
 
-/-- Multiplying `(b:ℚ)·10^k` by the clearing factor yields `(rhs : ℚ)`. -/
+/-- Multiplying `(b:Rat)·10^k` by the clearing factor yields `(rhs : Rat)`. -/
 theorem rhs_eq_clear (b : Int) (q k : Int) :
-    (cmpScaledMixed.rhs b q k : ℚ)
-      = ((b : ℚ) * (10 : ℚ) ^ k) * clearFactor q k := by
+    (cmpScaledMixed.rhs b q k : Rat)
+      = ((b : Rat) * (10 : Rat) ^ k) * clearFactor q k := by
   unfold cmpScaledMixed.rhs clearFactor
   push_cast
   have h10 := zpow_ten_split k
-  calc (b : ℚ) * (10 : ℚ) ^ (if k ≥ 0 then k.toNat else 0)
-          * (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
-      = (b : ℚ) * ((10 : ℚ) ^ k * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0))
-          * (2 : ℚ) ^ (if q < 0 then (-q).toNat else 0) := by rw [h10]
-    _ = (b : ℚ) * (10 : ℚ) ^ k
-          * ((2 : ℚ) ^ (if q < 0 then (-q).toNat else 0)
-             * (10 : ℚ) ^ (if k < 0 then (-k).toNat else 0)) := by grind
+  calc (b : Rat) * (10 : Rat) ^ (if k ≥ 0 then k.toNat else 0)
+          * (2 : Rat) ^ (if q < 0 then (-q).toNat else 0)
+      = (b : Rat) * ((10 : Rat) ^ k * (10 : Rat) ^ (if k < 0 then (-k).toNat else 0))
+          * (2 : Rat) ^ (if q < 0 then (-q).toNat else 0) := by rw [h10]
+    _ = (b : Rat) * (10 : Rat) ^ k
+          * ((2 : Rat) ^ (if q < 0 then (-q).toNat else 0)
+             * (10 : Rat) ^ (if k < 0 then (-k).toNat else 0)) := by grind
 
-/-- **(A) ℚ bridge, `<` direction.** The integer cleared comparison equals
-the rational comparison `(a:ℚ)·2^q < (b:ℚ)·10^k`. -/
+/-- **(A) Rat bridge, `<` direction.** The integer cleared comparison equals
+the rational comparison `(a:Rat)·2^q < (b:Rat)·10^k`. -/
 theorem cmpScaledMixed_lhs_lt_rhs_iff_rat (a : Int) (q : Int) (b : Int) (k : Int) :
     cmpScaledMixed.lhs a q k < cmpScaledMixed.rhs b q k
-      ↔ (a : ℚ) * (2 : ℚ) ^ q < (b : ℚ) * (10 : ℚ) ^ k := by
+      ↔ (a : Rat) * (2 : Rat) ^ q < (b : Rat) * (10 : Rat) ^ k := by
   rw [show (cmpScaledMixed.lhs a q k < cmpScaledMixed.rhs b q k)
-        ↔ (cmpScaledMixed.lhs a q k : ℚ) < (cmpScaledMixed.rhs b q k : ℚ) from
+        ↔ (cmpScaledMixed.lhs a q k : Rat) < (cmpScaledMixed.rhs b q k : Rat) from
         Int.cast_lt.symm]
   rw [lhs_eq_clear, rhs_eq_clear]
   exact mul_lt_mul_iff_of_pos_right (clearFactor_pos q k)
 
-/-- **(A) ℚ bridge, `=` direction.** -/
+/-- **(A) Rat bridge, `=` direction.** -/
 theorem cmpScaledMixed_lhs_eq_rhs_iff_rat (a : Int) (q : Int) (b : Int) (k : Int) :
     cmpScaledMixed.lhs a q k = cmpScaledMixed.rhs b q k
-      ↔ (a : ℚ) * (2 : ℚ) ^ q = (b : ℚ) * (10 : ℚ) ^ k := by
+      ↔ (a : Rat) * (2 : Rat) ^ q = (b : Rat) * (10 : Rat) ^ k := by
   rw [show (cmpScaledMixed.lhs a q k = cmpScaledMixed.rhs b q k)
-        ↔ (cmpScaledMixed.lhs a q k : ℚ) = (cmpScaledMixed.rhs b q k : ℚ) from
+        ↔ (cmpScaledMixed.lhs a q k : Rat) = (cmpScaledMixed.rhs b q k : Rat) from
         Int.cast_inj.symm]
   rw [lhs_eq_clear, rhs_eq_clear]
   exact mul_left_inj' (Rat.ne_of_gt (clearFactor_pos q k))
 
-/-- **(A) ℚ bridge, `>` direction.** -/
+/-- **(A) Rat bridge, `>` direction.** -/
 theorem cmpScaledMixed_lhs_gt_rhs_iff_rat (a : Int) (q : Int) (b : Int) (k : Int) :
     cmpScaledMixed.lhs a q k > cmpScaledMixed.rhs b q k
-      ↔ (a : ℚ) * (2 : ℚ) ^ q > (b : ℚ) * (10 : ℚ) ^ k := by
+      ↔ (a : Rat) * (2 : Rat) ^ q > (b : Rat) * (10 : Rat) ^ k := by
   rw [gt_iff_lt, gt_iff_lt]
   rw [show (cmpScaledMixed.rhs b q k < cmpScaledMixed.lhs a q k)
-        ↔ (cmpScaledMixed.rhs b q k : ℚ) < (cmpScaledMixed.lhs a q k : ℚ) from
+        ↔ (cmpScaledMixed.rhs b q k : Rat) < (cmpScaledMixed.lhs a q k : Rat) from
         Int.cast_lt.symm]
   rw [lhs_eq_clear, rhs_eq_clear]
   exact mul_lt_mul_iff_of_pos_right (clearFactor_pos q k)
 
 /-- The rational value of the decimal grid point `s · 10^k`. -/
-def gridVal (s : Nat) (k : Int) : ℚ := (s : ℚ) * (10 : ℚ) ^ k
+def gridVal (s : Nat) (k : Int) : Rat := (s : Rat) * (10 : Rat) ^ k
 
 /-- Equidistance iff exactly at the midpoint. -/
-theorem abs_eq_abs_iff_two_eq (v u w : ℚ) (h : u < w) :
+theorem abs_eq_abs_iff_two_eq (v u w : Rat) (h : u < w) :
     |v - u| = |v - w| ↔ 2 * v = u + w := by
   rw [abs_eq_iff_mul_self_eq]
   have hwu : w - u ≠ 0 := by grind
@@ -136,7 +136,7 @@ theorem abs_eq_abs_iff_two_eq (v u w : ℚ) (h : u < w) :
   · intro hmid; grind
 
 /-- `signFactor s = (-1)^s` as a rational. -/
-def signFactor (s : Bool) : ℚ := if s then -1 else 1
+def signFactor (s : Bool) : Rat := if s then -1 else 1
 
 theorem toRat_eq_signFactor_gridVal (d : Decimal) :
     d.toRat = signFactor d.sign * gridVal d.significand d.exponent := by
@@ -149,14 +149,14 @@ theorem wordVal_eq_signFactor_magVal (w : UInt64) :
   unfold wordVal signFactor; rfl
 
 /-- `|±1·a - ±1·b| = |a - b|`: the shared sign factors out of the distance. -/
-theorem abs_signFactor_sub (sgn : Bool) (a b : ℚ) :
+theorem abs_signFactor_sub (sgn : Bool) (a b : Rat) :
     |signFactor sgn * a - signFactor sgn * b| = |a - b| := by
   unfold signFactor
   cases sgn
   · simp
   · -- (-1)*a - (-1)*b = -(a-b); |-(a-b)| = |a-b|.
-    rw [show ((if true then -1 else 1 : ℚ)) = -1 from rfl]
-    rw [show (-1 : ℚ) * a - (-1) * b = -(a - b) from by grind, abs_neg]
+    rw [show ((if true then -1 else 1 : Rat)) = -1 from rfl]
+    rw [show (-1 : Rat) * a - (-1) * b = -(a - b) from by grind, abs_neg]
 
 /-- **Signed-distance reduction.** For a decimal `d'` whose sign matches
 `(Srtfp.Float.Word.decode w).sign`, the signed clause-(3) distance reduces to the

@@ -36,8 +36,8 @@ theorem canonical_sig (hc : d.IsCanonical) (hne : d ≠ ⟨d.sign, 0, 0⟩) :
 /-- Canonical decimals of the same sign and value are equal. -/
 theorem canonical_eq_of_value_eq (hc : d.IsCanonical) {d' : Decimal} (hc' : d'.IsCanonical)
     (hs : d.sign = d'.sign) (h1 : 1 ≤ d.significand) (h1' : 1 ≤ d'.significand)
-    (hv : (d.significand : ℚ) * (10 : ℚ) ^ d.exponent
-          = (d'.significand : ℚ) * (10 : ℚ) ^ d'.exponent) : d = d' := by
+    (hv : (d.significand : Rat) * (10 : Rat) ^ d.exponent
+          = (d'.significand : Rat) * (10 : Rat) ^ d'.exponent) : d = d' := by
   have h10 := canonical_sig hc (by intro h; rw [h] at h1; simp at h1)
   have h10' := canonical_sig hc' (by intro h; rw [h] at h1'; simp at h1')
   -- equal exponents, else the coarser one is divisible by ten
@@ -93,16 +93,16 @@ include h hs
 
 theorem out_facts :
     1 ≤ n ∧ 1 ≤ s m q i ∧ (n = s m q i ∨ n = s m q i + 1)
-    ∧ InRv m q ((n : ℚ) * (10 : ℚ) ^ i) = true
-    ∧ (∀ x, OnGrid i x → InRv m q x = true → |v m q - n * (10 : ℚ) ^ i| ≤ |v m q - x|)
-    ∧ (∀ x, OnGrid i x → InRv m q x = true → x ≠ n * (10 : ℚ) ^ i →
-         |v m q - n * (10 : ℚ) ^ i| = |v m q - x| → n % 2 = 0) := by
+    ∧ InRv m q ((n : Rat) * (10 : Rat) ^ i) = true
+    ∧ (∀ x, OnGrid i x → InRv m q x = true → |v m q - n * (10 : Rat) ^ i| ≤ |v m q - x|)
+    ∧ (∀ x, OnGrid i x → InRv m q x = true → x ≠ n * (10 : Rat) ^ i →
+         |v m q - n * (10 : Rat) ^ i| = |v m q - x| → n % 2 = 0) := by
   obtain ⟨hn, _, _, hc, _⟩ := scan_spec h hs
   obtain ⟨_, hs1, hcase, hmem, hclose, htie⟩ := candidate_some h.1 hc
   exact ⟨hn, hs1, hcase, hmem, hclose, htie⟩
 
 /-- A hit on the next grid means that grid is coarser than `v`'s leading digit. -/
-theorem next_zero_of_hit {y : ℚ} (hy : OnGrid (i + 1) y) (hyR : InRv m q y = true) :
+theorem next_zero_of_hit {y : Rat} (hy : OnGrid (i + 1) y) (hyR : InRv m q y = true) :
     s m q (i + 1) = 0 := by
   rcases no_hit_above h hs (show i < i + 1 by omega) with h0 | hno
   · exact h0
@@ -111,14 +111,14 @@ theorem next_zero_of_hit {y : ℚ} (hy : OnGrid (i + 1) y) (hyR : InRv m q y = t
 omit hs in
 theorem s_le_nine_of_next_zero (hnext : s m q (i + 1) = 0) : s m q i ≤ 9 := by
   have hm := h.1
-  have hv : v m q < (10 : ℚ) ^ (i + 1) :=
+  have hv : v m q < (10 : Rat) ^ (i + 1) :=
     Rat.not_le.mp (fun hle => absurd ((s_pos_iff (q := q) (i := i + 1) hm).mpr hle) (by omega))
   have hu := u_le_v (q := q) (i := i) hm
   unfold u at hu
   rw [Rat.zpow_add_one (by decide)] at hv
   have h10 := ten_zpow_pos i
-  have : (s m q i : ℚ) * 10 ^ i < 10 * 10 ^ i := by grind
-  have : (s m q i : ℚ) < 10 := Rat.lt_of_mul_lt_mul_right this (le_of_lt h10)
+  have : (s m q i : Rat) * 10 ^ i < 10 * 10 ^ i := by grind
+  have : (s m q i : Rat) < 10 := Rat.lt_of_mul_lt_mul_right this (le_of_lt h10)
   have : s m q i < 10 := by exact_mod_cast this
   omega
 
@@ -156,12 +156,12 @@ theorem out_sign (sgn : Bool) : (Decimal.mk' sgn n i).sign = sgn := by
   rw [out_decimal h hs]; split <;> rfl
 
 theorem out_value (sgn : Bool) :
-    ((Decimal.mk' sgn n i).significand : ℚ) * (10 : ℚ) ^ (Decimal.mk' sgn n i).exponent
-      = (n : ℚ) * (10 : ℚ) ^ i := by
+    ((Decimal.mk' sgn n i).significand : Rat) * (10 : Rat) ^ (Decimal.mk' sgn n i).exponent
+      = (n : Rat) * (10 : Rat) ^ i := by
   rw [out_decimal h hs]
   split
   · rename_i h10; subst h10
-    show (1 : ℚ) * 10 ^ (i + 1) = (10 : ℚ) * 10 ^ i
+    show (1 : Rat) * 10 ^ (i + 1) = (10 : Rat) * 10 ^ i
     rw [Rat.zpow_add_one (by decide)]; grind
   · rfl
 
@@ -174,8 +174,8 @@ theorem outSig_digits (hnext : s m q (i + 1) = 0) : digits (outSig n) = 1 := by
 /-! ## Ties -/
 
 /-- Equidistant from `v` as the output and on the same grid: it is a neighbour. -/
-theorem tie_eq_u_or_w {y : ℚ} (hy : OnGrid i y) (hyR : InRv m q y = true)
-    (heq : |v m q - n * (10 : ℚ) ^ i| = |v m q - y|) : y = u m q i ∨ y = w m q i := by
+theorem tie_eq_u_or_w {y : Rat} (hy : OnGrid i y) (hyR : InRv m q y = true)
+    (heq : |v m q - n * (10 : Rat) ^ i| = |v m q - y|) : y = u m q i ∨ y = w m q i := by
   have hm := h.1
   obtain ⟨_, _, _, _, hclose, _⟩ := out_facts h hs
   have huv := u_le_v (q := q) (i := i) hm
@@ -196,15 +196,15 @@ theorem tie_eq_u_or_w {y : ℚ} (hy : OnGrid i y) (hyR : InRv m q y = true)
 /-- On the output's grid, an exact tie is between the two neighbours `s` and
     `s + 1`; the output is the even one, so the competitor is odd, and the
     `9`/`10` tie never happens. -/
-theorem tie_analysis {f : Nat} (hyR : InRv m q ((f : ℚ) * (10 : ℚ) ^ i) = true)
-    (hfn : f ≠ n) (heq : |v m q - n * (10 : ℚ) ^ i| = |v m q - f * (10 : ℚ) ^ i|) :
+theorem tie_analysis {f : Nat} (hyR : InRv m q ((f : Rat) * (10 : Rat) ^ i) = true)
+    (hfn : f ≠ n) (heq : |v m q - n * (10 : Rat) ^ i| = |v m q - f * (10 : Rat) ^ i|) :
     n % 2 = 0 ∧ f % 2 = 1 ∧ n ≠ 10 := by
   have hm := h.1
   obtain ⟨hn, hs1, hcase, hmem, _, htie⟩ := out_facts h hs
-  have hne : (f : ℚ) * (10 : ℚ) ^ i ≠ n * (10 : ℚ) ^ i := by
+  have hne : (f : Rat) * (10 : Rat) ^ i ≠ n * (10 : Rat) ^ i := by
     intro e
     have h10 := ten_zpow_pos i
-    have : (f : ℚ) = n := (mul_left_inj' (Rat.ne_of_gt h10)).mp e
+    have : (f : Rat) = n := (mul_left_inj' (Rat.ne_of_gt h10)).mp e
     exact hfn (by exact_mod_cast this)
   have heven := htie _ ⟨f, rfl⟩ hyR hne heq
   have h10 := ten_zpow_pos i
@@ -219,8 +219,8 @@ theorem tie_analysis {f : Nat} (hyR : InRv m q ((f : ℚ) * (10 : ℚ) ^ i) = tr
     intro h10n
     apply nine_ten_tie_impossible h (i := i)
     have hs9 : s m q i = 9 := by omega
-    have hu9 : u m q i = 9 * (10 : ℚ) ^ i := by unfold u; rw [hs9]; push_cast; rfl
-    have hw10 : w m q i = 10 * (10 : ℚ) ^ i := by unfold w; rw [hs9]; push_cast; grind
+    have hu9 : u m q i = 9 * (10 : Rat) ^ i := by unfold u; rw [hs9]; push_cast; rfl
+    have hw10 : w m q i = 10 * (10 : Rat) ^ i := by unfold w; rw [hs9]; push_cast; grind
     refine ⟨by rw [← hu9, ← hyu]; exact hyR, by rw [hn', hs9] at hmem; push_cast at hmem; exact hmem, ?_⟩
     -- the tie, unfolded
     rw [hfs, hs9, hn', hs9] at heq
@@ -233,7 +233,7 @@ theorem tie_analysis {f : Nat} (hyR : InRv m q ((f : ℚ) * (10 : ℚ) ^ i) = tr
   · -- `y = w`, so `f = s + 1` and `n = s`
     have hfs : f = s m q i + 1 := by
       unfold w at hyw
-      have : (f : ℚ) = ((s m q i + 1 : Nat) : ℚ) := by
+      have : (f : Rat) = ((s m q i + 1 : Nat) : Rat) := by
         push_cast; exact (mul_left_inj' (Rat.ne_of_gt h10)).mp hyw
       exact_mod_cast this
     have hn' : n = s m q i := by rcases hcase with e | e <;> omega
@@ -248,42 +248,42 @@ theorem tie_analysis {f : Nat} (hyR : InRv m q ((f : ℚ) * (10 : ℚ) ^ i) = tr
 
 omit h hs in
 theorem grid_mono {a b : Nat} (hab : a ≤ b) :
-    (a : ℚ) * (10 : ℚ) ^ i ≤ (b : ℚ) * (10 : ℚ) ^ i :=
+    (a : Rat) * (10 : Rat) ^ i ≤ (b : Rat) * (10 : Rat) ^ i :=
   Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast hab) (le_of_lt (ten_zpow_pos i))
 
 omit h hs in
 theorem grid_mono' {a b : Nat} (hab : a + 1 ≤ b) :
-    ((a : ℚ) + 1) * (10 : ℚ) ^ i ≤ (b : ℚ) * (10 : ℚ) ^ i := by
+    ((a : Rat) + 1) * (10 : Rat) ^ i ≤ (b : Rat) * (10 : Rat) ^ i := by
   have := grid_mono (i := i) hab; push_cast at this; exact this
 
 omit h hs in
 theorem grid_mono'' {a b : Nat} (hab : a ≤ b + 1) :
-    (a : ℚ) * (10 : ℚ) ^ i ≤ ((b : ℚ) + 1) * (10 : ℚ) ^ i := by
+    (a : Rat) * (10 : Rat) ^ i ≤ ((b : Rat) + 1) * (10 : Rat) ^ i := by
   have := grid_mono (i := i) hab; push_cast at this; exact this
 
 omit h hs in
 /-- A positive value off the grid lies strictly between two consecutive grid points. -/
-theorem between_grid {y : ℚ} (hy : 0 < y) (hyng : ¬ OnGrid i y) :
-    ∃ dy : Nat, (dy : ℚ) * (10 : ℚ) ^ i < y ∧ y < ((dy : ℚ) + 1) * (10 : ℚ) ^ i := by
+theorem between_grid {y : Rat} (hy : 0 < y) (hyng : ¬ OnGrid i y) :
+    ∃ dy : Nat, (dy : Rat) * (10 : Rat) ^ i < y ∧ y < ((dy : Rat) + 1) * (10 : Rat) ^ i := by
   have h10 := ten_zpow_pos i
-  have hV : 0 < y / (10 : ℚ) ^ i := (Rat.lt_div_iff h10).mpr (by rw [Rat.zero_mul]; exact hy)
-  have hfl0 : 0 ≤ (y / (10 : ℚ) ^ i).floor := by
-    rcases Int.lt_or_le (y / (10 : ℚ) ^ i).floor 0 with hneg | hnn
+  have hV : 0 < y / (10 : Rat) ^ i := (Rat.lt_div_iff h10).mpr (by rw [Rat.zero_mul]; exact hy)
+  have hfl0 : 0 ≤ (y / (10 : Rat) ^ i).floor := by
+    rcases Int.lt_or_le (y / (10 : Rat) ^ i).floor 0 with hneg | hnn
     · exfalso; have := Rat.floor_lt_iff.mp hneg; simp at this; grind
     · exact hnn
-  refine ⟨(y / (10 : ℚ) ^ i).floor.toNat, ?_, ?_⟩
-  · have hle := Rat.floor_le (y / (10 : ℚ) ^ i)
+  refine ⟨(y / (10 : Rat) ^ i).floor.toNat, ?_, ?_⟩
+  · have hle := Rat.floor_le (y / (10 : Rat) ^ i)
     have := Rat.mul_le_mul_of_nonneg_right hle (le_of_lt h10)
     rw [Rat.div_mul_cancel (Rat.ne_of_gt h10)] at this
     rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hfl0]
-    by_cases hlt : ((y / (10 : ℚ) ^ i).floor : ℚ) * (10 : ℚ) ^ i < y
+    by_cases hlt : ((y / (10 : Rat) ^ i).floor : Rat) * (10 : Rat) ^ i < y
     · exact hlt
     · exfalso
       have heq := Rat.le_antisymm this (Rat.not_lt.mp hlt)
       apply hyng
-      refine ⟨(y / (10 : ℚ) ^ i).floor.toNat, ?_⟩
+      refine ⟨(y / (10 : Rat) ^ i).floor.toNat, ?_⟩
       rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hfl0, heq]
-  · have hlt := Rat.lt_floor_add_one (y / (10 : ℚ) ^ i)
+  · have hlt := Rat.lt_floor_add_one (y / (10 : Rat) ^ i)
     have := Rat.mul_lt_mul_of_pos_right hlt h10
     rw [Rat.div_mul_cancel (Rat.ne_of_gt h10)] at this
     rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hfl0]
@@ -292,10 +292,10 @@ theorem between_grid {y : ℚ} (hy : 0 < y) (hyng : ¬ OnGrid i y) :
 
 /-- With no hit on the next grid, every grid point of `R_v` has the output's length. -/
 theorem same_len (hnext : ¬ s m q (i + 1) = 0) {c : Nat} (hc1 : 1 ≤ c)
-    (hcR : InRv m q ((c : ℚ) * (10 : ℚ) ^ i) = true) : digits c = digits n := by
+    (hcR : InRv m q ((c : Rat) * (10 : Rat) ^ i) = true) : digits c = digits n := by
   obtain ⟨hn, _, _, hmem, _, _⟩ := out_facts h hs
-  have hnohit : ∀ e : Nat, InRv m q ((e : ℚ) * (10 : ℚ) ^ i) = true
-      → ¬ OnGrid (i + 1) ((e : ℚ) * (10 : ℚ) ^ i) :=
+  have hnohit : ∀ e : Nat, InRv m q ((e : Rat) * (10 : Rat) ^ i) = true
+      → ¬ OnGrid (i + 1) ((e : Rat) * (10 : Rat) ^ i) :=
     fun e he hg => hnext (next_zero_of_hit h hs hg he)
   rcases Nat.lt_or_ge c n with hlt | hge
   · exact same_digits_on_grid hc1 (Nat.le_of_lt hlt)
@@ -306,12 +306,12 @@ theorem same_len (hnext : ¬ s m q (i + 1) = 0) {c : Nat} (hc1 : 1 ≤ c)
 /-- The spec's clauses against one competitor `f · 10^b` in `R_v`, other
     than the output; strengthened with the competitor's parity on a tie. -/
 theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
-    (hyR : InRv m q ((f : ℚ) * (10 : ℚ) ^ b) = true)
-    (hne : (f : ℚ) * (10 : ℚ) ^ b ≠ (n : ℚ) * (10 : ℚ) ^ i) :
+    (hyR : InRv m q ((f : Rat) * (10 : Rat) ^ b) = true)
+    (hne : (f : Rat) * (10 : Rat) ^ b ≠ (n : Rat) * (10 : Rat) ^ i) :
     digits (outSig n) < digits f
     ∨ (digits f = digits (outSig n)
-       ∧ (|v m q - n * (10 : ℚ) ^ i| < |v m q - f * (10 : ℚ) ^ b|
-          ∨ (|v m q - n * (10 : ℚ) ^ i| = |v m q - f * (10 : ℚ) ^ b|
+       ∧ (|v m q - n * (10 : Rat) ^ i| < |v m q - f * (10 : Rat) ^ b|
+          ∨ (|v m q - n * (10 : Rat) ^ i| = |v m q - f * (10 : Rat) ^ b|
              ∧ outSig n % 2 = 0 ∧ f % 2 = 1))) := by
   have hm := h.1
   obtain ⟨hn, hs1, hcase, hmem, hclose, _⟩ := out_facts h hs
@@ -321,14 +321,14 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
   have hfpos := digits_pos f
   -- with no hit on the next grid, grid points in `R_v` avoid it and share `n`'s length
   have nohit_case (hnext : ¬ s m q (i + 1) = 0) :
-      (∀ c : Nat, InRv m q ((c : ℚ) * (10 : ℚ) ^ i) = true → ¬ OnGrid (i + 1) ((c : ℚ) * (10 : ℚ) ^ i))
+      (∀ c : Nat, InRv m q ((c : Rat) * (10 : Rat) ^ i) = true → ¬ OnGrid (i + 1) ((c : Rat) * (10 : Rat) ^ i))
       ∧ n % 10 ≠ 0 ∧ outSig n = n := by
-    have hnohit : ∀ c : Nat, InRv m q ((c : ℚ) * (10 : ℚ) ^ i) = true
-        → ¬ OnGrid (i + 1) ((c : ℚ) * (10 : ℚ) ^ i) :=
+    have hnohit : ∀ c : Nat, InRv m q ((c : Rat) * (10 : Rat) ^ i) = true
+        → ¬ OnGrid (i + 1) ((c : Rat) * (10 : Rat) ^ i) :=
       fun c hc hg => hnext (next_zero_of_hit h hs hg hc)
     have hn10 : n % 10 ≠ 0 := fun e => hnohit n hmem (onGrid_succ_of_ten_dvd e)
     exact ⟨hnohit, hn10, outSig_of_ne_ten (by omega)⟩
-  by_cases hyg : OnGrid i ((f : ℚ) * (10 : ℚ) ^ b)
+  by_cases hyg : OnGrid i ((f : Rat) * (10 : Rat) ^ b)
   · -- on the output's grid: `hclose` decides closeness and `tie_analysis` the ties
     obtain ⟨f', hf'⟩ := hyg
     have hbi : i ≤ b := by
@@ -337,15 +337,15 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
       · exact hle
     have hff' : f' = f * 10 ^ (b - i).toNat := by
       rw [ten_zpow_split hbi] at hf'
-      have : (f' : ℚ) = ((f * 10 ^ (b - i).toNat : Nat) : ℚ) := by
+      have : (f' : Rat) = ((f * 10 ^ (b - i).toNat : Nat) : Rat) := by
         push_cast
         exact (mul_left_inj' (Rat.ne_of_gt h10)).mp (by rw [← hf']; grind)
       exact_mod_cast this
-    have hyR' : InRv m q ((f' : ℚ) * (10 : ℚ) ^ i) = true := by rw [← hf']; exact hyR
+    have hyR' : InRv m q ((f' : Rat) * (10 : Rat) ^ i) = true := by rw [← hf']; exact hyR
     have hf'n : f' ≠ n := fun e => hne (by rw [hf', e])
     have hle := hclose _ ⟨f', hf'⟩ hyR
     -- a tie forces `b = i` (an odd `f'` is not a multiple of ten), with the parities of `tie_analysis`
-    have tie (heq : |v m q - n * (10 : ℚ) ^ i| = |v m q - f * (10 : ℚ) ^ b|) :
+    have tie (heq : |v m q - n * (10 : Rat) ^ i| = |v m q - f * (10 : Rat) ^ b|) :
         n % 2 = 0 ∧ f % 2 = 1 ∧ n ≠ 10 := by
       obtain ⟨he, hfo, hn10⟩ := tie_analysis h hs hyR' hf'n (by rw [← hf']; exact heq)
       rcases Int.lt_or_eq_of_le hbi with hlt | heq'
@@ -360,10 +360,10 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
         subst hff'
         exact ⟨he, hfo, hn10⟩
     have close_or_tie :
-        |v m q - n * (10 : ℚ) ^ i| < |v m q - f * (10 : ℚ) ^ b|
-        ∨ (|v m q - n * (10 : ℚ) ^ i| = |v m q - f * (10 : ℚ) ^ b|
+        |v m q - n * (10 : Rat) ^ i| < |v m q - f * (10 : Rat) ^ b|
+        ∨ (|v m q - n * (10 : Rat) ^ i| = |v m q - f * (10 : Rat) ^ b|
            ∧ outSig n % 2 = 0 ∧ f % 2 = 1) := by
-      by_cases hlt : |v m q - n * (10 : ℚ) ^ i| < |v m q - f * (10 : ℚ) ^ b|
+      by_cases hlt : |v m q - n * (10 : Rat) ^ i| < |v m q - f * (10 : Rat) ^ b|
       · exact Or.inl hlt
       · have heq := Rat.le_antisymm hle (Rat.not_lt.mp hlt)
         obtain ⟨he, hfo, hn10⟩ := tie heq
@@ -390,30 +390,30 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
       · exact hlt
       · exact absurd (onGrid_of_le hle ⟨f, rfl⟩) hyg
     have hyng := hyg
-    have hypos : 0 < (f : ℚ) * (10 : ℚ) ^ b :=
+    have hypos : 0 < (f : Rat) * (10 : Rat) ^ b :=
       Rat.mul_pos (by exact_mod_cast hf1) (ten_zpow_pos b)
     obtain ⟨dy, hlo, hhi⟩ := between_grid hypos hyng
     -- the two ways a finer point is strictly farther than the output
-    have below (hyu : (f : ℚ) * (10 : ℚ) ^ b < u m q i) :
-        |v m q - n * (10 : ℚ) ^ i| < |v m q - f * (10 : ℚ) ^ b| := by
+    have below (hyu : (f : Rat) * (10 : Rat) ^ b < u m q i) :
+        |v m q - n * (10 : Rat) ^ i| < |v m q - f * (10 : Rat) ^ b| := by
       have huR : InRv m q (u m q i) = true := InRv_convex hyR (InRv_v hm) (le_of_lt hyu) huv
       have hcu := hclose _ onGrid_u huR
       rw [abs_of_nonneg (show 0 ≤ v m q - u m q i by grind)] at hcu
-      rw [abs_of_nonneg (show 0 ≤ v m q - f * (10 : ℚ) ^ b by grind)]
+      rw [abs_of_nonneg (show 0 ≤ v m q - f * (10 : Rat) ^ b by grind)]
       grind
-    have above (hwy : w m q i < (f : ℚ) * (10 : ℚ) ^ b) :
-        |v m q - n * (10 : ℚ) ^ i| < |v m q - f * (10 : ℚ) ^ b| := by
+    have above (hwy : w m q i < (f : Rat) * (10 : Rat) ^ b) :
+        |v m q - n * (10 : Rat) ^ i| < |v m q - f * (10 : Rat) ^ b| := by
       have hwR : InRv m q (w m q i) = true := InRv_convex (InRv_v hm) hyR (le_of_lt hvw) (le_of_lt hwy)
       have hcw := hclose _ onGrid_w hwR
       rw [abs_of_nonpos (show v m q - w m q i ≤ 0 by grind)] at hcw
-      rw [abs_of_nonpos (show v m q - f * (10 : ℚ) ^ b ≤ 0 by grind)]
+      rw [abs_of_nonpos (show v m q - f * (10 : Rat) ^ b ≤ 0 by grind)]
       grind
     have finish_one (hD : digits (outSig n) = 1)
-        (hstrict : |v m q - n * (10 : ℚ) ^ i| < |v m q - f * (10 : ℚ) ^ b|) :
+        (hstrict : |v m q - n * (10 : Rat) ^ i| < |v m q - f * (10 : Rat) ^ b|) :
         digits (outSig n) < digits f
         ∨ (digits f = digits (outSig n)
-           ∧ (|v m q - n * (10 : ℚ) ^ i| < |v m q - f * (10 : ℚ) ^ b|
-              ∨ (|v m q - n * (10 : ℚ) ^ i| = |v m q - f * (10 : ℚ) ^ b|
+           ∧ (|v m q - n * (10 : Rat) ^ i| < |v m q - f * (10 : Rat) ^ b|
+              ∨ (|v m q - n * (10 : Rat) ^ i| = |v m q - f * (10 : Rat) ^ b|
                  ∧ outSig n % 2 = 0 ∧ f % 2 = 1))) := by
       rcases Nat.lt_or_ge 1 (digits f) with hf | hf
       · left; omega
@@ -433,9 +433,9 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
       · rcases Nat.eq_zero_or_pos dy with hdy0 | hdy1
         · -- below every grid point of `R_v`: `1 · 10^i ∈ R_v`, so `n` has one digit
           subst hdy0
-          have h01 : (((0 : ℕ) : ℚ) + 1) = ((1 : ℕ) : ℚ) := by simp [Rat.zero_add]
+          have h01 : (((0 : Nat) : Rat) + 1) = ((1 : Nat) : Rat) := by simp [Rat.zero_add]
           rw [h01] at hhi
-          have h1R : InRv m q ((1 : ℕ) * (10 : ℚ) ^ i) = true :=
+          have h1R : InRv m q ((1 : Nat) * (10 : Rat) ^ i) = true :=
             InRv_convex hyR hmem (le_of_lt hhi) (grid_mono hn)
           have hdig : digits n = 1 := by
             rw [← same_len h hs hnext (by omega) h1R]; exact digits_eq_one_of_le_nine (by omega)
@@ -444,7 +444,7 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
           · left; omega
           · right; exact ⟨by omega, Or.inl hstrict⟩
         · -- `(dy + 1) · 10^i ∈ R_v` shares `n`'s length, and `dy + 1` is not a power of ten
-          have hd1R : InRv m q (((dy + 1 : ℕ) : ℚ) * (10 : ℚ) ^ i) = true :=
+          have hd1R : InRv m q (((dy + 1 : Nat) : Rat) * (10 : Rat) ^ i) = true :=
             InRv_convex hyR hmem (by push_cast; exact le_of_lt hhi) (grid_mono (by omega))
           have hdig1 : digits (dy + 1) = digits n := same_len h hs hnext (by omega) hd1R
           have h10' : (dy + 1) % 10 ≠ 0 := fun e => hnohit (dy + 1) hd1R (onGrid_succ_of_ten_dvd e)
@@ -452,7 +452,7 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
           have := finer_is_longer hb hdy1 hlo
           left; omega
       · -- above the output: `dy · 10^i ∈ R_v` shares `n`'s length
-        have hdR : InRv m q ((dy : ℚ) * (10 : ℚ) ^ i) = true :=
+        have hdR : InRv m q ((dy : Rat) * (10 : Rat) ^ i) = true :=
           InRv_convex hmem hyR (grid_mono hge) (le_of_lt hlo)
         have hdig : digits dy = digits n := same_len h hs hnext (by omega) hdR
         have := finer_is_longer hb (by omega) hlo
@@ -503,9 +503,9 @@ theorem nonzero_output (hw : Word.isFinite wd = true) (hm : 1 ≤ (Word.decode w
           BeatsOdd wd d₀ d' := by
   have h := inRange_of_decode hw hm
   have hri := reads_to_iff hw hm
-  have hdist : ∀ z, Spec.dist z wd = |(if (Word.decode wd).sign then -1 else 1 : ℚ)
+  have hdist : ∀ z, Spec.dist z wd = |(if (Word.decode wd).sign then -1 else 1 : Rat)
       * v (Word.decode wd).m (Word.decode wd).q
-      - (if z.sign then -1 else 1 : ℚ) * ((z.significand : ℚ) * (10 : ℚ) ^ z.exponent)| :=
+      - (if z.sign then -1 else 1 : Rat) * ((z.significand : Rat) * (10 : Rat) ^ z.exponent)| :=
     fun z => Clinger.dist_eq z wd
   rcases hdec : Word.decode wd with ⟨sgn, m, q⟩
   rw [hdec] at h hri hm hdist
@@ -526,15 +526,15 @@ theorem nonzero_output (hw : Word.isFinite wd = true) (hm : 1 ≤ (Word.decode w
   · intro d' hne hc' hrt'
     obtain ⟨hsig', hsign', hmem'⟩ := (hri d').mp hrt'
     have hf := canonical_sig hc' (by intro e; rw [e] at hsig'; exact hsig' rfl)
-    have hvne : (d'.significand : ℚ) * (10 : ℚ) ^ d'.exponent ≠ (n : ℚ) * (10 : ℚ) ^ i := by
+    have hvne : (d'.significand : Rat) * (10 : Rat) ^ d'.exponent ≠ (n : Rat) * (10 : Rat) ^ i := by
       intro e
       apply hne
       apply canonical_eq_of_value_eq hc' hcan (by rw [hsign', hsign]) hf.1 (by rw [hsig]; exact hsig1)
       rw [e, hval]
     have hc := competitor h hsh hf.1 hf.2 hmem' hvne
-    have hd₀ : Spec.dist (Decimal.mk' sgn n i) wd = |v m q - n * (10 : ℚ) ^ i| := by
+    have hd₀ : Spec.dist (Decimal.mk' sgn n i) wd = |v m q - n * (10 : Rat) ^ i| := by
       rw [hdist, hsign, hval]; exact dist_of_sign _ _ _
-    have hd' : Spec.dist d' wd = |v m q - d'.significand * (10 : ℚ) ^ d'.exponent| := by
+    have hd' : Spec.dist d' wd = |v m q - d'.significand * (10 : Rat) ^ d'.exponent| := by
       rw [hdist, hsign']; exact dist_of_sign _ _ _
     unfold BeatsOdd
     rw [hsig, hd₀, hd']
@@ -570,7 +570,7 @@ theorem zero_output (hw : Word.isFinite wd = true) (hm : (Word.decode wd).m = 0)
         · exact absurd h0 hne0
       · exact hpos
     have hv0 : v (Word.decode wd).m (Word.decode wd).q = 0 := by rw [hm]; exact v_zero_iff.mpr rfl
-    have hneg : ∀ a b : ℚ, a * 0 - b = -b := fun a b => by grind
+    have hneg : ∀ a b : Rat, a * 0 - b = -b := fun a b => by grind
     have hd₀ : Spec.dist ⟨(Word.decode wd).sign, 0, 0⟩ wd = 0 := by
       rw [Clinger.dist_eq, hv0]; simp; rw [Rat.sub_self]; exact abs_zero
     have hd' : 0 < Spec.dist d' wd := by

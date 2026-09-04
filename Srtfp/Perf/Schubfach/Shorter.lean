@@ -65,7 +65,7 @@ module
    `W - U = 4Q` and `VR - VL = 4P` (regular) or `3P` (irregular) gives:
 
      * Regular: `4Q = 4P` ⟹ `Q = P` ⟹ `10^k = 2^q` (after clearing).
-       The only solution over `ℤ` is `k = q = 0`. But then `s = m`
+       The only solution over `Int` is `k = q = 0`. But then `s = m`
        (`shiftedSig`'s exact form), so `U = 4s = 4m = V` and
        `VL = 4m - 2`; `U = VL` becomes `4m = 4m - 2`, contradiction.
 

@@ -24,7 +24,7 @@ module
 
    ## Representation
 
-   No Mathlib means no `ℚ`. We carry rationals as `Midpoint`:
+   No Mathlib means no `Rat`. We carry rationals as `Midpoint`:
    `(num : Int, denPow2 : Int)` denoting the real `num · 2^(-denPow2)`.
    Equivalence is the standard cross-multiplied form lifted to allow
    either side to have the larger `denPow2`:

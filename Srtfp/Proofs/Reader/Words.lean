@@ -43,14 +43,14 @@ theorem v_zero_iff : v m q = 0 ↔ m = 0 := by
     rcases Nat.eq_zero_or_pos m with hm | hm
     · exact hm
     · exfalso
-      have : (0 : ℚ) < m := by exact_mod_cast hm
+      have : (0 : Rat) < m := by exact_mod_cast hm
       have := Rat.mul_pos this (two_zpow_pos q)
       grind
   · intro h; subst h; simp
 
 /-- `m · 2^q` on the grid `2^q₀`, for `q₀ ≤ q`. -/
 theorem v_eq_mul (h : q' ≤ q) :
-    v m q = ((m * 2 ^ (q - q').toNat : Nat) : ℚ) * (2 : ℚ) ^ q' := by
+    v m q = ((m * 2 ^ (q - q').toNat : Nat) : Rat) * (2 : Rat) ^ q' := by
   unfold v
   push_cast
   rw [← two_zpow_toNat (by omega), Rat.mul_assoc, ← Rat.zpow_add (by decide),
@@ -66,7 +66,7 @@ theorem v_inj (h : Legal m q) (h' : Legal m' q') (hv : v m q = v m' q') : m = m'
     rw [v_eq_mul (Int.le_of_lt hlt)] at hv
     unfold v at hv
     have hp := two_zpow_pos b
-    have h1 : (a : ℚ) = ((a' * 2 ^ (b' - b).toNat : Nat) : ℚ) := (mul_left_inj' (by grind)).mp hv
+    have h1 : (a : Rat) = ((a' * 2 ^ (b' - b).toNat : Nat) : Rat) := (mul_left_inj' (by grind)).mp hv
     have h2 : a = a' * 2 ^ (b' - b).toNat := by exact_mod_cast h1
     have h3 : 2 ≤ 2 ^ (b' - b).toNat := by
       calc 2 = 2 ^ 1 := rfl
@@ -89,29 +89,29 @@ theorem v_inj (h : Legal m q) (h' : Legal m' q') (hv : v m q = v m' q') : m = m'
 
 /-- The distance from `m · 2^q` down to the previous legal value: `2^q`,
 or `2^(q-1)` at the bottom of a binade. -/
-def gapL (m : Nat) (q : Int) : ℚ :=
-  if m = 2 ^ 52 ∧ q > -1074 then (2 : ℚ) ^ (q - 1) else (2 : ℚ) ^ q
+def gapL (m : Nat) (q : Int) : Rat :=
+  if m = 2 ^ 52 ∧ q > -1074 then (2 : Rat) ^ (q - 1) else (2 : Rat) ^ q
 
 theorem gapL_pos : 0 < gapL m q := by
   unfold gapL; split <;> exact two_zpow_pos _
 
-theorem gapL_le : gapL m q ≤ (2 : ℚ) ^ q := by
+theorem gapL_le : gapL m q ≤ (2 : Rat) ^ q := by
   unfold gapL; split
   · exact zpow_le_zpow_right₀ (by decide) (by omega)
   · exact le_refl _
 
 theorem vl_eq : vl m q = v m q - gapL m q / 2 := by
   unfold vl v gapL
-  have h2 : (2 : ℚ) ^ q = 2 ^ (q - 1) * 2 := by
+  have h2 : (2 : Rat) ^ q = 2 ^ (q - 1) * 2 := by
     rw [← Rat.zpow_add_one (by decide), Int.sub_add_cancel]
   split <;> grind
 
-theorem vr_eq : vr m q = v m q + (2 : ℚ) ^ q / 2 := by
+theorem vr_eq : vr m q = v m q + (2 : Rat) ^ q / 2 := by
   unfold vr v; grind
 
 /-- No legal value lies strictly between `m · 2^q` and its neighbours. -/
 theorem gap (h : Legal m q) (h' : Legal m' q') (hne : v m' q' ≠ v m q) :
-    v m' q' ≤ v m q - gapL m q ∨ v m q + (2 : ℚ) ^ q ≤ v m' q' := by
+    v m' q' ≤ v m q - gapL m q ∨ v m q + (2 : Rat) ^ q ≤ v m' q' := by
   have hp := two_zpow_pos q
   have hgl := gapL_le (m := m) (q := q)
   rcases Int.lt_or_le q' q with hlt | hle
@@ -121,30 +121,30 @@ theorem gap (h : Legal m q) (h' : Legal m' q') (hne : v m' q' ≠ v m q) :
     have hm : 2 ^ 52 ≤ m := h.2.2.2 (by omega)
     have hm53 := h'.1
     have hp1 := two_zpow_pos (q - 1)
-    have h2 : (2 : ℚ) ^ q = 2 ^ (q - 1) * 2 := by
+    have h2 : (2 : Rat) ^ q = 2 ^ (q - 1) * 2 := by
       rw [← Rat.zpow_add_one (by decide), Int.sub_add_cancel]
-    have hq' : (2 : ℚ) ^ q' ≤ (2 : ℚ) ^ (q - 1) := zpow_le_zpow_right₀ (by decide) (by omega)
-    have hm' : (m' : ℚ) + 1 ≤ 2 ^ 53 := by exact_mod_cast hm53
-    have hv' : (m' : ℚ) * (2 : ℚ) ^ q' ≤ (2 ^ 53 - 1) * (2 : ℚ) ^ (q - 1) :=
-      calc (m' : ℚ) * (2 : ℚ) ^ q' ≤ m' * (2 : ℚ) ^ (q - 1) :=
+    have hq' : (2 : Rat) ^ q' ≤ (2 : Rat) ^ (q - 1) := zpow_le_zpow_right₀ (by decide) (by omega)
+    have hm' : (m' : Rat) + 1 ≤ 2 ^ 53 := by exact_mod_cast hm53
+    have hv' : (m' : Rat) * (2 : Rat) ^ q' ≤ (2 ^ 53 - 1) * (2 : Rat) ^ (q - 1) :=
+      calc (m' : Rat) * (2 : Rat) ^ q' ≤ m' * (2 : Rat) ^ (q - 1) :=
             Rat.mul_le_mul_of_nonneg_left hq' (by exact_mod_cast Nat.zero_le m')
-        _ ≤ (2 ^ 53 - 1) * (2 : ℚ) ^ (q - 1) :=
+        _ ≤ (2 ^ 53 - 1) * (2 : Rat) ^ (q - 1) :=
             Rat.mul_le_mul_of_nonneg_right (by grind) (le_of_lt hp1)
     unfold gapL v
     by_cases hirr : m = 2 ^ 52 ∧ q > -1074
     · rw [if_pos hirr, hirr.1]; push_cast
-      generalize (2 : ℚ) ^ (q - 1) = P1 at *
-      generalize (2 : ℚ) ^ q = P at *
+      generalize (2 : Rat) ^ (q - 1) = P1 at *
+      generalize (2 : Rat) ^ q = P at *
       grind
     · rw [if_neg hirr]
       have hm1 : 2 ^ 52 + 1 ≤ m := by
         rcases Nat.eq_or_lt_of_le hm with heq | hlt'
         · exact absurd ⟨heq.symm, by omega⟩ hirr
         · omega
-      have hmq : (2 ^ 52 + 1 : ℚ) ≤ m := by exact_mod_cast hm1
+      have hmq : (2 ^ 52 + 1 : Rat) ≤ m := by exact_mod_cast hm1
       have := Rat.mul_le_mul_of_nonneg_right hmq (le_of_lt hp)
-      generalize (2 : ℚ) ^ (q - 1) = P1 at *
-      generalize (2 : ℚ) ^ q = P at *
+      generalize (2 : Rat) ^ (q - 1) = P1 at *
+      generalize (2 : Rat) ^ q = P at *
       grind
   · -- `q ≤ q'`: the value is on the grid `2^q`, at some `n ≠ m`
     rw [v_eq_mul hle] at hne ⊢
@@ -153,11 +153,11 @@ theorem gap (h : Legal m q) (h' : Legal m' q') (hne : v m' q' ≠ v m q) :
     have hnm : n ≠ m := fun h => hne (by rw [h])
     rcases Nat.lt_or_gt_of_ne hnm with hlt | hgt
     · left
-      have : (n : ℚ) + 1 ≤ m := by exact_mod_cast hlt
+      have : (n : Rat) + 1 ≤ m := by exact_mod_cast hlt
       have := Rat.mul_le_mul_of_nonneg_right this (le_of_lt hp)
       grind
     · right
-      have : (m : ℚ) + 1 ≤ n := by exact_mod_cast hgt
+      have : (m : Rat) + 1 ≤ n := by exact_mod_cast hgt
       have := Rat.mul_le_mul_of_nonneg_right this (le_of_lt hp)
       grind
 

@@ -127,7 +127,7 @@ def shortestUnsigned (m : Nat) (q : Int) : Nat × Int :=
 
 /-! ## §8.3 fast path
 
-When `-P < q < 0` and `v ∈ ℤ`, Schubfach skips the multiply-shift entirely
+When `-P < q < 0` and `v ∈ Int`, Schubfach skips the multiply-shift entirely
 and returns `v / 2^{-q}` directly (R13). We don't bother — the Nat pipeline
 handles it. -/
 

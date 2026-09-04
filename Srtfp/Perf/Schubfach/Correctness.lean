@@ -68,11 +68,11 @@ private theorem wordVal_zero (w : UInt64) (h : (Word.decode w).m = 0) :
 private theorem toRat_ne_zero (d : Decimal) (h : d.significand ≠ 0) :
     Decimal.toRat d ≠ 0 := by
   unfold Decimal.toRat
-  have h1 : ((d.significand : ℚ)) ≠ 0 := by exact_mod_cast h
-  have h2 : (10 : ℚ) ^ d.exponent ≠ 0 := Rat.ne_of_gt (Rat.zpow_pos (by decide))
+  have h1 : ((d.significand : Rat)) ≠ 0 := by exact_mod_cast h
+  have h2 : (10 : Rat) ^ d.exponent ≠ 0 := Rat.ne_of_gt (Rat.zpow_pos (by decide))
   by_cases hs : d.sign <;> simp only [hs, if_true, if_false, Bool.false_eq_true] <;>
     intro hcon <;>
-    rcases Rat.mul_eq_zero.mp (by grind : (d.significand : ℚ) * (10:ℚ) ^ d.exponent = 0) with
+    rcases Rat.mul_eq_zero.mp (by grind : (d.significand : Rat) * (10:Rat) ^ d.exponent = 0) with
       h0 | h0 <;> first | exact h1 h0 | exact h2 h0
 
 /-- `IsSpecOutputBits` with the competitor clauses split into two `∀`s (the
@@ -516,8 +516,8 @@ private theorem shortestUnsigned_clause3_same_len_boundary
   have gridVal_mono : ∀ (a b : Nat) (kk : Int), a < b → gridVal a kk < gridVal b kk := by
     intro a b kk hab
     unfold gridVal
-    have hpos : (0 : ℚ) < (10 : ℚ) ^ kk := Rat.zpow_pos (by decide)
-    have : (a : ℚ) < (b : ℚ) := by exact_mod_cast hab
+    have hpos : (0 : Rat) < (10 : Rat) ^ kk := Rat.zpow_pos (by decide)
+    have : (a : Rat) < (b : Rat) := by exact_mod_cast hab
     exact (mul_lt_mul_iff_of_pos_right hpos).mpr this
   -- C := gridVal sig' e  <  gridVal n out_exp.
   have h_C_lt_floor : gridVal sig' e < gridVal n out_exp := by
@@ -1129,7 +1129,7 @@ private theorem tie_nine_ten_impossible
       have : ¬ (e ≥ 0) := Int.not_le.mpr h_e
       simp [this]
     rw [hT1] at h_eq
-    -- Pass to ℕ, keeping `twoNegPow (-1074) = 2^1074` *folded* (its
+    -- Pass to Nat, keeping `twoNegPow (-1074) = 2^1074` *folded* (its
     -- exponent is far past the evaluation threshold).
     set j : Nat := (-e).toNat with hj
     have hj_pos : 1 ≤ j := by

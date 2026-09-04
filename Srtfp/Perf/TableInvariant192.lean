@@ -10,7 +10,7 @@ module
 
    where `g = gHi · 2^128 + gMid · 2^64 + gLo`.
 
-   Equivalently (in ℚ): `g · 2^{-h}` is the ceiling-rounded approximation
+   Equivalently (in Rat): `g · 2^{-h}` is the ceiling-rounded approximation
    of `10^k` to within `2^{-h}` (relative error < `2^{-191}` post-
    normalization).
 

@@ -31,12 +31,12 @@ theorem denN_one (u M : Nat) : denN u M 1 = qt u M 0 := by unfold denN denI; sim
 theorem denN_rec (u M : Nat) (hM : 0 < M) (n : Nat) (hpos : ∀ i, i ≤ n+2 → 0 < rem u M i) :
     denN u M (n+2) = qt u M (n+1) * denN u M (n+1) + denN u M n := by
   unfold denN
-  have h2 : denI u M (n+2) = (qt u M (n+1):ℤ) * denI u M (n+1) + denI u M n := rfl
+  have h2 : denI u M (n+2) = (qt u M (n+1):Int) * denI u M (n+1) + denI u M n := rfl
   have hp1 : 0 < denI u M (n+1) := denI_pos u M hM (n+1) (fun i hi => hpos i (by omega))
   have hp0 : 0 < denI u M n := denI_pos u M hM n (fun i hi => hpos i (by omega))
   rw [h2]
-  have e2 : (qt u M (n+1):ℤ) * denI u M (n+1) + denI u M n
-      = ((qt u M (n+1) * (denI u M (n+1)).natAbs + (denI u M n).natAbs : Nat) : ℤ) := by
+  have e2 : (qt u M (n+1):Int) * denI u M (n+1) + denI u M n
+      = ((qt u M (n+1) * (denI u M (n+1)).natAbs + (denI u M n).natAbs : Nat) : Int) := by
     rw [Int.natCast_add, Int.natCast_mul, Int.natAbs_of_nonneg (Int.le_of_lt hp1),
         Int.natAbs_of_nonneg (Int.le_of_lt hp0)]
   rw [e2, Int.natAbs_natCast]
@@ -276,13 +276,13 @@ theorem farAll_of_sweep (M u a bound : Nat) (hM : 0 < M) (hco : Nat.Coprime u M)
   -- Legendre smallness for (p, d): |u·d − M·p| = G/g and (G/g)·2d < M.
   have hGdef : G = M - (m * u) % M := by rw [hG_def]; rfl
   have hbad' : G * 2 ^ a < M := by rw [← hGdef] at hbad; exact hbad
-  have habs : ((u : ℤ) * d - (M : ℤ) * p).natAbs = G / g := by
-    have h1 : (p : ℤ) * M = (d : ℤ) * u + ((G / g : Nat) : ℤ) := by
+  have habs : ((u : Int) * d - (M : Int) * p).natAbs = G / g := by
+    have h1 : (p : Int) * M = (d : Int) * u + ((G / g : Nat) : Int) := by
       exact_mod_cast hceil_d
-    have hc1 : (u : ℤ) * d = (d : ℤ) * u := by grind
-    have hc2 : (M : ℤ) * p = (p : ℤ) * M := by grind
+    have hc1 : (u : Int) * d = (d : Int) * u := by grind
+    have hc2 : (M : Int) * p = (p : Int) * M := by grind
     omega
-  have hsmall : ((u : ℤ) * d - (M : ℤ) * p).natAbs * (2 * d) < M := by
+  have hsmall : ((u : Int) * d - (M : Int) * p).natAbs * (2 * d) < M := by
     rw [habs]
     have h2d : 2 * d ≤ 2 ^ a := by omega
     have hGg_le : G / g ≤ G := Nat.div_le_self _ _

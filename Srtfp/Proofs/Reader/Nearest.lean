@@ -15,7 +15,7 @@ namespace Srtfp.Clinger
 
 open Srtfp.Float Srtfp.Printer
 
-variable {m m' : Nat} {q q' : Int} {x : ℚ}
+variable {m m' : Nat} {q q' : Int} {x : Rat}
 
 /-! ## Endpoints of `R_v` -/
 
@@ -36,7 +36,7 @@ even `m` and the other value to be a neighbour of `v`. -/
 theorem nearest_of_InRv (h : Legal m q) (h' : Legal m' q') (hx : InRv m q x = true) :
     |v m q - x| ≤ |v m' q' - x|
     ∧ (v m' q' ≠ v m q → |v m' q' - x| = |v m q - x| →
-        m % 2 = 0 ∧ (v m' q' = v m q - gapL m q ∨ v m' q' = v m q + (2 : ℚ) ^ q)) := by
+        m % 2 = 0 ∧ (v m' q' = v m q - gapL m q ∨ v m' q' = v m q + (2 : Rat) ^ q)) := by
   by_cases hne : v m' q' = v m q
   · rw [hne]; exact ⟨le_refl _, fun h => absurd rfl h⟩
   obtain ⟨hl, hr⟩ := le_of_InRv hx
@@ -53,32 +53,32 @@ theorem nearest_of_InRv (h : Legal m q) (h' : Legal m' q') (hx : InRv m q x = tr
   generalize v m q = V at *
   generalize v m' q' = V' at *
   generalize gapL m q = g at *
-  generalize (2 : ℚ) ^ q = p at *
+  generalize (2 : Rat) ^ q = p at *
   grind
 
 /-! ## Signs -/
 
-theorem sign_mul_abs (s : Bool) (a : ℚ) : |(if s then -1 else 1 : ℚ) * a| = |a| := by
+theorem sign_mul_abs (s : Bool) (a : Rat) : |(if s then -1 else 1 : Rat) * a| = |a| := by
   cases s
   · simp only [Bool.false_eq_true, if_false, one_mul]
-  · simp only [if_true]; rw [show (-1 : ℚ) * a = -a by grind, abs_neg]
+  · simp only [if_true]; rw [show (-1 : Rat) * a = -a by grind, abs_neg]
 
 /-- Same sign: the signed distance is the distance of the magnitudes. -/
-theorem dist_of_sign (s : Bool) (a b : ℚ) :
-    |(if s then -1 else 1 : ℚ) * a - (if s then -1 else 1 : ℚ) * b| = |a - b| := by
-  rw [show (if s then -1 else 1 : ℚ) * a - (if s then -1 else 1 : ℚ) * b
-      = (if s then -1 else 1 : ℚ) * (a - b) by grind, sign_mul_abs]
+theorem dist_of_sign (s : Bool) (a b : Rat) :
+    |(if s then -1 else 1 : Rat) * a - (if s then -1 else 1 : Rat) * b| = |a - b| := by
+  rw [show (if s then -1 else 1 : Rat) * a - (if s then -1 else 1 : Rat) * b
+      = (if s then -1 else 1 : Rat) * (a - b) by grind, sign_mul_abs]
 
 /-- Any signs: the signed distance is at least the distance of the magnitudes. -/
-theorem dist_ge (s s' : Bool) {a b : ℚ} (_ha : 0 ≤ a) (_hb : 0 ≤ b) :
-    |a - b| ≤ |(if s' then -1 else 1 : ℚ) * a - (if s then -1 else 1 : ℚ) * b| := by
+theorem dist_ge (s s' : Bool) {a b : Rat} (_ha : 0 ≤ a) (_hb : 0 ≤ b) :
+    |a - b| ≤ |(if s' then -1 else 1 : Rat) * a - (if s then -1 else 1 : Rat) * b| := by
   cases s <;> cases s' <;> simp only [Bool.false_eq_true, if_true, if_false, abs_def] <;> grind
 
 /-- Equal signed and magnitude distances from a differently signed value: the
 other magnitude is zero. -/
-theorem tie_sign {s s' : Bool} {a b : ℚ} (_ha : 0 ≤ a) (_hb : 0 ≤ b)
-    (hne : (if s' then -1 else 1 : ℚ) * a ≠ (if s then -1 else 1 : ℚ) * a)
-    (heq : |(if s' then -1 else 1 : ℚ) * a - (if s then -1 else 1 : ℚ) * b| = |a - b|) : b = 0 := by
+theorem tie_sign {s s' : Bool} {a b : Rat} (_ha : 0 ≤ a) (_hb : 0 ≤ b)
+    (hne : (if s' then -1 else 1 : Rat) * a ≠ (if s then -1 else 1 : Rat) * a)
+    (heq : |(if s' then -1 else 1 : Rat) * a - (if s then -1 else 1 : Rat) * b| = |a - b|) : b = 0 := by
   cases s <;> cases s' <;> simp only [Bool.false_eq_true, if_true, if_false, abs_def] at hne heq ⊢
     <;> grind
 
@@ -86,28 +86,28 @@ theorem tie_sign {s s' : Bool} {a b : ℚ} (_ha : 0 ≤ a) (_hb : 0 ≤ b)
 
 /-- The spec's vocabulary, in terms of `v`. -/
 theorem wordVal_eq (z : UInt64) :
-    Spec.wordVal z = (if (Word.decode z).sign then -1 else 1 : ℚ)
+    Spec.wordVal z = (if (Word.decode z).sign then -1 else 1 : Rat)
       * v (Word.decode z).m (Word.decode z).q := rfl
 
 theorem dist_eq (d : Decimal) (z : UInt64) :
-    Spec.dist d z = |(if (Word.decode z).sign then -1 else 1 : ℚ) * v (Word.decode z).m (Word.decode z).q
-      - (if d.sign then -1 else 1 : ℚ) * ((d.significand : ℚ) * (10 : ℚ) ^ d.exponent)| := rfl
+    Spec.dist d z = |(if (Word.decode z).sign then -1 else 1 : Rat) * v (Word.decode z).m (Word.decode z).q
+      - (if d.sign then -1 else 1 : Rat) * ((d.significand : Rat) * (10 : Rat) ^ d.exponent)| := rfl
 
-theorem mag_nonneg (d : Decimal) : (0 : ℚ) ≤ (d.significand : ℚ) * (10 : ℚ) ^ d.exponent :=
+theorem mag_nonneg (d : Decimal) : (0 : Rat) ≤ (d.significand : Rat) * (10 : Rat) ^ d.exponent :=
   Rat.mul_nonneg (by exact_mod_cast Nat.zero_le _) (le_of_lt (ten_zpow_pos _))
 
 /-- A finite word of the decimal's sign whose interval contains the
 decimal's magnitude is the decimal's nearest word. -/
 theorem nearestWord_of_InRv {d : Decimal} {w : UInt64} (hw : Word.isFinite w = true)
     (hs : (Word.decode w).sign = d.sign)
-    (hx : InRv (Word.decode w).m (Word.decode w).q ((d.significand : ℚ) * (10 : ℚ) ^ d.exponent) = true) :
+    (hx : InRv (Word.decode w).m (Word.decode w).q ((d.significand : Rat) * (10 : Rat) ^ d.exponent) = true) :
     Spec.NearestWord d w := by
   have hX := mag_nonneg d
   have hleg := decode_legal hw
   refine ⟨hw, by rw [signBit_eq_decode_sign, hs], fun u hu => ?_⟩
   have hlegu := decode_legal hu
   rw [mantissa_mod_two, dist_eq, dist_eq, wordVal_eq, wordVal_eq]
-  generalize (d.significand : ℚ) * (10 : ℚ) ^ d.exponent = X at *
+  generalize (d.significand : Rat) * (10 : Rat) ^ d.exponent = X at *
   generalize d.sign = s at *
   generalize Word.decode w = dw at *
   generalize Word.decode u = du at *
@@ -138,7 +138,7 @@ theorem nearestWord_of_InRv {d : Decimal} {w : UInt64} (hw : Word.isFinite w = t
 contains the magnitude. -/
 theorem eq_of_nearestWord {d : Decimal} {w w' : UInt64} (h : Spec.NearestWord d w)
     (hw' : Word.isFinite w' = true) (hs' : (Word.decode w').sign = d.sign)
-    (hx : InRv (Word.decode w').m (Word.decode w').q ((d.significand : ℚ) * (10 : ℚ) ^ d.exponent) = true) :
+    (hx : InRv (Word.decode w').m (Word.decode w').q ((d.significand : Rat) * (10 : Rat) ^ d.exponent) = true) :
     w = w' := by
   have h' := nearestWord_of_InRv hw' hs' hx
   have hw := h.finite
@@ -154,7 +154,7 @@ theorem eq_of_nearestWord {d : Decimal} {w w' : UInt64} (h : Spec.NearestWord d 
   rw [dist_eq, dist_eq, hs, hs'] at heq
   rw [wordVal_eq, wordVal_eq, hs, hs'] at htie htie'
   rw [mantissa_mod_two] at htie htie'
-  generalize (d.significand : ℚ) * (10 : ℚ) ^ d.exponent = X at *
+  generalize (d.significand : Rat) * (10 : Rat) ^ d.exponent = X at *
   generalize d.sign = s at *
   generalize Word.decode w = dw at *
   generalize Word.decode w' = dw' at *
@@ -168,7 +168,7 @@ theorem eq_of_nearestWord {d : Decimal} {w w' : UInt64} (h : Spec.NearestWord d 
   · obtain ⟨rfl, rfl⟩ := v_inj hleg hleg' hv
     rfl
   · -- both mantissas are even, yet `v mw qw` is a neighbour of `v mw' qw'`
-    have hne : (if sw' then -1 else 1 : ℚ) * v mw' qw' ≠ (if sw' then -1 else 1 : ℚ) * v mw qw :=
+    have hne : (if sw' then -1 else 1 : Rat) * v mw' qw' ≠ (if sw' then -1 else 1 : Rat) * v mw qw :=
       fun h => hv ((mul_left_cancel₀ (by cases sw' <;> decide) h).symm)
     have he := htie hne heqd
     have he' := htie' (Ne.symm hne) heqd.symm
@@ -186,7 +186,7 @@ theorem eq_of_nearestWord {d : Decimal} {w w' : UInt64} (h : Spec.NearestWord d 
         rw [if_pos hirr, hirr.1] at hL
         have hval : v mw qw = v (2 ^ 53 - 1) (qw' - 1) := by
           rw [hL]; unfold v
-          have h2 : (2 : ℚ) ^ qw' = 2 ^ (qw' - 1) * 2 := by
+          have h2 : (2 : Rat) ^ qw' = 2 ^ (qw' - 1) * 2 := by
             rw [← Rat.zpow_add_one (by decide), Int.sub_add_cancel]
           rw [h2]; push_cast; grind
         have hlegN : Legal (2 ^ 53 - 1) (qw' - 1) := by unfold Legal; omega

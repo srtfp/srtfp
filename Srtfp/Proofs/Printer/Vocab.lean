@@ -13,7 +13,7 @@ namespace Srtfp.Printer
 open Srtfp.Float
 
 /-- `v = m · 2^q`, the magnitude of a finite word. -/
-def v (m : Nat) (q : Int) : ℚ := (m : ℚ) * (2 : ℚ) ^ q
+def v (m : Nat) (q : Int) : Rat := (m : Rat) * (2 : Rat) ^ q
 
 -- `digits n`, the number of decimal digits (`digits 0 = 1`), is the spec's.
 export Spec (digits)

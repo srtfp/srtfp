@@ -66,7 +66,7 @@ the vocabulary the specification is written in, which the file restates
 inline (the `Decimal` fields, canonical form, and the binary64 word
 fields), plus two small definitions it imports: `Nat.log` for the digit
 count ([`Srtfp/NatLog.lean`](Srtfp/NatLog.lean)) and the absolute value
-on `ℚ` ([`Srtfp/Rat.lean`](Srtfp/Rat.lean)).
+on `Rat` ([`Srtfp/Rat.lean`](Srtfp/Rat.lean)).
 
 The implementation itself is four short modules of exact arithmetic,
 worth reading to understand the algorithms:
@@ -86,7 +86,7 @@ Zero dependencies beyond the Lean toolchain: no mathlib, and the test
 suite runs on a small in-repo harness (`SrtfpTest/Spec.lean`). CI builds
 and tests the library on Lean v4.33.0 (the pinned toolchain and the
 floor: core's `Float.Model` arrived in v4.33).
-The vendored compatibility surface (`abs_nonneg`, `Nat.log`, the `ℚ`/`|·|`/`∃!`
+The vendored compatibility surface (`abs_nonneg`, `Nat.log`, the `|·|`/`∃!`
 notations, …) lives in the `Srtfp.Compat` namespace with scoped notation, so
 srtfp and Mathlib can be imported in the same file without collisions.
 

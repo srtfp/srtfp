@@ -1412,7 +1412,7 @@ theorem shiftedSig_floor_strict_precision
     have hExpand2 : (2 ^ 127 - 2) * 2 ^ s = 2 ^ 127 * 2 ^ s - 2 * 2 ^ s := by
       rw [Nat.sub_mul]
     -- Combine: 2^s · 2^127 + 2^127 - 2^s - 1 < N · 2^s ≤ 2^127 · 2^s - 2 · 2^s.
-    -- So 2^127 - 2^s - 1 < -2 · 2^s (in ℤ).  But LHS ≥ 0 in Nat — contradiction.
+    -- So 2^127 - 2^s - 1 < -2 · 2^s (in Int).  But LHS ≥ 0 in Nat — contradiction.
     -- Need to be careful with Nat subtraction.  Let me work with `+`-form.
     -- h3: 2^s · 2^127 + 2^127 - 2^s - 1 < N · 2^s.  Rewrite as:
     --   (2^127 - 2^s - 1) + 2^s · 2^127 < N · 2^s (since 2^s + 1 ≤ 2^127, the sub is positive).
