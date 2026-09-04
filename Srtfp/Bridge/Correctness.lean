@@ -60,11 +60,13 @@ inductive BeatsF (f : Float) (d d' : Decimal) : Prop
   | even    : digits d'.significand = digits d.significand → distF d f = distF d' f →
               d.significand % 2 = 0 → BeatsF f d d'
 
+/-- `d` reads back to `f`'s bits under every correct `Float` reader. -/
+def ReadsToF (d : Decimal) (f : Float) : Prop := ∀ p, CorrectReaderF p → (p d).toBits = f.toBits
+
 structure ShortestDecimalF (f : Float) (d : Decimal) : Prop where
   canonical : d.IsCanonical
-  roundTrip : (Clinger.ofDecimal d).toBits = f.toBits
-  shortest : ∀ d' : Decimal, d' ≠ d → d'.IsCanonical →
-    (Clinger.ofDecimal d').toBits = f.toBits → BeatsF f d d'
+  roundTrip : ReadsToF d f
+  shortest : ∀ d' : Decimal, d' ≠ d → d'.IsCanonical → ReadsToF d' f → BeatsF f d d'
 
 structure CorrectPrinterF (p : Float → Except String Decimal) : Prop where
   nan : ∀ f : Float, unpackF f = .notANumber → p f = .error "NaN"
@@ -108,26 +110,11 @@ private theorem beatsF_iff (f : Float) (d d' : Decimal) :
     · exact .closer h1 h2
     · exact .even h1 h2 h3
 
-/-- `ShortestDecimalF` at `f` is `ShortestDecimal` at `f.toBits`: the
-round-trip clauses convert through `ofDecimal_toBits`. -/
-private theorem shortestDecimalF_iff (f : Float) (d : Decimal) :
-    ShortestDecimalF f d ↔ ShortestDecimal f.toBits d := by
-  have hrt : ∀ c : Decimal,
-      ((Clinger.ofDecimal c).toBits = f.toBits ↔ Clinger.ofDecimalBits c = f.toBits) := by
-    intro c; rw [Clinger.ofDecimal_toBits]
-  constructor
-  · intro h
-    exact ⟨h.canonical, (hrt d).mp h.roundTrip,
-      fun d' hne hc hrt' => (beatsF_iff f d d').mp (h.shortest d' hne hc ((hrt d').mpr hrt'))⟩
-  · intro h
-    exact ⟨h.canonical, (hrt d).mpr h.roundTrip,
-      fun d' hne hc hrt' => (beatsF_iff f d d').mpr (h.shortest d' hne hc ((hrt d').mp hrt'))⟩
-
 /-! ## The reader theorem, `Float` tier -/
 
 /-- **A function is a correct Decimal→`Float` reader iff it agrees with
 `Clinger.ofDecimal` bit for bit.** Float tier of
-`Srtfp.Spec.correct_iff_ofDecimal`; admits the runtime axiom. -/
+`Srtfp.Spec.correct_iff_ofDecimal`. -/
 theorem correct_iff_ofDecimalF (p : Decimal → Float) :
     CorrectReaderF p ↔ ∀ d : Decimal, (p d).toBits = (Clinger.ofDecimal d).toBits := by
   have hbits := correct_iff_ofDecimal (fun d => (p d).toBits)
@@ -142,6 +129,28 @@ theorem correct_iff_ofDecimalF (p : Decimal → Float) :
     have hc := hbits.mpr hb
     exact ⟨fun d hin => (nearestFloat_iff d (p d)).mpr (hc.inRange d hin),
            fun d hout => hc.overflow d hout⟩
+
+/-- Reading back under every correct `Float` reader is reading back under
+every correct word reader. -/
+private theorem readsToF_iff (d : Decimal) (f : Float) : ReadsToF d f ↔ ReadsTo d f.toBits := by
+  rw [Clinger.readsTo_iff]
+  constructor
+  · intro h
+    have := h Clinger.ofDecimal ((correct_iff_ofDecimalF _).mpr fun _ => rfl)
+    rwa [Clinger.ofDecimal_toBits] at this
+  · intro h p hp
+    rw [(correct_iff_ofDecimalF p).mp hp d, Clinger.ofDecimal_toBits, h]
+
+/-- `ShortestDecimalF` at `f` is `ShortestDecimal` at `f.toBits`. -/
+private theorem shortestDecimalF_iff (f : Float) (d : Decimal) :
+    ShortestDecimalF f d ↔ ShortestDecimal f.toBits d := by
+  constructor
+  · intro h
+    exact ⟨h.canonical, (readsToF_iff d f).mp h.roundTrip,
+      fun d' hne hc hrt' => (beatsF_iff f d d').mp (h.shortest d' hne hc ((readsToF_iff d' f).mpr hrt'))⟩
+  · intro h
+    exact ⟨h.canonical, (readsToF_iff d f).mpr h.roundTrip,
+      fun d' hne hc hrt' => (beatsF_iff f d d').mpr (h.shortest d' hne hc ((readsToF_iff d' f).mp hrt'))⟩
 
 /-! ## The printer theorem, `Float` tier -/
 

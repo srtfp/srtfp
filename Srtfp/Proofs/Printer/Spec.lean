@@ -593,7 +593,8 @@ theorem output_beats (hw : Word.isFinite wd = true) :
 theorem toDecimalBits_spec (hw : Word.isFinite wd = true) :
     ∃ d, toDecimalBits wd = .ok d ∧ Spec.ShortestDecimal wd d :=
   let ⟨d₀, h₀, hc, hrt, hb⟩ := output_beats hw
-  ⟨d₀, h₀, hc, hrt, fun d' hne hc' hrt' => (hb d' hne hc' hrt').beats⟩
+  ⟨d₀, h₀, hc, (readsTo_iff d₀ wd).mpr hrt,
+    fun d' hne hc' hrt' => (hb d' hne hc' ((readsTo_iff d' wd).mp hrt')).beats⟩
 
 /-- Anything satisfying the specification is the output. -/
 theorem eq_output_of_shortest (hw : Word.isFinite wd = true) {d d₀ : Decimal}
@@ -602,7 +603,8 @@ theorem eq_output_of_shortest (hw : Word.isFinite wd = true) {d d₀ : Decimal}
   · exact hne
   obtain ⟨d₁, h₁, hc₁, hrt₁, hb⟩ := output_beats hw
   rw [h₁] at h₀; obtain rfl := Except.ok.inj h₀
-  exact ((hb d hne hd.canonical hd.roundTrip).not_beats (hd.shortest d₁ (Ne.symm hne) hc₁ hrt₁)).elim
+  exact ((hb d hne hd.canonical ((readsTo_iff d wd).mp hd.roundTrip)).not_beats
+    (hd.shortest d₁ (Ne.symm hne) hc₁ ((readsTo_iff d₁ wd).mpr hrt₁))).elim
 
 theorem shortestDecimal_exists_unique (w : UInt64) (h_fin : (Spec.unpack w).isFinite = true) :
     ∃ d : Decimal, Spec.ShortestDecimal w d ∧ ∀ d' : Decimal, Spec.ShortestDecimal w d' → d' = d :=

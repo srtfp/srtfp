@@ -12,6 +12,7 @@ module
    `Float.Model` (`Srtfp/Float/Model.lean`). -/
 
 public import Srtfp.Spec
+public import Srtfp.Clinger
 public import Srtfp.Printer
 public import Srtfp.Proofs.Reader.Spec
 public import Srtfp.Proofs.Printer.Spec

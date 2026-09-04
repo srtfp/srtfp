@@ -1,27 +1,15 @@
 module
-/- Decimal: an exact base-10 value.
+/- Operations on the spec's `Decimal` (`Srtfp/Spec.lean`): the canonical
+   form, constructors, negation. The printer produces a `Decimal`, the
+   reader consumes one, and `Srtfp/Text.lean` renders and parses it. -/
 
-   A `Decimal` represents a signed rational of the form
-       (-1)^sign × significand × 10^exponent
-
-   The canonical form has either
-     - `significand = 0` with `exponent = 0` (either sign), or
-     - `significand` not divisible by 10 (no trailing zeros).
-
-   It is the pivot of the library: the printer (`Srtfp/Schubfach.lean`)
-   produces one, the reader (`Srtfp/Clinger.lean`) consumes one, and
-   `Srtfp/Text.lean` renders and parses it in a dialect's syntax. -/
+public import Srtfp.Spec
 
 @[expose] public section
 
 namespace Srtfp
 
-/-- An exact base-10 decimal: `(-1)^sign × significand × 10^exponent`. -/
-structure Decimal where
-  sign : Bool
-  significand : Nat
-  exponent : Int
-  deriving Repr, DecidableEq, Inhabited
+deriving instance Repr, DecidableEq, Inhabited for Decimal
 
 namespace Decimal
 
@@ -30,13 +18,6 @@ def zero : Decimal := ⟨false, 0, 0⟩
 
 /-- One: `+1 × 10^0`. -/
 def one : Decimal := ⟨false, 1, 0⟩
-
-/-- A Decimal is *canonical* iff it is a (possibly signed) zero in
-    normalised form, or its significand has no trailing decimal zero.
-    `⟨true, 0, 0⟩` is canonical negative zero, mirroring IEEE-754 `-0.0`. -/
-def IsCanonical (d : Decimal) : Prop :=
-  (d.significand = 0 ∧ d.exponent = 0) ∨
-  (d.significand ≠ 0 ∧ d.significand % 10 ≠ 0)
 
 instance (d : Decimal) : Decidable (IsCanonical d) := by
   unfold IsCanonical; exact inferInstance

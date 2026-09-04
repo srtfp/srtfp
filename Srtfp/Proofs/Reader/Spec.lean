@@ -101,6 +101,12 @@ theorem correctReader_iff_ofDecimal (p : Decimal → UInt64) :
     subst this
     exact correctReader_ofDecimalBits
 
+/-- `d` reads back to `w` under every correct reader iff under ours. -/
+theorem readsTo_iff (d : Decimal) (w : UInt64) : Spec.ReadsTo d w ↔ ofDecimalBits d = w := by
+  constructor
+  · intro h; exact h _ correctReader_ofDecimalBits
+  · intro h p hp; rw [(correctReader_iff_ofDecimal p).mp hp d, h]
+
 /-! ## The interface to the printer proof -/
 
 /-- Reading back to a finite word carries the decimal's sign. -/

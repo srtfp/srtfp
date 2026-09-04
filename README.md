@@ -57,21 +57,23 @@ The library is three tiers, each a separate import:
 
 ## Reading the code
 
-To trust the result, read [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean)
-and nothing else. Both theorems there are biconditionals: a function
-satisfies the specification *if and only if* it is the library's
-function. So the specification has exactly one model, and the
-implementation never needs to be inspected. What does need reading is
-the vocabulary the specification is written in, which the file restates
-inline (the `Decimal` fields, canonical form, and the binary64 word
-fields, the digit count); the absolute value is core's `Rat.abs`.
+To trust the result, read [`Srtfp/Spec.lean`](Srtfp/Spec.lean) and
+[`Srtfp/Correctness.lean`](Srtfp/Correctness.lean) and nothing else.
+The specification is self-contained: it defines the `Decimal` type and
+its canonical form, reads binary64 words through Lean's own model of
+the format (`Float.Model.UnpackedFloat.unpack`), and otherwise uses
+only core Lean (`Rat`, `Rat.abs`, `Nat.toDigits`). Both theorems in
+`Correctness.lean` are biconditionals: a function satisfies the
+specification *if and only if* it is the library's function. So the
+specification has exactly one model, and the implementation never
+needs to be inspected.
 
 The implementation itself is four short modules of exact arithmetic,
 worth reading to understand the algorithms:
 
 | Module | Contents |
 | --- | --- |
-| [`Srtfp/Decimal.lean`](Srtfp/Decimal.lean) | the `Decimal` type and its canonical form |
+| [`Srtfp/Decimal.lean`](Srtfp/Decimal.lean) | operations on the spec's `Decimal` (canonicalisation, constructors) |
 | [`Srtfp/Float/Bits.lean`](Srtfp/Float/Bits.lean) | binary64 word fields, decoding, packing |
 | [`Srtfp/Printer.lean`](Srtfp/Printer.lean) | the printer, `toDecimalBits` |
 | [`Srtfp/Clinger.lean`](Srtfp/Clinger.lean) | the reader, `ofDecimalBits` |
