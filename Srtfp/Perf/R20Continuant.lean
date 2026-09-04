@@ -14,7 +14,7 @@ module
    verbatim from `R20Keystone.lean`; the theory below replaces that
    file's bridge to Mathlib's `GenContFract`. -/
 
-public import Srtfp.Perf.RatExtra
+public import Srtfp.Rat
 public import Srtfp.Perf.Tactics
 
 @[expose] public section

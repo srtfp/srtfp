@@ -7,3 +7,4 @@ benches/bench_java/*.class
 benches/perf.png
 benches/corpora/*
 !benches/corpora/SEED.txt
+.claude/worktrees/
