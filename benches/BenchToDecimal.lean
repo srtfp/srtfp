@@ -1,56 +1,52 @@
-/- End-to-end microbenchmark for `Schubfach.toDecimal`.
+/- Float → Decimal microbenchmark (no String emit): times the live
+   `Printer.toDecimal` (`@[csimp]`-rewritten to the Schubfach kernel) over
+   the shared corpora, with the same methodology as `BenchFloatToString`
+   (50 warm-up passes, 1000 passes × 5 runs, median). The sink folds the
+   significand into a `UInt64` so the accumulator never grows into a
+   bignum.
 
-   Build & run:
-     lake exe benchToDecimal
--/
+     lake exe benchToDecimal <adversarial|nice|uniform> [--checksum] -/
 
-import Srtfp.Perf.Schubfach
-import Srtfp.Perf.DecimalFast -- live Decimal.mk' @[csimp]
-import Srtfp.Perf.Orchestration
-import Srtfp.Perf.Uint64Bridge
-import Srtfp.Perf.Kernel192Correctness
-import Srtfp.Perf.KernelV6 -- live toDecimal @[csimp]
-open Srtfp.Schubfach
+import Srtfp.Perf
+import Corpora
+open Srtfp
 
-/-- 23 representative `Float` inputs spanning normals, subnormals, edges,
-    and irregular cases. Same set used in the dispatch plan. -/
-def testInputs : Array Float :=
-  #[
-    1.0, 2.0, 0.1, 0.2, 0.3, 0.1 + 0.2,
-    1e10, 1e-10, 1.7976931348623157e308, 5e-324,
-    3.14159265358979, 2.718281828459045,
-    1.0/3.0, 1.0/7.0, 1.0/11.0,
-    42.0, 100.0, 1000.0, 999999.999999,
-    1.5, 2.5, 3.5, 4.5
-  ]
+def corpusOf (label : String) : Array Float :=
+  match label with
+  | "nice" => Corpora.nice
+  | "uniform" => Corpora.uniform
+  | _ => Corpora.adversarial
 
-def doOne (iters : Nat) : IO Nat := do
-  let n := testInputs.size
-  let start ← IO.monoNanosNow
-  -- IMPORTANT: reset accumulator each outer iteration so it stays
-  -- small (GMP-style Nat addition cost grows with magnitude).  This
-  -- mirrors `BenchPacked`'s pattern.  Previously the running total
-  -- grew over 1.15M iterations and added ~100 ns/call of GMP overhead.
-  let mut grand : Nat := 0
-  for _ in [:iters] do
-    let mut t : Nat := 0
-    for f in testInputs do
-      match toDecimal f with
-      | .ok d => t := t + d.significand
-      | .error _ => pure ()
-    if t = 99 then grand := grand + 1
-  let stop ← IO.monoNanosNow
-  IO.println s!"  (suppress: {grand})"
-  pure ((stop - start) / (iters * n))
+/-- The public entry point; compiled callers run the live kernel. -/
+def toDec (f : Float) : Except String Decimal := Printer.toDecimal f
 
-def runMany (label : String) (iters : Nat) : IO Unit := do
-  -- Warmup
-  let _ ← doOne 100
+def main (args : List String) : IO Unit := do
+  let label := args.headD "adversarial"
+  let xs := corpusOf label
+  let chk := xs.foldl (init := (0 : UInt64)) (fun acc f => acc + f.toBits)
+  if args.contains "--checksum" then
+    IO.println s!"{label}: n={xs.size} sum_bits={chk}"
+    return
+  IO.println s!"# corpus: {label}, inputs: {xs.size}, sum_bits={chk}"
+  let N : Nat := 1000
+  let M : Nat := 5
+  for _ in [0:50] do
+    for f in xs do
+      let _ := toDec f
+      pure ()
   let mut times : Array Nat := #[]
-  for _ in [:5] do
-    times := times.push (← doOne iters)
-  let sorted := (times.toList.toArray).qsort (· < ·)
-  IO.println s!"{label}: times={times} median={sorted[2]!}ns/call"
-
-def main : IO Unit := do
-  runMany "toDecimal" 50000
+  for _ in [0:M] do
+    let t0 ← IO.monoNanosNow
+    let mut sink : UInt64 := 0
+    for _ in [0:N] do
+      for f in xs do
+        sink := sink ^^^ (match toDec f with
+          | .ok d => UInt64.ofNat d.significand
+          | .error _ => 0)
+    let t1 ← IO.monoNanosNow
+    -- tenths of a ns, so sub-100ns paths keep a digit of precision
+    times := times.push ((t1 - t0) * 10 / (N * xs.size))
+    if sink == 12345 then IO.println ""
+  let sorted := times.qsort (· < ·)
+  let med := sorted[M/2]!
+  IO.println s!"Lean toDecimal ({label}): median = {med / 10}.{med % 10} ns/call  (runs: {times.toList.map fun t => s!"{t / 10}.{t % 10}"})"
