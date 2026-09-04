@@ -19,6 +19,7 @@ module
 public import Srtfp.Perf.Schubfach
 public import Srtfp.Perf.SchubfachEq
 public import Srtfp.Perf.DecimalFast
+public import Srtfp.Perf.CanonFast
 public import Srtfp.Perf.MulHigh128
 public import Srtfp.Perf.Pow10Table
 public import Srtfp.Perf.Pow10Table128

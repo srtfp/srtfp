@@ -48,7 +48,9 @@ run_cmd do
       check `Srtfp.Printer.toDecimal `Srtfp.Schubfach.toDecimal_v13
       check `Srtfp.Schubfach.toDecimal `Srtfp.Schubfach.toDecimal_v13
       check `Srtfp.Schubfach.floatToStrRef `Srtfp.Schubfach.toStringFast9
-      check `Srtfp.Schubfach.shortestUnsigned `Srtfp.Schubfach.shortestUnsigned_v3))
+      check `Srtfp.Schubfach.shortestUnsigned `Srtfp.Schubfach.shortestUnsigned_v3
+      check `Srtfp.Decimal.canonicaliseAux `Srtfp.Decimal.canonicaliseAux_fast2
+      check `Srtfp.Decimal.mk' `Srtfp.Decimal.mk'_fast3))
   else
     elabCommand (← `(#eval show Lean.CoreM Unit from do
       let s := Lean.Compiler.CSimp.ext.getState (← Lean.getEnv)
@@ -61,4 +63,6 @@ run_cmd do
       check `Srtfp.Printer.toDecimal `Srtfp.Schubfach.toDecimal_v13
       check `Srtfp.Schubfach.toDecimal `Srtfp.Schubfach.toDecimal_v13
       check `Srtfp.Schubfach.floatToStrRef `Srtfp.Schubfach.toStringFast9
-      check `Srtfp.Schubfach.shortestUnsigned `Srtfp.Schubfach.shortestUnsigned_v3))
+      check `Srtfp.Schubfach.shortestUnsigned `Srtfp.Schubfach.shortestUnsigned_v3
+      check `Srtfp.Decimal.canonicaliseAux `Srtfp.Decimal.canonicaliseAux_fast2
+      check `Srtfp.Decimal.mk' `Srtfp.Decimal.mk'_fast3))
