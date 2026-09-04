@@ -38,6 +38,13 @@ lean_lib SrtfpBridge where
 lean_lib SrtfpPerf where
   roots := #[`Srtfp.Perf]
 
+-- The runtime axiom as a theorem over core's `Float.Model` (Lean ≥ v4.33):
+-- `Srtfp/Float/Model.lean`. Opt-in, not a default target, because the
+-- pinned toolchain cannot import `Init.Data.Float.Model`; CI builds it on
+-- v4.33 only.
+lean_lib SrtfpModel where
+  roots := #[`Srtfp.Float.Model]
+
 lean_lib SrtfpAxiomCheck where
   roots := #[`SrtfpAxiomCheck]
 

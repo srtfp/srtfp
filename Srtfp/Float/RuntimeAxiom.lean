@@ -18,6 +18,11 @@ module
    `Float.toBits` is the reverse. This restricted identity still cannot be
    derived in pure Lean 4 because the Float type itself is opaque.
 
+   From Lean v4.33 on, this identity is a theorem: `Float` is a structure
+   around core's `Float.Model`, and `Srtfp/Float/Model.lean` (opt-in
+   library `SrtfpModel`, needs v4.33) proves exactly this statement over
+   the model with no axiom. On the pinned toolchain it remains an axiom.
+
    This file isolates that single non-derivable identity as an audited
    axiom — nothing else lives here. The side-condition predicate
    `Float.isNaNPattern` is pure bit algebra and is defined in the

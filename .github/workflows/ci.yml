@@ -60,3 +60,9 @@ jobs:
 
       - name: Test
         run: lake test
+
+      # The runtime axiom as a theorem over core's Float.Model needs
+      # Init.Data.Float.Model, which exists from v4.33 on.
+      - name: Build the Float.Model round-trip (v4.33 only)
+        if: matrix.toolchain == 'leanprover/lean4:v4.33.0'
+        run: lake build SrtfpModel
