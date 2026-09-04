@@ -35,6 +35,7 @@ public import Srtfp.Perf.KernelR20
 public import Srtfp.Perf.KernelV5
 public import Srtfp.Perf.KernelV6
 public import Srtfp.Perf.KernelV13
+public import Srtfp.Perf.DecimalV13
 public import Srtfp.Perf.Orchestration
 public import Srtfp.Perf.R20BandSweep
 public import Srtfp.Perf.R20Continuant
