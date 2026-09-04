@@ -328,47 +328,68 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
       fun c hc hg => hnext (next_zero_of_hit h hs hg hc)
     have hn10 : n % 10 ≠ 0 := fun e => hnohit n hmem (onGrid_succ_of_ten_dvd e)
     exact ⟨hnohit, hn10, outSig_of_ne_ten (by omega)⟩
-  rcases Int.lt_or_le i b with hb | hb
-  · -- (A) coarser grid than the output: at most one digit, and no tie
-    have hyg1 : OnGrid (i + 1) ((f : ℚ) * (10 : ℚ) ^ b) := onGrid_of_le (by omega) ⟨f, rfl⟩
-    have hyg : OnGrid i ((f : ℚ) * (10 : ℚ) ^ b) := onGrid_of_le (by omega) ⟨f, rfl⟩
-    have hnext := next_zero_of_hit h hs hyg1 hyR
-    have hD := outSig_digits h hs hnext
-    rcases Nat.lt_or_ge 1 (digits f) with hf | hf
-    · left; omega
-    right
-    refine ⟨by omega, ?_⟩
-    have hle := hclose _ hyg hyR
-    by_cases hlt : |v m q - n * (10 : ℚ) ^ i| < |v m q - f * (10 : ℚ) ^ b|
-    · exact Or.inl hlt
-    exfalso
-    have heq := Rat.le_antisymm hle (Rat.not_lt.mp hlt)
-    have hs9 := s_le_nine_of_next_zero h hnext
-    rcases tie_eq_u_or_w h hs hyg hyR heq with hyu | hyw
-    · -- `y = u` on the next grid: `10 ∣ s`, impossible for `1 ≤ s ≤ 9`
-      have : s m q i % 10 = 0 :=
-        ten_dvd_of_onGrid_succ (i := i) (n := s m q i) (by rw [show ((s m q i : ℕ) : ℚ) * 10 ^ i = u m q i from rfl, ← hyu]; exact hyg1)
-      omega
-    · -- `y = w` on the next grid: `s + 1 = 10`, the `9`/`10` tie
-      have h10' : (s m q i + 1) % 10 = 0 :=
-        ten_dvd_of_onGrid_succ (i := i) (n := s m q i + 1)
-          (by rw [show ((s m q i + 1 : ℕ) : ℚ) * 10 ^ i = w m q i by unfold w; push_cast; rfl, ← hyw]; exact hyg1)
-      have hs9' : s m q i = 9 := by omega
-      rcases hcase with hn9 | hn10
-      · apply nine_ten_tie_impossible h (i := i)
-        have hu9 : u m q i = 9 * (10 : ℚ) ^ i := by unfold u; rw [hs9']; push_cast; rfl
-        have hw10 : w m q i = 10 * (10 : ℚ) ^ i := by unfold w; rw [hs9']; push_cast; grind
-        refine ⟨by rw [hn9, hs9'] at hmem; push_cast at hmem; exact hmem,
-                by rw [← hw10, ← hyw]; exact hyR, ?_⟩
-        rw [hn9, hs9', hyw, hw10] at heq
-        push_cast at heq
-        rw [hu9] at huv; rw [hw10] at hvw
-        rw [abs_of_nonneg (by grind), abs_of_nonpos (by grind)] at heq
-        grind
-      · exact hne (by rw [hyw, hn10]; unfold w; push_cast; rfl)
-  rcases Int.lt_or_eq_of_le hb with hb | hb
-  · -- (C) finer grid than the output
-    have hyng : ¬ OnGrid i ((f : ℚ) * (10 : ℚ) ^ b) := not_onGrid_of_finer hb hf10
+  by_cases hyg : OnGrid i ((f : ℚ) * (10 : ℚ) ^ b)
+  · -- on the output's grid: `hclose` decides closeness and `tie_analysis` the ties
+    obtain ⟨f', hf'⟩ := hyg
+    have hbi : i ≤ b := by
+      rcases Int.lt_or_le b i with hlt | hle
+      · exact absurd ⟨f', hf'⟩ (not_onGrid_of_finer hlt hf10)
+      · exact hle
+    have hff' : f' = f * 10 ^ (b - i).toNat := by
+      rw [ten_zpow_split hbi] at hf'
+      have : (f' : ℚ) = ((f * 10 ^ (b - i).toNat : Nat) : ℚ) := by
+        push_cast
+        exact (mul_left_inj' (Rat.ne_of_gt h10)).mp (by rw [← hf']; grind)
+      exact_mod_cast this
+    have hyR' : InRv m q ((f' : ℚ) * (10 : ℚ) ^ i) = true := by rw [← hf']; exact hyR
+    have hf'n : f' ≠ n := fun e => hne (by rw [hf', e])
+    have hle := hclose _ ⟨f', hf'⟩ hyR
+    -- a tie forces `b = i` (an odd `f'` is not a multiple of ten), with the parities of `tie_analysis`
+    have tie (heq : |v m q - n * (10 : ℚ) ^ i| = |v m q - f * (10 : ℚ) ^ b|) :
+        n % 2 = 0 ∧ f % 2 = 1 ∧ n ≠ 10 := by
+      obtain ⟨he, hfo, hn10⟩ := tie_analysis h hs hyR' hf'n (by rw [← hf']; exact heq)
+      rcases Int.lt_or_eq_of_le hbi with hlt | heq'
+      · exfalso
+        obtain ⟨k, hk⟩ : ∃ k, (b - i).toNat = k + 1 := ⟨(b - i).toNat - 1, by omega⟩
+        rw [hff', hk, Nat.pow_succ] at hfo
+        have h2 : 2 ∣ f * (10 ^ k * 10) :=
+          Nat.dvd_trans ⟨5, rfl⟩ (Nat.dvd_trans (Nat.dvd_mul_left 10 (10 ^ k)) (Nat.dvd_mul_left _ f))
+        omega
+      · have h0 : (b - i).toNat = 0 := by omega
+        rw [h0, Nat.pow_zero, Nat.mul_one] at hff'
+        subst hff'
+        exact ⟨he, hfo, hn10⟩
+    have close_or_tie :
+        |v m q - n * (10 : ℚ) ^ i| < |v m q - f * (10 : ℚ) ^ b|
+        ∨ (|v m q - n * (10 : ℚ) ^ i| = |v m q - f * (10 : ℚ) ^ b|
+           ∧ outSig n % 2 = 0 ∧ f % 2 = 1) := by
+      by_cases hlt : |v m q - n * (10 : ℚ) ^ i| < |v m q - f * (10 : ℚ) ^ b|
+      · exact Or.inl hlt
+      · have heq := Rat.le_antisymm hle (Rat.not_lt.mp hlt)
+        obtain ⟨he, hfo, hn10⟩ := tie heq
+        exact Or.inr ⟨heq, by rw [outSig_of_ne_ten hn10]; exact he, hfo⟩
+    by_cases hnext : s m q (i + 1) = 0
+    · have hD := outSig_digits h hs hnext
+      rcases Nat.lt_or_ge 1 (digits f) with hf | hf
+      · left; omega
+      · right; exact ⟨by omega, close_or_tie⟩
+    · obtain ⟨-, -, hD⟩ := nohit_case hnext
+      -- a coarser competitor would be a hit on the next grid
+      have hbi' : b = i := by
+        rcases Int.lt_or_eq_of_le hbi with hlt | heq'
+        · exact absurd (next_zero_of_hit h hs (onGrid_of_le (by omega) ⟨f, rfl⟩) hyR) hnext
+        · exact heq'.symm
+      subst hbi'
+      have hdig : digits f = digits n := same_len h hs hnext hf1 hyR
+      right
+      rw [hD]
+      exact ⟨hdig, by have := close_or_tie; rw [hD] at this; exact this⟩
+  · -- off the output's grid: strictly between two of its points
+    have hb : b < i := by
+      rcases Int.lt_or_le b i with hlt | hle
+      · exact hlt
+      · exact absurd (onGrid_of_le hle ⟨f, rfl⟩) hyg
+    have hyng := hyg
     have hypos : 0 < (f : ℚ) * (10 : ℚ) ^ b :=
       Rat.mul_pos (by exact_mod_cast hf1) (ten_zpow_pos b)
     obtain ⟨dy, hlo, hhi⟩ := between_grid hypos hyng
@@ -436,31 +457,6 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
         have hdig : digits dy = digits n := same_len h hs hnext (by omega) hdR
         have := finer_is_longer hb (by omega) hlo
         left; omega
-  · -- (B) the output's own grid
-    rw [hb] at hyR hne ⊢
-    have hfn : f ≠ n := fun e => hne (by rw [e])
-    have hyg : OnGrid i ((f : ℚ) * (10 : ℚ) ^ i) := ⟨f, rfl⟩
-    have hle := hclose _ hyg hyR
-    -- closeness or tie, uniformly
-    have close_or_tie (hD : outSig n = n ∨ digits (outSig n) = 1 ∧ digits f = 1) :
-        |v m q - n * (10 : ℚ) ^ i| < |v m q - f * (10 : ℚ) ^ i|
-        ∨ (|v m q - n * (10 : ℚ) ^ i| = |v m q - f * (10 : ℚ) ^ i|
-           ∧ outSig n % 2 = 0 ∧ f % 2 = 1) := by
-      by_cases hlt : |v m q - n * (10 : ℚ) ^ i| < |v m q - f * (10 : ℚ) ^ i|
-      · exact Or.inl hlt
-      · have heq := Rat.le_antisymm hle (Rat.not_lt.mp hlt)
-        obtain ⟨hev, hfo, hn10⟩ := tie_analysis h hs hyR hfn heq
-        exact Or.inr ⟨heq, by rw [outSig_of_ne_ten hn10]; exact hev, hfo⟩
-    by_cases hnext : s m q (i + 1) = 0
-    · have hD := outSig_digits h hs hnext
-      rcases Nat.lt_or_ge 1 (digits f) with hf | hf
-      · left; omega
-      · right; exact ⟨by omega, close_or_tie (Or.inr ⟨hD, by omega⟩)⟩
-    · obtain ⟨hnohit, hn10, hD⟩ := nohit_case hnext
-      have hdig : digits f = digits n := same_len h hs hnext hf1 hyR
-      right
-      rw [hD]
-      exact ⟨hdig, by have := close_or_tie (Or.inl hD); rw [hD] at this; exact this⟩
 
 end Nonzero
 

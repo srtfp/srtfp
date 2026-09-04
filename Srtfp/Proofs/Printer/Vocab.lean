@@ -95,24 +95,4 @@ theorem digits_eq_of_no_ten_dvd_between {a b : Nat} (ha : 1 ≤ a) (hab : a ≤ 
     exact h _ (by omega) hc_le hmod
   · omega
 
-theorem digits_mul_pow {n : Nat} (h : 1 ≤ n) (k : Nat) :
-    digits (n * 10 ^ k) = digits n + k := by
-  induction k with
-  | zero => simp
-  | succ k ih =>
-    have hpk : 1 ≤ 10 ^ k := Nat.one_le_pow _ _ (by decide)
-    have h10 : 10 ≤ 10 ^ (k + 1) := by rw [Nat.pow_succ]; omega
-    have hk : 10 ≤ n * 10 ^ (k + 1) :=
-      calc 10 ≤ 10 ^ (k + 1) := h10
-        _ = 1 * 10 ^ (k + 1) := (Nat.one_mul _).symm
-        _ ≤ n * 10 ^ (k + 1) := Nat.mul_le_mul_right _ h
-    unfold digits
-    rw [Nat.log_eq_log_div_add_one hk (by decide)]
-    have hdiv : n * 10 ^ (k + 1) / 10 = n * 10 ^ k := by
-      rw [Nat.pow_succ, ← Nat.mul_assoc]
-      exact Nat.mul_div_cancel _ (by decide)
-    rw [hdiv]
-    unfold digits at ih
-    omega
-
 end Srtfp.Printer

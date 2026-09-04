@@ -56,12 +56,6 @@ theorem v_eq_mul (h : q' ≤ q) :
   rw [← two_zpow_toNat (by omega), Rat.mul_assoc, ← Rat.zpow_add (by decide),
     Int.sub_add_cancel]
 
-theorem two_le_two_zpow (h : 1 ≤ q) : (2 : ℚ) ≤ (2 : ℚ) ^ q := by
-  have := one_le_zpow_of_nonneg (a := (2 : ℚ)) (by decide) (n := q - 1) (by omega)
-  have h2 : (2 : ℚ) ^ q = 2 ^ (q - 1) * 2 := by
-    rw [← Rat.zpow_add_one (by decide), Int.sub_add_cancel]
-  rw [h2]; grind
-
 /-- Legal pairs are determined by their value. -/
 theorem v_inj (h : Legal m q) (h' : Legal m' q') (hv : v m q = v m' q') : m = m' ∧ q = q' := by
   -- with `q < q'`, `m = m' · 2^(q'-q) ≥ 2 · 2^52`

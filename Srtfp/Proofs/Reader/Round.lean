@@ -18,9 +18,6 @@ open Srtfp.Printer
 theorem le_div_iff {a b c : ℚ} (hc : 0 < c) : a ≤ b / c ↔ a * c ≤ b := by
   rw [← not_lt, ← not_lt, Rat.div_lt_iff hc]
 
-theorem div_le_iff {a b c : ℚ} (hc : 0 < c) : a / c ≤ b ↔ a ≤ b * c := by
-  rw [← not_lt, ← not_lt, Rat.lt_div_iff hc]
-
 theorem div_eq_iff {a b c : ℚ} (hc : 0 < c) : a / c = b ↔ a = b * c := by
   constructor
   · intro h; rw [← h, Rat.div_mul_cancel (by grind)]

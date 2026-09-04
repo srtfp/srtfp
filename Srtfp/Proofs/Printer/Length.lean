@@ -20,14 +20,6 @@ theorem ten_zpow_split (hj : j ≤ i) :
   have h1 : (10 : ℚ) ^ i = (10 : ℚ) ^ (j + (i - j)) := by congr 1; omega
   rw [h1, Rat.zpow_add (by decide), ← Rat.zpow_natCast, Int.toNat_of_nonneg (by omega)]
 
-/-- R2: a coarser grid is contained in the next finer one. -/
-theorem onGrid_of_onGrid_succ (h : OnGrid (i + 1) x) : OnGrid i x := by
-  obtain ⟨n, rfl⟩ := h
-  refine ⟨n * 10, ?_⟩
-  rw [Rat.zpow_add_one (by decide)]
-  push_cast
-  grind
-
 theorem onGrid_of_le (hj : i ≤ j) (h : OnGrid j x) : OnGrid i x := by
   obtain ⟨n, rfl⟩ := h
   refine ⟨n * 10 ^ (j - i).toNat, ?_⟩
@@ -43,18 +35,6 @@ theorem onGrid_succ_of_ten_dvd (h : n % 10 = 0) :
   rw [show (n : ℚ) = ((n / 10 * 10 : Nat) : ℚ) by exact_mod_cast hn]
   push_cast
   grind
-
-theorem ten_dvd_of_onGrid_succ (h : OnGrid (i + 1) ((n : ℚ) * (10 : ℚ) ^ i)) : n % 10 = 0 := by
-  obtain ⟨k, hk⟩ := h
-  rw [Rat.zpow_add_one (by decide)] at hk
-  have h10 := ten_zpow_pos i
-  have hk' : (n : ℚ) = (k * 10 : Nat) := by
-    push_cast
-    have := (mul_left_inj' (Rat.ne_of_gt h10)).mp
-      (show (n : ℚ) * 10 ^ i = (k * 10) * 10 ^ i by grind)
-    grind
-  have : n = k * 10 := by exact_mod_cast hk'
-  omega
 
 theorem not_onGrid_of_finer (hj : j < i) (hf : f % 10 ≠ 0) :
     ¬ OnGrid i ((f : ℚ) * (10 : ℚ) ^ j) := by
