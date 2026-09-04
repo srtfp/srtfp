@@ -1,4 +1,4 @@
-/- # Empirical probe of the `Float.toBits_ofBits` axiom
+/- # Empirical probe of the `Float.toBits_ofBits` round-trip (once an axiom)
 
 Run: `lake env lean SrtfpTest/RuntimeAxiomProbe.lean`
 
@@ -15,13 +15,14 @@ patterns do not transfer to the running system. The printer rejects
 NaN before any bit-level reasoning, so `correct_iff_toDecimal` needs
 the axiom only on non-NaN patterns, where this probe shows it exact.
 
-DONE (2026-07-02): the axiom (`Srtfp/Float/RuntimeAxiom.lean`) is
-now restricted to `isNaNPattern x = false`, and every use site threads
-the corresponding side condition. `isNaNPattern` (biased exponent
+DONE (2026-07-02): the statement is restricted to `isNaNPattern x =
+false`, and every use site threads the side condition. Since v4.33 it is
+a theorem over core's `Float.Model` (`Srtfp/Float/Model.lean`); this probe
+now checks the runtime against the model. `isNaNPattern` (biased exponent
 `0x7FF` and mantissa nonzero) is checked below to agree exactly with
 the empirical NaN/non-NaN split observed above. -/
 
-import Srtfp.Float.RuntimeAxiom
+import Srtfp.Float.Model
 
 open Float (isNaNPattern)
 

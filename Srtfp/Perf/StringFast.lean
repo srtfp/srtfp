@@ -109,7 +109,7 @@ theorem toStringFast_eq_ref (f : _root_.Float) : toStringFast f = floatToStrRef 
   by_cases h1 : isNaNBits f = true
   · simp [h1]
   by_cases h2 : isInfBits f = true
-  · simp [h1, h2]
+  · simp [h1, h2] <;> split <;> simp [*]
   simp only [h1, h2, if_false, Bool.false_eq_true]
   by_cases h3 : (decode f).m = 0
   · simp [h3, decimalToStrRef]

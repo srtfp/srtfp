@@ -6,7 +6,7 @@ module
    don't each hand-roll literal printing and parsing. The lexical shape a
    dialect *accepts* is a `DecimalSyntax` (`Srtfp/DecimalSyntax.lean`);
    the shape a printer *emits* is a `FormatOptions` below. One engine,
-   per-dialect instantiation; `Srtfp/Text/Roundtrip.lean` proves
+   per-dialect instantiation; `Srtfp/Proofs/Text.lean` proves
    `parse (format d) = some d` once, for every compatible pair.
 
    Format-specific specials stay out: YAML's `.inf`/`.nan` tokens and

@@ -1,12 +1,10 @@
 module
-/- Bridge tier, ground floor: the first consumers of the runtime axiom.
+/- Bridge tier, ground floor: word-level facts from `Srtfp/Float/Bits.lean`
+   (`pack_proj`, `pack_isNaNPattern_false`) transported across the bit
+   round-trip `Float.toBits_ofBits` (`Srtfp/Float/Model.lean`). No new bit
+   algebra — just the `(Float.ofBits w).toBits = w` cancellation. -/
 
-   Everything here is a word-level fact from `Srtfp/Float/Bits.lean`
-   (`pack_proj`, `pack_isNaNPattern_false`) transported across the single
-   restricted runtime axiom `Float.toBits_ofBits`. No new bit algebra —
-   just the `(Float.ofBits w).toBits = w` cancellation. -/
-
-public import Srtfp.Float.RuntimeAxiom
+public import Srtfp.Float.Model
 public import Srtfp.Proofs.Bits
 
 @[expose] public section

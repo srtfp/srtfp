@@ -48,11 +48,12 @@ The library is three tiers, each a separate import:
   reference tier. Deleting `Srtfp/Perf/` leaves the library working,
   only slower.
 - **Float (`import Srtfp.Bridge`, opt-in)**: the same theorems attached
-  to the runtime `Float` type. This tier depends on exactly one extra
-  axiom, `Float.toBits_ofBits`: constructing a non-NaN `Float` from
-  bits and reading it back gives the same bits. This is the
-  implementation contract of Lean's opaque `Float`, not provable within
-  Lean.
+  to the runtime `Float` type, across the bit round-trip
+  `Float.toBits_ofBits` (constructing a non-NaN `Float` from bits and
+  reading it back gives the same bits), proven over core's `Float.Model`
+  in `Srtfp/Float/Model.lean`. No axiom; what is trusted is that the
+  compiled `Float.ofBits` and `Float.toBits` implement their definitions,
+  the `@[extern]` contract every primitive type carries.
 
 ## Reading the code
 
@@ -83,8 +84,8 @@ performance tier (`Srtfp/Perf/`), or the `Float` bridge (`Srtfp/Bridge/`).
 
 Zero dependencies beyond the Lean toolchain: no mathlib, and the test
 suite runs on a small in-repo harness (`SrtfpTest/Spec.lean`). CI builds
-and tests the library on Lean v4.27.0, v4.32.2 (the pinned toolchain),
-and v4.33.0.
+and tests the library on Lean v4.33.0 (the pinned toolchain and the
+floor: core's `Float.Model` arrived in v4.33).
 The vendored compatibility surface (`abs_nonneg`, `Nat.log`, the `ℚ`/`|·|`/`∃!`
 notations, …) lives in the `Srtfp.Compat` namespace with scoped notation, so
 srtfp and Mathlib can be imported in the same file without collisions.

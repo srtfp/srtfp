@@ -119,7 +119,7 @@ theorem pack_proj (sign : Bool) (biasedExp : Nat) (mantissa : Nat)
 
 /-- The word assembled by `Word.pack` is never a NaN pattern when `h_nan`
 rules out the `biasedExp = 2047 ∧ mantissa ≠ 0` combination. This is the
-side condition the restricted `Float.toBits_ofBits` axiom demands, so every
+side condition the round-trip `Float.toBits_ofBits` demands, so every
 caller re-encoding bit fields via `fromBits` must supply it. -/
 theorem pack_isNaNPattern_false (sign : Bool) (biasedExp mantissa : Nat)
     (h_be : biasedExp < 2048) (h_m : mantissa < 2 ^ 52)

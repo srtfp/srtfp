@@ -4,13 +4,10 @@ module
    The same two theorems as `Srtfp/Correctness.lean`, with `Float` at the
    boundary: the reader returns `Float`s, the printer consumes them, and
    candidates range over `Float`s. Each proof is the bits-level theorem
-   transported across the single restricted runtime axiom
-   `Float.toBits_ofBits` (`Srtfp/Float/RuntimeAxiom.lean`): the axiom
-   realizes every finite word as a `Float` (`Float.ofBits`) and cancels
-   `(Float.ofBits w).toBits = w` on the reader's outputs.
-
-   Importing this module is the opt-in for trusting the runtime contract;
-   everything upstream of it is axiom-free. -/
+   transported across the bit round-trip `Float.toBits_ofBits`
+   (`Srtfp/Float/Model.lean`), which realizes every finite word as a
+   `Float` (`Float.ofBits`) and cancels `(Float.ofBits w).toBits = w` on the
+   reader's outputs. -/
 
 public import Srtfp.Correctness
 public import Srtfp.Proofs.Bits
@@ -187,12 +184,11 @@ theorem shortest_decimal_exists_uniqueF (f : Float) (h_fin : isFiniteBits f) :
 
 end Srtfp.Spec
 
-/-- The axiom's side condition, displayed for convenience: -/
+/-- The round-trip's side condition, displayed for convenience: -/
 example (x : UInt64) : Float.isNaNPattern x =
     (((x >>> 52) &&& 0x7FF == 0x7FF) && (x &&& 0xF_FFFF_FFFF_FFFF != 0)) := rfl
 
-/-- The only non-standard axiom: converting non-NaN bits to `Float` and
-back is the identity (the runtime canonicalises NaN payloads; see
-`SrtfpTest/RuntimeAxiomProbe.lean`): -/
+/-- The bridge to `Float`: converting non-NaN bits to `Float` and back is the
+identity, a theorem over core's `Float.Model` (`Srtfp/Float/Model.lean`): -/
 example : ∀ x : UInt64, Float.isNaNPattern x = false → (Float.ofBits x).toBits = x :=
   Float.toBits_ofBits

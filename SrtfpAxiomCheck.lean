@@ -28,11 +28,7 @@ open Lean
 -- CONFIGURE: namespace roots to scan, and permitted axioms
 private def roots : Array Lean.Name := #[`Srtfp]
 private def allowedAxioms : Array Lean.Name :=
-  #[`propext, `Quot.sound, `Classical.choice,
-    -- IEEE-754 binary64 runtime intrinsic axiom (`Float.toBits ∘ Float.ofBits = id`).
-    -- Used (transitively) by the Clinger `DecodeOfDecimalBridge` proof; not
-    -- derivable in pure Lean 4 because `Float` is opaque.
-    `Float.toBits_ofBits]
+  #[`propext, `Quot.sound, `Classical.choice]
 
 /-- True if the constant is `partial` or `unsafe` (from `partial def` or `unsafe def`). -/
 private def isPartialOrUnsafe (env : Lean.Environment) (name : Lean.Name) : Bool :=

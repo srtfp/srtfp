@@ -38,11 +38,10 @@ public import Srtfp.Decimal
 
 /-- A `UInt64` bit pattern is a NaN pattern iff its biased exponent field
     (bits 62..52) is all-ones (`0x7FF`) and its mantissa field (bits 51..0)
-    is nonzero. See `SrtfpTest/RuntimeAxiomProbe.lean` for the empirical
-    justification that the runtime's `toBits_ofBits` round-trip fails
-    exactly on this set (NaN payloads are canonicalised away); the
-    restricted axiom in `Srtfp/Float/RuntimeAxiom.lean` uses this predicate
-    as its side condition. -/
+    is nonzero. The bit round-trip `Float.toBits_ofBits`
+    (`Srtfp/Float/Model.lean`) is restricted to patterns outside this set:
+    NaN payloads are canonicalised (`SrtfpTest/RuntimeAxiomProbe.lean`
+    observes the same at runtime). -/
 def Float.isNaNPattern (x : UInt64) : Bool :=
   ((x >>> 52) &&& 0x7FF == 0x7FF) && (x &&& 0xF_FFFF_FFFF_FFFF != 0)
 

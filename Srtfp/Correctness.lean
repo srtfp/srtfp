@@ -7,9 +7,9 @@ module
    `Srtfp/Proofs/Printer/Spec.lean`.
 
    The same theorems on the runtime `Float` type are derived in
-   `Srtfp/Bridge/Correctness.lean`; those additionally admit the single
-   restricted runtime axiom `Float.toBits_ofBits`
-   (see `Srtfp/Float/RuntimeAxiom.lean`). -/
+   `Srtfp/Bridge/Correctness.lean`; those cross to `Float` through the
+   bit round-trip `Float.toBits_ofBits`, a theorem over core's
+   `Float.Model` (`Srtfp/Float/Model.lean`). -/
 
 public import Srtfp.Spec
 public import Srtfp.Printer

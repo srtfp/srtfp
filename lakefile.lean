@@ -25,8 +25,9 @@ package srtfp where
 lean_lib Srtfp where
   roots := #[`Srtfp]
 
--- The Float tier: everything in `Srtfp` plus the runtime-axiom bridge
--- (`Srtfp/Bridge.lean` and below). Importing it admits Float.toBits_ofBits.
+-- The Float tier: everything in `Srtfp` plus the bridge to the runtime
+-- `Float` type (`Srtfp/Bridge.lean` and below), across the bit round-trip
+-- proven over core's `Float.Model` (Lean ≥ v4.33).
 @[default_target]
 lean_lib SrtfpBridge where
   roots := #[`Srtfp.Bridge]
@@ -37,13 +38,6 @@ lean_lib SrtfpBridge where
 @[default_target]
 lean_lib SrtfpPerf where
   roots := #[`Srtfp.Perf]
-
--- The runtime axiom as a theorem over core's `Float.Model` (Lean ≥ v4.33):
--- `Srtfp/Float/Model.lean`. Opt-in, not a default target, because the
--- pinned toolchain cannot import `Init.Data.Float.Model`; CI builds it on
--- v4.33 only.
-lean_lib SrtfpModel where
-  roots := #[`Srtfp.Float.Model]
 
 lean_lib SrtfpAxiomCheck where
   roots := #[`SrtfpAxiomCheck]

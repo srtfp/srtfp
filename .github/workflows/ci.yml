@@ -10,15 +10,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # v4.27.0: QuadParsers consumes srtfp@main on this toolchain.
-        # v4.32.2: srtfp's own pin (lean-toolchain), VeIR's toolchain.
-        # v4.33.0: current latest; note core's Float.ofScientific changed
-        #   here (lean4#14110) — tests must never assert on core Float
-        #   parsing/printing, only on srtfp's own functions or hex bit
-        #   patterns.
+        # v4.33.0: the pin (lean-toolchain), and the floor — `Srtfp/Float/
+        #   Model.lean` needs core's `Float.Model`. Consumers on older
+        #   toolchains (QuadParsers on v4.27, VeIR on v4.32) pin an earlier
+        #   srtfp commit. Tests must never assert on core Float
+        #   parsing/printing (Float.ofScientific changed in lean4#14110),
+        #   only on srtfp's own functions or hex bit patterns.
         toolchain:
-          - leanprover/lean4:v4.27.0
-          - leanprover/lean4:v4.32.2
           - leanprover/lean4:v4.33.0
     runs-on: ubuntu-latest
     steps:
@@ -44,7 +42,7 @@ jobs:
             lake-${{ matrix.toolchain }}-${{ hashFiles('lakefile.lean', 'lake-manifest.json') }}-
 
       # Fast source-level guard: the default umbrella must not import the
-      # runtime-axiom tier.
+      # Float tier.
       - name: Axiom-tier import walk
         run: python3 tools/check_axiom_free_imports.py
 
@@ -53,16 +51,10 @@ jobs:
       # fails the build if anything reachable from `import Srtfp` or
       # `import Srtfp.Perf` needs an axiom beyond propext / Quot.sound /
       # Classical.choice; SrtfpAxiomCheck audits the full Bridge closure
-      # against that budget plus the single runtime axiom
-      # Float.toBits_ofBits.
+      # against the same budget.
       - name: Build
         run: lake build Srtfp SrtfpPerf SrtfpBridge SrtfpBitsAxiomCheck SrtfpAxiomCheck
 
       - name: Test
         run: lake test
 
-      # The runtime axiom as a theorem over core's Float.Model needs
-      # Init.Data.Float.Model, which exists from v4.33 on.
-      - name: Build the Float.Model round-trip (v4.33 only)
-        if: matrix.toolchain == 'leanprover/lean4:v4.33.0'
-        run: lake build SrtfpModel

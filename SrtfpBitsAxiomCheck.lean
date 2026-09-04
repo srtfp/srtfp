@@ -2,11 +2,9 @@
    default umbrella — definitions, proof stack, and the bits-level
    certification in `Srtfp/Correctness.lean`) and `Srtfp.Perf` (the
    opt-in fast paths), every declaration must depend on nothing beyond
-   the three standard axioms. In particular the restricted runtime axiom
-   `Float.toBits_ofBits` must be unreachable — that axiom is admitted
-   only via the `Srtfp.Bridge` umbrella, which this module deliberately
-   does NOT import (`SrtfpAxiomCheck.lean` audits that closure with the
-   wider whitelist).
+   the three standard axioms. This module deliberately does NOT import
+   the `Srtfp.Bridge` umbrella (`SrtfpAxiomCheck.lean` audits that
+   closure, to the same budget).
 
    Mechanism identical to `SrtfpAxiomCheck.lean` (memoized transitive
    axiom map over the environment); see there for the performance notes. -/

@@ -628,7 +628,7 @@ theorem toDecimal_v7_eq (f : _root_.Float) :
   by_cases h1 : Srtfp.Float.isNaNBits f = true
   · simp [h1]
   by_cases h2 : Srtfp.Float.isInfBits f = true
-  · simp [h1, h2]
+  · simp [h1, h2] <;> split <;> simp [*]
   simp only [h1, h2, if_false, Bool.false_eq_true]
   by_cases h3 : (Srtfp.Float.decode f).m = 0
   · simp [h3]

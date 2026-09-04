@@ -1,19 +1,20 @@
 module
-/- The bit round-trip of Lean's `Float.Model` (core, since v4.33):
-   `Float.Model.ofBits` is the identity on valid words, so
-   `(Float.ofBits x).toBits = x` for every non-NaN `x` — the statement of
-   the runtime axiom in `Srtfp/Float/RuntimeAxiom.lean`, as a theorem.
+/- The runtime bit round-trip, as a theorem: `(Float.ofBits x).toBits = x`
+   for every non-NaN pattern `x`.
 
-   In v4.33 `Float` is a structure around `Float.Model` and `Float.ofBits`,
-   `Float.toBits` are definitions over it (`@[extern]` only attaches the
-   runtime implementation), so the round-trip needs no axiom: what remains
-   trusted is the compiler's `@[extern]` contract, as for every primitive.
+   Since Lean v4.33 `Float` is a structure around core's `Float.Model` (a
+   `UInt64` whose NaNs are canonical) and `Float.ofBits`, `Float.toBits`
+   are definitions over it; `@[extern]` only attaches the runtime
+   implementation. So the round-trip is provable: `pack ∘ unpack` is the
+   identity on valid words. What remains trusted is the compiler's
+   `@[extern]` contract, as for every primitive type.
 
-   This module needs Lean ≥ v4.33 (`Init.Data.Float.Model`) and is built by
-   the opt-in library `SrtfpModel` only; the pinned toolchain cannot import
-   it. Raising the toolchain floor would let it replace the axiom. -/
+   The round-trip fails on NaN payloads (the runtime, like the model,
+   canonicalises them; see `SrtfpTest/RuntimeAxiomProbe.lean`), which is
+   why the statement is restricted to `isNaNPattern x = false`. -/
 
 public import Init.Data.Float
+public import Srtfp.Float.Bits
 
 @[expose] public section
 
@@ -157,13 +158,12 @@ theorem ofBits_toBits (f : Float.Model) : ofBits f.toBits = f :=
 
 end Float.Model
 
-/-- A non-NaN word (`Srtfp.Float.isNaNPattern x = false`, spelled out) is
-valid: the model's validity condition only constrains NaNs. -/
-theorem Float.Model.valid_of_not_nan (x : UInt64)
-    (h : (((x >>> 52) &&& 0x7FF == 0x7FF) && (x &&& 0xF_FFFF_FFFF_FFFF != 0)) = false) :
+/-- A non-NaN word is valid: the model's validity condition only constrains NaNs. -/
+theorem Float.Model.valid_of_not_nan (x : UInt64) (h : Float.isNaNPattern x = false) :
     Float.Model.Format.binary64.Valid x.toBitVec where
   eq_packedNaN hE hM := by
     exfalso
+    unfold Float.isNaNPattern at h
     have hE' : x.toNat >>> 52 % 2 ^ 11 = 2047 := by
       have := congrArg BitVec.toNat hE
       simpa [Float.Model.UnpackedFloat.unpackExponent, BitVec.extractLsb, BitVec.extractLsb'_toNat] using this
@@ -189,10 +189,6 @@ theorem Float.Model.valid_of_not_nan (x : UInt64)
     rw [hnan] at h
     exact Bool.noConfusion h
 
-/-- **srtfp's runtime axiom `Float.toBits_ofBits`, as a theorem**: the statement
-of `Srtfp/Float/RuntimeAxiom.lean` with `isNaNPattern` unfolded, proved over
-Lean's model with no axiom. -/
-theorem Float.Model.toBits_ofBits_of_not_nan (x : UInt64)
-    (h : (((x >>> 52) &&& 0x7FF == 0x7FF) && (x &&& 0xF_FFFF_FFFF_FFFF != 0)) = false) :
-    (Float.ofBits x).toBits = x :=
-  Float.Model.toBits_ofBits x (Float.Model.valid_of_not_nan x h)
+/-- **The runtime bit round-trip**, restricted to non-NaN patterns. -/
+theorem Float.toBits_ofBits : ∀ x : UInt64, Float.isNaNPattern x = false → (Float.ofBits x).toBits = x :=
+  fun x h => Float.Model.toBits_ofBits x (Float.Model.valid_of_not_nan x h)

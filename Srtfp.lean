@@ -12,7 +12,8 @@ module
 
      - `Srtfp.Perf`   — verified runtime fast paths (`@[csimp]`);
      - `Srtfp.Bridge` — the same theorems on the runtime `Float` type,
-                        admitting the single axiom `Float.toBits_ofBits`. -/
+                        across the bit round-trip proven over core's
+                        `Float.Model` (`Srtfp/Float/Model.lean`). -/
 
 public import Srtfp.Decimal
 public import Srtfp.DecimalSyntax
@@ -21,7 +22,6 @@ public import Srtfp.Clinger
 public import Srtfp.Printer
 public import Srtfp.Rat
 public import Srtfp.NatLog
-public import Srtfp.Tactics
 public import Srtfp.Proofs.Bits
 public import Srtfp.Proofs.Decimal
 public import Srtfp.Proofs.Decimal.Canonical
@@ -39,6 +39,6 @@ public import Srtfp.Proofs.Printer.Spec
 public import Srtfp.Spec
 public import Srtfp.Correctness
 public import Srtfp.Text
-public import Srtfp.Text.Roundtrip
+public import Srtfp.Proofs.Text
 
 @[expose] public section
