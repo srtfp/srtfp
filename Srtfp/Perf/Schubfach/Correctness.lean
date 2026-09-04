@@ -23,6 +23,7 @@ module
 
 public import Srtfp.Perf.Schubfach.Spec
 public import Srtfp.Spec
+public import Srtfp.Proofs.Printer.Vocab
 public import Srtfp.Perf.Schubfach.RoundTrip
 public import Srtfp.Perf.Schubfach.Minimal
 public import Srtfp.Perf.Schubfach.TieBreak
@@ -1766,7 +1767,20 @@ theorem Schubfach.printer_unique_proof (p₁ p₂ : UInt64 → Except String Dec
 
 theorem Schubfach.decDigitLength_eq_digits (n : Nat) : decDigitLength n = Spec.digits n := by
   induction n using decDigitLength.induct with
-  | case1 n h => rw [decDigitLength.eq_def, Spec.digits]; simp [h]
-  | case2 n h ih => rw [decDigitLength.eq_def, Spec.digits]; simp only [if_neg h, ih]
+  | case1 n h =>
+    rw [decDigitLength.eq_def, if_pos h]
+    exact (Printer.digits_eq_one_of_le_nine (by omega)).symm
+  | case2 n h ih =>
+    rw [decDigitLength.eq_def, if_neg h, ih]
+    have hk := Printer.digits_pos (n / 10)
+    have h1 := Printer.pow_digits_le (n := n / 10) (by omega)
+    have h2 := Printer.lt_pow_digits (n / 10)
+    obtain ⟨j, hj⟩ : ∃ j, Spec.digits (n / 10) = j + 1 := ⟨Spec.digits (n / 10) - 1, by omega⟩
+    rw [hj] at h1 h2 ⊢
+    rw [Nat.add_sub_cancel] at h1
+    symm
+    apply Printer.digits_eq_of_bounds (by omega)
+    · rw [Nat.add_sub_cancel, Nat.pow_succ]; omega
+    · rw [Nat.pow_succ, Nat.pow_succ]; omega
 
 end Srtfp

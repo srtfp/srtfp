@@ -78,7 +78,8 @@ theorem correctReader_ofDecimalBits : Spec.CorrectReader ofDecimalBits where
     rw [abs_toRat] at hd
     rw [ofDecimalBits_eq, (decimalToFloatBits_spec d.sign d.significand d.exponent).2 hd]
     obtain ⟨hs, hb, hm⟩ := pack_proj d.sign 2047 0 (by decide) (by decide)
-    unfold Word.isInf; rw [hb, hm, hs]; exact ⟨by decide, rfl⟩
+    refine (unpack_eq_inf_iff _ _).mpr ⟨?_, by rw [hs]⟩
+    unfold Word.isInf; rw [hb, hm]; decide
 
 /-- **The reader theorem.** A function is a correct reader iff it is
 `Clinger.ofDecimalBits`. -/
@@ -91,10 +92,10 @@ theorem correctReader_iff_ofDecimal (p : Decimal → UInt64) :
       rw [abs_toRat] at hd
       obtain ⟨hfin, hs, hmem⟩ := (decimalToFloatBits_spec d.sign d.significand d.exponent).1 hd
       exact eq_of_nearestWord hn hfin hs hmem
-    · obtain ⟨hi, hs⟩ := h.overflow d hd
+    · obtain ⟨hi, hs⟩ := (unpack_eq_inf_iff _ _).mp (h.overflow d hd)
       rw [abs_toRat] at hd
       rw [ofDecimalBits_eq, (decimalToFloatBits_spec d.sign d.significand d.exponent).2 hd,
-        eq_pack_inf hi, hs]
+        eq_pack_inf hi, sign_inj hs]
   · intro h
     have : p = ofDecimalBits := funext h
     subst this

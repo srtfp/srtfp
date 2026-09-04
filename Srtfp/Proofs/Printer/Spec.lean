@@ -65,9 +65,6 @@ theorem mk'_ten (sign : Bool) : Decimal.mk' sign 10 i = ⟨sign, 1, i + 1⟩ := 
   rw [if_neg (by decide : (10 : Nat) ≠ 0), Decimal.canonicaliseAux_div 10 i (by decide) (by decide),
       Decimal.canonicaliseAux_not_div 1 (i + 1) (by decide) (by decide)]
 
-theorem digits_eq_one_of_le_nine (hn : n ≤ 9) : digits n = 1 := by
-  rw [Spec.digits, if_pos (by omega)]
-
 /-- Adding one changes the digit count only at a power of ten. -/
 theorem digits_succ_of_not_ten_dvd {a : Nat} (ha : 1 ≤ a) (h : (a + 1) % 10 ≠ 0) :
     digits (a + 1) = digits a := by
@@ -506,7 +503,7 @@ theorem nonzero_output (hw : Word.isFinite wd = true) (hm : 1 ≤ (Word.decode w
   have hdist : ∀ z, Spec.dist z wd = |(if (Word.decode wd).sign then -1 else 1 : Rat)
       * v (Word.decode wd).m (Word.decode wd).q
       - (if z.sign then -1 else 1 : Rat) * ((z.significand : Rat) * (10 : Rat) ^ z.exponent)| :=
-    fun z => Clinger.dist_eq z wd
+    fun z => Clinger.dist_eq z hw
   rcases hdec : Word.decode wd with ⟨sgn, m, q⟩
   rw [hdec] at h hri hm hdist
   dsimp only at h hri hm hdist
@@ -572,9 +569,9 @@ theorem zero_output (hw : Word.isFinite wd = true) (hm : (Word.decode wd).m = 0)
     have hv0 : v (Word.decode wd).m (Word.decode wd).q = 0 := by rw [hm]; exact v_zero_iff.mpr rfl
     have hneg : ∀ a b : Rat, a * 0 - b = -b := fun a b => by grind
     have hd₀ : Spec.dist ⟨(Word.decode wd).sign, 0, 0⟩ wd = 0 := by
-      rw [Clinger.dist_eq, hv0]; simp; rw [Rat.sub_self]
+      rw [Clinger.dist_eq _ hw, hv0]; simp; rw [Rat.sub_self]
     have hd' : 0 < Spec.dist d' wd := by
-      rw [Clinger.dist_eq, hv0, hneg, abs_neg, sign_mul_abs]
+      rw [Clinger.dist_eq _ hw, hv0, hneg, abs_neg, sign_mul_abs]
       exact abs_pos.mpr (Rat.ne_of_gt (Rat.mul_pos (by exact_mod_cast hf1) (ten_zpow_pos _)))
     rcases Nat.lt_or_ge 1 (digits d'.significand) with hd | hd
     · left; rw [digits_zero]; exact hd
@@ -607,19 +604,21 @@ theorem eq_output_of_shortest (hw : Word.isFinite wd = true) {d d₀ : Decimal}
   rw [h₁] at h₀; obtain rfl := Except.ok.inj h₀
   exact ((hb d hne hd.canonical hd.roundTrip).not_beats (hd.shortest d₁ (Ne.symm hne) hc₁ hrt₁)).elim
 
-theorem shortestDecimal_exists_unique (w : UInt64) (h_fin : Word.isFinite w = true) :
+theorem shortestDecimal_exists_unique (w : UInt64) (h_fin : (Spec.unpack w).isFinite = true) :
     ∃ d : Decimal, Spec.ShortestDecimal w d ∧ ∀ d' : Decimal, Spec.ShortestDecimal w d' → d' = d :=
-  let ⟨d, h₀, hd⟩ := toDecimalBits_spec h_fin
-  ⟨d, hd, fun _ hd' => eq_output_of_shortest h_fin h₀ hd'⟩
+  let ⟨d, h₀, hd⟩ := toDecimalBits_spec ((isFinite_iff w).mp h_fin)
+  ⟨d, hd, fun _ hd' => eq_output_of_shortest ((isFinite_iff w).mp h_fin) h₀ hd'⟩
 
 /-- `toDecimalBits` is a correct printer. -/
 theorem correctPrinter_toDecimalBits : Spec.CorrectPrinter toDecimalBits where
-  nan w h := by unfold toDecimalBits; rw [h]; rfl
-  inf w h := by
+  nan w h := by unfold toDecimalBits; rw [(unpack_eq_nan_iff w).mp h]; rfl
+  inf w s h := by
+    obtain ⟨hi, hs⟩ := (unpack_eq_inf_iff w s).mp h
     have hn : Word.isNaN w = false := by
-      unfold Word.isInf at h; unfold Word.isNaN; simp at h ⊢; omega
-    unfold toDecimalBits; rw [hn, h]; rfl
-  finite _ hw := toDecimalBits_spec hw
+      unfold Word.isInf at hi; unfold Word.isNaN; simp at hi ⊢; omega
+    unfold toDecimalBits; rw [hn, hi, hs]
+    cases Word.signBit w <;> rfl
+  finite w hw := toDecimalBits_spec ((isFinite_iff w).mp hw)
 
 /-- **The printer theorem.** A function is a correct printer iff it is
 `toDecimalBits`. -/
@@ -628,18 +627,16 @@ theorem correctPrinter_iff_toDecimal (p : UInt64 → Except String Decimal) :
   constructor
   · intro hp
     funext w
-    by_cases h1 : Word.isNaN w = true
-    · rw [hp.nan w h1, correctPrinter_toDecimalBits.nan w h1]
-    by_cases h2 : Word.isInf w = true
-    · rw [hp.inf w h2, correctPrinter_toDecimalBits.inf w h2]
-    have h3 : Word.isFinite w = true := by
-      unfold Word.isNaN at h1; unfold Word.isInf at h2; unfold Word.isFinite
-      simp at h1 h2 ⊢
-      have := word_biasedExp_lt w
-      omega
-    obtain ⟨d, hd, hds⟩ := hp.finite w h3
-    obtain ⟨d', hd', -⟩ := toDecimalBits_spec h3
-    rw [hd, hd', eq_output_of_shortest h3 hd' hds]
+    have fin (hfin : (Spec.unpack w).isFinite = true) : p w = toDecimalBits w := by
+      have h3 := (isFinite_iff w).mp hfin
+      obtain ⟨d, hd, hds⟩ := hp.finite w hfin
+      obtain ⟨d', hd', -⟩ := toDecimalBits_spec h3
+      rw [hd, hd', eq_output_of_shortest h3 hd' hds]
+    rcases hu : Spec.unpack w with s | _ | s | ⟨s, m, e, hm⟩
+    · rw [hp.inf w s hu, correctPrinter_toDecimalBits.inf w s hu]
+    · rw [hp.nan w hu, correctPrinter_toDecimalBits.nan w hu]
+    · exact fin (by rw [hu]; rfl)
+    · exact fin (by rw [hu]; rfl)
   · rintro rfl
     exact correctPrinter_toDecimalBits
 

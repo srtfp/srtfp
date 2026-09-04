@@ -1,6 +1,7 @@
 module
 /- Vocabulary shared by the printer proofs (`v`, the magnitude of a word,
-   and the spec's `digits`), and the digit-count facts. -/
+   and the spec's `digits`), and the digit-count facts, all derived from
+   the two bounds `10^(digits n - 1) ≤ n < 10^(digits n)`. -/
 public import Srtfp.Rat
 public import Srtfp.Spec
 public import Srtfp.Printer
@@ -23,33 +24,45 @@ export Spec (digits)
 
 Everything follows from the two bounds `10^(digits n - 1) ≤ n < 10^(digits n)`. -/
 
-theorem digits_pos (n : Nat) : 1 ≤ digits n := by
-  rw [Spec.digits]; split <;> omega
+theorem digits_pos (n : Nat) : 1 ≤ digits n := Nat.length_toDigits_pos
 
-theorem lt_pow_digits (n : Nat) : n < 10 ^ digits n := by
-  induction n using Nat.strongRecOn with
-  | _ n ih =>
-    rw [Spec.digits]
-    split
-    · omega
-    · have := ih (n / 10) (Nat.div_lt_self (by omega) (by decide))
-      rw [Nat.pow_succ]
-      omega
+theorem lt_pow_digits (n : Nat) : n < 10 ^ digits n :=
+  (Nat.length_toDigits_le_iff (by decide) (digits_pos n)).mp (Nat.le_refl _)
 
 theorem pow_digits_le {n : Nat} (h : 1 ≤ n) : 10 ^ (digits n - 1) ≤ n := by
-  induction n using Nat.strongRecOn with
-  | _ n ih =>
-    rw [Spec.digits]
-    split
-    · simpa using h
-    · have ih' := ih (n / 10) (Nat.div_lt_self (by omega) (by decide)) (by omega)
-      obtain ⟨k, hk⟩ : ∃ k, digits (n / 10) = k + 1 := ⟨digits (n / 10) - 1, by have := digits_pos (n / 10); omega⟩
-      rw [hk] at ih' ⊢
-      simp only [Nat.add_sub_cancel] at ih' ⊢
-      rw [Nat.pow_succ]
-      omega
+  rcases Nat.eq_or_lt_of_le (digits_pos n) with h1 | h1
+  · rw [← h1]; simpa using h
+  · apply Nat.le_of_not_lt
+    intro hlt
+    have h2 := (Nat.length_toDigits_le_iff (b := 10) (n := n) (k := digits n - 1) (by decide)
+      (by omega)).mpr hlt
+    have h3 : digits n = (Nat.toDigits 10 n).length := rfl
+    omega
 
-theorem digits_zero : digits 0 = 1 := by rw [Spec.digits]; simp
+theorem digits_zero : digits 0 = 1 := by
+  have h1 := digits_pos 0
+  have h2 := (Nat.length_toDigits_le_iff (b := 10) (n := 0) (k := 1) (by decide) (by decide)).mpr
+    (by decide)
+  have h3 : digits 0 = (Nat.toDigits 10 0).length := rfl
+  omega
+
+/-- The two bounds pin the digit count. -/
+theorem digits_eq_of_bounds {n k : Nat} (hk : 1 ≤ k) (h1 : 10 ^ (k - 1) ≤ n) (h2 : n < 10 ^ k) :
+    digits n = k := by
+  have hlt := lt_pow_digits n
+  have hpos := digits_pos n
+  rcases Nat.lt_trichotomy (digits n) k with h | h | h
+  · have : 10 ^ digits n ≤ 10 ^ (k - 1) := Nat.pow_le_pow_right (by decide) (by omega)
+    omega
+  · exact h
+  · have hle := pow_digits_le (n := n) (by have := Nat.one_le_pow (k - 1) 10 (by decide); omega)
+    have : 10 ^ k ≤ 10 ^ (digits n - 1) := Nat.pow_le_pow_right (by decide) (by omega)
+    omega
+
+theorem digits_eq_one_of_le_nine {n : Nat} (hn : n ≤ 9) : digits n = 1 := by
+  rcases Nat.eq_zero_or_pos n with h | h
+  · subst h; exact digits_zero
+  · exact digits_eq_of_bounds (by decide) (by show 10 ^ 0 ≤ n; omega) (by omega)
 
 theorem digits_le_of_le {a b : Nat} (h : a ≤ b) : digits a ≤ digits b := by
   rcases Nat.lt_or_ge (digits b) (digits a) with hlt | hle

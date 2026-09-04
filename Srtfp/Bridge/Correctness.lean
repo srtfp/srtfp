@@ -21,26 +21,38 @@ namespace Srtfp.Spec
 
 open Srtfp Srtfp.Float
 
-/-! ## Float-level vocabulary -/
+/-! ## Float-level vocabulary
+
+`Float.toBits f = f.toModel.toBits`, so unpacking a `Float` is the spec's
+`unpack` of its bits, definitionally. -/
+
+/-- A `Float`, unpacked by Lean's model. -/
+def unpackF (f : Float) : Float.Model.UnpackedFloat := f.toModel.unpack
+
+theorem unpackF_eq (f : Float) : unpackF f = unpack f.toBits := rfl
 
 /-- The exact value of a finite `Float`: `wordVal f.toBits`. -/
 def floatVal (f : Float) : Rat := wordVal f.toBits
+
+/-- The sign (`true` is negative) and integer significand of a `Float`. -/
+def floatSign (f : Float) : Bool := wordSign f.toBits
+def floatSig (f : Float) : Nat := wordSig f.toBits
 
 /-- The distance between a decimal's value and a float's. -/
 def distF (d : Decimal) (f : Float) : Rat := |floatVal f - toRat d|
 
 /-- `f` is THE nearest finite float to `d`, candidates ranging over `Float`s. -/
 structure NearestFloat (d : Decimal) (f : Float) : Prop where
-  finite : isFiniteBits f
-  sign : signBit f = d.sign
-  nearest : ∀ g : Float, isFiniteBits g →
+  finite : (unpackF f).isFinite
+  sign : floatSign f = d.sign
+  nearest : ∀ g : Float, (unpackF g).isFinite →
       distF d f ≤ distF d g
-    ∧ (floatVal g ≠ floatVal f → distF d g = distF d f → mantissaBits f % 2 = 0)
+    ∧ (floatVal g ≠ floatVal f → distF d g = distF d f → floatSig f % 2 = 0)
 
 structure CorrectReaderF (p : Decimal → Float) : Prop where
   inRange : ∀ d : Decimal, |toRat d| < 2 ^ 1024 - 2 ^ 970 → NearestFloat d (p d)
   overflow : ∀ d : Decimal, 2 ^ 1024 - 2 ^ 970 ≤ |toRat d| →
-    isInfBits (p d) ∧ signBit (p d) = d.sign
+    unpackF (p d) = .infinity (sign d.sign)
 
 inductive BeatsF (f : Float) (d d' : Decimal) : Prop
   | shorter : digits d.significand < digits d'.significand → BeatsF f d d'
@@ -55,30 +67,30 @@ structure ShortestDecimalF (f : Float) (d : Decimal) : Prop where
     (Clinger.ofDecimal d').toBits = f.toBits → BeatsF f d d'
 
 structure CorrectPrinterF (p : Float → Except String Decimal) : Prop where
-  nan : ∀ f : Float, isNaNBits f → p f = .error "NaN"
-  inf : ∀ f : Float, isInfBits f →
-    p f = .error (if signBit f then "-Infinity" else "Infinity")
-  finite : ∀ f : Float, isFiniteBits f → ∃ d : Decimal, p f = .ok d ∧ ShortestDecimalF f d
+  nan : ∀ f : Float, unpackF f = .notANumber → p f = .error "NaN"
+  inf : ∀ (f : Float) (s : Float.Model.UnpackedFloat.Sign), unpackF f = .infinity s →
+    p f = .error (match s with | .negative => "-Infinity" | .positive => "Infinity")
+  finite : ∀ f : Float, (unpackF f).isFinite → ∃ d : Decimal, p f = .ok d ∧ ShortestDecimalF f d
 
 /-! ## Transport lemmas -/
 
-/-- A finite word is realized by a `Float` with exactly those bits: the
-axiom's contribution to the `Float` tier. -/
-private theorem exists_float_of_finite_word (v : UInt64) (h : Word.isFinite v = true) :
+/-- A finite word is realized by a `Float` with exactly those bits: the bit
+round-trip's contribution to the `Float` tier. -/
+private theorem exists_float_of_finite_word (v : UInt64) (h : (unpack v).isFinite = true) :
     ∃ g : Float, g.toBits = v :=
-  ⟨Float.ofBits v, _root_.Float.toBits_ofBits v (isNaNPattern_false_of_isFinite v h)⟩
+  ⟨Float.ofBits v, _root_.Float.toBits_ofBits v (isNaNPattern_false_of_isFinite v ((isFinite_iff v).mp h))⟩
 
 private theorem distF_eq (d : Decimal) (g : Float) : distF d g = dist d g.toBits := rfl
 
 /-- `NearestWord` at `f.toBits` is exactly `NearestFloat`: the candidate
-sets coincide across the axiom. -/
+sets coincide across the round-trip. -/
 private theorem nearestFloat_iff (d : Decimal) (f : Float) :
     NearestFloat d f ↔ NearestWord d f.toBits := by
   constructor
   · intro h
     refine ⟨h.finite, h.sign, fun v hv => ?_⟩
     obtain ⟨g, hg⟩ := exists_float_of_finite_word v hv
-    have := h.nearest g (by rw [isFiniteBits_word, hg]; exact hv)
+    have := h.nearest g (by rw [unpackF_eq, hg]; exact hv)
     rw [distF_eq, distF_eq, hg] at this
     rwa [show floatVal g = wordVal v from by unfold floatVal; rw [hg]] at this
   · intro h
@@ -143,41 +155,28 @@ theorem correct_iff_toDecimalF (p : Float → Except String Decimal) :
   · intro h
     funext f
     rw [Printer.toDecimal_eq_bits]
-    by_cases hN : Word.isNaN f.toBits = true
-    · rw [h.nan f hN, hprinter.nan f.toBits hN]
-    · by_cases hF : Word.isFinite f.toBits = true
-      · obtain ⟨d, hpd, hspec⟩ := h.finite f hF
-        obtain ⟨d₀, hd₀, hspec₀⟩ := hprinter.finite f.toBits hF
-        obtain ⟨dstar, _, hstar⟩ := shortest_decimal_exists_unique f.toBits hF
-        rw [hpd, hd₀, hstar d ((shortestDecimalF_iff f d).mp hspec), hstar d₀ hspec₀]
-      · have hF' : ¬ (Word.biasedExp f.toBits < 2047) := fun hlt =>
-          hF (by unfold Word.isFinite; simpa using hlt)
-        have hbe : Word.biasedExp f.toBits = 2047 := by
-          have hlt := word_biasedExp_lt f.toBits
-          omega
-        have hm : Word.mantissa f.toBits = 0 := by
-          rcases Nat.eq_zero_or_pos (Word.mantissa f.toBits) with h0 | hpos
-          · exact h0
-          · exfalso
-            apply hN
-            unfold Word.isNaN
-            simp [hbe]
-            omega
-        have hI : Word.isInf f.toBits = true := by
-          unfold Word.isInf; simp [hbe, hm]
-        rw [h.inf f hI, hprinter.inf f.toBits hI]; rfl
+    have fin (hfin : (unpackF f).isFinite = true) : p f = Printer.toDecimalBits f.toBits := by
+      obtain ⟨d, hpd, hspec⟩ := h.finite f hfin
+      obtain ⟨d₀, hd₀, hspec₀⟩ := hprinter.finite f.toBits hfin
+      obtain ⟨dstar, -, hstar⟩ := shortest_decimal_exists_unique f.toBits hfin
+      rw [hpd, hd₀, hstar d ((shortestDecimalF_iff f d).mp hspec), hstar d₀ hspec₀]
+    rcases hu : unpackF f with s | _ | s | ⟨s, m, e, hm⟩
+    · rw [h.inf f s hu, hprinter.inf f.toBits s hu]; cases s <;> rfl
+    · rw [h.nan f hu, hprinter.nan f.toBits hu]
+    · exact fin (by rw [hu]; rfl)
+    · exact fin (by rw [hu]; rfl)
   · rintro rfl
-    refine ⟨fun f hn => ?_, fun f hi => ?_, fun f hf => ?_⟩
+    refine ⟨fun f hn => ?_, fun f s hi => ?_, fun f hf => ?_⟩
     · rw [Printer.toDecimal_eq_bits]; exact hprinter.nan f.toBits hn
-    · rw [Printer.toDecimal_eq_bits]; exact hprinter.inf f.toBits hi
+    · rw [Printer.toDecimal_eq_bits]; exact hprinter.inf f.toBits s hi
     · obtain ⟨d, hd, hspec⟩ := hprinter.finite f.toBits hf
       exact ⟨d, by rw [Printer.toDecimal_eq_bits]; exact hd, (shortestDecimalF_iff f d).mpr hspec⟩
 
 /-! ## Derived theorem, `Float` tier -/
 
 /-- For each finite float, exactly one decimal is the shortest. -/
-theorem shortest_decimal_exists_uniqueF (f : Float) (h_fin : isFiniteBits f) :
-    ∃ d : Decimal, ShortestDecimalF f d ∧ ∀ d' : Decimal, ShortestDecimalF f d' → d' = d := by
+theorem shortest_decimal_exists_uniqueF (f : Float) (h_fin : (unpackF f).isFinite) :
+    ∃! d : Decimal, ShortestDecimalF f d := by
   obtain ⟨d, hd, huniq⟩ := shortest_decimal_exists_unique f.toBits h_fin
   exact ⟨d, (shortestDecimalF_iff f d).mpr hd,
          fun d' hd' => huniq d' ((shortestDecimalF_iff f d').mp hd')⟩

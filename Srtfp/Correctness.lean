@@ -20,7 +20,6 @@ public import Srtfp.Proofs.Printer.Spec
 
 namespace Srtfp.Spec
 
-open Float
 
 /-- **A function is a correct reader iff it is `Clinger.ofDecimalBits`**,
 bit for bit. -/
@@ -37,8 +36,8 @@ theorem correct_iff_toDecimal (p : UInt64 → Except String Decimal) :
 
 /-- For each finite word, **exactly one** decimal is the shortest: the one
 `Printer.toDecimalBits` returns. -/
-theorem shortest_decimal_exists_unique (w : UInt64) (h_fin : Word.isFinite w) :
-    ∃ d : Decimal, ShortestDecimal w d ∧ ∀ d' : Decimal, ShortestDecimal w d' → d' = d :=
+theorem shortest_decimal_exists_unique (w : UInt64) (h_fin : (unpack w).isFinite) :
+    ∃! d : Decimal, ShortestDecimal w d :=
   Printer.shortestDecimal_exists_unique w h_fin
 
 end Srtfp.Spec

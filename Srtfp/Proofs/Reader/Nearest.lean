@@ -6,6 +6,7 @@ module
    the decimal's nearest word — and the only one. -/
 public import Srtfp.Spec
 public import Srtfp.Proofs.Reader.Words
+public import Srtfp.Proofs.Unpack
 
 @[expose] public section
 
@@ -84,14 +85,17 @@ theorem tie_sign {s s' : Bool} {a b : Rat} (_ha : 0 ≤ a) (_hb : 0 ≤ b)
 
 /-! ## The nearest word -/
 
-/-- The spec's vocabulary, in terms of `v`. -/
-theorem wordVal_eq (z : UInt64) :
+/-- The spec's vocabulary on a finite word, in terms of `v`
+(`Srtfp/Proofs/Unpack.lean` relates Lean's `unpack` to `Word.decode`). -/
+theorem wordVal_eq {z : UInt64} (hz : Word.isFinite z = true) :
     Spec.wordVal z = (if (Word.decode z).sign then -1 else 1 : Rat)
-      * v (Word.decode z).m (Word.decode z).q := rfl
+      * v (Word.decode z).m (Word.decode z).q :=
+  Srtfp.Float.wordVal_eq hz
 
-theorem dist_eq (d : Decimal) (z : UInt64) :
+theorem dist_eq (d : Decimal) {z : UInt64} (hz : Word.isFinite z = true) :
     Spec.dist d z = |(if (Word.decode z).sign then -1 else 1 : Rat) * v (Word.decode z).m (Word.decode z).q
-      - (if d.sign then -1 else 1 : Rat) * ((d.significand : Rat) * (10 : Rat) ^ d.exponent)| := rfl
+      - (if d.sign then -1 else 1 : Rat) * ((d.significand : Rat) * (10 : Rat) ^ d.exponent)| := by
+  unfold Spec.dist; rw [Srtfp.Float.wordVal_eq hz]; rfl
 
 theorem mag_nonneg (d : Decimal) : (0 : Rat) ≤ (d.significand : Rat) * (10 : Rat) ^ d.exponent :=
   Rat.mul_nonneg (by exact_mod_cast Nat.zero_le _) (le_of_lt (ten_zpow_pos _))
@@ -104,9 +108,10 @@ theorem nearestWord_of_InRv {d : Decimal} {w : UInt64} (hw : Word.isFinite w = t
     Spec.NearestWord d w := by
   have hX := mag_nonneg d
   have hleg := decode_legal hw
-  refine ⟨hw, by rw [signBit_eq_decode_sign, hs], fun u hu => ?_⟩
-  have hlegu := decode_legal hu
-  rw [mantissa_mod_two, dist_eq, dist_eq, wordVal_eq, wordVal_eq]
+  refine ⟨(isFinite_iff w).mpr hw, by rw [wordSign_eq hw, signBit_eq_decode_sign, hs], fun u hu => ?_⟩
+  have hu' := (isFinite_iff u).mp hu
+  have hlegu := decode_legal hu'
+  rw [wordSig_mod_two hw, dist_eq d hw, dist_eq d hu', wordVal_eq hu', wordVal_eq hw]
   generalize (d.significand : Rat) * (10 : Rat) ^ d.exponent = X at *
   generalize d.sign = s at *
   generalize Word.decode w = dw at *
@@ -141,19 +146,21 @@ theorem eq_of_nearestWord {d : Decimal} {w w' : UInt64} (h : Spec.NearestWord d 
     (hx : InRv (Word.decode w').m (Word.decode w').q ((d.significand : Rat) * (10 : Rat) ^ d.exponent) = true) :
     w = w' := by
   have h' := nearestWord_of_InRv hw' hs' hx
-  have hw := h.finite
+  have hw := (isFinite_iff w).mp h.finite
   have hleg := decode_legal hw
   have hleg' := decode_legal hw'
   have hX := mag_nonneg d
-  obtain ⟨hle, htie⟩ := h.nearest w' hw'
-  obtain ⟨hle', htie'⟩ := h'.nearest w hw
+  obtain ⟨hle, htie⟩ := h.nearest w' ((isFinite_iff w').mpr hw')
+  obtain ⟨hle', htie'⟩ := h'.nearest w ((isFinite_iff w).mpr hw)
   have heq : Spec.dist d w' = Spec.dist d w := Rat.le_antisymm hle' hle
-  have hs : (Word.decode w).sign = d.sign := by rw [← signBit_eq_decode_sign]; exact h.sign
+  have hs : (Word.decode w).sign = d.sign := by
+    rw [← signBit_eq_decode_sign, ← wordSign_eq hw]; exact h.sign
   apply eq_of_decode_eq
   have heqd := heq
-  rw [dist_eq, dist_eq, hs, hs'] at heq
-  rw [wordVal_eq, wordVal_eq, hs, hs'] at htie htie'
-  rw [mantissa_mod_two] at htie htie'
+  rw [dist_eq d hw', dist_eq d hw, hs, hs'] at heq
+  rw [wordVal_eq hw', wordVal_eq hw, hs, hs'] at htie htie'
+  rw [wordSig_mod_two hw] at htie
+  rw [wordSig_mod_two hw'] at htie'
   generalize (d.significand : Rat) * (10 : Rat) ^ d.exponent = X at *
   generalize d.sign = s at *
   generalize Word.decode w = dw at *

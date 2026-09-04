@@ -1,21 +1,43 @@
 module
 /- The specification: what it means to be a correct binary64 reader and a
    correct shortest-decimal printer. Stated on raw IEEE-754 bit patterns
-   (`UInt64` words). The theorems that the library's functions are the
-   unique such reader and printer are in `Srtfp/Correctness.lean`.
+   (`UInt64` words), read through Lean's own model of binary64
+   (`Float.Model.UnpackedFloat.unpack`, core since v4.33). The theorems
+   that the library's functions are the unique such reader and printer are
+   in `Srtfp/Correctness.lean`.
 
-   Everything needed to read this file is defined in it or displayed
-   below. -/
+   Everything needed to read this file is core Lean, defined here, or
+   displayed below (the `Decimal` type). -/
 
+public import Init.Data.Float
 public import Srtfp.Decimal
-public import Srtfp.Float.Bits
 public import Srtfp.Clinger
 
 @[expose] public section
 
+open Float.Model (UnpackedFloat)
+open Float.Model.UnpackedFloat (Sign)
+
+universe u
+
 namespace Srtfp.Spec
 
-open Float
+/-! ## Words
+
+Lean's model reads a binary64 word as `.finite s m e` (the value
+`(-1)^s · m · 2^e`), `.zero s`, `.infinity s`, or `.notANumber`. -/
+
+/-- The word `w`, unpacked. -/
+def unpack (w : UInt64) : UnpackedFloat :=
+  UnpackedFloat.unpack Float.Model.Format.binary64 w.toBitVec
+
+/-- The sign as a `Bool`: `true` is negative. -/
+def negative : Sign → Bool
+  | .negative => true
+  | .positive => false
+
+/-- The sign of a `Bool`: `true` is negative. -/
+def sign (b : Bool) : Sign := if b then .negative else .positive
 
 /-! ## Values -/
 
@@ -26,22 +48,39 @@ def val (base : Rat) (sign : Bool) (m : Nat) (e : Int) : Rat :=
 /-- The exact value of a decimal. -/
 def toRat (d : Decimal) : Rat := val 10 d.sign d.significand d.exponent
 
-/-- The exact value a finite binary64 word denotes. -/
+/-- The exact value of a finite word. -/
 def wordVal (w : UInt64) : Rat :=
-  let ⟨sign, m, q⟩ := Word.decode w
-  val 2 sign m q
+  match unpack w with
+  | .finite s m e _ => val 2 (negative s) m e
+  | _ => 0
+
+/-- The sign of a word (`true` is negative); a NaN counts as positive. -/
+def wordSign (w : UInt64) : Bool :=
+  match unpack w with
+  | .finite s _ _ _ | .zero s | .infinity s => negative s
+  | .notANumber => false
+
+/-- The integer significand of a finite word; `0` for a zero. -/
+def wordSig (w : UInt64) : Nat :=
+  match unpack w with
+  | .finite _ m _ _ => m
+  | _ => 0
 
 /-- The distance between a decimal's value and a word's. -/
 def dist (d : Decimal) (w : UInt64) : Rat := Rat.abs (wordVal w - toRat d)
 
 /-- Number of base-10 digits (`digits 0 = 1`). -/
-def digits (n : Nat) : Nat := if n < 10 then 1 else digits (n / 10) + 1
-termination_by n
-decreasing_by omega
+def digits (n : Nat) : Nat := (Nat.toDigits 10 n).length
 
-example (q : Rat) : Rat.abs q = if 0 ≤ q then q else -q := rfl
+/-- Unique existence: `∃! x, p x` is `∃ x, p x ∧ ∀ y, p y → y = x`. -/
+def ExistsUnique {α : Sort u} (p : α → Prop) : Prop := ∃ x, p x ∧ ∀ y, p y → y = x
 
-/-! ## Referenced definitions, displayed here for convenience -/
+open Lean in
+@[inherit_doc ExistsUnique]
+scoped macro "∃!" xs:explicitBinders ", " b:term : term => do
+  return ⟨← expandExplicitBinders ``ExistsUnique xs b⟩
+
+/-! ## The decimal type, displayed here for convenience -/
 
 example (d : Decimal) : d = ⟨d.sign, d.significand, d.exponent⟩ := rfl
 
@@ -51,24 +90,6 @@ example (d : Decimal) : d.IsCanonical ↔
     -- the significand has no trailing zeros (e.g. must be 1e2 not 100e0)
     (d.significand ≠ 0 ∧ d.significand % 10 ≠ 0) := Iff.rfl
 
-example (w : UInt64) : Word.signBit w = ((w >>> 63) ≠ 0 : Bool) := rfl
-example (w : UInt64) : Word.biasedExp w = ((w >>> 52) &&& 0x7FF).toNat := rfl
-example (w : UInt64) : Word.mantissa w = (w &&& 0x000F_FFFF_FFFF_FFFF).toNat := rfl
-
-example (w : UInt64) : Word.decode w =
-    if Word.biasedExp w = 0 then
-      ⟨Word.signBit w, Word.mantissa w, -1074⟩
-    else
-      ⟨Word.signBit w, Word.mantissa w + (1 <<< 52),
-       (Word.biasedExp w : Int) - 1023 - 52⟩ := rfl
-
-example (w : UInt64) :
-    Word.isNaN w = (Word.biasedExp w = 2047 && Word.mantissa w ≠ 0) := rfl
-example (w : UInt64) :
-    Word.isInf w = (Word.biasedExp w = 2047 && Word.mantissa w = 0) := rfl
-example (w : UInt64) :
-    Word.isFinite w = (Word.biasedExp w < 2047 : Bool) := rfl
-
 /-! ## The reader
 
 The printer's specification is stated in terms of the reader, so the
@@ -77,23 +98,23 @@ reader is pinned down first. -/
 /-- `w` is THE nearest finite binary64 word to `d`, over every finite bit
 pattern, not merely those some runtime `Float` happens to produce. -/
 structure NearestWord (d : Decimal) (w : UInt64) : Prop where
-  finite : Word.isFinite w
-  /-- `d`'s sign is carried; on a zero only the sign bit can show it. -/
-  sign : Word.signBit w = d.sign
+  finite : (unpack w).isFinite
+  /-- `d`'s sign is carried; on a zero only the sign can show it. -/
+  sign : wordSign w = d.sign
   /-- No finite word is closer to `d`, and an exact tie against a word of a
-  different value goes to the even mantissa. -/
-  nearest : ∀ v : UInt64, Word.isFinite v →
+  different value goes to the even significand. -/
+  nearest : ∀ v : UInt64, (unpack v).isFinite →
       dist d w ≤ dist d v
-    ∧ (wordVal v ≠ wordVal w → dist d v = dist d w → Word.mantissa w % 2 = 0)
+    ∧ (wordVal v ≠ wordVal w → dist d v = dist d w → wordSig w % 2 = 0)
 
-/-- A correct reader returns the nearest word in range, and the infinity
-pattern of the decimal's sign at or past the threshold `2^1024 - 2^970`,
-the midpoint between the largest finite value and its would-be successor
-(ties-to-even sends the midpoint itself to infinity). -/
+/-- A correct reader returns the nearest word in range, and the infinity of
+the decimal's sign at or past the threshold `2^1024 - 2^970`, the midpoint
+between the largest finite value and its would-be successor (ties-to-even
+sends the midpoint itself to infinity). -/
 structure CorrectReader (p : Decimal → UInt64) : Prop where
   inRange : ∀ d : Decimal, Rat.abs (toRat d) < 2 ^ 1024 - 2 ^ 970 → NearestWord d (p d)
   overflow : ∀ d : Decimal, 2 ^ 1024 - 2 ^ 970 ≤ Rat.abs (toRat d) →
-    Word.isInf (p d) ∧ Word.signBit (p d) = d.sign
+    unpack (p d) = .infinity (sign d.sign)
 
 /-! ## The printer -/
 
@@ -115,12 +136,12 @@ structure ShortestDecimal (w : UInt64) (d : Decimal) : Prop where
   shortest : ∀ d' : Decimal, d' ≠ d → d'.IsCanonical → Clinger.ofDecimalBits d' = w →
     Beats w d d'
 
-/-- A correct printer rejects NaN and infinity patterns with the given
-errors and returns THE shortest decimal for every finite word. -/
+/-- A correct printer rejects NaN and infinities with the given errors and
+returns THE shortest decimal for every finite word. -/
 structure CorrectPrinter (p : UInt64 → Except String Decimal) : Prop where
-  nan : ∀ w : UInt64, Word.isNaN w → p w = .error "NaN"
-  inf : ∀ w : UInt64, Word.isInf w →
-    p w = .error (if Word.signBit w then "-Infinity" else "Infinity")
-  finite : ∀ w : UInt64, Word.isFinite w → ∃ d : Decimal, p w = .ok d ∧ ShortestDecimal w d
+  nan : ∀ w : UInt64, unpack w = .notANumber → p w = .error "NaN"
+  inf : ∀ (w : UInt64) (s : Sign), unpack w = .infinity s →
+    p w = .error (match s with | .negative => "-Infinity" | .positive => "Infinity")
+  finite : ∀ w : UInt64, (unpack w).isFinite → ∃ d : Decimal, p w = .ok d ∧ ShortestDecimal w d
 
 end Srtfp.Spec
