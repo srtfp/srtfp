@@ -5,8 +5,8 @@ module
    from the old printer proof stack so the reader proofs depend on
    nothing Schubfach. Retired by the reader rewrite. -/
 public import Srtfp.Perf.Schubfach.Reader.NatIntervalDefs
-public import Srtfp.Rat
-public import Srtfp.Tactics
+public import Srtfp.Perf.RatExtra
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 

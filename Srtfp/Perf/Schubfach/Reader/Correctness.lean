@@ -26,7 +26,7 @@ public import Srtfp.Perf.Schubfach.Spec
 public import Srtfp.Perf.Schubfach.Reader.NatIntervalRat
 public import Srtfp.Perf.Schubfach.Reader.Disjointness
 public import Srtfp.Perf.Schubfach.Reader
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 public import Srtfp.Proofs.Bits
 
 @[expose] public section

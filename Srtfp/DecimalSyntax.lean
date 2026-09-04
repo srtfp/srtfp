@@ -3,7 +3,7 @@ module
 
    `Srtfp.Text.parse` is parameterised by this record so JSON, YAML,
    MLIR and friends share one parser and one round-trip proof
-   (`Srtfp/Text/Roundtrip.lean`). The baseline with every flag off is
+   (`Srtfp/Proofs/Text.lean`). The baseline with every flag off is
    the strict RFC 8259 grammar
 
      [-]?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?

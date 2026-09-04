@@ -30,7 +30,7 @@ public import Srtfp.Perf.Schubfach.Shortest
 public import Srtfp.Perf.Schubfach.Reader
 public import Srtfp.Float.Bits
 public import Srtfp.Proofs.Bits
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 public import Srtfp.Perf.Schubfach.Reader.NatIntervalRat
 
 @[expose] public section

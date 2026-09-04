@@ -25,7 +25,7 @@ module
 public import Srtfp.Perf.Schubfach
 public import Srtfp.Perf.Kernel128Defs
 public import Srtfp.Perf.MulHigh128
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 

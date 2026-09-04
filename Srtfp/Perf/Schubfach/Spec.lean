@@ -6,7 +6,7 @@ module
    which restates everything below inline; the kernel certifies the two
    spellings agree.  Proof bodies: `Srtfp/Proofs/Correctness.lean`. -/
 
-public import Srtfp.Rat
+public import Srtfp.Perf.RatExtra
 public import Srtfp.Decimal
 public import Srtfp.Float.Bits
 public import Srtfp.Perf.Schubfach.Reader.NatIntervalDefs

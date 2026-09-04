@@ -42,7 +42,7 @@ module
 public import Srtfp.Perf.Schubfach
 public import Srtfp.Perf.Schubfach.R14R15
 public import Srtfp.Perf.Schubfach.RoundingInterval
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 

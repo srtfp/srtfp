@@ -16,7 +16,7 @@ module
 
 public import Srtfp.Perf.Schubfach.Reader.Base
 public import Srtfp.Perf.Schubfach.Reader.FindBinaryExp
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 public import Srtfp.Proofs.Bits
 
 @[expose] public section

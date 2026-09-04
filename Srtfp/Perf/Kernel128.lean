@@ -26,7 +26,7 @@ module
    while definitional equality with the reference is preserved by the
    proofs in this file. -/
 public import Srtfp.Perf.Schubfach
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 public import Srtfp.Perf.Kernel192
 public import Srtfp.Perf.KernelCorrectness
 public import Srtfp.Perf.TableInvariant

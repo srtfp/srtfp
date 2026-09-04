@@ -7,7 +7,7 @@ public import Srtfp.Perf.Schubfach.Spec
 public import Srtfp.Perf.Schubfach.Reader.Bridge
 public import Srtfp.Perf.Schubfach.Reader.NatInterval
 public import Srtfp.Proofs.Bits
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 

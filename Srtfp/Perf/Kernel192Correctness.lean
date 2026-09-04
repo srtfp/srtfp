@@ -22,7 +22,7 @@ public import Srtfp.Perf.Uint64Kernel
 public import Srtfp.Perf.Uint64Bridge
 public import Srtfp.Perf.KernelCorrectness
 public import Srtfp.Perf.TableInvariant192
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 

@@ -6,7 +6,7 @@ module
    toolchains and the legs are individually multi-GB. -/
 
 public import Srtfp.Perf.KernelV13Resid
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 

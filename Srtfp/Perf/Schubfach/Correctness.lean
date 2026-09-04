@@ -26,7 +26,7 @@ public import Srtfp.Perf.Schubfach.RoundTrip
 public import Srtfp.Perf.Schubfach.Minimal
 public import Srtfp.Perf.Schubfach.TieBreak
 public import Srtfp.NatLog
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 

@@ -23,7 +23,7 @@ from `decode : Float → Decoded`, since binary64 fixes
 -/
 public import Srtfp.Perf.Schubfach
 public import Srtfp.Perf.Orchestration
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 

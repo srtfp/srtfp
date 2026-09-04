@@ -13,7 +13,7 @@ module
    (overrides StringFast's registration; later csimps win). -/
 public import Srtfp.Perf.StringFast
 public import Srtfp.Perf.KernelV6
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 

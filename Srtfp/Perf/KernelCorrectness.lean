@@ -44,7 +44,7 @@ module
    strictly and `a · 2^q < b · 10^k`.
 -/
 public import Srtfp.Perf.Schubfach
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 public import Srtfp.Perf.Kernel192
 public import Srtfp.Perf.TableInvariant
 

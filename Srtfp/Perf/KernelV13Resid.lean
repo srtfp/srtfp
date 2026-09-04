@@ -23,7 +23,7 @@ module
 
 public import Srtfp.Perf.KernelSupport
 public import Srtfp.Perf.KernelV13WReg
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 

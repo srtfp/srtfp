@@ -6,7 +6,7 @@ module
    optimization generations when those modules were dropped. -/
 
 public import Srtfp.Perf.DigitsFast
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 

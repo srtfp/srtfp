@@ -30,7 +30,7 @@ module
 
 public import Srtfp.Perf.Schubfach.Reader.NatInterval
 public import Srtfp.Perf.Schubfach.Reader
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 public import Srtfp.Proofs.Bits
 
 @[expose] public section

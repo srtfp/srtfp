@@ -13,7 +13,7 @@ module
 public import Srtfp.Perf.R20Continuant
 public import Srtfp.Perf.R20Legendre
 public import Srtfp.Perf.KernelCorrectness
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 

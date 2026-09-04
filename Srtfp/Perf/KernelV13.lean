@@ -1,6 +1,6 @@
 module
 public import Srtfp.Perf.KernelV13Flip3
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 

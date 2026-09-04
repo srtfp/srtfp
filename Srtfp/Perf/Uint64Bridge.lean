@@ -12,7 +12,7 @@ module
 public import Srtfp.Perf.Schubfach
 public import Srtfp.Perf.Orchestration
 public import Srtfp.Perf.Uint64Kernel
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 

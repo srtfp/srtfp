@@ -24,7 +24,7 @@ module
 
 public import Srtfp.Perf.Schubfach.Shortest
 public import Srtfp.Proofs.Decimal
-public import Srtfp.Tactics
+public import Srtfp.Perf.Tactics
 
 @[expose] public section
 
