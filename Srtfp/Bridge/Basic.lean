@@ -15,18 +15,6 @@ public import Srtfp.Proofs.Model
 
 @[expose] public section
 
-namespace Srtfp.Model
-
-open Float.Model
-
-/-- `Float.Model.ofBits` is the identity on words that are not a NaN. -/
-theorem toBits_ofBits (x : UInt64) (h : Spec.unpack x ≠ .notANumber) :
-    (Float.Model.ofBits x).toBits = x := by
-  show UInt64.ofBitVec (UnpackedFloat.pack Format.binary64
-    (UnpackedFloat.unpack Format.binary64 x.toBitVec)) = x
-  rw [pack_unpack _ (valid_of_ne_nan h)]
-
-end Srtfp.Model
 
 /-- **The runtime bit round-trip**, for every word that is not a NaN. -/
 theorem Float.toBits_ofBits (x : UInt64) (h : Srtfp.Spec.unpack x ≠ .notANumber) :

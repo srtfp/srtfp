@@ -71,6 +71,11 @@ lean_exe benchToDecimal where
   srcDir := "benches"
   root := `BenchToDecimal
 
+-- Decimal→Float: the live reader (fast kernel + exact fallback) and its fallback.
+lean_exe benchDecimalToFloat where
+  srcDir := "benches"
+  root := `BenchDecimalToFloat
+
 -- Canonical end-to-end Float→String bench. Driven by `benches/run.sh`.
 lean_exe benchFloatToString where
   srcDir := "benches"

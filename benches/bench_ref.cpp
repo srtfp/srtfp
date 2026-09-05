@@ -60,14 +60,16 @@ static uint64_t corpus_checksum(const std::vector<double> &xs) {
 int main(int argc, char **argv) {
     if (argc < 3) {
         fprintf(stderr,
-                "usage: %s <chars|chars_str|snprintf> <adversarial|nice|uniform> [--checksum]\n",
+                "usage: %s <chars|chars_str|snprintf|from_chars|strtod> <adversarial|nice|uniform> [--checksum]\n",
                 argv[0]);
         return 1;
     }
-    enum Mode { CHARS, CHARS_STR, SNPRINTF };
-    Mode mode = (strcmp(argv[1], "chars_str") == 0) ? CHARS_STR
-              : (strcmp(argv[1], "snprintf") == 0)  ? SNPRINTF
-                                                    : CHARS;
+    enum Mode { CHARS, CHARS_STR, SNPRINTF, FROM_CHARS, STRTOD };
+    Mode mode = (strcmp(argv[1], "chars_str") == 0)  ? CHARS_STR
+              : (strcmp(argv[1], "snprintf") == 0)   ? SNPRINTF
+              : (strcmp(argv[1], "from_chars") == 0) ? FROM_CHARS
+              : (strcmp(argv[1], "strtod") == 0)     ? STRTOD
+                                                     : CHARS;
     const char *label = argv[2];
     if (strcmp(label, "nice") != 0 && strcmp(label, "uniform") != 0) label = "adversarial";
     const std::vector<double> corpus = load_corpus(label);
@@ -83,6 +85,43 @@ int main(int argc, char **argv) {
     const int N = 1000;
     const int M = 5;
     char buf[64];
+
+    // Parsing modes: the shortest decimal text of each double, parsed back.
+    // The Lean reader takes a lexed Decimal, so this also pays for lexing.
+    std::vector<std::string> texts;
+    if (mode == FROM_CHARS || mode == STRTOD) {
+        for (double f : *xs) {
+            auto [p, ec] = std::to_chars(buf, buf + sizeof(buf), f);
+            texts.emplace_back(buf, (size_t)(p - buf));
+        }
+        uint64_t sink = 0;
+        for (int j = 0; j < 50; j++)
+            for (const std::string &t : texts) {
+                double v = 0;
+                if (mode == FROM_CHARS) std::from_chars(t.data(), t.data() + t.size(), v);
+                else v = strtod(t.c_str(), nullptr);
+                sink ^= std::bit_cast<uint64_t>(v);
+            }
+        long long times[M];
+        for (int r = 0; r < M; r++) {
+            auto t0 = steady_clock::now();
+            for (int i = 0; i < N; i++)
+                for (const std::string &t : texts) {
+                    double v = 0;
+                    if (mode == FROM_CHARS) std::from_chars(t.data(), t.data() + t.size(), v);
+                    else v = strtod(t.c_str(), nullptr);
+                    sink ^= std::bit_cast<uint64_t>(v);
+                }
+            auto t1 = steady_clock::now();
+            times[r] = duration_cast<nanoseconds>(t1 - t0).count() / ((long long)N * (long long)texts.size());
+        }
+        std::sort(times, times + M);
+        if (sink == 12345) printf("\n");
+        printf("%s/%s: median = %lld ns/call (runs: %lld %lld %lld %lld %lld)\n",
+               mode == FROM_CHARS ? "from_chars" : "strtod", label, times[M / 2],
+               times[0], times[1], times[2], times[3], times[4]);
+        return 0;
+    }
 
     auto convert = [&](double f) -> size_t {
         switch (mode) {

@@ -48,5 +48,7 @@ public import Srtfp.Perf.DigitsFast
 public import Srtfp.Perf.Uint64Bridge
 public import Srtfp.Perf.Uint64Kernel
 public import Srtfp.Perf.Uint64Kernel192
+public import Srtfp.Perf.ReadExact
+public import Srtfp.Perf.ReadFast
 
 @[expose] public section

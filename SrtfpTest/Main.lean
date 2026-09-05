@@ -8,6 +8,7 @@ import SrtfpTest.KernelV13
 import SrtfpTest.KernelV14
 import SrtfpTest.Text
 import SrtfpTest.Printer
+import SrtfpTest.Reader
 
 open SrtfpSpec
 
@@ -28,5 +29,6 @@ def main : IO UInt32 :=
       [Srtfp.Tests.KernelV14.runTests]),
     ("text layer round-trip and dialect cross-check",
       [Srtfp.Tests.Text.runRoundTripTests, Srtfp.Tests.Text.runDialectTests]),
-    ("reference printer vs live printer", [Srtfp.Tests.Printer.runTests])
+    ("reference printer vs live printer", [Srtfp.Tests.Printer.runTests]),
+    ("reader: fast kernel and exact fallback vs reference", [Srtfp.Tests.Reader.runTests])
   ]) []

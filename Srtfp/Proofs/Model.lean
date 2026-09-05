@@ -304,4 +304,15 @@ theorem word_inj {w w' : UInt64} (h : Spec.unpack w ≠ .notANumber) (he : Spec.
     w = w' :=
   UInt64.toBitVec_inj.mp (unpack_inj h he)
 
+/-- `Float.Model.ofBits` is the identity on words that are not a NaN. -/
+theorem toBits_ofBits (x : UInt64) (h : Spec.unpack x ≠ .notANumber) :
+    (Float.Model.ofBits x).toBits = x := by
+  show UInt64.ofBitVec (UnpackedFloat.pack Format.binary64
+    (UnpackedFloat.unpack Format.binary64 x.toBitVec)) = x
+  rw [pack_unpack _ (valid_of_ne_nan h)]
+
+/-- Two models with the same word are equal. -/
+theorem model_ext {a b : Float.Model} (h : a.toBits = b.toBits) : a = b := by
+  cases a; cases b; cases h; rfl
+
 end Srtfp.Model

@@ -43,11 +43,12 @@ The library is three tiers, each a separate import:
   `Quot.sound`, `Classical.choice`); a build-time audit enforces this.
 - **Performance (`import Srtfp.Perf`, opt-in)**: the Schubfach
   algorithm and its fixed-width `UInt64` kernels and precomputed
-  tables, each proven equal to the reference and registered as a
-  `@[csimp]` rewrite, so compiled code runs the fast path while the
-  proofs still speak about the reference. Same axiom budget as the
-  reference tier. Deleting `Srtfp/Perf/` leaves the library working,
-  only slower.
+  tables for printing, and an Eisel–Lemire kernel with an exact
+  big-integer fallback for reading, each proven equal to the reference
+  and registered as a `@[csimp]` rewrite, so compiled code runs the fast
+  path while the proofs still speak about the reference. Same axiom
+  budget as the reference tier. Deleting `Srtfp/Perf/` leaves the
+  library working, only slower.
 - **Float (`import Srtfp.Bridge`, opt-in)**: the same theorems attached
   to the runtime `Float` type, across the bit round-trip
   `Float.toBits_ofBits` (constructing a non-NaN `Float` from bits and
@@ -128,7 +129,14 @@ typical JSON payload, *uniform* draws random finite doubles, and
 *adversarial* is a stress set containing the finite values from Ryū's
 test suite.
 
+The reader (`Decimal → Float`) runs an Eisel–Lemire kernel over the same
+128-bit table, with the exact big-integer reader as its fallback;
+`lake exe benchDecimalToFloat` times it, and `benches/bench_ref
+from_chars|strtod` gives the C++ parsers for scale (those also lex the
+text, which the Lean reader has already done).
+
 ```
 benches/run.sh                     # time the printer against C++/Java/Python baselines
 python3 benches/plot.py --replot   # regenerate the comparison plot
+lake exe benchDecimalToFloat nice  # time the reader (nice | uniform | adversarial)
 ```
