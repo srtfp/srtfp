@@ -59,16 +59,11 @@ private def stringMismatches : Array (Float × String × String) := Id.run do
     if s10 ≠ s9 then mismatches := mismatches.push (f, s9, s10)
   return mismatches
 
-private def sameResult : Except String Decimal → Except String Decimal → Bool
-  | .ok a, .ok b => a = b
-  | .error a, .error b => a = b
-  | _, _ => false
-
 /-- `toDecimal_v14` (live) against `toDecimal_v13`. -/
 private def decimalMismatches : Array Float := Id.run do
   let mut mismatches := #[]
   for f in crossCheckCorpus do
-    if !sameResult (toDecimal_v14 f) (toDecimal_v13 f) then mismatches := mismatches.push f
+    if toDecimal_v14 f != toDecimal_v13 f then mismatches := mismatches.push f
   return mismatches
 
 def runTests : TestSeq :=

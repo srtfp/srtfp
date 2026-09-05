@@ -62,21 +62,12 @@ private def f32ToFloat (bits : UInt32) : Float := (Float32.ofBits bits).toFloat
 A test case is `(description, input Float, expected Decimal)`. Each group is
 an `Array` of cases; `runGroup` lifts a group into a `TestSeq`. -/
 
-/-- Equality on `Except String Decimal` (mirrors the local instance in
-    `Tests/Main.lean`). We compare both the `.ok` and `.error` branches by their
-    payload. -/
-private def exceptEq (a b : Except String Decimal) : Bool :=
-  match a, b with
-  | .ok x, .ok y => x == y
-  | .error x, .error y => x == y
-  | _, _ => false
-
 abbrev Case := String × Float × Decimal
 
 /-- Run a single case. -/
 def runCase (groupName : String) (c : Case) : TestSeq :=
   let (desc, input, expected) := c
-  test s!"{groupName}: {desc}" (exceptEq (Printer.toDecimal input) (.ok expected))
+  test s!"{groupName}: {desc}" (Printer.toDecimal input == some expected)
 
 /-- Run an entire group, flattening to a single `TestSeq`. -/
 def runGroup (groupName : String) (cases : Array Case) : TestSeq :=
@@ -90,7 +81,7 @@ def d2sBasic : Array Case := #[
   ("-0.0",       -0.0,           ⟨.negative, 0, 0⟩),
   ("1.0",         1.0,           ⟨.positive, 1, 0⟩),
   ("-1.0",       -1.0,           ⟨.negative,  1, 0⟩)
-  -- NaN, +Inf, -Inf yield `.error _`; skipped (no Decimal representation).
+  -- NaN, +Inf, -Inf yield `none`; skipped (no Decimal representation).
 ]
 
 /-- `D2sTest.SwitchToSubnormal`. -/

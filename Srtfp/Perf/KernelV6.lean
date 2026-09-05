@@ -601,17 +601,15 @@ theorem shortestUnsigned_v7_eq_v5 (m : Nat) (q : Int) :
 /-! ## Fused `toDecimal_v7` — the live `toDecimal` replacement -/
 
 open Srtfp.Float in
-def toDecimal_v7 (f : _root_.Float) : Except String _root_.Srtfp.Decimal :=
-  if isNaNBits f then
-    .error "NaN"
-  else if isInfBits f then
-    .error (withSign (signBit f) "Infinity")
+def toDecimal_v7 (f : _root_.Float) : Option _root_.Srtfp.Decimal :=
+  if isNaNBits f then none
+  else if isInfBits f then none
   else
     let d := decode f
-    if d.m = 0 then .ok ⟨d.sign, 0, 0⟩
+    if d.m = 0 then some ⟨d.sign, 0, 0⟩
     else
       let (sig, exp) := shortestUnsigned_v7 d.m d.q
-      .ok (Srtfp.Decimal.mk' d.sign sig exp)
+      some (Srtfp.Decimal.mk' d.sign sig exp)
 
 theorem toDecimal_v7_eq (f : _root_.Float) :
     toDecimal_v7 f = toDecimal f := by
@@ -621,7 +619,7 @@ theorem toDecimal_v7_eq (f : _root_.Float) :
   by_cases h1 : Srtfp.Float.isNaNBits f = true
   · simp [h1]
   by_cases h2 : Srtfp.Float.isInfBits f = true
-  · simp [h1, h2] <;> split <;> simp [*]
+  · simp [h1, h2]
   simp only [h1, h2, if_false, Bool.false_eq_true]
   by_cases h3 : (Srtfp.Float.decode f).m = 0
   · simp [h3]

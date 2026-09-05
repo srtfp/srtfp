@@ -18,7 +18,7 @@ def corpusOf (label : String) : Array Float :=
   | _ => Corpora.adversarial
 
 /-- The public entry point; compiled callers run the live kernel. -/
-def toDec (f : Float) : Except String Decimal := Printer.toDecimal f
+def toDec (f : Float) : Option Decimal := Printer.toDecimal f
 
 def main (args : List String) : IO Unit := do
   let label := args.headD "adversarial"
@@ -41,8 +41,8 @@ def main (args : List String) : IO Unit := do
     for _ in [0:N] do
       for f in xs do
         sink := sink ^^^ (match toDec f with
-          | .ok d => UInt64.ofNat d.significand
-          | .error _ => 0)
+          | some d => UInt64.ofNat d.significand
+          | none => 0)
     let t1 ← IO.monoNanosNow
     -- tenths of a ns, so sub-100ns paths keep a digit of precision
     times := times.push ((t1 - t0) * 10 / (N * xs.size))

@@ -565,8 +565,8 @@ theorem shortestUnsigned_spec (h : InRange m q) :
 
 /-- The finite case: Schubfach's canonicalised decimal is the scan's. -/
 theorem finite_eq (sb : Sign) (h : InRange m q) :
-    (Except.ok (Decimal.mk' sb (shortestUnsigned m q).1 (shortestUnsigned m q).2) : Except String Decimal)
-      = Except.ok ⟨sb, (shortest m q).1, (shortest m q).2⟩ := by
+    (some (Decimal.mk' sb (shortestUnsigned m q).1 (shortestUnsigned m q).2) : Option Decimal)
+      = some ⟨sb, (shortest m q).1, (shortest m q).2⟩ := by
   obtain ⟨hpos, hval⟩ := shortestUnsigned_spec h
   rcases hr : shortestUnsigned m q with ⟨n', k'⟩
   rcases ho : shortest m q with ⟨n, i⟩
@@ -595,7 +595,7 @@ theorem toDecimalBits_eq_printer : Schubfach.toDecimalBits = Printer.toDecimalBi
     have hnan : Word.isNaN w = decide (Word.mantissa w ≠ 0) := by unfold Word.isNaN; simp [h1]
     have hinf : Word.isInf w = decide (Word.mantissa w = 0) := by unfold Word.isInf; simp [h1]
     by_cases h2 : Word.mantissa w = 0
-    · rw [if_pos h2]; simp [hnan, hinf, h2]; cases Word.signBit w <;> rfl
+    · rw [if_pos h2]; simp [hnan, hinf, h2]
     · rw [if_neg h2]; simp [hnan, h2]
   · rw [if_neg h1]
     have hnan : Word.isNaN w = false := by unfold Word.isNaN; simp [h1]

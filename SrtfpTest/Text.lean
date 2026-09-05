@@ -24,7 +24,7 @@ private def corpusFloats : Array Float :=
     boundaries). -/
 private def corpusDecimals : Array Decimal :=
   corpusFloats.filterMap (fun f =>
-    match Printer.toDecimal f with | .ok d => some d | .error _ => none)
+    Printer.toDecimal f)
   ++ #[⟨.negative, 0, 0⟩, ⟨.positive, 0, 0⟩, ⟨.positive, 1, 0⟩, ⟨.negative, 15, -1⟩,
        ⟨.positive, 12345678901234567, 100⟩, ⟨.positive, 5, -324⟩, ⟨.negative, 1, 16⟩,
        ⟨.positive, 1, -5⟩, ⟨.positive, 9007199254740993, -22⟩]

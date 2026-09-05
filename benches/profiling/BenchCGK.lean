@@ -12,6 +12,6 @@ def main (args : List String) : IO Unit := do
   for _ in [0:n] do
     for f in c do
       sink := sink ^^^ (match Printer.toDecimal f with
-        | .ok d => UInt64.ofNat d.significand
-        | .error _ => 0)
+        | some d => UInt64.ofNat d.significand
+        | none => 0)
   IO.println s!"{sink}"

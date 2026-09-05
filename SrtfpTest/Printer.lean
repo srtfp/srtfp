@@ -20,17 +20,12 @@ private def corpus : Array Float :=
   ++ #[1.0, 0.1, 0.3, 1e10, 1e-10, 5e-324, 9.88e-324, 1.7976931348623157e308,
        1125899906842624.25, 4503599627370496.0, 9007199254740992.0, 2.2250738585072014e-308]
 
-private def sameResult : Except String Decimal → Except String Decimal → Bool
-  | .ok a, .ok b => a = b
-  | .error a, .error b => a = b
-  | _, _ => false
-
-private def mismatches : Array (Float × Except String Decimal × Except String Decimal) := Id.run do
+private def mismatches : Array (Float × Option Decimal × Option Decimal) := Id.run do
   let mut out := #[]
   for f in corpus do
     let r := Printer.toDecimalBits f.toBits
     let s := Printer.toDecimal f
-    if !sameResult r s then out := out.push (f, r, s)
+    if r != s then out := out.push (f, r, s)
   return out
 
 def runTests : TestSeq :=

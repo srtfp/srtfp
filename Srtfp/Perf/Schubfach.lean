@@ -184,7 +184,7 @@ handles it. -/
 
 /-! ## Word → Decimal
 
-Top-level entry point. Returns `Except` so callers can refuse NaN / Infinity
+Top-level entry point. Returns `Option` so callers can refuse NaN / Infinity
 (which have no `Decimal` representation). -/
 
 /-- `s` with the sign in front: `"-" ++ s` for a negative sign. -/
@@ -192,24 +192,22 @@ Top-level entry point. Returns `Except` so callers can refuse NaN / Infinity
 def withSign (sign : Sign) (s : String) : String :=
   match sign with | .negative => "-" ++ s | .positive => s
 
-/-- Render a binary64 *bit pattern* as its shortest round-trip `Decimal`,
-    or `.error _` for NaN and Infinity. A pure function of the word, never
-    consulting a runtime `Float`. -/
-def toDecimalBits (w : UInt64) : Except String Decimal :=
-  if Word.isNaN w then
-    .error "NaN"
-  else if Word.isInf w then
-    .error (withSign (Word.signBit w) "Infinity")
+/-- The shortest round-trip `Decimal` of a binary64 *bit pattern*; `none`
+    for a NaN or an infinity. A pure function of the word, never consulting
+    a runtime `Float`. -/
+def toDecimalBits (w : UInt64) : Option Decimal :=
+  if Word.isNaN w then none
+  else if Word.isInf w then none
   else
     let d := Word.decode w
-    if d.m = 0 then .ok ⟨d.sign, 0, 0⟩
+    if d.m = 0 then some ⟨d.sign, 0, 0⟩
     else
       let (sig, exp) := shortestUnsigned d.m d.q
-      .ok (Decimal.mk' d.sign sig exp)
+      some (Decimal.mk' d.sign sig exp)
 
-/-- Render a `Float` as its shortest round-trip `Decimal`, or `.error _`
-    for NaN and Infinity. -/
-def toDecimal (f : _root_.Float) : Except String Decimal :=
+/-- The shortest round-trip `Decimal` of a `Float`; `none` for a NaN or an
+    infinity. -/
+def toDecimal (f : _root_.Float) : Option Decimal :=
   toDecimalBits f.toBits
 
 theorem toDecimal_eq_bits (f : _root_.Float) : toDecimal f = toDecimalBits f.toBits := rfl

@@ -68,11 +68,9 @@ structure ShortestDecimalF (f : Float) (d : Decimal) : Prop where
   roundTrip : ReadsToF d f
   shortest : ∀ d' : Decimal, d' ≠ d → d'.IsCanonical → ReadsToF d' f → BeatsF f d d'
 
-structure CorrectPrinterF (p : Float → Except String Decimal) : Prop where
-  nan : ∀ f : Float, unpackF f = .notANumber → p f = .error "NaN"
-  inf : ∀ (f : Float) (s : Sign), unpackF f = .infinity s →
-    p f = .error (match s with | .negative => "-Infinity" | .positive => "Infinity")
-  finite : ∀ f : Float, (unpackF f).isFinite → ∃ d : Decimal, p f = .ok d ∧ ShortestDecimalF f d
+structure CorrectPrinterF (p : Float → Option Decimal) : Prop where
+  special : ∀ f : Float, (unpackF f).isFinite = false → p f = none
+  finite : ∀ f : Float, (unpackF f).isFinite → ∃ d : Decimal, p f = some d ∧ ShortestDecimalF f d
 
 /-! ## Transport lemmas -/
 
@@ -158,7 +156,7 @@ private theorem shortestDecimalF_iff (f : Float) (d : Decimal) :
 /-- **A function is a correct `Float`→shortest-decimal printer iff it is
 `Printer.toDecimal`.** Float tier of `Srtfp.Spec.correct_iff_toDecimal`;
 admits the runtime axiom. -/
-theorem correct_iff_toDecimalF (p : Float → Except String Decimal) :
+theorem correct_iff_toDecimalF (p : Float → Option Decimal) :
     CorrectPrinterF p ↔ p = Printer.toDecimal := by
   have hprinter := (correct_iff_toDecimal Printer.toDecimalBits).mpr rfl
   constructor
@@ -171,14 +169,15 @@ theorem correct_iff_toDecimalF (p : Float → Except String Decimal) :
       obtain ⟨dstar, -, hstar⟩ := shortest_decimal_exists_unique f.toBits hfin
       rw [hpd, hd₀, hstar d ((shortestDecimalF_iff f d).mp hspec), hstar d₀ hspec₀]
     rcases hu : unpackF f with s | _ | s | ⟨s, m, e, hm⟩
-    · rw [h.inf f s hu, hprinter.inf f.toBits s hu]; cases s <;> rfl
-    · rw [h.nan f hu, hprinter.nan f.toBits hu]
+    · rw [h.special f (by rw [hu]; rfl),
+        hprinter.special f.toBits (by show (unpackF f).isFinite = false; rw [hu]; rfl)]
+    · rw [h.special f (by rw [hu]; rfl),
+        hprinter.special f.toBits (by show (unpackF f).isFinite = false; rw [hu]; rfl)]
     · exact fin (by rw [hu]; rfl)
     · exact fin (by rw [hu]; rfl)
   · rintro rfl
-    refine ⟨fun f hn => ?_, fun f s hi => ?_, fun f hf => ?_⟩
-    · rw [Printer.toDecimal_eq_bits]; exact hprinter.nan f.toBits hn
-    · rw [Printer.toDecimal_eq_bits]; exact hprinter.inf f.toBits s hi
+    refine ⟨fun f hn => ?_, fun f hf => ?_⟩
+    · rw [Printer.toDecimal_eq_bits]; exact hprinter.special f.toBits hn
     · obtain ⟨d, hd, hspec⟩ := hprinter.finite f.toBits hf
       exact ⟨d, by rw [Printer.toDecimal_eq_bits]; exact hd, (shortestDecimalF_iff f d).mpr hspec⟩
 
@@ -186,7 +185,7 @@ theorem correct_iff_toDecimalF (p : Float → Except String Decimal) :
 
 /-- For each finite float, exactly one decimal is the shortest. -/
 theorem shortest_decimal_exists_uniqueF (f : Float) (h_fin : (unpackF f).isFinite) :
-    ∃! d : Decimal, ShortestDecimalF f d := by
+    ∃ d : Decimal, ShortestDecimalF f d ∧ ∀ d' : Decimal, ShortestDecimalF f d' → d' = d := by
   obtain ⟨d, hd, huniq⟩ := shortest_decimal_exists_unique f.toBits h_fin
   exact ⟨d, (shortestDecimalF_iff f d).mpr hd,
          fun d' hd' => huniq d' ((shortestDecimalF_iff f d').mp hd')⟩

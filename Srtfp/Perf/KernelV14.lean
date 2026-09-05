@@ -584,15 +584,13 @@ theorem decimalTail_v14_eq (sign : Sign) (mU qB : UInt64) :
 /-- `toDecimal_v13` over the v14 kernel: the `Float → Decimal` twin of
     `toStringFast10`. -/
 @[inline]
-def toDecimal_v14 (f : _root_.Float) : Except String _root_.Srtfp.Decimal :=
+def toDecimal_v14 (f : _root_.Float) : Option _root_.Srtfp.Decimal :=
   let bits := f.toBits
   let expBits : UInt64 := (bits >>> 52) &&& 0x7FF
   let mantBits : UInt64 := bits &&& 0x000F_FFFF_FFFF_FFFF
-  if expBits = 0x7FF then
-    if mantBits ≠ 0 then .error "NaN"
-    else .error (if (bits >>> 63) ≠ 0 then "-Infinity" else "Infinity")
+  if expBits = 0x7FF then none
   else
-    .ok (decimalTail_v14 (if bits >>> 63 = 0 then .positive else .negative)
+    some (decimalTail_v14 (if bits >>> 63 = 0 then .positive else .negative)
       (if expBits = 0 then mantBits else mantBits + 4503599627370496)
       (if expBits = 0 then 0 else expBits - 1))
 

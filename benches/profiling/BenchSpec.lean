@@ -20,8 +20,8 @@ def decimalToStrSpec (d : Decimal) : String :=
 /-- The shape of `Schubfach.floatToStrRef`, over the grid-scan reference. -/
 def floatToStrSpec (f : Float) : String :=
   match Printer.toDecimalBits f.toBits with
-  | .ok d => decimalToStrSpec d
-  | .error e => e
+  | some d => decimalToStrSpec d
+  | none => if f.isNaN then "NaN" else if f < 0 then "-Infinity" else "Infinity"
 
 def corpusOf (label : String) : Array Float :=
   match label with

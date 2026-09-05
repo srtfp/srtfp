@@ -63,21 +63,19 @@ theorem decimalTail_eq (sign : Sign) (mU qB : UInt64) :
 /-- `toDecimal` from the raw bit fields, over the v13 kernel: the
     `Float → Decimal` twin of `toStringFast9`. -/
 @[inline]
-def toDecimal_v13 (f : _root_.Float) : Except String _root_.Srtfp.Decimal :=
+def toDecimal_v13 (f : _root_.Float) : Option _root_.Srtfp.Decimal :=
   let bits := f.toBits
   let expBits : UInt64 := (bits >>> 52) &&& 0x7FF
   let mantBits : UInt64 := bits &&& 0x000F_FFFF_FFFF_FFFF
-  if expBits = 0x7FF then
-    if mantBits ≠ 0 then .error "NaN"
-    else .error (if (bits >>> 63) ≠ 0 then "-Infinity" else "Infinity")
+  if expBits = 0x7FF then none
   else
-    .ok (decimalTail (if bits >>> 63 = 0 then .positive else .negative)
+    some (decimalTail (if bits >>> 63 = 0 then .positive else .negative)
       (if expBits = 0 then mantBits else mantBits + 4503599627370496)
       (if expBits = 0 then 0 else expBits - 1))
 
 theorem toDecimal_v7_finite (f : _root_.Float)
     (hNaN : ¬ isNaNBits f = true) (hInf : ¬ isInfBits f = true) :
-    toDecimal_v7 f = .ok (decimalTailNat (decode f).sign (decode f).m (decode f).q) := by
+    toDecimal_v7 f = some (decimalTailNat (decode f).sign (decode f).m (decode f).q) := by
   unfold toDecimal_v7 decimalTailNat
   rw [if_neg hNaN, if_neg hInf]
   simp only []
@@ -91,20 +89,11 @@ theorem toDecimal_v13_eq (f : _root_.Float) : toDecimal_v13 f = toDecimal_v7 f :
   · rw [if_pos h7]
     unfold toDecimal_v7
     have hbE : biasedExpBits f = 2047 := by rw [← hexp, h7]; rfl
-    by_cases hm : (f.toBits &&& 0x000F_FFFF_FFFF_FFFF : UInt64) = 0
-    · -- infinity
-      have hm0 : mantissaBits f = 0 := by rw [← hmant, hm]; rfl
-      have hNaN : ¬ isNaNBits f = true := by simp [isNaNBits, hbE, hm0]
-      have hInf : isInfBits f = true := by simp [isInfBits, hbE, hm0]
-      rw [if_neg (by simp [hm]), if_neg hNaN, if_pos hInf]
-      simp only [signBit]
-      split <;> simp_all [withSign]
-    · -- NaN
-      have hm0 : mantissaBits f ≠ 0 := by
-        intro hc
-        exact hm (UInt64.toNat_inj.mp (by rw [hmant, hc]; rfl))
-      have hNaN : isNaNBits f = true := by simp [isNaNBits, hbE, hm0]
-      rw [if_pos hm, if_pos hNaN]
+    by_cases hm0 : mantissaBits f = 0
+    · have hInf : isInfBits f = true := by simp [isInfBits, hbE, hm0]
+      simp [hInf]
+    · have hNaN : isNaNBits f = true := by simp [isNaNBits, hbE, hm0]
+      simp [hNaN]
   · -- finite
     have hbE : biasedExpBits f ≠ 2047 := by
       intro hc

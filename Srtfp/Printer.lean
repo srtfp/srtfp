@@ -68,19 +68,20 @@ where
 
 /-! ## Word → Decimal -/
 
-/-- Render a binary64 *bit pattern* as its shortest round-trip `Decimal`,
-    or `.error _` for NaN and Infinity. -/
-def toDecimalBits (w : UInt64) : Except String Decimal :=
+/-- The shortest round-trip `Decimal` of a binary64 *bit pattern*; `none`
+    for a NaN or an infinity. -/
+def toDecimalBits (w : UInt64) : Option Decimal :=
   match Spec.unpack w with
-  | .notANumber => .error "NaN"
-  | .infinity s => .error (match s with | .negative => "-Infinity" | .positive => "Infinity")
-  | .zero s => .ok ⟨s, 0, 0⟩
+  | .notANumber => none
+  | .infinity _ => none
+  | .zero s => some ⟨s, 0, 0⟩
   | .finite s m q _ =>
     let (n, i) := shortest m q
-    .ok ⟨s, n, i⟩
+    some ⟨s, n, i⟩
 
-/-- Render a `Float` as its shortest round-trip `Decimal`. -/
-def toDecimal (f : Float) : Except String Decimal := toDecimalBits f.toBits
+/-- The shortest round-trip `Decimal` of a `Float`; `none` for a NaN or an
+    infinity. -/
+def toDecimal (f : Float) : Option Decimal := toDecimalBits f.toBits
 
 theorem toDecimal_eq_bits (f : Float) : toDecimal f = toDecimalBits f.toBits := rfl
 

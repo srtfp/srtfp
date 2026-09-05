@@ -31,14 +31,14 @@ theorem correct_iff_ofDecimal (p : Decimal → UInt64) :
 /-- **A function is a correct printer iff it is `Printer.toDecimalBits`.**
 The forward direction gives uniqueness (nothing else satisfies the spec);
 the backward direction gives correctness (`toDecimalBits` satisfies it). -/
-theorem correct_iff_toDecimal (p : UInt64 → Except String Decimal) :
+theorem correct_iff_toDecimal (p : UInt64 → Option Decimal) :
     CorrectPrinter p ↔ p = Printer.toDecimalBits :=
   Printer.correctPrinter_iff_toDecimal p
 
 /-- For each finite word, **exactly one** decimal is the shortest: the one
 `Printer.toDecimalBits` returns. -/
 theorem shortest_decimal_exists_unique (w : UInt64) (h_fin : (unpack w).isFinite) :
-    ∃! d : Decimal, ShortestDecimal w d :=
+    ∃ d : Decimal, ShortestDecimal w d ∧ ∀ d' : Decimal, ShortestDecimal w d' → d' = d :=
   Printer.shortestDecimal_exists_unique w h_fin
 
 end Srtfp.Spec

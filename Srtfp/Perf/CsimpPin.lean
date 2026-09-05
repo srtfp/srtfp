@@ -32,44 +32,20 @@ public import Srtfp.Perf.ReadFast
 
 @[expose] public section
 
-/- The csimp extension's map values changed type across toolchains
-   (`Name` before v4.29-ish, `CSimp.Entry` after), so the check is
-   elaborated from syntax in an environment-dependent branch: only the
-   applicable variant is ever type-checked. -/
 open Lean Elab Command Lean.Compiler in
-run_cmd do
-  let mapInfo ← getConstInfo `Lean.Compiler.CSimp.State.map
-  if mapInfo.type.getUsedConstants.contains `Lean.Compiler.CSimp.Entry then
-    elabCommand (← `(#eval show Lean.CoreM Unit from do
-      let s := Lean.Compiler.CSimp.ext.getState (← Lean.getEnv)
-      let check (src tgt : Lean.Name) : Lean.CoreM Unit := do
-        match s.map.find? src with
-        | some t =>
-          unless t.toDeclName == tgt do
-            throwError "csimp pin: {src} compiles to {t.toDeclName}, expected {tgt}"
-        | none => throwError "csimp pin: {src} has no csimp replacement"
-      check `Srtfp.Printer.toDecimal `Srtfp.Schubfach.toDecimal_v14
-      check `Srtfp.Schubfach.toDecimal `Srtfp.Schubfach.toDecimal_v14
-      check `Srtfp.Schubfach.floatToStrRef `Srtfp.Schubfach.toStringFast10
-      check `Srtfp.Schubfach.shortestUnsigned `Srtfp.Schubfach.shortestUnsigned_v3
-      check `Srtfp.Decimal.canonicaliseAux `Srtfp.Decimal.canonicaliseAux_fast2
-      check `Srtfp.Decimal.mk' `Srtfp.Decimal.mk'_fast3
-      check `Srtfp.Reader.ofDecimalBits `Srtfp.Reader.ofDecimalBits_fast
-      check `Srtfp.Reader.ofDecimal `Srtfp.Reader.ofDecimal_fast))
-  else
-    elabCommand (← `(#eval show Lean.CoreM Unit from do
-      let s := Lean.Compiler.CSimp.ext.getState (← Lean.getEnv)
-      let check (src tgt : Lean.Name) : Lean.CoreM Unit := do
-        match s.map.find? src with
-        | some t =>
-          unless t == tgt do
-            throwError "csimp pin: {src} compiles to {t}, expected {tgt}"
-        | none => throwError "csimp pin: {src} has no csimp replacement"
-      check `Srtfp.Printer.toDecimal `Srtfp.Schubfach.toDecimal_v14
-      check `Srtfp.Schubfach.toDecimal `Srtfp.Schubfach.toDecimal_v14
-      check `Srtfp.Schubfach.floatToStrRef `Srtfp.Schubfach.toStringFast10
-      check `Srtfp.Schubfach.shortestUnsigned `Srtfp.Schubfach.shortestUnsigned_v3
-      check `Srtfp.Decimal.canonicaliseAux `Srtfp.Decimal.canonicaliseAux_fast2
-      check `Srtfp.Decimal.mk' `Srtfp.Decimal.mk'_fast3
-      check `Srtfp.Reader.ofDecimalBits `Srtfp.Reader.ofDecimalBits_fast
-      check `Srtfp.Reader.ofDecimal `Srtfp.Reader.ofDecimal_fast))
+#eval show Lean.CoreM Unit from do
+  let s := Lean.Compiler.CSimp.ext.getState (← Lean.getEnv)
+  let check (src tgt : Lean.Name) : Lean.CoreM Unit := do
+    match s.map.find? src with
+    | some t =>
+      unless t.toDeclName == tgt do
+        throwError "csimp pin: {src} compiles to {t.toDeclName}, expected {tgt}"
+    | none => throwError "csimp pin: {src} has no csimp replacement"
+  check `Srtfp.Printer.toDecimal `Srtfp.Schubfach.toDecimal_v14
+  check `Srtfp.Schubfach.toDecimal `Srtfp.Schubfach.toDecimal_v14
+  check `Srtfp.Schubfach.floatToStrRef `Srtfp.Schubfach.toStringFast10
+  check `Srtfp.Schubfach.shortestUnsigned `Srtfp.Schubfach.shortestUnsigned_v3
+  check `Srtfp.Decimal.canonicaliseAux `Srtfp.Decimal.canonicaliseAux_fast2
+  check `Srtfp.Decimal.mk' `Srtfp.Decimal.mk'_fast3
+  check `Srtfp.Reader.ofDecimalBits `Srtfp.Reader.ofDecimalBits_fast
+  check `Srtfp.Reader.ofDecimal `Srtfp.Reader.ofDecimal_fast

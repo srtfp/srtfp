@@ -1,7 +1,7 @@
 module
 /- Phase C: `Schubfach.toStringFast` — fused Float → String fast path.
 
-   Skips the `Except String Decimal` boxing on the success path and the
+   Skips the `Option Decimal` boxing on the success path and the
    `Decimal` constructor/destructor round-trip from `floatToStr`.
 
    `floatToStrRef` is the spec — verbatim shape of the prior bench code.
@@ -45,13 +45,13 @@ def decimalToStrRef (d : _root_.Srtfp.Decimal) : String :=
 /-- Reference `Float → String`: the body of `floatToStr` in `BenchFloatToString.lean`. -/
 def floatToStrRef (f : _root_.Float) : String :=
   match Printer.toDecimal f with
-  | .ok d => decimalToStrRef d
-  | .error e => e
+  | some d => decimalToStrRef d
+  | none => if isNaNBits f then "NaN" else withSign (signBit f) "Infinity"
 
-/-! ## Fast path: avoid Except + Decimal allocation. -/
+/-! ## Fast path: avoid Option + Decimal allocation. -/
 
 /-- Fused `Float → String`. Mirrors `toDecimal`'s control flow but
-    inlines the `Except` and `Decimal` wrappers — the success path drops
+    inlines the `Option` and `Decimal` wrappers — the success path drops
     straight from `(sig, exp)` to the final `++` chain. -/
 @[inline]
 def toStringFast (f : _root_.Float) : String :=

@@ -323,7 +323,7 @@ theorem BeatsOdd.not_beats {w : UInt64} {d d' : Decimal} (h : BeatsOdd w d d')
 /-- Finite nonzero words: the output is canonical, reads back, and beats
     every competitor. -/
 theorem nonzero_output {s : Sign} {hm : 0 < m} (hu : Spec.unpack wd = .finite s m q hm) :
-    ∃ d₀, toDecimalBits wd = .ok d₀ ∧ d₀.IsCanonical ∧ Reader.ofDecimalBits d₀ = wd
+    ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.ofDecimalBits d₀ = wd
       ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.ofDecimalBits d' = wd →
           BeatsOdd wd d₀ d' := by
   have h : InRange m q := ⟨hm, legal_of_unpack hu⟩
@@ -368,7 +368,7 @@ theorem nonzero_output {s : Sign} {hm : 0 < m} (hu : Spec.unpack wd = .finite s 
 
 /-- Zero words: the signed zero is the output; every competitor is farther. -/
 theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
-    ∃ d₀, toDecimalBits wd = .ok d₀ ∧ d₀.IsCanonical ∧ Reader.ofDecimalBits d₀ = wd
+    ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.ofDecimalBits d₀ = wd
       ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.ofDecimalBits d' = wd →
           BeatsOdd wd d₀ d' := by
   have hfin : (Spec.unpack wd).isFinite = true := by rw [hu]; rfl
@@ -419,7 +419,7 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
 
 /-- The output beats every competitor, with the competitor's parity on a tie. -/
 theorem output_beats (hw : (Spec.unpack wd).isFinite = true) :
-    ∃ d₀, toDecimalBits wd = .ok d₀ ∧ d₀.IsCanonical ∧ Reader.ofDecimalBits d₀ = wd
+    ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.ofDecimalBits d₀ = wd
       ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.ofDecimalBits d' = wd →
           BeatsOdd wd d₀ d' := by
   rcases hu : Spec.unpack wd with s | _ | s | ⟨s, m, q, hm⟩
@@ -429,18 +429,18 @@ theorem output_beats (hw : (Spec.unpack wd).isFinite = true) :
   · exact nonzero_output hu
 
 theorem toDecimalBits_spec (hw : (Spec.unpack wd).isFinite = true) :
-    ∃ d, toDecimalBits wd = .ok d ∧ Spec.ShortestDecimal wd d :=
+    ∃ d, toDecimalBits wd = some d ∧ Spec.ShortestDecimal wd d :=
   let ⟨d₀, h₀, hc, hrt, hb⟩ := output_beats hw
   ⟨d₀, h₀, hc, (readsTo_iff d₀ wd).mpr hrt,
     fun d' hne hc' hrt' => (hb d' hne hc' ((readsTo_iff d' wd).mp hrt')).beats⟩
 
 /-- Anything satisfying the specification is the output. -/
 theorem eq_output_of_shortest (hw : (Spec.unpack wd).isFinite = true) {d d₀ : Decimal}
-    (h₀ : toDecimalBits wd = .ok d₀) (hd : Spec.ShortestDecimal wd d) : d = d₀ := by
+    (h₀ : toDecimalBits wd = some d₀) (hd : Spec.ShortestDecimal wd d) : d = d₀ := by
   by_cases hne : d = d₀
   · exact hne
   obtain ⟨d₁, h₁, hc₁, hrt₁, hb⟩ := output_beats hw
-  rw [h₁] at h₀; obtain rfl := Except.ok.inj h₀
+  rw [h₁] at h₀; obtain rfl := Option.some.inj h₀
   exact ((hb d hne hd.canonical ((readsTo_iff d wd).mp hd.roundTrip)).not_beats
     (hd.shortest d₁ (Ne.symm hne) hc₁ ((readsTo_iff d₁ wd).mpr hrt₁))).elim
 
@@ -451,13 +451,18 @@ theorem shortestDecimal_exists_unique (w : UInt64) (h_fin : (Spec.unpack w).isFi
 
 /-- `toDecimalBits` is a correct printer. -/
 theorem correctPrinter_toDecimalBits : Spec.CorrectPrinter toDecimalBits where
-  nan w h := by unfold toDecimalBits; rw [h]
-  inf w s h := by unfold toDecimalBits; rw [h]; cases s <;> rfl
+  special w h := by
+    unfold toDecimalBits
+    rcases hu : Spec.unpack w with s | _ | s | ⟨s, m, e, hm⟩
+    · rfl
+    · rfl
+    · rw [hu] at h; simp [UnpackedFloat.isFinite] at h
+    · rw [hu] at h; simp [UnpackedFloat.isFinite] at h
   finite w hw := toDecimalBits_spec hw
 
 /-- **The printer theorem.** A function is a correct printer iff it is
 `toDecimalBits`. -/
-theorem correctPrinter_iff_toDecimal (p : UInt64 → Except String Decimal) :
+theorem correctPrinter_iff_toDecimal (p : UInt64 → Option Decimal) :
     Spec.CorrectPrinter p ↔ p = toDecimalBits := by
   constructor
   · intro hp
@@ -467,8 +472,8 @@ theorem correctPrinter_iff_toDecimal (p : UInt64 → Except String Decimal) :
       obtain ⟨d', hd', -⟩ := toDecimalBits_spec hfin
       rw [hd, hd', eq_output_of_shortest hfin hd' hds]
     rcases hu : Spec.unpack w with s | _ | s | ⟨s, m, e, hm⟩
-    · rw [hp.inf w s hu, correctPrinter_toDecimalBits.inf w s hu]
-    · rw [hp.nan w hu, correctPrinter_toDecimalBits.nan w hu]
+    · rw [hp.special w (by rw [hu]; rfl), correctPrinter_toDecimalBits.special w (by rw [hu]; rfl)]
+    · rw [hp.special w (by rw [hu]; rfl), correctPrinter_toDecimalBits.special w (by rw [hu]; rfl)]
     · exact fin (by rw [hu]; rfl)
     · exact fin (by rw [hu]; rfl)
   · rintro rfl

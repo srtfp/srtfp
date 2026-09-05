@@ -15,8 +15,6 @@ public import Init.Data.Float
 open Float.Model (UnpackedFloat)
 open Float.Model.UnpackedFloat (Sign)
 
-universe u
-
 namespace Srtfp
 
 /-! ## Decimals -/
@@ -81,14 +79,6 @@ def dist (d : Decimal) (w : UInt64) : Rat := Rat.abs (wordVal w - toRat d)
 /-- Number of base-10 digits (`digits 0 = 1`). -/
 def digits (n : Nat) : Nat := (Nat.toDigits 10 n).length
 
-/-- Unique existence: `∃! x, p x` is `∃ x, p x ∧ ∀ y, p y → y = x`. -/
-def ExistsUnique {α : Sort u} (p : α → Prop) : Prop := ∃ x, p x ∧ ∀ y, p y → y = x
-
-open Lean in
-@[inherit_doc ExistsUnique]
-scoped macro "∃!" xs:explicitBinders ", " b:term : term => do
-  return ⟨← expandExplicitBinders ``ExistsUnique xs b⟩
-
 /-! ## The reader
 
 The printer's specification is stated in terms of the reader, so the
@@ -137,13 +127,11 @@ structure ShortestDecimal (w : UInt64) (d : Decimal) : Prop where
   /-- `d` beats every other canonical decimal that reads back to `w`. -/
   shortest : ∀ d' : Decimal, d' ≠ d → d'.IsCanonical → ReadsTo d' w → Beats w d d'
 
-/-- A correct printer rejects NaN and infinities with the given errors and
-returns THE shortest decimal for every finite word. -/
-structure CorrectPrinter (p : UInt64 → Except String Decimal) : Prop where
-  nan : ∀ w : UInt64, unpack w = .notANumber → p w = .error "NaN"
-  inf : ∀ (w : UInt64) (s : Sign), unpack w = .infinity s →
-    p w = .error (match s with | .negative => "-Infinity" | .positive => "Infinity")
-  finite : ∀ w : UInt64, (unpack w).isFinite → ∃ d : Decimal, p w = .ok d ∧ ShortestDecimal w d
+/-- A correct printer returns THE shortest decimal for every finite word
+and nothing for a NaN or an infinity. -/
+structure CorrectPrinter (p : UInt64 → Option Decimal) : Prop where
+  special : ∀ w : UInt64, (unpack w).isFinite = false → p w = none
+  finite : ∀ w : UInt64, (unpack w).isFinite → ∃ d : Decimal, p w = some d ∧ ShortestDecimal w d
 
 end Spec
 

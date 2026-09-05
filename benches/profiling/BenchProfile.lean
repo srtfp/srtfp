@@ -69,7 +69,7 @@ def main (args : List String) : IO Unit := do
   let sz := corpus.size
   let N : Nat := 1000
   let decs : Array (Float.Model.UnpackedFloat.Sign × Nat × Int) := corpus.filterMap (fun f =>
-    match Printer.toDecimal f with | .ok d => some (d.sign, d.significand, d.exponent) | _ => none)
+    (Printer.toDecimal f).map fun d => (d.sign, d.significand, d.exponent))
   let sigs : Array Nat := decs.map (fun t => t.2.1)
   IO.println s!"# {label} corpus: {sz} floats, {decs.size} decoded"
   timeIt "1 baseline (toBits, foldl)"  N sz (fun _ => (corpus.foldl (init := (0 : UInt64)) (fun a f => a ^^^ f.toBits)).toNat)
@@ -92,7 +92,7 @@ def main (args : List String) : IO Unit := do
       let qB := if expBits = 0 then 0 else expBits - 1
       a ^^^ (shortestUnsigned_v14 mU qB).1)).toNat)
   timeIt "4 toDecimal (Printer.toDecimal, live)" N sz (fun _ => (corpus.foldl (init := (0 : UInt64)) (fun a f =>
-      a ^^^ (match Printer.toDecimal f with | .ok d => UInt64.ofNat d.significand | _ => 0))).toNat)
+      a ^^^ (match Printer.toDecimal f with | some d => UInt64.ofNat d.significand | _ => 0))).toNat)
   timeIt "5 int→string (toString sig)" N decs.size (fun _ => sigs.foldl (init := 0) (fun a s => a ^^^ (toString s).length))
   timeIt "6 emit: sign++sig++e++exp" N decs.size (fun _ => decs.foldl (init := 0) (fun a t =>
       let signStr := match t.1 with | .negative => "-" | .positive => ""
