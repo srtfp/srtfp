@@ -539,14 +539,6 @@ theorem ofNat_succ (s : Nat) :
     UInt64.ofNat (s + 1) = UInt64.ofNat s + 1 := by
   rw [UInt64.ofNat_add]; rfl
 
-/-- For `s < 2^58`, `(UInt64.ofNat s + 1).toNat = s + 1`. -/
-theorem toNat_sU_add_1 {s : Nat} (hs_lt : s < (1 <<< 58 : Nat)) :
-    (UInt64.ofNat s + 1).toNat = s + 1 := by
-  rw [← ofNat_succ, UInt64.toNat_ofNat']
-  apply Nat.mod_eq_of_lt
-  have h64 : (1 <<< 58 : Nat) + 1 < (2 ^ 64 : Nat) := by decide
-  omega
-
 /-- `(UInt64.ofNat s).toNat = s` when `s < 2^64`. -/
 theorem toNat_sU_eq {s : Nat} (hs_lt : s < (1 <<< 58 : Nat)) :
     (UInt64.ofNat s).toNat = s := by

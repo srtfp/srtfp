@@ -36,15 +36,6 @@ public import Srtfp.Decimal
 
 @[expose] public section
 
-/-- A `UInt64` bit pattern is a NaN pattern iff its biased exponent field
-    (bits 62..52) is all-ones (`0x7FF`) and its mantissa field (bits 51..0)
-    is nonzero. The bit round-trip `Float.toBits_ofBits`
-    (`Srtfp/Bridge/Basic.lean`) is restricted to patterns outside this set:
-    NaN payloads are canonicalised (`SrtfpTest/RuntimeAxiomProbe.lean`
-    observes the same at runtime). -/
-def Float.isNaNPattern (x : UInt64) : Bool :=
-  ((x >>> 52) &&& 0x7FF == 0x7FF) && (x &&& 0xF_FFFF_FFFF_FFFF != 0)
-
 open Float.Model.UnpackedFloat (Sign)
 
 namespace Srtfp.Float
@@ -105,10 +96,6 @@ def isNaN (w : UInt64) : Bool :=
 def isInf (w : UInt64) : Bool :=
   biasedExp w = 2047 && mantissa w = 0
 
-/-- `w` is a finite pattern: `biasedExp < 2047`. -/
-def isFinite (w : UInt64) : Bool :=
-  biasedExp w < 2047
-
 /-- Assemble a binary64 word from raw bit fields. Inverse of the
     `(signBit, biasedExp, mantissa)` triple (see `pack_proj`). -/
 def pack (sign : Sign) (biasedExp mantissa : Nat) : UInt64 :=
@@ -160,36 +147,13 @@ def isNaNBits (f : _root_.Float) : Bool :=
 def isInfBits (f : _root_.Float) : Bool :=
   biasedExpBits f = 2047 && mantissaBits f = 0
 
-/-- `f` is finite if `biasedExp < 2047`. -/
-def isFiniteBits (f : _root_.Float) : Bool :=
-  biasedExpBits f < 2047
-
-/-- Reassemble a `Float` from raw bit fields. Inverse of the
-    `(signBit, biasedExpBits, mantissaBits)` triple. -/
-def fromBits (sign : Sign) (biasedExp : Nat) (mantissa : Nat) : _root_.Float :=
-  let s : UInt64 := match sign with | .negative => (1 : UInt64) <<< 63 | .positive => 0
-  let e : UInt64 := (UInt64.ofNat biasedExp &&& 0x7FF) <<< 52
-  let mPart : UInt64 := UInt64.ofNat mantissa &&& 0x000F_FFFF_FFFF_FFFF
-  _root_.Float.ofBits (s ||| e ||| mPart)
-
 /-! ## Bridges: the Float layer is the word layer at `f.toBits`
 
 All are `rfl`: the two layers are definitionally equal, so bits-level
 theorems about `Word.*` transport to `Float`-level statements (and back)
 by rewriting with these. -/
 
-theorem signBit_word (f : _root_.Float) : signBit f = Word.signBit f.toBits := rfl
-theorem biasedExpBits_word (f : _root_.Float) :
-    biasedExpBits f = Word.biasedExp f.toBits := rfl
-theorem mantissaBits_word (f : _root_.Float) :
-    mantissaBits f = Word.mantissa f.toBits := rfl
 theorem decode_word (f : _root_.Float) : decode f = Word.decode f.toBits := rfl
 theorem isNaNBits_word (f : _root_.Float) : isNaNBits f = Word.isNaN f.toBits := rfl
 theorem isInfBits_word (f : _root_.Float) : isInfBits f = Word.isInf f.toBits := rfl
-theorem isFiniteBits_word (f : _root_.Float) :
-    isFiniteBits f = Word.isFinite f.toBits := rfl
-theorem fromBits_word (sign : Sign) (biasedExp mantissa : Nat) :
-    fromBits sign biasedExp mantissa
-      = _root_.Float.ofBits (Word.pack sign biasedExp mantissa) := rfl
-
 end Srtfp.Float

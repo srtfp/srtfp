@@ -393,16 +393,6 @@ theorem mk'_value (s : Sign) {n : Nat} (hn : n ≠ 0) (i : Int) :
   rw [ten_zpow_split hle]
   grind
 
-theorem mk'_eq_of_value_eq (s : Sign) {n n' : Nat} {i i' : Int} (hn : 1 ≤ n) (hn' : 1 ≤ n')
-    (h : (n : Rat) * (10 : Rat) ^ i = (n' : Rat) * (10 : Rat) ^ i') :
-    Decimal.mk' s n i = Decimal.mk' s n' i' := by
-  obtain ⟨hs, hne, -, -, -⟩ := mk_pos_props s n i (by omega)
-  obtain ⟨hs', hne', -, -, -⟩ := mk_pos_props s n' i' (by omega)
-  exact canonical_eq_of_value_eq (d := Decimal.mk' s n i) (d' := Decimal.mk' s n' i')
-    (Decimal.canonical_isCanonical _) (Decimal.canonical_isCanonical _)
-    (by rw [hs, hs']) (by omega) (by omega)
-    (by rw [mk'_value s (by omega), mk'_value s (by omega), h])
-
 /-! ## Kernel 0 is the scan -/
 
 /-- Schubfach's `(sig, exp)` denotes the scan's first hit. -/

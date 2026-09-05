@@ -26,14 +26,7 @@ module
    No `native_decide`, no `sorry`, no custom axiom — the only axioms
    used are `propext` and `Quot.sound` (from `decide`'s use of `List`
    equational lemmas).
-
-   We export the conclusions in a slightly cleaned-up form
-   (`floorLog10Pow2_correct` / `floorLog10ThreeQuartersPow2_correct`),
-   each producing the existentially-quantified statement of the form
-
-       ∃ k, floorLog10⋯ e = k ∧ R⋯Holds e
-
-   that downstream Schubfach correctness proofs (M3.8.2+) can consume. -/
+ -/
 
 public import Srtfp.Perf.Schubfach
 
@@ -221,22 +214,5 @@ theorem R14HoldsAt_in_binary64_range :
 The Schubfach algorithm only consumes the *value* of `floorLog10Pow2`
 together with the surrounding inequality; we pack both into a single
 existential for ergonomic destructuring at the use site. -/
-
-/-- The magic-constant approximation `floorLog10Pow2 e` returns the
-exact value of `⌊log₁₀(2^e)⌋` over the binary64 exponent range,
-witnessed by the cross-multiplied inequality `R15HoldsAt e`. -/
-theorem floorLog10Pow2_correct (e : Int) (h1 : -1074 ≤ e) (h2 : e ≤ 971) :
-    ∃ k : Int, floorLog10Pow2 e = k ∧ R15HoldsAt e := by
-  refine ⟨floorLog10Pow2 e, rfl, ?_⟩
-  exact R15HoldsAt_in_binary64_range e h1 h2
-
-/-- The magic-constant approximation `floorLog10ThreeQuartersPow2 e`
-returns the exact value of `⌊log₁₀(3/4 · 2^e)⌋` over the binary64
-exponent range, witnessed by the cross-multiplied inequality
-`R14HoldsAt e`. -/
-theorem floorLog10ThreeQuartersPow2_correct (e : Int) (h1 : -1074 ≤ e) (h2 : e ≤ 971) :
-    ∃ k : Int, floorLog10ThreeQuartersPow2 e = k ∧ R14HoldsAt e := by
-  refine ⟨floorLog10ThreeQuartersPow2 e, rfl, ?_⟩
-  exact R14HoldsAt_in_binary64_range e h1 h2
 
 end Srtfp.Schubfach

@@ -80,20 +80,10 @@ The high 64 bits (of the 128-bit cut at 2⁶⁴):
 Implementation drops the upper 64 of `a · gHi` (UInt64 multiply wraps),
 which is precisely the second-highest-64-bits cut we want. -/
 
-/-- High 64 bits of `⌊a · g / 2⁶⁴⌋` where `g = gHi · 2⁶⁴ + gLo`.  See module
-    docstring for the Nat spec. -/
-@[inline]
-def mulHigh128 (a gHi gLo : UInt64) : UInt64 :=
-  a * gHi + mulHi64 a gLo
-
 /-! ## Nat-level specification
 
 The `mulHigh128Spec` Nat function captures the exact mathematical
 quantity we care about.  `mulHigh128_toNat` proves equivalence (mod 2⁶⁴). -/
-
-/-- Mathematical specification: `(a · g) / 2⁶⁴` in `Nat`. -/
-def mulHigh128Spec (a gHi gLo : UInt64) : Nat :=
-  (a.toNat * (gHi.toNat * 2 ^ 64 + gLo.toNat)) / 2 ^ 64
 
 /-! ## Nat-level mirror
 
@@ -292,24 +282,5 @@ theorem mulHi64_toNat_eq (a b : UInt64) :
 
 The full 64×128 → high-64 cut equals `(a · g) / 2⁶⁴ mod 2⁶⁴` where
 `g = gHi · 2⁶⁴ + gLo`. -/
-
-/-- `mulHigh128 a gHi gLo` returns `mulHigh128Spec mod 2⁶⁴`. -/
-theorem mulHigh128_toNat (a gHi gLo : UInt64) :
-    (mulHigh128 a gHi gLo).toNat = mulHigh128Spec a gHi gLo % 2 ^ 64 := by
-  unfold mulHigh128 mulHigh128Spec
-  -- a * gHi + mulHi64 a gLo, reduced to Nat:
-  --   (a · gHi mod 2⁶⁴ + mulHi64 a gLo mod 2⁶⁴) mod 2⁶⁴
-  -- = (a · gHi + (a · gLo) / 2⁶⁴) mod 2⁶⁴.
-  -- And: (a · (gHi · 2⁶⁴ + gLo)) / 2⁶⁴ = a · gHi + (a · gLo) / 2⁶⁴.
-  simp only [UInt64.toNat_add, UInt64.toNat_mul, mulHi64_toNat_eq]
-  -- Goal: (a.toNat * gHi.toNat % 2 ^ 64 + a.toNat * gLo.toNat / 2 ^ 64 % 2 ^ 64) % 2 ^ 64
-  --     = (a.toNat * (gHi.toNat * 2 ^ 64 + gLo.toNat)) / 2 ^ 64 % 2 ^ 64
-  -- Rewrite the RHS: a·(gHi·2⁶⁴ + gLo) / 2⁶⁴ = a·gHi + a·gLo/2⁶⁴.
-  have h_expand : a.toNat * (gHi.toNat * 2 ^ 64 + gLo.toNat)
-      = a.toNat * gLo.toNat + 2 ^ 64 * (a.toNat * gHi.toNat) := by grind
-  rw [h_expand, Nat.add_mul_div_left _ _ (by decide : 0 < 2 ^ 64)]
-  rw [Nat.add_comm (a.toNat * gLo.toNat / 2 ^ 64)]
-  conv => rhs; rw [Nat.add_mod]
-  simp
 
 end Srtfp.Schubfach

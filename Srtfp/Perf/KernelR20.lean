@@ -5,7 +5,7 @@ module
    The R20 band sweeps (`R20BandSweep.lean`) establish `residueR20Cond` for
    every binary64 input *keyed by the band shape* (`q ≥ 0` ↦ band 2,
    `q < 0` ↦ band 1).  This file connects those band-keyed residues to the
-   *kernel-keyed* residue consumed by `shiftedSig_floor_widened_of_residue`
+   *kernel-keyed* residue consumed by `shiftedSig_floor_of_residue`
    (`B = 2^qNeg · 10^kPos`, `N = m · 2^qPos · 10^kNeg`, with the four
    sign-split exponents of a real decode).
 
@@ -19,7 +19,7 @@ module
    The fourth case `q < 0, k ≥ 0` is impossible (`q < 0 ⇒ k < 0` since the
    `floorLog10*` magic constants are positive-scaled floors).
 
-   Combining the residue with `shiftedSig_floor_widened_of_residue` gives
+   Combining the residue with `shiftedSig_floor_of_residue` gives
    the floor equality with NO `B < 2^64` accuracy guard, valid over the
    entire binary64 domain.  This is what lets the orchestration drop the
    `B < 2^64` dispatch and route every real decode through the UInt64
@@ -151,7 +151,7 @@ theorem kOfMQ_neg_toNat_candidate1 (m : Nat) (q : Int) :
     `-1074 ≤ q ≤ 971`) with `k = kOfMQ m q` and `s ≥ 124`, the kernel
     residue condition holds — with NO `B < 2^64` accuracy guard.
 
-    This is the unconditional input to `shiftedSig_floor_widened_of_residue`.
+    This is the unconditional input to `shiftedSig_floor_of_residue`.
     The proof splits on the sign of `q` and `k`:
     * `q ≥ 0, k ≥ 0` → band 2 (`B = 10^kPos`, `N = m·2^q`);
     * `q < 0, k < 0` → band 1 (`B = 2^qNeg`, `N = m·10^kNeg`);

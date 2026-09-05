@@ -25,7 +25,9 @@ the empirical NaN/non-NaN split observed above. -/
 import Srtfp.Bridge.Basic
 import Srtfp.Perf.Bits
 
-open Float (isNaNPattern)
+/-- The NaN bit patterns: biased exponent `0x7FF` and a nonzero mantissa. -/
+def isNaNPattern (x : UInt64) : Bool :=
+  ((x >>> 52) &&& 0x7FF == 0x7FF) && (x &&& 0xF_FFFF_FFFF_FFFF != 0)
 
 def nanProbes : List UInt64 :=
   [0x7FF0000000000001, 0x7FF8000000000000, 0xFFF8000000000000,

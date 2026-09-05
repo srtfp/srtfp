@@ -80,18 +80,6 @@ verdicts are exact whenever `L` is more than `b` away from `R`:
 `L > R` gives `+1`, `L + b ≤ R` gives `-1`. In the remaining window
 `R - b < L ≤ R` the function defers to `cmpScaledMixed_fast`. -/
 
-/-- Compare two 192-bit unsigned values represented as `(hi, mid, lo)`
-    UInt64 triples.  Returns `-1`, `0`, or `1`. -/
-@[inline]
-def cmp192 (hi₁ mid₁ lo₁ hi₂ mid₂ lo₂ : UInt64) : Int :=
-  if hi₁ < hi₂ then -1
-  else if hi₁ > hi₂ then 1
-  else if mid₁ < mid₂ then -1
-  else if mid₁ > mid₂ then 1
-  else if lo₁ < lo₂ then -1
-  else if lo₁ > lo₂ then 1
-  else 0
-
 /-- `(hi₁, mid₁, lo₁) > (hi₂, mid₂, lo₂)` as unsigned 192-bit. -/
 @[inline]
 def gt192 (hi₁ mid₁ lo₁ hi₂ mid₂ lo₂ : UInt64) : Bool :=

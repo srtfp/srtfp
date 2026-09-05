@@ -62,23 +62,6 @@ private theorem key192_bound :
 def triple192Nat (hi mid lo : UInt64) : Nat :=
   hi.toNat * 2 ^ 128 + mid.toNat * 2 ^ 64 + lo.toNat
 
-/-- A 192-bit triple is bounded by `2^192`. -/
-theorem triple192Nat_lt (hi mid lo : UInt64) :
-    triple192Nat hi mid lo < 2 ^ 192 := by
-  unfold triple192Nat
-  have hHi : hi.toNat < 2 ^ 64 := hi.toNat_lt
-  have hMid : mid.toNat < 2 ^ 64 := mid.toNat_lt
-  have hLo : lo.toNat < 2 ^ 64 := lo.toNat_lt
-  have h128 : (2 : Nat) ^ 128 = 2 ^ 64 * 2 ^ 64 := pow2_128_split
-  have h192 : (2 : Nat) ^ 192 = 2 ^ 64 * 2 ^ 64 * 2 ^ 64 := pow2_192_split
-  have hHi_bound : hi.toNat * 2 ^ 128 ≤ (2 ^ 64 - 1) * 2 ^ 128 := by
-    apply Nat.mul_le_mul_right; omega
-  have hMid_bound : mid.toNat * 2 ^ 64 ≤ (2 ^ 64 - 1) * 2 ^ 64 := by
-    apply Nat.mul_le_mul_right; omega
-  have hKey : (2 ^ 64 - 1) * 2 ^ 128 + (2 ^ 64 - 1) * 2 ^ 64 + 2 ^ 64 ≤ 2 ^ 192 :=
-    key192_bound
-  omega
-
 /-! ## Helper: carry detection in UInt64 -/
 
 /-- UInt64 add is mod 2^64. -/

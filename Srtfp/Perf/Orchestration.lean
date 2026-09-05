@@ -103,10 +103,8 @@ theorem cmpScaledMixed_packed_eq (a q b k : Int) :
 
 /-! ## Packed `inRoundingInterval` / `pickNearer` / `shortestUnsigned`
 
-The original `B < 2^64`-guarded packed `shiftedSig` kernel
-(`shiftedSig_packed` + its lemmas) lived here; with R20 it is superseded
-by the widened `shiftedSig_packed_w` (`Perf/KernelR20.lean`) and the
-unreachable original is preserved in `Perf/dead/PackedB64.lean`. -/
+`shiftedSig` is the widened `shiftedSig_packed_w` (`Perf/KernelR20.lean`),
+exact over the full binary64 domain. -/
 
 /-- Packed rounding-interval test.  Takes the four cmp-side precomputed
     values directly. -/
