@@ -5,6 +5,5 @@ benches/difftest_failures.log
 benches/__pycache__/
 benches/bench_java/*.class
 benches/perf.png
-benches/corpora/*
-!benches/corpora/SEED.txt
+benches/corpora/
 .claude/worktrees/

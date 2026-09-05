@@ -39,20 +39,14 @@ comparison. (`plot.py` only; `run.sh` omits it.)
 | `nice`        |  1024 | Stratified JSON-style mix: ints, currency, lat/long, timestamps, constants |
 | `uniform`     |  1024 | Random finite binary64 (uniform sign / biased exp / mantissa) |
 
-All inputs are generated deterministically (`SEED = 0xDEADBEEF`) by
-`gen_corpora.py` and serialised as IEEE-754 u64 bit patterns; each impl
-reconstructs floats via `Float.ofBits` / `std::bit_cast<double>` /
-`struct.unpack`, so the three bench harnesses see byte-for-byte identical
-arrays. The checksum step in `run.sh` aborts if this invariant ever drifts.
-
-## Regenerating the corpora
-
-```bash
-python3 benches/gen_corpora.py
-```
-
-Re-emits `Corpora.lean`, `corpora.h`, `corpora.cpp`. The emitted files
-are committed; users don't need to run the generator to build or bench.
+All inputs are generated deterministically from a fixed seed by
+`Corpora.lean` when the Lean benches load. For the other harnesses,
+`lake exe genCorpora` writes the same values to `corpora/<name>.u64` as
+IEEE-754 u64 bit patterns (one per line); each impl reconstructs floats
+via `std::bit_cast<double>` / `struct.unpack` / `longBitsToDouble`, so
+every harness sees byte-for-byte identical arrays. The checksum step in
+`run.sh` aborts if this invariant ever drifts. To draw a fresh random
+corpus, change `Corpora.seed`.
 
 ## Methodology
 
@@ -68,13 +62,11 @@ implementations stay constant.
 
 ## Files
 
-- `gen_corpora.py` — corpus generator + Python bench data source.
-- `Corpora.lean` — generated Lean corpus (committed).
-- `corpora.h` / `corpora.cpp` — generated C++ corpus (committed).
+- `Corpora.lean` — the corpus generator (fixed seed, SplitMix64).
+- `GenCorpora.lean` — `lake exe genCorpora`, writes `corpora/*.u64`.
 - `bench_ref.cpp` — `std::to_chars` + `snprintf` in one binary.
 - `bench_py.py`   — Python `repr` reference.
 - `bench_java/Bench.java` — JDK `Double.toString` (reference Schubfach).
-- `bench_java/Corpora.java` — generated Java corpus (committed).
 - `run.sh`        — build + sanity-check + run + summarise (text table).
 - `plot.py`       — build + checksum-gate + timing + bar chart (`perf.png`).
 

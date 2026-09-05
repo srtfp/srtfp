@@ -4,18 +4,29 @@
 // Schubfach algorithm — the same shortest-round-trip decimal algorithm this
 // repo implements in Lean. So this measures the canonical reference Schubfach.
 //
-// Inputs are the shared corpora (benches/gen_corpora.py -> Corpora.java),
-// reconstructed from u64 bit patterns, guaranteeing bit-identical inputs
-// across the Lean / C++ / Python / Java harnesses.
+// Inputs are the shared corpora (benches/corpora/<corpus>.u64, written by
+// `lake exe genCorpora`), reconstructed from u64 bit patterns, guaranteeing
+// bit-identical inputs across the Lean / C++ / Python / Java harnesses.
 //
 //   javac benches/bench_java/*.java -d benches/bench_java
 //   java -cp benches/bench_java Bench <adversarial|nice|uniform> [--checksum]
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 public final class Bench {
-  public static void main(String[] args) {
+  private static double[] load(String label) throws IOException {
+    return Files.lines(Paths.get("benches", "corpora", label + ".u64"))
+        .filter(l -> !l.isBlank())
+        .mapToDouble(l -> Double.longBitsToDouble(Long.parseUnsignedLong(l.trim())))
+        .toArray();
+  }
+
+  public static void main(String[] args) throws IOException {
     String label = args.length > 0 ? args[0] : "adversarial";
-    double[] xs = Corpora.get(label);
+    if (!label.equals("nice") && !label.equals("uniform")) label = "adversarial";
+    double[] xs = load(label);
 
     if (args.length > 1 && args[1].equals("--checksum")) {
       long s = 0;                       // long arithmetic wraps mod 2^64

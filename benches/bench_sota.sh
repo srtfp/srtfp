@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Build benches/bench_sota (state-of-the-art C++ baselines: std::to_chars,
-# Ryu, Dragonbox) against the shared corpora. Ryu and Dragonbox are fetched
-# into $SOTA_DIR (default: benches/sota-deps, gitignored) if absent.
+# Ryu, Dragonbox) against the shared corpora (written by `lake exe genCorpora`).
+# Ryu and Dragonbox are fetched into $SOTA_DIR (default: benches/sota-deps,
+# gitignored) if absent.
 #
 #   benches/bench_sota.sh            # build
 #   benches/bench_sota <impl> <corpus>
@@ -50,6 +51,6 @@ $CC  $FLAGS -std=c11 -I"$SOTA_DIR/ryu" -c -o "$SOTA_DIR/ryu_d2s.o" "$SOTA_DIR/ry
 $CXX $FLAGS -std=c++20 -I"$SOTA_DIR/dragonbox/include" -c -o "$SOTA_DIR/dragonbox_to_chars.o" \
      "$SOTA_DIR/dragonbox/source/dragonbox_to_chars.cpp"
 $CXX $FLAGS -std=c++20 -I"$SOTA_DIR/ryu" -I"$SOTA_DIR/dragonbox/include" \
-     -o benches/bench_sota benches/bench_sota.cpp benches/corpora.cpp \
+     -o benches/bench_sota benches/bench_sota.cpp \
      "$SOTA_DIR/ryu_d2s.o" "$SOTA_DIR/dragonbox_to_chars.o"
 echo "built benches/bench_sota ($($CXX --version | head -1))"

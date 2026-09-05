@@ -7,9 +7,9 @@
 #   C snprintf("%.17g")    — POSIX libc
 #   CPython repr(f)        — interpreter built-in
 #
-# Inputs are generated deterministically by benches/gen_corpora.py and
-# committed as benches/{Corpora.lean,corpora.h,corpora.cpp}; all three
-# impls reconstruct floats from u64 bit patterns, guaranteeing identity.
+# Inputs are generated deterministically by benches/Corpora.lean; `lake exe
+# genCorpora` writes them as u64 bit patterns for the other harnesses, which
+# reconstruct the floats bit for bit.
 #
 # Pin to a single core (taskset -c 0) to suppress migration noise.
 
@@ -20,9 +20,9 @@ CORPORA=(adversarial nice uniform)
 PIN="taskset -c ${BENCH_CORE:-0}"
 
 echo "== Building benches =="
-lake build benchFloatToString
-g++ -O3 -std=c++20 -march=native -o benches/bench_ref \
-    benches/bench_ref.cpp benches/corpora.cpp
+lake build benchFloatToString genCorpora
+lake exe genCorpora
+g++ -O3 -std=c++20 -march=native -o benches/bench_ref benches/bench_ref.cpp
 
 echo
 echo "== Cross-impl input sanity check =="

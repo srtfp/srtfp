@@ -52,11 +52,15 @@ lean_lib SrtfpBitsAxiomCheck where
 lean_lib SrtfpTest where
   globs := #[.submodules `SrtfpTest]
 
--- Auto-generated bench corpus (`benches/Corpora.lean`). Regenerate via
--- `python3 benches/gen_corpora.py`; the generated file is committed.
+-- The bench corpora (`benches/Corpora.lean`), generated at load time from a
+-- fixed seed. `lake exe genCorpora` writes them out for the other harnesses.
 lean_lib Corpora where
   srcDir := "benches"
   roots := #[`Corpora]
+
+lean_exe genCorpora where
+  srcDir := "benches"
+  root := `GenCorpora
 
 -- The test runner lives in `SrtfpTest/Main.lean` alongside the corpus modules.
 lean_exe test where

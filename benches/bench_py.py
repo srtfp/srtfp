@@ -3,20 +3,23 @@
 
 Usage: bench_py.py <adversarial|nice|uniform> [--checksum]
 
-Inputs come from gen_corpora.py (single source of truth), guaranteeing
-bit-identical inputs across the Lean / C++ / Python harnesses.
+Inputs come from benches/corpora/<corpus>.u64, written by `lake exe
+genCorpora`, guaranteeing bit-identical inputs across the harnesses.
 """
 import os
 import struct
 import sys
 import time
 
-# Ensure we import the sibling generator regardless of cwd.
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from gen_corpora import adversarial, nice, uniform  # noqa: E402
+def load(label):
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "corpora", f"{label}.u64")
+    with open(path) as f:
+        return [struct.unpack("<d", struct.pack("<Q", int(line)))[0] for line in f if line.strip()]
 
 label = sys.argv[1] if len(sys.argv) > 1 else "adversarial"
-xs = {"nice": nice, "uniform": uniform}.get(label, adversarial)
+if label not in ("nice", "uniform"):
+    label = "adversarial"
+xs = load(label)
 
 if "--checksum" in sys.argv[2:]:
     s = 0

@@ -17,7 +17,7 @@ Implementations compared (all compute the shortest round-tripping decimal):
 The non-competitive references (pure-Nat spec path, ryu-lean4) were dropped
 from the plot; linear scale shows the competitive field directly.
 
-Inputs come from benches/gen_corpora.py (single source of truth, fixed seed),
+Inputs come from benches/Corpora.lean (single source of truth, fixed seed),
 serialised as u64 bit patterns; every impl reconstructs the same floats.
 
 Run (from repo root):
@@ -76,11 +76,12 @@ def sh(cmd, env=None):
 
 def build():
     print("== building ==", flush=True)
-    sh(["python3", "benches/gen_corpora.py"])   # ensure corpora/*.u64 exist
+    sh(["lake", "build", "genCorpora"])
+    sh(["lake", "exe", "genCorpora"])           # write corpora/*.u64
     sh(["lake", "build", "benchFloatToString"])
     sh(["g++", "-O3", "-std=c++20", "-march=native", "-o", "benches/bench_ref",
-        "benches/bench_ref.cpp", "benches/corpora.cpp"])
-    sh(["javac", "benches/bench_java/Bench.java", "benches/bench_java/Corpora.java",
+        "benches/bench_ref.cpp"])
+    sh(["javac", "benches/bench_java/Bench.java",
         "-d", "benches/bench_java"])
 
 
