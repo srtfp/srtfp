@@ -2,10 +2,7 @@ import SrtfpTest.Spec
 import Srtfp
 import SrtfpAxiomCheck
 import SrtfpTest.Ryu
-import SrtfpTest.Uint64Kernel
-import SrtfpTest.Uint64Kernel192
-import SrtfpTest.KernelV13
-import SrtfpTest.KernelV14
+import SrtfpTest.Kernel
 import SrtfpTest.Text
 import SrtfpTest.Printer
 import SrtfpTest.Reader
@@ -15,18 +12,8 @@ open SrtfpSpec
 def main : IO UInt32 :=
   lspecIO (.ofList [
     ("ryu d2s + f2s edge cases", [Srtfp.Tests.Ryu.ryuTests]),
-    ("schubfach UInt64 kernel runtime cross-check",
-      [Srtfp.Tests.Uint64Kernel.runTests]),
-    ("schubfach kOfMQ_fast / floorLog10_fast runtime cross-check",
-      [Srtfp.Tests.Uint64Kernel.runFloorLogTests]),
-    ("schubfach 192-bit shiftedSig runtime cross-check",
-      [Srtfp.Tests.Uint64Kernel192.runTests]),
-    ("schubfach 192-bit end-to-end shortestUnsigned cross-check",
-      [Srtfp.Tests.Uint64Kernel192.runEndToEndTests]),
-    ("schubfach v13 kernel shortestUnsigned cross-check",
-      [Srtfp.Tests.KernelV13.runTests]),
-    ("schubfach v14 live-kernel cross-check",
-      [Srtfp.Tests.KernelV14.runTests]),
+    ("live printer kernel, fallback and emitter vs reference scan",
+      [Srtfp.Tests.Kernel.runTests]),
     ("text layer round-trip and dialect cross-check",
       [Srtfp.Tests.Text.runRoundTripTests, Srtfp.Tests.Text.runDialectTests]),
     ("reference printer vs live printer", [Srtfp.Tests.Printer.runTests]),

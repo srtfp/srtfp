@@ -1,32 +1,25 @@
 module
 /- Build-time pin of the LIVE `@[csimp]` kernel registrations.
 
-   The Schubfach optimization series replaced kernels via proven-equal
-   `@[csimp]` swaps. Each function must have exactly ONE registration
+   Each accelerated function must have exactly ONE registration
    (enforced by review), and this module asserts at compile time which
-   replacement the compiler will actually use. An import reorder or a stray new
-   registration that changes the live kernel FAILS THE BUILD here
-   instead of silently reverting performance.
+   replacement the compiler will actually use. An import reorder or a
+   stray new registration that changes the live kernel FAILS THE BUILD
+   here instead of silently reverting performance.
 
-   The optimization ladder, for orientation (each rung proven equal to
-   the previous; retired rungs survive only as proof waypoints or
-   differential-test baselines):
-     packed  shared `(q, k)` orchestration        (Orchestration.lean)
-     v2/v3   all-UInt64 kernel, boxed-free path   (Uint64Kernel/Bridge.lean)
-     v4      192-bit table, widened safe regime   (Kernel192Correctness.lean)
-     v5      no domain re-check on the hot path   (KernelV5.lean)
-     v6-v8   biased index, side tables, u64 API   (KernelV6.lean)
-     v13     boundary-product digits + flip3      (KernelV13*.lean)
-     v14     unboxed verdicts, biased exponent    (KernelV14.lean)
-   (V9-V12 were dropped; shared pieces live on in KernelSupport.lean.)
+   The printer's proof path, for orientation: kernel 0
+   (`Perf/Schubfach.lean`, equal to the reference by `SchubfachEq`)
+   = the packed orchestration (`Orchestration`, 128-bit table product,
+   R20 for the full binary64 range) = the flip3 boundary-digit kernel
+   (`KernelV13Flip3*`) = v13 (`KernelV13`) = v14 (`KernelV14`, unboxed
+   verdicts, biased exponent), the live kernel. An ambiguous 128-bit
+   verdict falls back to `shortestUnsignedN` (`Fallback`), kernel 0's
+   decision tree over `Nat` with an exact comparison where needed.
 
    Wired into `lake test` via AxiomCheck.lean. Not imported by `PP`
    (it pulls the Lean frontend, which library clients don't need). -/
 
 public meta import Lean
-public import Srtfp.Perf.KernelV6
-public import Srtfp.Perf.KernelV13
-public import Srtfp.Perf.DecimalV13
 public import Srtfp.Perf.KernelV14
 public import Srtfp.Perf.ReadFast
 
@@ -44,7 +37,6 @@ open Lean Elab Command Lean.Compiler in
   check `Srtfp.Printer.toDecimal `Srtfp.Schubfach.toDecimal_v14
   check `Srtfp.Schubfach.toDecimal `Srtfp.Schubfach.toDecimal_v14
   check `Srtfp.Schubfach.floatToStrRef `Srtfp.Schubfach.toStringFast10
-  check `Srtfp.Schubfach.shortestUnsigned `Srtfp.Schubfach.shortestUnsigned_v3
   check `Srtfp.Decimal.canonicaliseAux `Srtfp.Decimal.canonicaliseAux_fast2
   check `Srtfp.Decimal.mk' `Srtfp.Decimal.mk'_fast3
   check `Srtfp.Reader.ofDecimalBits `Srtfp.Reader.ofDecimalBits_fast

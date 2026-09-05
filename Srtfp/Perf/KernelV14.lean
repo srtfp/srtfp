@@ -21,7 +21,8 @@ module
    the live `@[csimp]` rewrites (pinned in `CsimpPin.lean`). -/
 
 public import Srtfp.Perf.KernelV13
-public import Srtfp.Perf.DecimalV13
+public import Srtfp.Perf.SchubfachEq
+public import Srtfp.Perf.Fallback
 
 @[expose] public section
 
@@ -228,7 +229,7 @@ def emitTail8 (sign : Sign) (mU qB : UInt64) : String :=
         if sig' = 0 then withSign sign "0"
         else emitChecked sign sig' exp'
     | none =>
-      let (sig, exp) := shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074)
+      let (sig, exp) := shortestUnsignedN mU.toNat ((qB.toNat : Int) - 1074)
       if sig = 0 then withSign sign "0"
       else if sig % 10 ≠ 0 then
         emitChecked sign sig exp
@@ -237,7 +238,7 @@ def emitTail8 (sign : Sign) (mU qB : UInt64) : String :=
         if sig' = 0 then withSign sign "0"
         else emitChecked sign sig' exp'
 
-/-- `toStringFast9` over the v14 kernel. -/
+/-- The live `Float → String` entry point, over the v14 kernel. -/
 @[inline]
 def toStringFast10 (f : _root_.Float) : String :=
   let bits := f.toBits
@@ -250,17 +251,6 @@ def toStringFast10 (f : _root_.Float) : String :=
     emitTail8 (if bits >>> 63 = 0 then .positive else .negative)
       (if expBits = 0 then mantBits else mantBits + 4503599627370496)
       (if expBits = 0 then 0 else expBits - 1)
-
-/-- Kernel-only entry for the profiler: `(sU, kB)` or the packed fallback. -/
-@[inline]
-def shortestUnsigned_v14 (mU qB : UInt64) : UInt64 × UInt64 :=
-  match shortestUnsigned_u64_opt_v14 mU qB with
-  | some p => p
-  | none =>
-    let (s, k) := shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074)
-    (UInt64.ofNat s, UInt64.ofNat (k + 324).toNat)
-
-/-! ## Leaf transfers to v13 -/
 
 theorem cmpScaledMixed_u64_L_v14_eq (aU s : UInt64) :
     cmpScaledMixed_u64_L_v14 aU s = cmpScaledMixed_u64_L aU s := by
@@ -493,62 +483,22 @@ theorem shortestUnsigned_u64_opt_v14_some_eq_v13 (mU qB sU kB : UInt64)
 
 /-! ## Emit and entry points -/
 
-theorem emitIdx_eq (sign : Sign) (sig : Nat) (kB : UInt64) :
-    emitIdx sign sig kB.toNat = emitChecked sign sig ((kB.toNat : Int) - 324) := by
-  rw [← emitCheckedIdx_eq sign sig _ (by omega)]
-  unfold emitIdx emitCheckedIdx
-  have h : (((kB.toNat : Int) - 324) + 324).toNat = kB.toNat := by omega
-  simp only [h]
+/-- The `Decimal` tail of kernel 0 over `(m, q)`: the proof-side twin of
+    `decimalTail_v14`. -/
+def decimalTailNat (sign : Sign) (m : Nat) (q : Int) : _root_.Srtfp.Decimal :=
+  if m = 0 then ⟨sign, 0, 0⟩
+  else
+    let (sig, exp) := shortestUnsigned m q
+    Srtfp.Decimal.mk' sign sig exp
 
-theorem emitTail8_eq (sign : Sign) (mU qB : UInt64) :
-    emitTail8 sign mU qB = emitTail2 sign mU qB := by
-  unfold emitTail8 emitTail2
-  by_cases h0 : mU = 0
-  · rw [if_pos h0, if_pos h0]
-  rw [if_neg h0, if_neg h0]
-  have h8pk : shortestUnsigned_v8 mU qB
-      = shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074) := by
-    rw [shortestUnsigned_v8_eq_v7, shortestUnsigned_v7_eq_v5, shortestUnsigned_v5_eq,
-        ← shortestUnsigned_packed_eq]
-  rw [h8pk]
-  cases hv : shortestUnsigned_u64_opt_v14 mU qB with
-  | none => rfl
-  | some p =>
-    obtain ⟨sU, kB⟩ := p
-    have hpk : shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074)
-        = (sU.toNat, (kB.toNat : Int) - 324) :=
-      shortestUnsigned_u64_opt_flip3_some_eq_packed _ _ _ _
-        (shortestUnsigned_u64_opt_v13_some_eq_flip3 mU qB _
-          (shortestUnsigned_u64_opt_v14_some_eq_v13 mU qB sU kB hv))
-    rw [hpk]
-    simp only []
-    rw [emitIdx_eq]
-    have hmod : (sU % 10 = 0) ↔ (sU.toNat % 10 = 0) := by
-      rw [← UInt64.toNat_inj, UInt64.toNat_mod]; rfl
-    by_cases hs0 : sU.toNat = 0
-    · rw [if_pos hs0]
-      have hm0 : ¬ (sU % 10 ≠ 0) := fun hc => hc (hmod.mpr (by rw [hs0]))
-      rw [if_neg hm0, hs0, Srtfp.Decimal.canonicaliseAux_zero]
-      simp
-    · rw [if_neg hs0]
-      by_cases hm : sU.toNat % 10 ≠ 0
-      · rw [if_pos hm, if_pos (fun hc => hm (hmod.mp hc))]
-      · rw [if_neg hm, if_neg (fun hc => hm (fun hc' => hc (hmod.mpr hc')))]
-
-theorem toStringFast10_eq (f : _root_.Float) : toStringFast10 f = toStringFast4 f := by
-  unfold toStringFast10 toStringFast4
-  simp only [emitTail8_eq]
-
-/-- The live `Float → String` registration (later registrations win over
-    `floatToStrRef_eq_toStringFast9`; `CsimpPin.lean` asserts this one is
-    in force). -/
-@[csimp]
-theorem floatToStrRef_eq_toStringFast10 : @floatToStrRef = @toStringFast10 := by
-  funext f
-  rw [toStringFast10_eq]
-  exact congrFun floatToStrRef_eq_toStringFast4 f
-
-/-! ## `toDecimal` over the v14 kernel -/
+open Srtfp.Float in
+theorem toDecimal_finite (f : _root_.Float)
+    (hNaN : ¬ isNaNBits f = true) (hInf : ¬ isInfBits f = true) :
+    toDecimal f = some (decimalTailNat (decode f).sign (decode f).m (decode f).q) := by
+  unfold toDecimal toDecimalBits decimalTailNat
+  simp only [← isNaNBits_word, ← isInfBits_word, ← decode_word, hNaN, hInf,
+    Bool.false_eq_true, if_false]
+  by_cases h : (decode f).m = 0 <;> simp [h]
 
 /-- `decimalTail` over the v14 kernel: the exponent is unbiased once, at
     the exit. -/
@@ -559,7 +509,7 @@ def decimalTail_v14 (sign : Sign) (mU qB : UInt64) : _root_.Srtfp.Decimal :=
     match shortestUnsigned_u64_opt_v14 mU qB with
     | some (sU, kB) => Srtfp.Decimal.mk' sign sU.toNat ((kB.toNat : Int) - 324)
     | none =>
-      let (sig, exp) := shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074)
+      let (sig, exp) := shortestUnsignedN mU.toNat ((qB.toNat : Int) - 1074)
       Srtfp.Decimal.mk' sign sig exp
 
 theorem decimalTail_v14_eq (sign : Sign) (mU qB : UInt64) :
@@ -569,14 +519,15 @@ theorem decimalTail_v14_eq (sign : Sign) (mU qB : UInt64) :
   by_cases h0 : mU = 0
   · rw [if_pos h0, if_pos (by rw [h0]; rfl)]
   rw [if_neg h0, if_neg (fun hc => h0 (UInt64.toNat_inj.mp (by rw [hc]; rfl)))]
-  rw [shortestUnsigned_v7_eq, ← shortestUnsigned_packed_eq]
+  rw [← shortestUnsignedN_eq]
   cases hv : shortestUnsigned_u64_opt_v14 mU qB with
   | none => rfl
   | some p =>
     obtain ⟨sU, kB⟩ := p
-    have hpk : shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074)
-        = (sU.toNat, (kB.toNat : Int) - 324) :=
-      shortestUnsigned_u64_opt_flip3_some_eq_packed _ _ _ _
+    have hpk : shortestUnsignedN mU.toNat ((qB.toNat : Int) - 1074)
+        = (sU.toNat, (kB.toNat : Int) - 324) := by
+      rw [shortestUnsignedN_eq, ← shortestUnsigned_packed_eq]
+      exact shortestUnsigned_u64_opt_flip3_some_eq_packed _ _ _ _
         (shortestUnsigned_u64_opt_v13_some_eq_flip3 mU qB _
           (shortestUnsigned_u64_opt_v14_some_eq_v13 mU qB sU kB hv))
     rw [hpk]
@@ -594,19 +545,164 @@ def toDecimal_v14 (f : _root_.Float) : Option _root_.Srtfp.Decimal :=
       (if expBits = 0 then mantBits else mantBits + 4503599627370496)
       (if expBits = 0 then 0 else expBits - 1))
 
-theorem toDecimal_v14_eq (f : _root_.Float) : toDecimal_v14 f = toDecimal_v13 f := by
-  unfold toDecimal_v14 toDecimal_v13
-  simp only [decimalTail_v14_eq, decimalTail_eq]
+open Srtfp.Float in
+theorem toDecimal_v14_eq (f : _root_.Float) : toDecimal_v14 f = toDecimal f := by
+  unfold toDecimal_v14
+  have hexp : ((f.toBits >>> 52) &&& 0x7FF : UInt64).toNat = biasedExpBits f := rfl
+  have hmant : (f.toBits &&& 0x000F_FFFF_FFFF_FFFF : UInt64).toNat = mantissaBits f := rfl
+  by_cases h7 : ((f.toBits >>> 52) &&& 0x7FF : UInt64) = 0x7FF
+  · rw [if_pos h7]
+    unfold toDecimal toDecimalBits
+    simp only [← isNaNBits_word, ← isInfBits_word]
+    have hbE : biasedExpBits f = 2047 := by rw [← hexp, h7]; rfl
+    by_cases hm0 : mantissaBits f = 0
+    · have hInf : isInfBits f = true := by simp [isInfBits, hbE, hm0]
+      simp [hInf]
+    · have hNaN : isNaNBits f = true := by simp [isNaNBits, hbE, hm0]
+      simp [hNaN]
+  · -- finite
+    have hbE : biasedExpBits f ≠ 2047 := by
+      intro hc
+      exact h7 (UInt64.toNat_inj.mp (by rw [hexp, hc]; rfl))
+    have hNaN : ¬ isNaNBits f = true := by simp [isNaNBits, hbE]
+    have hInf : ¬ isInfBits f = true := by simp [isInfBits, hbE]
+    rw [if_neg h7, toDecimal_finite f hNaN hInf, decimalTail_v14_eq]
+    congr 2
+    · -- sign
+      show (if f.toBits >>> 63 = 0 then Sign.positive else Sign.negative) = (decode f).sign
+      have : (decode f).sign = signBit f := by
+        unfold decode
+        by_cases h : biasedExpBits f = 0 <;> simp [h]
+      rw [this]; rfl
+    · -- m
+      by_cases h0 : ((f.toBits >>> 52) &&& 0x7FF : UInt64) = 0
+      · have hbE0 : biasedExpBits f = 0 := by rw [← hexp, h0]; rfl
+        rw [if_pos h0, show (decode f).m = mantissaBits f from by simp [decode, hbE0]]
+        exact hmant
+      · have hbE0 : biasedExpBits f ≠ 0 := by
+          intro hc
+          exact h0 (UInt64.toNat_inj.mp (by rw [hexp, hc]; rfl))
+        have hmlt : mantissaBits f < 2 ^ 52 := by
+          simp only [mantissaBits, UInt64.toNat_and,
+            show (0x000F_FFFF_FFFF_FFFF : UInt64).toNat = 0x000F_FFFF_FFFF_FFFF from rfl]
+          have := Nat.and_le_right (n := f.toBits.toNat) (m := 0x000F_FFFF_FFFF_FFFF)
+          omega
+        rw [if_neg h0,
+          show (decode f).m = mantissaBits f + (1 <<< 52) from by simp [decode, hbE0]]
+        rw [UInt64.toNat_add, hmant,
+          show ((4503599627370496 : UInt64)).toNat = 1 <<< 52 from rfl]
+        exact Nat.mod_eq_of_lt (by omega)
+    · -- q
+      by_cases h0 : ((f.toBits >>> 52) &&& 0x7FF : UInt64) = 0
+      · have hbE0 : biasedExpBits f = 0 := by rw [← hexp, h0]; rfl
+        rw [if_pos h0, show (decode f).q = -1074 from by simp [decode, hbE0]]
+        rfl
+      · have hbE0 : biasedExpBits f ≠ 0 := by
+          intro hc
+          exact h0 (UInt64.toNat_inj.mp (by rw [hexp, hc]; rfl))
+        rw [if_neg h0,
+          show (decode f).q = (biasedExpBits f : Int) - 1023 - 52 from by
+            simp [decode, hbE0]]
+        have h1 : (1 : UInt64) ≤ ((f.toBits >>> 52) &&& 0x7FF) := by
+          rw [UInt64.le_iff_toNat_le, show ((1 : UInt64)).toNat = 1 from rfl]
+          by_contra hc
+          exact h0 (UInt64.toNat_inj.mp
+            (by rw [show ((0 : UInt64)).toNat = 0 from rfl]; omega))
+        rw [UInt64.toNat_sub_of_le _ _ h1, show ((1 : UInt64)).toNat = 1 from rfl, hexp]
+        have h2 : 1 ≤ biasedExpBits f := by
+          rw [UInt64.le_iff_toNat_le] at h1
+          exact h1
+        omega
 
 /-- The live `Float → Decimal` registrations. -/
 @[csimp]
 theorem toDecimal_eq_v14_csimp : @toDecimal = @toDecimal_v14 := by
   funext f
-  rw [toDecimal_v14_eq, toDecimal_v13_eq, toDecimal_v7_eq]
+  rw [toDecimal_v14_eq]
 
 @[csimp]
 theorem printer_toDecimal_eq_v14_csimp : @Printer.toDecimal = @toDecimal_v14 := by
   funext f
-  rw [toDecimal_v14_eq, toDecimal_v13_eq, toDecimal_v7_eq_printer]
+  rw [toDecimal_v14_eq, ← congrFun toDecimal_eq_printer f]
+
+/-! ## The string emitter -/
+
+theorem emitIdx_eq (sign : Sign) (sig : Nat) (kB : UInt64) :
+    emitIdx sign sig kB.toNat = emitChecked sign sig ((kB.toNat : Int) - 324) := by
+  rw [← emitCheckedIdx_eq sign sig _ (by omega)]
+  unfold emitIdx emitCheckedIdx
+  have h : (((kB.toNat : Int) - 324) + 324).toNat = kB.toNat := by omega
+  simp only [h]
+
+theorem emitTail8_eq (sign : Sign) (mU qB : UInt64) :
+    emitTail8 sign mU qB = decimalToStrRef (decimalTail_v14 sign mU qB) := by
+  unfold emitTail8 decimalTail_v14
+  by_cases h0 : mU = 0
+  · rw [if_pos h0, if_pos h0]; rfl
+  rw [if_neg h0, if_neg h0]
+  cases hv : shortestUnsigned_u64_opt_v14 mU qB with
+  | none =>
+    simp only []
+    rcases shortestUnsignedN mU.toNat ((qB.toNat : Int) - 1074) with ⟨sig, exp⟩
+    rw [decimalToStrRef_mk', emitChecked_eq]
+    by_cases hs0 : sig = 0
+    · rw [if_pos hs0, if_pos hs0]
+    rw [if_neg hs0, if_neg hs0]
+    by_cases hm : sig % 10 ≠ 0
+    · rw [if_pos hm, if_pos hm]
+    · rw [if_neg hm, if_neg hm]
+      rcases Srtfp.Decimal.canonicaliseAux sig exp with ⟨sig', exp'⟩
+      simp only [emitChecked_eq]
+  | some p =>
+    obtain ⟨sU, kB⟩ := p
+    simp only []
+    rw [decimalToStrRef_mk', emitIdx_eq, emitChecked_eq]
+    have hmod : (sU % 10 = 0) ↔ (sU.toNat % 10 = 0) := by
+      rw [← UInt64.toNat_inj, UInt64.toNat_mod]; rfl
+    by_cases hs0 : sU.toNat = 0
+    · rw [if_pos hs0]
+      have hm0 : ¬ (sU % 10 ≠ 0) := fun hc => hc (hmod.mpr (by rw [hs0]))
+      rw [if_neg hm0, hs0, Srtfp.Decimal.canonicaliseAux_zero]
+      simp
+    · rw [if_neg hs0]
+      by_cases hm : sU.toNat % 10 ≠ 0
+      · rw [if_pos hm, if_pos (fun hc => hm (hmod.mp hc))]
+      · rw [if_neg hm, if_neg (fun hc => hm (fun hc' => hc (hmod.mpr hc')))]
+        rcases Srtfp.Decimal.canonicaliseAux sU.toNat ((kB.toNat : Int) - 324) with ⟨sig', exp'⟩
+        simp only [emitChecked_eq]
+
+open Srtfp.Float in
+theorem toStringFast10_eq (f : _root_.Float) : toStringFast10 f = floatToStrRef f := by
+  unfold floatToStrRef
+  rw [← congrFun toDecimal_eq_printer f, ← toDecimal_v14_eq f]
+  unfold toStringFast10 toDecimal_v14
+  have hexp : ((f.toBits >>> 52) &&& 0x7FF : UInt64).toNat = biasedExpBits f := rfl
+  have hmant : (f.toBits &&& 0x000F_FFFF_FFFF_FFFF : UInt64).toNat = mantissaBits f := rfl
+  by_cases h7 : ((f.toBits >>> 52) &&& 0x7FF : UInt64) = 0x7FF
+  · rw [if_pos h7, if_pos h7]
+    have hbE : biasedExpBits f = 2047 := by rw [← hexp, h7]; rfl
+    by_cases hm : (f.toBits &&& 0x000F_FFFF_FFFF_FFFF : UInt64) = 0
+    · have hm0 : mantissaBits f = 0 := by rw [← hmant, hm]; rfl
+      have hNaN : ¬ isNaNBits f = true := by simp [isNaNBits, hbE, hm0]
+      rw [if_neg (by simp [hm])]
+      simp only [hNaN, Bool.false_eq_true, if_false, signBit, withSign]
+      split <;> simp_all
+    · have hm0 : mantissaBits f ≠ 0 := by
+        intro hc
+        exact hm (UInt64.toNat_inj.mp (by rw [hmant, hc]; rfl))
+      have hNaN : isNaNBits f = true := by simp [isNaNBits, hbE, hm0]
+      rw [if_pos hm]
+      simp [hNaN]
+  · rw [if_neg h7, if_neg h7]
+    exact emitTail8_eq _ _ _
+
+/-- The live `Float → String` registration (`CsimpPin.lean` asserts it is
+    in force). -/
+@[csimp]
+theorem floatToStrRef_eq_toStringFast10 : @floatToStrRef = @toStringFast10 := by
+  funext f
+  exact (toStringFast10_eq f).symm
+
+/-! ## `toDecimal` over the v14 kernel -/
 
 end Srtfp.Schubfach

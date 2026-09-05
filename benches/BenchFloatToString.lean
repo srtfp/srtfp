@@ -1,11 +1,4 @@
-import Srtfp.Perf.Schubfach
-import Srtfp.Decimal
-import Srtfp.Perf.Orchestration
-import Srtfp.Perf.Uint64Bridge
-import Srtfp.Perf.Kernel192Correctness
-import Srtfp.Perf.DigitsFast
-import Srtfp.Perf.KernelV13
-import Srtfp.Perf.KernelV14
+import Srtfp.Perf
 import Corpora
 
 open Srtfp
@@ -41,10 +34,6 @@ def main (args : List String) : IO Unit := do
   -- then costs ~20 ns per size class per call, see the profile); this mode
   -- shows the cost with a warm heap, as in a real workload.
   let keep := args.contains "--keep"
-  -- `v13`: time the previous live kernel (`toStringFast9`) in the plain
-  -- loop (ignores `--keep`), for interleaved before/after runs from one
-  -- binary.
-  let v13 := args.contains "v13"
   let N : Nat := 1000
   let M : Nat := 5
   for _ in [0:50] do
@@ -60,10 +49,6 @@ def main (args : List String) : IO Unit := do
       for _ in [0:N] do
         for f in testInputs do
           sink := sink ^^^ (f.toBits >>> 58).toNat
-    else if v13 then
-      for _ in [0:N] do
-        for f in testInputs do
-          sink := sink ^^^ (Srtfp.Schubfach.toStringFast9 f).length
     else if keep then
       let mut i : Nat := 0
       for _ in [0:N] do

@@ -35,7 +35,7 @@
 
 import SrtfpTest.Spec
 import Srtfp.Perf.Schubfach
-import Srtfp.Perf.KernelV6
+import Srtfp.Perf
 import Srtfp.Perf.StringFast
 import Srtfp.Reader
 

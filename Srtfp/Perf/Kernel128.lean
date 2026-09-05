@@ -6,9 +6,8 @@ module
 
    The correctness theory (`shiftedSig_sandwich`, `shiftedSig_floor_safe`,
    `verdict_plus_one_correct`, `cmpScaledMixed_of_nonneg`, table-precision
-   bounds, etc.) lives in `KernelCorrectness.lean` and is shared with the
-   192-bit Perf variants in `Perf/Kernel192Correctness.lean`.  This file
-   contains only the fast2-specific assembly:
+   bounds, etc.) lives in `KernelCorrectness.lean`.  This file contains
+   only the fast2-specific assembly:
 
    - `cmpScaledMixed_verdict_plus_one` / `_minus_one` — Int verdict bridges
    - `kernel_L_mid_zero` / `_mid_nonzero` / `_hi_zero` / `_hi_nonzero`

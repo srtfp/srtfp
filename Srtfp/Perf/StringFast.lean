@@ -1,20 +1,10 @@
 module
-/- Phase C: `Schubfach.toStringFast` — fused Float → String fast path.
+/- The reference `Float → String` shape the fast string kernel is proven
+   against (`floatToStrRef`), the exponent-suffix table, and the
+   `Decimal.mk'`-to-string identity every emitter proof ends in. -/
 
-   Skips the `Option Decimal` boxing on the success path and the
-   `Decimal` constructor/destructor round-trip from `floatToStr`.
-
-   `floatToStrRef` is the spec — verbatim shape of the prior bench code.
-   `toStringFast` is the runtime form, proven equal pointwise and wired
-   via `@[csimp]` so callers of `floatToStrRef` go through the fast path. -/
-
+public import Srtfp.Printer
 public import Srtfp.Perf.Schubfach
-public import Srtfp.Perf.Orchestration
-public import Srtfp.Perf.Uint64Bridge
-public import Srtfp.Perf.Kernel192Correctness
-public import Srtfp.Perf.KernelV5
-public import Srtfp.Perf.DecimalFast
-public import Srtfp.Perf.SchubfachEq
 
 @[expose] public section
 
@@ -25,7 +15,7 @@ namespace Srtfp.Schubfach
 open Srtfp.Float
 open Srtfp.Decimal (canonicaliseAux)
 
-/-! ## Reference: the bench's `floatToStr` shape, lifted as a verifiable spec. -/
+/-! ## Reference strings -/
 
 /-- Reference `Int → String`.  Byte-identical to `toString : Int → String`
     (whose `ToString` instance routes through the OPAQUE
@@ -48,35 +38,43 @@ def floatToStrRef (f : _root_.Float) : String :=
   | some d => decimalToStrRef d
   | none => if isNaNBits f then "NaN" else withSign (signBit f) "Infinity"
 
-/-! ## Fast path: avoid Option + Decimal allocation. -/
+/-! ## The exponent suffix table -/
 
-/-- Fused `Float → String`. Mirrors `toDecimal`'s control flow but
-    inlines the `Option` and `Decimal` wrappers — the success path drops
-    straight from `(sig, exp)` to the final `++` chain. -/
+/-- `"e-324"`, `"e-323"`, ..., `"e292"`: every canonical binary64
+    shortest-decimal exponent, with the `'e'` pre-attached. -/
+def expTable : Array String :=
+  Array.ofFn (fun i : Fin 617 => "e" ++ intToStrRef ((i.val : Int) - 324))
+
+theorem expTable_size : expTable.size = 617 := by
+  simp [expTable]
+
+/-- Fast emit when `exp` is in the canonical binary64 range (always, for
+    Schubfach outputs), reference emit otherwise. -/
 @[inline]
-def toStringFast (f : _root_.Float) : String :=
-  if isNaNBits f then "NaN"
-  else if isInfBits f then (withSign (signBit f) "Infinity")
+def emitChecked (sign : Sign) (sig : Nat) (exp : Int) : String :=
+  if h : -324 ≤ exp ∧ exp ≤ 292 then
+    let core := toString sig ++
+      expTable[(exp + 324).toNat]'(by rw [expTable_size]; omega)
+    withSign sign core
   else
-    let d := decode f
-    if d.m = 0 then withSign d.sign "0"
-    else
-      let (sig, exp) := shortestUnsigned_v5 d.m d.q
-      -- Inline `Decimal.mk'_fast2` logic: derive the canonical (sig', exp').
-      if sig = 0 then withSign d.sign "0"
-      else if sig % 10 ≠ 0 then
-        -- No trailing zeros: skip canonicaliseAux entirely (common case for
-        -- Schubfach outputs that don't end in 0).
-        withSign d.sign (toString sig ++ "e" ++ intToStrRef exp)
-      else
-        let (sig', exp') := canonicaliseAux sig exp
-        if sig' = 0 then withSign d.sign "0"
-        else
-          withSign d.sign (toString sig' ++ "e" ++ intToStrRef exp')
+    withSign sign (toString sig ++ "e" ++ intToStrRef exp)
 
-/-! ## Equivalence proof. -/
+theorem emitChecked_eq (sign : Sign) (sig : Nat) (exp : Int) :
+    emitChecked sign sig exp =
+      withSign sign (toString sig ++ "e" ++ intToStrRef exp) := by
+  unfold emitChecked
+  split
+  · rename_i h
+    rw [show expTable[(exp + 324).toNat]'(by rw [expTable_size]; omega)
+          = "e" ++ intToStrRef (((exp + 324).toNat : Int) - 324) from by
+      simp [expTable]]
+    rw [show (((exp + 324).toNat : Int) - 324) = exp from by omega]
+    rw [String.append_assoc]
+  · rfl
 
-private theorem decimalToStrRef_mk' (sign : Sign) (sig : Nat) (exp : Int) :
+/-! ## `Decimal.mk'` as a string -/
+
+theorem decimalToStrRef_mk' (sign : Sign) (sig : Nat) (exp : Int) :
     decimalToStrRef (_root_.Srtfp.Decimal.mk' sign sig exp)
       = (if sig = 0 then withSign sign "0"
         else if sig % 10 ≠ 0 then
@@ -97,34 +95,5 @@ private theorem decimalToStrRef_mk' (sign : Sign) (sig : Nat) (exp : Int) :
     rw [hCanon, if_pos hsmod]
     simp [hs0]
   · rw [if_neg hsmod]
-
-theorem toStringFast_eq_ref (f : _root_.Float) : toStringFast f = floatToStrRef f := by
-  unfold toStringFast floatToStrRef
-  rw [← congrFun toDecimal_eq_printer f]
-  unfold toDecimal toDecimalBits
-  simp only [← isNaNBits_word, ← isInfBits_word, ← signBit_word, ← decode_word]
-  by_cases h1 : isNaNBits f = true
-  · simp [h1]
-  by_cases h2 : isInfBits f = true
-  · simp [h1, h2] <;> split <;> simp [*]
-  simp only [h1, h2, if_false, Bool.false_eq_true]
-  by_cases h3 : (decode f).m = 0
-  · simp [h3, decimalToStrRef]
-  simp only [h3, if_false]
-  rw [show shortestUnsigned (decode f).m (decode f).q
-        = shortestUnsigned_v5 (decode f).m (decode f).q from
-        (shortestUnsigned_v5_eq _ _).symm]
-  -- pattern-match the prod
-  obtain ⟨sig, exp⟩ : Nat × Int := shortestUnsigned_v5 (decode f).m (decode f).q
-  show (if sig = 0 then withSign (decode f).sign "0"
-        else if sig % 10 ≠ 0 then
-          withSign (decode f).sign (toString sig ++ "e" ++ intToStrRef exp)
-        else
-          let (sig', exp') := canonicaliseAux sig exp
-          if sig' = 0 then withSign (decode f).sign "0"
-          else
-            withSign (decode f).sign (toString sig' ++ "e" ++ intToStrRef exp'))
-      = decimalToStrRef (_root_.Srtfp.Decimal.mk' (decode f).sign sig exp)
-  rw [decimalToStrRef_mk']
 
 end Srtfp.Schubfach

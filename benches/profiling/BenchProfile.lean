@@ -3,7 +3,6 @@
    | emit variants | full (v14 live, v13 previous).
    Run: lake exe benchProfile [adversarial|nice|uniform]   (default uniform) -/
 import Srtfp.Perf
-import Srtfp.Perf.KernelV14
 import Corpora
 open Srtfp Srtfp.Schubfach Srtfp.Float
 
@@ -77,20 +76,13 @@ def main (args : List String) : IO Unit := do
   timeIt "1c two allocs/frees per call (Except.ok pair)" N sz (fun _ => (corpus.foldl (init := (0 : UInt64)) (fun a f =>
       a ^^^ (match mkExceptPair f.toBits with | .ok p => p.1 | .error _ => 0))).toNat)
   timeIt "2 decode (Float→m,q)"      N sz (fun _ => corpus.foldl (init := 0) (fun a f => a ^^^ (decode f).m))
-  timeIt "3 kernel v13 (previous, from bit fields)" N sz (fun _ => (corpus.foldl (init := (0 : UInt64)) (fun a f =>
+  timeIt "3 kernel v14 (live, unboxed)" N sz (fun _ => (corpus.foldl (init := (0 : UInt64)) (fun a f =>
       let bits : UInt64 := f.toBits
       let expBits : UInt64 := (bits >>> 52) &&& 0x7FF
       let mantBits : UInt64 := bits &&& 0x000F_FFFF_FFFF_FFFF
       let mU := if expBits = 0 then mantBits else mantBits + 4503599627370496
       let qB := if expBits = 0 then 0 else expBits - 1
-      a ^^^ UInt64.ofNat (shortestUnsigned_v13 mU qB).1)).toNat)
-  timeIt "3b kernel v14 (live, unboxed)" N sz (fun _ => (corpus.foldl (init := (0 : UInt64)) (fun a f =>
-      let bits : UInt64 := f.toBits
-      let expBits : UInt64 := (bits >>> 52) &&& 0x7FF
-      let mantBits : UInt64 := bits &&& 0x000F_FFFF_FFFF_FFFF
-      let mU := if expBits = 0 then mantBits else mantBits + 4503599627370496
-      let qB := if expBits = 0 then 0 else expBits - 1
-      a ^^^ (shortestUnsigned_v14 mU qB).1)).toNat)
+      a ^^^ (match shortestUnsigned_u64_opt_v14 mU qB with | some p => p.1 | none => 0))).toNat)
   timeIt "4 toDecimal (Printer.toDecimal, live)" N sz (fun _ => (corpus.foldl (init := (0 : UInt64)) (fun a f =>
       a ^^^ (match Printer.toDecimal f with | some d => UInt64.ofNat d.significand | _ => 0))).toNat)
   timeIt "5 int→string (toString sig)" N decs.size (fun _ => sigs.foldl (init := 0) (fun a s => a ^^^ (toString s).length))
@@ -104,4 +96,3 @@ def main (args : List String) : IO Unit := do
   timeIt "6d emit: String.push (unverified)" N decs.size (fun _ => decs.foldl (init := 0) (fun a t =>
       a ^^^ (emitPush t.1 t.2.1 t.2.2).length))
   timeIt "7 FULL floatToStrRef (live: toStringFast10/v14)" N sz (fun _ => corpus.foldl (init := 0) (fun a f => a ^^^ (floatToStrRef f).length))
-  timeIt "7b FULL toStringFast9 (previous v13)" N sz (fun _ => corpus.foldl (init := 0) (fun a f => a ^^^ (toStringFast9 f).length))

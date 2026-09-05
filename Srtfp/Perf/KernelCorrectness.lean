@@ -4,9 +4,8 @@ module
 
    This file bridges the per-component Nat lemmas in `Kernel192.lean` to
    the integer-level comparisons in `cmpScaledMixed` / `shiftedSig`.  It
-   contains the *foundational* lemmas shared between the 128-bit Perf
-   variant (`Perf/Kernel128.lean`) and the 192-bit Perf variant
-   (`Perf/Kernel192Correctness.lean`):
+   contains the *foundational* lemmas the 128-bit Perf variant
+   (`Perf/Kernel128.lean`) is assembled from:
 
    - 192-bit comparison: `gt192_iff`, `le192_iff`
    - Abstract verdict correctness: `verdict_plus_one_correct`,

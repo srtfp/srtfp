@@ -1,26 +1,9 @@
 module
-/- All-UInt64 fast-path kernels for Schubfach's `toDecimal` inner loop.
-
-The `_packed` kernels in `Orchestration.lean` already use UInt64 inside
-their fast path, but their **arguments** are still `Int`/`Nat`, which
-forces the Lean compiler to box them at each function-call boundary
-even though the actual values fit comfortably in machine words.  Each
-`cmpScaledMixed_packed` call therefore round-trips `a, b, q, k, qPlusH`
-through boxed (heap-allocated, GMP-sized) `Int` objects.
-
-This file mirrors the `_packed` kernels with `_u64` variants whose
-arguments and intermediates are all `UInt64`.  Preconditions
-(`a, b < 2^60`, `qPlusH ∈ [64, 132]`, `m < 2^53`, `s ≤ m·2^{q+h}/2^h`,
-etc.) are now caller-enforced — the kernels themselves perform no
-guards.
-
-The chain bottoms out at `shortestUnsigned_v2`, which is the new
-top-level orchestration; for inputs in the binary64 regime it stays
-entirely on the UInt64 path.  Out-of-regime inputs (which never arise
-from `decode : Float → Decoded`, since binary64 fixes
-`m ≤ 2^53`, `q ∈ [-1074, 971]`) delegate to the existing
-`shortestUnsigned_packed` for total correctness.
--/
+/- The all-`UInt64` comparator behind the live kernels: `cmpScaledMixed`
+   with the 128-bit table product and strict `gt192` / `le192` verdicts
+   (`0` when the product is not decisive), the `UInt64` floor-log and `k`
+   forms, and the `UInt64` arithmetic identities the kernel proofs use
+   under binary64 size bounds. -/
 public import Srtfp.Perf.Schubfach
 public import Srtfp.Perf.Orchestration
 public import Srtfp.Perf.Tactics
@@ -32,14 +15,9 @@ namespace Srtfp.Schubfach
 /-! ## Pure-UInt64 comparator
 
 `cmpScaledMixed_u64` returns the ternary verdict as an `Int` (`+1` = GT,
-`-1` = LT, `0` = ambiguous).  The caller is responsible for handling
-the ambiguous case (`0`) by falling back to the slow path.  Note that
-`cmpScaledMixed` itself can return `0` (EQ), but the strict-verdict
-kernel here returns `0` ONLY when ambiguous; true EQ flows through the
-slow-path fallback.
-
-`@[inline]` lets clang see the constants at the call site so the boxed-
-`Int` return collapses (the consumer just compares `< 0`, `= 0`, etc.). -/
+`-1` = LT, `0` = ambiguous). The caller handles the ambiguous case by
+falling back. `cmpScaledMixed` itself can return `0` (EQ); the strict
+kernel returns `0` ONLY when ambiguous, so a true EQ reaches the fallback. -/
 
 /-- Helper to compute the L triple `(l_hi, l_mid, l_lo)` from `aU` and
     the shift `s = qPlusH8`. -/
@@ -132,59 +110,6 @@ theorem cmpScaledMixed_packed_eq_u64_slow
   rw [if_neg (by omega : ¬(qPlusH < 64 ∨ qPlusH ≥ 192))]
   rw [if_neg (by omega : ¬(qPlusH > 132))]
 
-
-/-! ## Pure-UInt64 `inRoundingInterval`
-
-Two `cmpScaledMixed_u64` calls share `R = bU·G`; only `aU` differs.
-Both call sites supply UInt64 args directly.  The ambiguous fallback
-(`v = 0`) is dispatched at the caller level, where the `Int`-typed
-spec args are already in scope.
-
-Returns:
-  - `(false, true)` / `(true, false)` / `(false, false)` / `(true, true)`
-    if both cmps gave strict verdicts.  Combine these per
-    `inRoundingInterval`'s formula.
-  - `none` if either cmp was ambiguous; caller falls back to
-    `inRoundingInterval_packed`. -/
-
-/-- Try the rounding-interval test with the UInt64 kernel.  Returns
-    `some result` if both cmps got strict verdicts; `none` if either
-    was ambiguous (caller must use the slow path). -/
-@[inline]
-def inRoundingInterval_u64_opt
-    (gHi gLo : UInt64) (qPlusH8 : UInt64)
-    (sU mU : UInt64) (irregular : Bool) : Option Bool :=
-  let m4 : UInt64 := mU <<< 2
-  let leftU : UInt64 := if irregular then m4 - 1 else m4 - 2
-  let rightU : UInt64 := m4 + 2
-  let s4U : UInt64 := sU <<< 2
-  let cmpL := cmpScaledMixed_u64 gHi gLo qPlusH8 leftU s4U
-  if cmpL = 0 then none
-  else
-    let cmpR := cmpScaledMixed_u64 gHi gLo qPlusH8 rightU s4U
-    if cmpR = 0 then none
-    else
-      -- Both strict: cmpL, cmpR ∈ {-1, +1}.  Even-tie branch never fires.
-      let leftOK := cmpL < 0
-      let rightOK := cmpR > 0
-      some (leftOK && rightOK)
-
-/-! ## Pair `inRoundingInterval`: share `R = b·G` across both cmps.
-
-The two `cmpScaledMixed_u64` calls inside `inRoundingInterval_u64_opt`
-share `b = 4s`, `gHi`, `gLo`, `qPlusH8`; only `a` (`leftU` vs `rightU`)
-differs.  The `R` triple (rHi, rMid, rLo) computed from `b·G` is
-identical across both calls.
-
-`inRoundingInterval_u64_packed` computes R once, then does both
-verdict-checks against the shared R triple.  Returns a packed
-`UInt8` verdict to avoid `Option Bool` heap allocation:
-  - `0` — ambiguous (either cmp was ambig); caller falls back
-  - `1` — false (`u ∉ R_v`)
-  - `2` — true (`u ∈ R_v`)
-The encoding lets the caller decide via `v == 2` / `v == 0`
-without unpacking nested ctors. -/
-
 /-- Sentinel for "ambiguous (defer to slow path)". -/
 @[inline]
 def inRoundingInterval_u8_AMBIG : UInt8 := 0
@@ -212,40 +137,6 @@ def cmpVerdict_u64_inner
     if le192 lpb_hi lpb_mid lpb_lo r192_hi r192_mid r192_lo then -1
     else 0
 
-/-- Packed `inRoundingInterval`: shares the R triple between the two
-    cmps.  Returns a `UInt8` sentinel (see `inRoundingInterval_u8_*`). -/
-@[inline]
-def inRoundingInterval_u64_packed_u8
-    (gHi gLo : UInt64) (qPlusH8 : UInt64)
-    (sU mU : UInt64) (irregular : Bool) : UInt8 :=
-  let m4 : UInt64 := mU <<< 2
-  let leftU : UInt64 := if irregular then m4 - 1 else m4 - 2
-  let rightU : UInt64 := m4 + 2
-  let s4U : UInt64 := sU <<< 2
-  -- R = s4U · G, computed once and shared across both verdict checks.
-  let rLo  : UInt64 := s4U * gLo
-  let rLoH : UInt64 := mulHi64 s4U gLo
-  let rHi  : UInt64 := s4U * gHi
-  let rHiH : UInt64 := mulHi64 s4U gHi
-  let midSum   : UInt64 := rHi + rLoH
-  let midCarry : UInt64 := if midSum < rHi then 1 else 0
-  let r192_hi  : UInt64 := rHiH + midCarry
-  let r192_mid : UInt64 := midSum
-  let r192_lo  : UInt64 := rLo
-  -- Left verdict.
-  let (l_hi_L, l_mid_L, l_lo_L) := cmpScaledMixed_u64_L leftU qPlusH8
-  let cmpL := cmpVerdict_u64_inner l_hi_L l_mid_L l_lo_L r192_hi r192_mid r192_lo s4U
-  if cmpL = 0 then inRoundingInterval_u8_AMBIG
-  else
-    -- Right verdict.
-    let (l_hi_R, l_mid_R, l_lo_R) := cmpScaledMixed_u64_L rightU qPlusH8
-    let cmpR := cmpVerdict_u64_inner l_hi_R l_mid_R l_lo_R r192_hi r192_mid r192_lo s4U
-    if cmpR = 0 then inRoundingInterval_u8_AMBIG
-    else
-      -- Both strict: result is (cmpL < 0) && (cmpR > 0).
-      if cmpL < 0 && cmpR > 0 then inRoundingInterval_u8_TRUE
-      else inRoundingInterval_u8_FALSE
-
 /-- Internal: a single `cmpScaledMixed_u64 gHi gLo qPlusH8 aU bU` equals
     `cmpVerdict_u64_inner (L_triple) (R_triple) bU` with R derived from
     `bU * G`.  Used to identify the two `cmpScaledMixed_u64` calls
@@ -265,60 +156,6 @@ theorem cmpScaledMixed_u64_eq_cmpVerdict
   obtain ⟨l_hi, l_mid_lo⟩ := cmpScaledMixed_u64_L aU qPlusH8
   obtain ⟨l_mid, l_lo⟩ := l_mid_lo
   rfl
-
-/-- Equivalence: the packed-u8 version agrees with `inRoundingInterval_u64_opt`. -/
-theorem inRoundingInterval_u64_packed_u8_eq
-    (gHi gLo : UInt64) (qPlusH8 : UInt64)
-    (sU mU : UInt64) (irregular : Bool) :
-    inRoundingInterval_u64_packed_u8 gHi gLo qPlusH8 sU mU irregular =
-      (match inRoundingInterval_u64_opt gHi gLo qPlusH8 sU mU irregular with
-       | none => inRoundingInterval_u8_AMBIG
-       | some true => inRoundingInterval_u8_TRUE
-       | some false => inRoundingInterval_u8_FALSE) := by
-  unfold inRoundingInterval_u64_packed_u8 inRoundingInterval_u64_opt
-  -- Bridge: rewrite each `cmpScaledMixed_u64` on RHS to `cmpVerdict_u64_inner`.
-  simp only [cmpScaledMixed_u64_eq_cmpVerdict]
-  -- Destructure L triples.
-  obtain ⟨l_hi_L, l_mid_L, l_lo_L⟩ := cmpScaledMixed_u64_L
-    (if irregular then mU <<< 2 - 1 else mU <<< 2 - 2) qPlusH8
-  obtain ⟨l_hi_R, l_mid_R, l_lo_R⟩ := cmpScaledMixed_u64_L (mU <<< 2 + 2) qPlusH8
-  -- Generalise R triple (shared between the two branches).
-  set s4U : UInt64 := sU <<< 2 with hs4U
-  set rHi  : UInt64 := s4U * gHi
-  set rLoH : UInt64 := mulHi64 s4U gLo
-  set rHiH : UInt64 := mulHi64 s4U gHi
-  set midSum   : UInt64 := rHi + rLoH
-  set midCarry : UInt64 := if midSum < rHi then 1 else 0
-  set r192_hi  : UInt64 := rHiH + midCarry
-  set r192_mid : UInt64 := midSum
-  set r192_lo  : UInt64 := s4U * gLo
-  set cmpL : Int :=
-    cmpVerdict_u64_inner l_hi_L l_mid_L l_lo_L r192_hi r192_mid r192_lo s4U
-  set cmpR : Int :=
-    cmpVerdict_u64_inner l_hi_R l_mid_R l_lo_R r192_hi r192_mid r192_lo s4U
-  by_cases hL0 : cmpL = 0
-  · simp [hL0, inRoundingInterval_u8_AMBIG]
-  · simp only [hL0, if_false]
-    by_cases hR0 : cmpR = 0
-    · simp [hR0, inRoundingInterval_u8_AMBIG]
-    · simp only [hR0, if_false]
-      by_cases hLn : cmpL < 0
-      · by_cases hRp : cmpR > 0
-        · simp [hLn, hRp, inRoundingInterval_u8_TRUE]
-        · simp [hLn, hRp, inRoundingInterval_u8_FALSE]
-      · by_cases hRp : cmpR > 0
-        · simp [hLn, hRp, inRoundingInterval_u8_FALSE]
-        · simp [hLn, hRp, inRoundingInterval_u8_FALSE]
-
-/-! ## `inRoundingInterval` via `_u64_slow` (proof-friendly path).
-
-`inRoundingInterval_u64_slow` is the structural counterpart of
-`inRoundingInterval_packed`: it calls `cmpScaledMixed_u64_slow` with
-the supplied slow leaves and returns a `Bool` matching the spec
-formula.  Useful for the equivalence proof: byte-identical to
-`inRoundingInterval_packed`'s body when slow leaves come from
-`cmpScaledMixed_fast`. -/
-
 
 /-- Leaf-independence of the inner body: when the kernel produces a
     strict verdict (non-zero on the `slow=0` instance), it produces the
@@ -398,87 +235,6 @@ theorem cmpScaledMixed_packed_eq_u64_branch
         ha_lt hb_lt hk_lo hk_hi hqh_lo hqh_hi]
   exact cmpScaledMixed_u64_slow_eq_branch _ _ _ _ _ _
 
-/-- All-UInt64 rounding-interval test with explicit slow-path leaves.
-    The result matches `inRoundingInterval_packed` byte-for-byte
-    when the slow leaves are the corresponding `cmpScaledMixed_fast`
-    calls and the UInt64 args are the corresponding conversions. -/
-@[inline]
-def inRoundingInterval_u64_slow
-    (gHi gLo : UInt64) (qPlusH8 : UInt64)
-    (sU mU : UInt64) (irregular : Bool)
-    (slowL slowR : Int) : Bool :=
-  let m4 : UInt64 := mU <<< 2
-  let leftU : UInt64 := if irregular then m4 - 1 else m4 - 2
-  let rightU : UInt64 := m4 + 2
-  let s4U : UInt64 := sU <<< 2
-  let cmpL := cmpScaledMixed_u64_slow gHi gLo qPlusH8 leftU s4U slowL
-  let cmpR := cmpScaledMixed_u64_slow gHi gLo qPlusH8 rightU s4U slowR
-  let cEven := mU &&& 1 = 0
-  let leftOK := cmpL < 0 || (cmpL = 0 && cEven)
-  let rightOK := cmpR > 0 || (cmpR = 0 && cEven)
-  leftOK && rightOK
-
-
-/-! ## Pure-UInt64 `pickNearer` -/
-
-/-- Try the pick-nearer with the UInt64 kernel.  Returns `some` if all
-    intermediate cmps had strict verdicts; `none` otherwise.
-
-    Uses `inRoundingInterval_u64_packed_u8` (UInt8 sentinel) internally
-    to avoid two `Option Bool` heap allocations per call. -/
-@[inline]
-def pickNearer_u64_opt
-    (gHi gLo : UInt64) (qPlusH8 : UInt64)
-    (sU mU : UInt64) (irregular : Bool) : Option UInt64 :=
-  let uV := inRoundingInterval_u64_packed_u8 gHi gLo qPlusH8 sU mU irregular
-  if uV = inRoundingInterval_u8_AMBIG then none
-  else
-    let wV := inRoundingInterval_u64_packed_u8 gHi gLo qPlusH8 (sU + 1) mU irregular
-    if wV = inRoundingInterval_u8_AMBIG then none
-    else
-      -- Both strict: decode the booleans.
-      let uIn : Bool := uV = inRoundingInterval_u8_TRUE
-      let wIn : Bool := wV = inRoundingInterval_u8_TRUE
-      if uIn && !wIn then some sU
-      else if !uIn && wIn then some (sU + 1)
-      else
-        -- Compare 2m·2^q vs (2s+1)·10^k.
-        let twoM : UInt64 := mU <<< 1
-        let twoSp1 : UInt64 := (sU <<< 1) + 1
-        let cmp := cmpScaledMixed_u64 gHi gLo qPlusH8 twoM twoSp1
-        if cmp = 0 then none
-        else if cmp < 0 then some sU
-        else if cmp > 0 then some (sU + 1)
-        else if mU &&& 1 = 0 then some sU
-        else some (sU + 1)
-
-/-! ## Pure-UInt64 `shortestUnsigned`
-
-The orchestration: takes spec `(m, q)`, pre-converts to UInt64, calls
-the `_u64_opt` helpers.  If any kernel signals ambiguity (or any
-precondition fails), defers to the `_packed` slow path.
-
-Preconditions for the fast path:
-  - `m < 2^53` (binary64 mantissa bound — always holds post-`decode`)
-  - `q ∈ [-1074, 971]` (binary64 exponent bound)
-  - `k = kOfMQ m q ∈ [-308, 308]` (binary64 decimal exponent range)
-  - `s = shiftedSig m q k < 2^57` (Schubfach §9 output bound)
-  - `q + h ∈ [64, 132]` for the table's `h` at index `k` or `k+1`
-
-Falling out of any guard simply uses `shortestUnsigned_packed`. -/
-
-/-! ## kOfMQ_fast — UInt64 arithmetic for the Schubfach k computation.
-
-`floorLog10Pow2 e = Int.fdiv (e * constC) (2^41)` runs in boxed `Int`
-(GMP).  For binary64 inputs `e ∈ [-1074, 971]`, the product `e * C`
-fits in `Int64` (max ~7.1e14 < 2^63), and the floor-by-power-of-2 is
-an arithmetic right shift on a 2's-complement value.
-
-We compute the entire thing in `UInt64` with 2's-complement-style
-arithmetic.  Conversion to/from `Int` is handled by biasing `e` by
-`1074` (so the input is non-negative) and computing
-`(e_unsigned * C - 1074 * C) >>> 41` with sign-aware shift. -/
-
 /-- Arithmetic right shift by 41 on a 2's-complement-style `UInt64`.
     For non-negative `x` (high bit clear) this is `x >>> 41`; for
     negative `x` (high bit set), fills the top 41 bits with 1s. -/
@@ -552,14 +308,6 @@ def kOfMQ_fast (m : Nat) (q : Int) : Int :=
     floorLog10ThreeQuartersPow2_fast q
   else
     floorLog10Pow2_fast q
-
-/-! ## Correctness proofs for the `_fast` floor-log helpers.
-
-Proof strategy: out-of-range delegates to the spec by construction;
-in-range is a finite domain (2046 values of `e ∈ [-1074, 971]`).  We
-use `decide +kernel` to discharge the universally-quantified equality
-on this finite range; kernel reduction keeps the proof axiom-free (no
-`Lean.ofReduceBool` / `Lean.trustCompiler`). -/
 
 /-- Bool-valued bulk check for `floorLog10Pow2_fast = floorLog10Pow2` on
     `e ∈ [-1074, 971]`.  Reformulated as a Bool to avoid the deep
@@ -659,393 +407,192 @@ theorem floorLog10ThreeQuartersPow2_eq_fast_csimp :
   funext e
   exact (floorLog10ThreeQuartersPow2_fast_eq e).symm
 
-/-- Binary64-domain-dispatched `shiftedSig`: when `(m, q)` is a real
-    decode (`0 < m < 2^53`, `-1074 ≤ q ≤ 971`) and `k = kOfMQ m q`, the
-    widened UInt64 kernel `shiftedSig_packed_w` applies for the *entire*
-    binary64 range (R20: no `B < 2^64` accuracy guard).  Out-of-domain
-    inputs (never produced by `decode`) fall back to the exact spec
-    `shiftedSig`, keeping the `@[csimp]` equivalence universal. -/
-@[inline]
-def shiftedSig_v2 (m : Nat) (q : Int) (k : Int) : Nat :=
-  let sigTuple := pow10Lookup128 (-k)
-  let sigGHi := sigTuple.1
-  let sigGLo := sigTuple.2.1
-  let sigH := sigTuple.2.2
-  let sigShiftAmt : Int := sigH - q
-  if 0 < m ∧ m < 2 ^ 53 ∧ -1074 ≤ q ∧ q ≤ 971 ∧ k = kOfMQ m q then
-    shiftedSig_packed_w q k sigGHi sigGLo sigShiftAmt m
-  else
-    shiftedSig m q k
+/-! ## `UInt64` identities under binary64 size bounds
 
-/-! ## Pure-UInt64 `shiftedSig` kernel.
+For `m ≤ 2^53` and `s < 10^17 < 2^57`, the shifts and small-constant
+additions the kernels do are overflow-free. -/
 
-Variant of `shiftedSig_packed` that takes all args pre-converted to
-`UInt64` and returns `UInt64`, skipping the four boxed-Int/Nat guards
-that the orchestration has already established.
+/-- `x <<< 2 = 4 * x` as UInt64 (always — wraparound matches both sides). -/
+theorem uint64_shiftLeft_2 (x : UInt64) : x <<< 2 = 4 * x := by
+  apply UInt64.toNat_inj.mp
+  simp only [UInt64.toNat_shiftLeft, UInt64.toNat_mul]
+  have h2 : ((2 : UInt64).toNat % 64) = 2 := by decide
+  have h4 : ((4 : UInt64).toNat) = 4 := by decide
+  rw [h2, h4]
+  simp [Nat.shiftLeft_eq, Nat.mul_comm]
 
-Caller preconditions (for the result to match `shiftedSig m q k`):
-- `m < 2^60` (well within binary64's `m ≤ 2^53` bound)
-- `mU = UInt64.ofNat m`
-- `gHi, gLo = pow10Lookup128 (-k)` with `k ∈ [-kMax, kMax]`
-- `shiftAmtU = UInt64.ofNat shiftAmt.toNat` with `shiftAmt = h - q ∈ [124, 192)`
+/-- `x <<< 1 = 2 * x` as UInt64. -/
+theorem uint64_shiftLeft_1 (x : UInt64) : x <<< 1 = 2 * x := by
+  apply UInt64.toNat_inj.mp
+  simp only [UInt64.toNat_shiftLeft, UInt64.toNat_mul]
+  have h1 : ((1 : UInt64).toNat % 64) = 1 := by decide
+  have h2 : ((2 : UInt64).toNat) = 2 := by decide
+  rw [h1, h2]
+  simp [Nat.shiftLeft_eq, Nat.mul_comm]
 
-The shift branches collapse for `shiftAmtU ∈ [128, 192)`: only the `>= 128`
-arm runs.  However `shiftAmt` can also be `124, 125, 126, 127` (just below
-128), so we still need the middle arm.  We keep the full branch structure
-to match the spec under all valid inputs. -/
-@[inline]
-def shiftedSig_u64_kernel
-    (mU : UInt64) (gHi gLo : UInt64) (shiftAmtU : UInt64) : UInt64 :=
-  let pLo  : UInt64 := mU * gLo
-  let pLoH : UInt64 := mulHi64 mU gLo
-  let pHi  : UInt64 := mU * gHi
-  let pHiH : UInt64 := mulHi64 mU gHi
-  let midSum   : UInt64 := pHi + pLoH
-  let midCarry : UInt64 := if midSum < pHi then 1 else 0
-  let rHi  : UInt64 := pHiH + midCarry
-  let rMid : UInt64 := midSum
-  let rLo  : UInt64 := pLo
-  if shiftAmtU < 64 then
-    if shiftAmtU = 0 then rLo
-    else (rLo >>> shiftAmtU) ||| (rMid <<< (64 - shiftAmtU))
-  else if shiftAmtU < 128 then
-    let s64 := shiftAmtU - 64
-    if s64 = 0 then rMid
-    else (rMid >>> s64) ||| (rHi <<< (64 - s64))
-  else
-    let s64 := shiftAmtU - 128
-    rHi >>> s64
+/-- For `m ≥ 1`, `(4·m - 2 : Int).toNat = 4*m - 2`. -/
+theorem toNat_4m_sub_2_eq {m : Nat} (hm_pos : m ≥ 1) :
+    (4 * (m : Int) - 2).toNat = 4 * m - 2 := by
+  omega
 
-/-- The pure UInt64 kernel agrees with the *widened* packed kernel
-    `shiftedSig_packed_w` under the same width preconditions — with NO
-    `B < 2^64` guard. -/
-theorem shiftedSig_u64_kernel_eq_packed_w
-    (q k : Int) (m : Nat) (gHi gLo : UInt64) (shiftAmt : Int)
-    (hm : m < (1 <<< 60 : Nat))
-    (hk_lo : pow10Table128_kMin ≤ -k) (hk_hi : -k ≤ pow10Table128_kMax)
-    (hsh_lo : 124 ≤ shiftAmt) (hsh_hi : shiftAmt < 192) :
-    shiftedSig_u64_kernel (UInt64.ofNat m) gHi gLo
-        (UInt64.ofNat shiftAmt.toNat)
-      = UInt64.ofNat (shiftedSig_packed_w q k gHi gLo shiftAmt m) := by
-  unfold shiftedSig_u64_kernel shiftedSig_packed_w
-  rw [if_neg (by omega : ¬ m ≥ (1 <<< 60 : Nat))]
-  rw [if_neg (by push_neg; constructor <;> omega
-                : ¬ ((-k : Int) < pow10Table128_kMin ∨ (-k : Int) > pow10Table128_kMax))]
-  rw [if_neg (by push_neg; constructor <;> omega
-                : ¬ (shiftAmt < 124 ∨ shiftAmt ≥ 192))]
-  rw [UInt64.ofNat_toNat]
+/-- For `m ≥ 1`, `(4·m - 1 : Int).toNat = 4*m - 1`. -/
+theorem toNat_4m_sub_1_eq {m : Nat} (hm_pos : m ≥ 1) :
+    (4 * (m : Int) - 1).toNat = 4 * m - 1 := by
+  omega
 
-/-- v3: same as v2 but uses the pure-UInt64 kernel.  Avoids boxed `Int`
-    guard checks for `m < 2^60`, `kLookup` range, `shiftAmt` range, and
-    `B < 2^64`, on the fast path.  Falls back to the spec for out-of-regime.
+/-- `(4·m + 2 : Int).toNat = 4*m + 2`. -/
+theorem toNat_4m_add_2_eq (m : Nat) : (4 * (m : Int) + 2).toNat = 4 * m + 2 := by
+  omega
 
-    Caller still passes `(m : Nat) (q k : Int)` so the type matches `shiftedSig`. -/
-@[inline]
-def shiftedSig_v3 (m : Nat) (q : Int) (k : Int) : Nat :=
-  let sigTuple := pow10Lookup128 (-k)
-  let sigGHi := sigTuple.1
-  let sigGLo := sigTuple.2.1
-  let sigH := sigTuple.2.2
-  let sigShiftAmt : Int := sigH - q
-  -- Width guards (structural; never fire on real binary64): m < 2^60,
-  -- k in table range, shiftAmt ∈ [124, 192).  The final guard is the
-  -- binary64-domain check `0<m<2^53 ∧ -1074≤q≤971 ∧ k = kOfMQ m q`; on it
-  -- the widened R20 kernel is correct over the *entire* range (no B<2^64).
-  if _h_m : m ≥ (1 <<< 60 : Nat) then shiftedSig m q k
-  else if _h_k_lo : (-k : Int) < pow10Table128_kMin then shiftedSig m q k
-  else if _h_k_hi : (-k : Int) > pow10Table128_kMax then shiftedSig m q k
-  else if _h_s_lo : sigShiftAmt < 124 then shiftedSig m q k
-  else if _h_s_hi : sigShiftAmt ≥ 192 then shiftedSig m q k
-  else if _h_dom : 0 < m ∧ m < 2 ^ 53 ∧ -1074 ≤ q ∧ q ≤ 971 ∧ k = kOfMQ m q then
-    -- All preconditions hold; use the pure-UInt64 kernel.
-    let mU : UInt64 := UInt64.ofNat m
-    let shiftAmtU : UInt64 := UInt64.ofNat sigShiftAmt.toNat
-    (shiftedSig_u64_kernel mU sigGHi sigGLo shiftAmtU).toNat
-  else
-    shiftedSig m q k
+/-- `(4·s : Int).toNat = 4*s`. -/
+theorem toNat_4s_eq (s : Nat) : (4 * (s : Int)).toNat = 4 * s := by omega
 
-theorem shiftedSig_v3_eq (m : Nat) (q k : Int) :
-    shiftedSig_v3 m q k = shiftedSig m q k := by
-  -- We use shiftedSig_v2_eq as the spec, then identify v3 with v2 on the fast path.
-  unfold shiftedSig_v3
-  by_cases h_m : m ≥ (1 <<< 60 : Nat)
-  · rw [dif_pos h_m]
-  rw [dif_neg h_m]
-  by_cases h_k_lo : (-k : Int) < pow10Table128_kMin
-  · rw [dif_pos h_k_lo]
-  rw [dif_neg h_k_lo]
-  by_cases h_k_hi : (-k : Int) > pow10Table128_kMax
-  · rw [dif_pos h_k_hi]
-  rw [dif_neg h_k_hi]
-  by_cases h_s_lo : ((pow10Lookup128 (-k)).2.2 - q) < 124
-  · rw [dif_pos h_s_lo]
-  rw [dif_neg h_s_lo]
-  by_cases h_s_hi : ((pow10Lookup128 (-k)).2.2 - q) ≥ 192
-  · rw [dif_pos h_s_hi]
-  rw [dif_neg h_s_hi]
-  by_cases h_dom : 0 < m ∧ m < 2 ^ 53 ∧ -1074 ≤ q ∧ q ≤ 971 ∧ k = kOfMQ m q
-  · rw [dif_pos h_dom]
-    push_neg at h_m h_k_lo h_k_hi h_s_lo h_s_hi
-    obtain ⟨hm0, hm53, hq_lo, hq_hi, hk⟩ := h_dom
-    show (shiftedSig_u64_kernel (UInt64.ofNat m) _ _
-            (UInt64.ofNat ((pow10Lookup128 (-k)).2.2 - q).toNat)).toNat
-          = shiftedSig m q k
-    -- Bridge the pure UInt64 kernel to the widened packed kernel (no B<2^64).
-    have h_kernel := shiftedSig_u64_kernel_eq_packed_w q k m
-                       (pow10Lookup128 (-k)).1 (pow10Lookup128 (-k)).2.1
-                       ((pow10Lookup128 (-k)).2.2 - q)
-                       h_m h_k_lo h_k_hi (by omega) (by omega)
-    rw [h_kernel]
-    -- The widened packed result fits in UInt64 (fast branch returns a UInt64).
-    have hlt : shiftedSig_packed_w q k (pow10Lookup128 (-k)).1 (pow10Lookup128 (-k)).2.1
-                 ((pow10Lookup128 (-k)).2.2 - q) m < (1 <<< 64 : Nat) := by
-      unfold shiftedSig_packed_w
-      rw [if_neg (by omega : ¬ m ≥ (1 <<< 60 : Nat))]
-      rw [if_neg (by push_neg; constructor <;> omega
-                    : ¬ ((-k : Int) < pow10Table128_kMin ∨ (-k : Int) > pow10Table128_kMax))]
-      rw [if_neg (by push_neg; constructor <;> omega
-                    : ¬ (((pow10Lookup128 (-k)).2.2 - q) < 124 ∨
-                         ((pow10Lookup128 (-k)).2.2 - q) ≥ 192))]
-      exact UInt64.toNat_lt _
-    rw [UInt64.toNat_ofNat']
-    rw [Nat.mod_eq_of_lt (by show _ < 2 ^ 64; omega)]
-    -- Close via the R20 widened round-trip.
-    subst hk
-    exact shiftedSig_packed_w_eq_binary64 m q hm0 hm53 hq_lo hq_hi
-  · rw [dif_neg h_dom]
+/-- `(2·m : Int).toNat = 2*m`. -/
+theorem toNat_2m_eq (m : Nat) : (2 * (m : Int)).toNat = 2 * m := by omega
 
-theorem shiftedSig_v2_eq (m : Nat) (q k : Int) :
-    shiftedSig_v2 m q k = shiftedSig m q k := by
-  unfold shiftedSig_v2
-  by_cases hbin : 0 < m ∧ m < 2 ^ 53 ∧ -1074 ≤ q ∧ q ≤ 971 ∧ k = kOfMQ m q
-  · rw [if_pos hbin]
-    obtain ⟨hm, hm53, hq_lo, hq_hi, hk⟩ := hbin
-    subst hk
-    exact shiftedSig_packed_w_eq_binary64 m q hm hm53 hq_lo hq_hi
-  · rw [if_neg hbin]
+/-- `(2·s + 1 : Int).toNat = 2*s + 1`. -/
+theorem toNat_2s_add_1_eq (s : Nat) : (2 * (s : Int) + 1).toNat = 2 * s + 1 := by omega
 
-/-- Runtime substitution: `shiftedSig_v2` is compiled as `shiftedSig_v3`.
-    Both have the same spec (`= shiftedSig`); v3 skips boxed-Int guards. -/
-@[csimp]
-theorem shiftedSig_v2_eq_v3_csimp :
-    @shiftedSig_v2 = @shiftedSig_v3 := by
-  funext m q k
-  rw [shiftedSig_v2_eq, ← shiftedSig_v3_eq]
+/-- `UInt64.ofNat (4m - 2) = (UInt64.ofNat m) <<< 2 - 2` when `m ≥ 1`. -/
+theorem ofNat_4m_sub_2 {m : Nat} (hm_pos : m ≥ 1) :
+    UInt64.ofNat (4 * m - 2) = (UInt64.ofNat m) <<< 2 - 2 := by
+  rw [uint64_shiftLeft_2]
+  have h1 : 4 * m = (4 * m - 2) + 2 := by omega
+  have h2 : UInt64.ofNat (4 * m) = UInt64.ofNat (4 * m - 2) + UInt64.ofNat 2 := by
+    conv => lhs; rw [h1]
+    rw [UInt64.ofNat_add]
+  rw [UInt64.ofNat_mul] at h2
+  have h3 : (UInt64.ofNat 4 : UInt64) = 4 := rfl
+  have h4 : (UInt64.ofNat 2 : UInt64) = 2 := rfl
+  rw [h3, h4] at h2
+  -- h2 : 4 * UInt64.ofNat m = UInt64.ofNat (4 * m - 2) + 2
+  -- Goal: UInt64.ofNat (4 * m - 2) = 4 * UInt64.ofNat m - 2
+  rw [h2]
+  -- Goal: UInt64.ofNat (4 * m - 2) = UInt64.ofNat (4 * m - 2) + 2 - 2
+  -- Use BitVec underlying grind structure: (x + 2) - 2 = x.
+  apply UInt64.toBitVec_inj.mp
+  simp []
 
-/-- All-UInt64 fast path for `shortestUnsigned`.  Returns `none` if any
-    precondition or kernel guard fails (caller falls back to
-    `shortestUnsigned_packed`).
+/-- `UInt64.ofNat (4m - 1) = (UInt64.ofNat m) <<< 2 - 1` when `m ≥ 1`. -/
+theorem ofNat_4m_sub_1 {m : Nat} (hm_pos : m ≥ 1) :
+    UInt64.ofNat (4 * m - 1) = (UInt64.ofNat m) <<< 2 - 1 := by
+  rw [uint64_shiftLeft_2]
+  have h1 : 4 * m = (4 * m - 1) + 1 := by omega
+  have h2 : UInt64.ofNat (4 * m) = UInt64.ofNat (4 * m - 1) + UInt64.ofNat 1 := by
+    conv => lhs; rw [h1]
+    rw [UInt64.ofNat_add]
+  rw [UInt64.ofNat_mul] at h2
+  have h3 : (UInt64.ofNat 4 : UInt64) = 4 := rfl
+  have h4 : (UInt64.ofNat 1 : UInt64) = 1 := rfl
+  rw [h3, h4] at h2
+  rw [h2]
+  apply UInt64.toBitVec_inj.mp
+  simp []
 
-    Uses `inRoundingInterval_u64_packed_u8` (UInt8 sentinel) at the
-    two kHigh callsites to avoid `Option Bool` heap allocation. -/
-@[inline]
-def shortestUnsigned_u64_opt (m : Nat) (q : Int) : Option (Nat × Int) :=
-  -- Defensive: only proceed for inputs in the binary64 fast regime.
-  if _h_m : m ≥ (1 <<< 53 : Nat) then none
-  else if _h_q_lo : q < (-1074 : Int) then none
-  else if _h_q_hi : q > 971 then none
-  else
-    let irregular := isIrregular m q
-    let k := kOfMQ_fast m q
-    -- Defensive: ensure k and k+1 are inside the pow10 table range,
-    -- required for the cmpScaledMixed_packed bridge precondition.
-    if _h_k_lo : k < pow10Table128_kMin then none
-    else if _h_k_hi : k + 1 > pow10Table128_kMax then none
-    else
-    -- Compute s = shiftedSig m q k via the B-cheap-check dispatch,
-    -- avoiding the giant-Nat allocation that `shiftedSig_fast2` does
-    -- on every call.  v3 additionally uses a pure-UInt64 kernel that
-    -- skips the four boxed-Int guards inside `shiftedSig_packed`.
-    -- Identical value to `shiftedSig m q k`.
-    let s := shiftedSig_v3 m q k
-    if _h_s : s ≥ (1 <<< 57 : Nat) then none  -- defensive
-    else
-      let sU : UInt64 := UInt64.ofNat s
-      let mU : UInt64 := UInt64.ofNat m
-      if s ≥ 10 then
-        let kHigh : Int := k + 1
-        let cmpTupleH := pow10Lookup128 kHigh
-        let cmpHGHi := cmpTupleH.1
-        let cmpHGLo := cmpTupleH.2.1
-        let cmpHH := cmpTupleH.2.2
-        let cmpHQPlusH : Int := q + cmpHH
-        if _h_qh_lo : cmpHQPlusH < 64 then none
-        else if _h_qh_hi : cmpHQPlusH > 132 then none
-        else
-          let cmpHQPlusH8 : UInt64 := UInt64.ofNat cmpHQPlusH.toNat
-          let sHighU : UInt64 := sU / 10
-          -- u8-packed inRoundingInterval: shares R = 4·s·G between the
-          -- two cmps inside; returns UInt8 sentinel (no Option boxing).
-          let uV := inRoundingInterval_u64_packed_u8 cmpHGHi cmpHGLo cmpHQPlusH8
-                      sHighU mU irregular
-          if uV = inRoundingInterval_u8_AMBIG then none
-          else if uV = inRoundingInterval_u8_TRUE then some (sHighU.toNat, kHigh)
-          else
-            let wV := inRoundingInterval_u64_packed_u8 cmpHGHi cmpHGLo cmpHQPlusH8
-                        (sHighU + 1) mU irregular
-            if wV = inRoundingInterval_u8_AMBIG then none
-            else if wV = inRoundingInterval_u8_TRUE then some ((sHighU + 1).toNat, kHigh)
-            else
-              -- Fall through to pickNearer at k.
-              let cmpTuple := pow10Lookup128 k
-              let cmpGHi := cmpTuple.1
-              let cmpGLo := cmpTuple.2.1
-              let cmpH := cmpTuple.2.2
-              let cmpQPlusH : Int := q + cmpH
-              if _h_qh2_lo : cmpQPlusH < 64 then none
-              else if _h_qh2_hi : cmpQPlusH > 132 then none
-              else
-                let cmpQPlusH8 : UInt64 := UInt64.ofNat cmpQPlusH.toNat
-                match pickNearer_u64_opt cmpGHi cmpGLo cmpQPlusH8 sU mU irregular with
-                | none => none
-                | some chosen => some (chosen.toNat, k)
-      else if _h_s1 : s = 0 then none  -- bridge precondition: b = 4s ≠ 0
-      else
-        -- s < 10: only the pickNearer-at-k path.
-        let cmpTuple := pow10Lookup128 k
-        let cmpGHi := cmpTuple.1
-        let cmpGLo := cmpTuple.2.1
-        let cmpH := cmpTuple.2.2
-        let cmpQPlusH : Int := q + cmpH
-        if _h_qh2_lo : cmpQPlusH < 64 then none
-        else if _h_qh2_hi : cmpQPlusH > 132 then none
-        else
-          let cmpQPlusH8 : UInt64 := UInt64.ofNat cmpQPlusH.toNat
-          match pickNearer_u64_opt cmpGHi cmpGLo cmpQPlusH8 sU mU irregular with
-          | none => none
-          | some chosen => some (chosen.toNat, k)
+/-- `UInt64.ofNat (4m + 2) = (UInt64.ofNat m) <<< 2 + 2`. -/
+theorem ofNat_4m_add_2 (m : Nat) :
+    UInt64.ofNat (4 * m + 2) = (UInt64.ofNat m) <<< 2 + 2 := by
+  rw [uint64_shiftLeft_2]
+  rw [UInt64.ofNat_add, UInt64.ofNat_mul]
+  rfl
 
-/-- Top-level: try the all-UInt64 fast path, fall back to `_packed`. -/
-@[inline]
-def shortestUnsigned_v2 (m : Nat) (q : Int) : Nat × Int :=
-  match shortestUnsigned_u64_opt m q with
-  | some v => v
-  | none => shortestUnsigned_packed m q
+/-- `UInt64.ofNat (4s) = (UInt64.ofNat s) <<< 2`. -/
+theorem ofNat_4s (s : Nat) :
+    UInt64.ofNat (4 * s) = (UInt64.ofNat s) <<< 2 := by
+  rw [uint64_shiftLeft_2, UInt64.ofNat_mul]
+  rfl
 
-/-! ## v2 of the UInt64 fast path: returns `UInt64` significand directly.
+/-- `UInt64.ofNat (2m) = (UInt64.ofNat m) <<< 1`. -/
+theorem ofNat_2m (m : Nat) :
+    UInt64.ofNat (2 * m) = (UInt64.ofNat m) <<< 1 := by
+  rw [uint64_shiftLeft_1, UInt64.ofNat_mul]
+  rfl
 
-`shortestUnsigned_u64_opt` does a `Nat ↔ UInt64` round-trip on the
-significand `s`: `shiftedSig_v3` computes a UInt64 internally then
-`.toNat`s, and the caller immediately `UInt64.ofNat`-converts back.
-Worse, the defensive guard `s ≥ (1 <<< 57 : Nat)` runs in boxed `Nat`.
+/-- `UInt64.ofNat (2s + 1) = (UInt64.ofNat s) <<< 1 + 1`. -/
+theorem ofNat_2s_add_1 (s : Nat) :
+    UInt64.ofNat (2 * s + 1) = (UInt64.ofNat s) <<< 1 + 1 := by
+  rw [uint64_shiftLeft_1, UInt64.ofNat_add, UInt64.ofNat_mul]
+  rfl
 
-This v2 family bypasses both round-trips: it computes `sU : UInt64`
-directly via `shiftedSig_u64_kernel`, runs all guards in `UInt64`, and
-returns `Option (UInt64 × Int)`.  The caller (`shortestUnsigned_v3`)
-does the final `.toNat` once at the boundary.
+/-- Strict-verdict version: when the UInt64 kernel returns a nonzero value,
+    `cmpScaledMixed_packed` agrees with it.  Stated under the same
+    preconditions as `cmpScaledMixed_packed_eq_u64_branch`. -/
+theorem cmpScaledMixed_packed_eq_u64_of_strict
+    (q k : Int) (gHi gLo : UInt64) (qPlusH : Int)
+    (a b : Int)
+    (ha_nn : 0 ≤ a) (hb_nn : 0 ≤ b)
+    (hb_pos : b ≠ 0)
+    (ha_lt : a < (1 <<< 60 : Int)) (hb_lt : b < (1 <<< 60 : Int))
+    (hk_lo : pow10Table128_kMin ≤ k) (hk_hi : k ≤ pow10Table128_kMax)
+    (hqh_lo : 64 ≤ qPlusH) (hqh_hi : qPlusH ≤ 132)
+    (hstrict : cmpScaledMixed_u64 gHi gLo (UInt64.ofNat qPlusH.toNat)
+                  (UInt64.ofNat a.toNat) (UInt64.ofNat b.toNat) ≠ 0) :
+    cmpScaledMixed_packed q k gHi gLo qPlusH a b =
+      cmpScaledMixed_u64 gHi gLo (UInt64.ofNat qPlusH.toNat)
+        (UInt64.ofNat a.toNat) (UInt64.ofNat b.toNat) := by
+  rw [cmpScaledMixed_packed_eq_u64_branch _ _ _ _ _ _ _ ha_nn hb_nn hb_pos
+        ha_lt hb_lt hk_lo hk_hi hqh_lo hqh_hi]
+  simp only [if_neg hstrict]
 
-The outer guards are the same as `shortestUnsigned_u64_opt`; the
-inner-fast-path guards (`m < 2^60`, `shiftAmt ∈ [124, 192)`, B-check)
-are added explicitly so the kernel runs only when its preconditions
-are met (the outer `m < 2^53` implies `m < 2^60` but the kernel proof
-needs the latter).  Falls back to `shortestUnsigned_packed` on any
-guard failure (via the wrapper). -/
-@[inline]
-def shortestUnsigned_u64_opt_v2 (m : Nat) (q : Int) : Option (UInt64 × Int) :=
-  if _h_m : m ≥ (1 <<< 53 : Nat) then none
-  else if _h_q_lo : q < (-1074 : Int) then none
-  else if _h_q_hi : q > 971 then none
-  else
-    let irregular := isIrregular m q
-    let k := kOfMQ_fast m q
-    if _h_k_lo : k < pow10Table128_kMin then none
-    else if _h_k_hi : k + 1 > pow10Table128_kMax then none
-    else
-      -- Use shiftedSig_v3 which has its own internal guards and a Nat
-      -- fallback.  This means if the cheap-B check fails (e.g. subnormals),
-      -- shiftedSig_v3 falls back to the slow Nat path, but we KEEP going
-      -- in the UInt64 fast path for inRoundingInterval / pickNearer.
-      -- This matches v1's behaviour and avoids hard-fallback to _packed.
-      let s := shiftedSig_v3 m q k
-      if _h_s : s ≥ (1 <<< 57 : Nat) then none  -- defensive
-      else
-        let sU : UInt64 := UInt64.ofNat s
-        let mU : UInt64 := UInt64.ofNat m
-        if sU ≥ (10 : UInt64) then
-          let kHigh : Int := k + 1
-          let cmpTupleH := pow10Lookup128 kHigh
-          let cmpHGHi := cmpTupleH.1
-          let cmpHGLo := cmpTupleH.2.1
-          let cmpHH := cmpTupleH.2.2
-          let cmpHQPlusH : Int := q + cmpHH
-          if _h_qh_lo : cmpHQPlusH < 64 then none
-          else if _h_qh_hi : cmpHQPlusH > 132 then none
-          else
-            let cmpHQPlusH8 : UInt64 := UInt64.ofNat cmpHQPlusH.toNat
-            let sHighU : UInt64 := sU / 10
-            let uV := inRoundingInterval_u64_packed_u8 cmpHGHi cmpHGLo cmpHQPlusH8
-                        sHighU mU irregular
-            if uV = inRoundingInterval_u8_AMBIG then none
-            else if uV = inRoundingInterval_u8_TRUE then some (sHighU, kHigh)
-            else
-              let wV := inRoundingInterval_u64_packed_u8 cmpHGHi cmpHGLo cmpHQPlusH8
-                          (sHighU + 1) mU irregular
-              if wV = inRoundingInterval_u8_AMBIG then none
-              else if wV = inRoundingInterval_u8_TRUE then some (sHighU + 1, kHigh)
-              else
-                let cmpTuple := pow10Lookup128 k
-                let cmpGHi := cmpTuple.1
-                let cmpGLo := cmpTuple.2.1
-                let cmpH := cmpTuple.2.2
-                let cmpQPlusH : Int := q + cmpH
-                if _h_qh2_lo : cmpQPlusH < 64 then none
-                else if _h_qh2_hi : cmpQPlusH > 132 then none
-                else
-                  let cmpQPlusH8 : UInt64 := UInt64.ofNat cmpQPlusH.toNat
-                  match pickNearer_u64_opt cmpGHi cmpGLo cmpQPlusH8 sU mU irregular with
-                  | none => none
-                  | some chosen => some (chosen, k)
-        else if _h_s1 : sU = 0 then none
-        else
-          let cmpTuple := pow10Lookup128 k
-          let cmpGHi := cmpTuple.1
-          let cmpGLo := cmpTuple.2.1
-          let cmpH := cmpTuple.2.2
-          let cmpQPlusH : Int := q + cmpH
-          if _h_qh2_lo : cmpQPlusH < 64 then none
-          else if _h_qh2_hi : cmpQPlusH > 132 then none
-          else
-            let cmpQPlusH8 : UInt64 := UInt64.ofNat cmpQPlusH.toNat
-            match pickNearer_u64_opt cmpGHi cmpGLo cmpQPlusH8 sU mU irregular with
-            | none => none
-            | some chosen => some (chosen, k)
+/-- Helper: `UInt64.ofNat (s + 1) = UInt64.ofNat s + 1`. -/
+theorem ofNat_succ (s : Nat) :
+    UInt64.ofNat (s + 1) = UInt64.ofNat s + 1 := by
+  rw [UInt64.ofNat_add]; rfl
 
-/-- v3 top-level: UInt64-throughout fast path with `.toNat` at the
-    boundary.  Falls back to `_packed` on any guard failure. -/
-@[inline]
-def shortestUnsigned_v3 (m : Nat) (q : Int) : Nat × Int :=
-  match shortestUnsigned_u64_opt_v2 m q with
-  | some (sU, k) => (sU.toNat, k)
-  | none => shortestUnsigned_packed m q
+/-- For `s < 2^58`, `(UInt64.ofNat s + 1).toNat = s + 1`. -/
+theorem toNat_sU_add_1 {s : Nat} (hs_lt : s < (1 <<< 58 : Nat)) :
+    (UInt64.ofNat s + 1).toNat = s + 1 := by
+  rw [← ofNat_succ, UInt64.toNat_ofNat']
+  apply Nat.mod_eq_of_lt
+  have h64 : (1 <<< 58 : Nat) + 1 < (2 ^ 64 : Nat) := by decide
+  omega
 
-/-- Bridge: the `inRoundingInterval_u64_packed_u8` if-chain inside
-    `shortestUnsigned_u64_opt` is equivalent to matching on
-    `inRoundingInterval_u64_opt`.  Used by the bridge proof so the
-    pre-existing `inRoundingInterval_u64_opt_some_eq_packed` machinery
-    can still be applied. -/
-theorem packed_u8_dispatch_eq_opt_match
-    {α : Type} (gHi gLo qPlusH8 sU mU : UInt64) (irregular : Bool)
-    (rNone rTrue rFalse : α) :
-    (let v := inRoundingInterval_u64_packed_u8 gHi gLo qPlusH8 sU mU irregular
-     if v = inRoundingInterval_u8_AMBIG then rNone
-     else if v = inRoundingInterval_u8_TRUE then rTrue
-     else rFalse) =
-    (match inRoundingInterval_u64_opt gHi gLo qPlusH8 sU mU irregular with
-     | none => rNone
-     | some true => rTrue
-     | some false => rFalse) := by
-  rw [show inRoundingInterval_u64_packed_u8 gHi gLo qPlusH8 sU mU irregular =
-        (match inRoundingInterval_u64_opt gHi gLo qPlusH8 sU mU irregular with
-         | none => inRoundingInterval_u8_AMBIG
-         | some true => inRoundingInterval_u8_TRUE
-         | some false => inRoundingInterval_u8_FALSE) from
-        inRoundingInterval_u64_packed_u8_eq _ _ _ _ _ _]
-  cases inRoundingInterval_u64_opt gHi gLo qPlusH8 sU mU irregular with
-  | none => simp [inRoundingInterval_u8_AMBIG]
-  | some b =>
-    cases b
-    · simp [inRoundingInterval_u8_AMBIG, inRoundingInterval_u8_TRUE,
-            inRoundingInterval_u8_FALSE]
-    · simp [inRoundingInterval_u8_AMBIG, inRoundingInterval_u8_TRUE]
+/-- `(UInt64.ofNat s).toNat = s` when `s < 2^64`. -/
+theorem toNat_sU_eq {s : Nat} (hs_lt : s < (1 <<< 58 : Nat)) :
+    (UInt64.ofNat s).toNat = s := by
+  rw [UInt64.toNat_ofNat']
+  apply Nat.mod_eq_of_lt
+  have h64 : (1 <<< 58 : Nat) < (2 ^ 64 : Nat) := by decide
+  omega
+
+/-- `UInt64.ofNat (s/10) = UInt64.ofNat s / 10` when `s < 2^57`. -/
+theorem uint64_div_10 {s : Nat} (hs : s < (1 <<< 57 : Nat)) :
+    UInt64.ofNat s / 10 = UInt64.ofNat (s / 10) := by
+  apply UInt64.toNat_inj.mp
+  rw [UInt64.toNat_div]
+  simp only [UInt64.toNat_ofNat']
+  have h10 : ((10 : UInt64).toNat) = 10 := by decide
+  rw [h10]
+  have hs64 : s < 2^64 := by
+    have : (1 <<< 57 : Nat) < 2^64 := by decide
+    omega
+  rw [Nat.mod_eq_of_lt hs64]
+  have h10_lt : s / 10 < 2^64 := by
+    have : s / 10 ≤ s := Nat.div_le_self _ _
+    omega
+  rw [Nat.mod_eq_of_lt h10_lt]
+
+/-- For `n < 2^64`, `(UInt64.ofNat n).toNat = n`. -/
+theorem toNat_ofNat_bounded {n : Nat} (h : n < 2^64) :
+    (UInt64.ofNat n).toNat = n := by
+  rw [UInt64.toNat_ofNat']
+  exact Nat.mod_eq_of_lt h
+
+/-- UInt64 / Nat comparison: `sU ≥ 10 ↔ sU.toNat ≥ 10`. -/
+theorem uint64_ge_10 (sU : UInt64) :
+    sU ≥ (10 : UInt64) ↔ sU.toNat ≥ 10 := by
+  constructor
+  · intro h
+    exact UInt64.le_iff_toNat_le.mp h
+  · intro h
+    exact UInt64.le_iff_toNat_le.mpr h
+
+/-- UInt64 / Nat equality: `sU = 0 ↔ sU.toNat = 0`. -/
+theorem uint64_eq_0 (sU : UInt64) :
+    sU = 0 ↔ sU.toNat = 0 := by
+  constructor
+  · intro h; rw [h]; rfl
+  · intro h
+    rw [← UInt64.toNat_inj, h]; rfl
 
 end Srtfp.Schubfach

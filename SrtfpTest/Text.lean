@@ -7,7 +7,7 @@ import SrtfpTest.Spec
 import SrtfpTest.Ryu
 import Srtfp.Text
 import Srtfp.Perf.Schubfach
-import Srtfp.Perf.KernelV6
+import Srtfp.Perf
 
 namespace Srtfp.Tests.Text
 
