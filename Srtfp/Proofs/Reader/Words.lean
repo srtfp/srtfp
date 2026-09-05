@@ -84,8 +84,8 @@ theorem eq_of_mq_eq {u u' : UnpackedFloat} (hu : u.isFinite = true) (hu' : u'.is
 
 theorem sign_mul_abs (s : Sign) (a : Rat) : |Spec.signVal s * a| = |a| := by
   cases s
-  · simp only [Spec.signVal]; rw [show (-1 : Rat) * a = -a by grind, abs_neg]
-  · simp only [Spec.signVal, one_mul]
+  · simp only [Spec.signVal]; rw [show (-1 : Rat) * a = -a by grind, Rat.abs_neg]
+  · simp only [Spec.signVal, Rat.one_mul]
 
 /-- Same sign: the signed distance is the distance of the magnitudes. -/
 theorem dist_of_sign (s : Sign) (a b : Rat) :
@@ -105,12 +105,12 @@ theorem tie_sign {s s' : Sign} {a b : Rat} (_ha : 0 ≤ a) (_hb : 0 ≤ b)
   cases s <;> cases s' <;> simp only [Spec.signVal, abs_def] at hne heq ⊢ <;> grind
 
 theorem mag_nonneg (d : Decimal) : (0 : Rat) ≤ (d.significand : Rat) * (10 : Rat) ^ d.exponent :=
-  Rat.mul_nonneg (by exact_mod_cast Nat.zero_le _) (le_of_lt (ten_zpow_pos _))
+  Rat.mul_nonneg (by exact_mod_cast Nat.zero_le _) (Rat.le_of_lt (ten_zpow_pos _))
 
 theorem abs_toRat (d : Decimal) :
     |Spec.toRat d| = (d.significand : Rat) * (10 : Rat) ^ d.exponent := by
   show |Spec.signVal d.sign * _| = _
-  rw [sign_mul_abs, abs_of_nonneg (mag_nonneg d)]
+  rw [sign_mul_abs, Rat.abs_of_nonneg (mag_nonneg d)]
 
 theorem dist_eq (d : Decimal) {w : UInt64} (hw : (Spec.unpack w).isFinite = true) :
     Spec.dist d w = |Spec.signVal (usign (Spec.unpack w))
@@ -123,7 +123,7 @@ theorem dist_eq (d : Decimal) {w : UInt64} (hw : (Spec.unpack w).isFinite = true
 variable {m m' : Nat} {q q' : Int}
 
 theorem v_nonneg : 0 ≤ v m q :=
-  Rat.mul_nonneg (by exact_mod_cast Nat.zero_le m) (le_of_lt (two_zpow_pos q))
+  Rat.mul_nonneg (by exact_mod_cast Nat.zero_le m) (Rat.le_of_lt (two_zpow_pos q))
 
 theorem v_zero_iff : v m q = 0 ↔ m = 0 := by
   unfold v
@@ -188,7 +188,7 @@ theorem gapL_pos : 0 < gapL m q := by
 theorem gapL_le : gapL m q ≤ (2 : Rat) ^ q := by
   unfold gapL; split
   · exact zpow_le_zpow_right₀ (by decide) (by omega)
-  · exact le_refl _
+  · exact Rat.le_refl
 
 theorem vl_eq : vl m q = v m q - gapL m q / 2 := by
   unfold vl v gapL
@@ -219,7 +219,7 @@ theorem gap (h : Legal m q) (h' : Legal m' q') (hne : v m' q' ≠ v m q) :
       calc (m' : Rat) * (2 : Rat) ^ q' ≤ m' * (2 : Rat) ^ (q - 1) :=
             Rat.mul_le_mul_of_nonneg_left hq' (by exact_mod_cast Nat.zero_le m')
         _ ≤ (2 ^ 53 - 1) * (2 : Rat) ^ (q - 1) :=
-            Rat.mul_le_mul_of_nonneg_right (by grind) (le_of_lt hp1)
+            Rat.mul_le_mul_of_nonneg_right (by grind) (Rat.le_of_lt hp1)
     unfold gapL v
     by_cases hirr : m = 2 ^ 52 ∧ q > -1074
     · rw [if_pos hirr, hirr.1]; push_cast
@@ -232,7 +232,7 @@ theorem gap (h : Legal m q) (h' : Legal m' q') (hne : v m' q' ≠ v m q) :
         · exact absurd ⟨heq.symm, by omega⟩ hirr
         · omega
       have hmq : (2 ^ 52 + 1 : Rat) ≤ m := by exact_mod_cast hm1
-      have := Rat.mul_le_mul_of_nonneg_right hmq (le_of_lt hp)
+      have := Rat.mul_le_mul_of_nonneg_right hmq (Rat.le_of_lt hp)
       generalize (2 : Rat) ^ (q - 1) = P1 at *
       generalize (2 : Rat) ^ q = P at *
       grind
@@ -244,11 +244,11 @@ theorem gap (h : Legal m q) (h' : Legal m' q') (hne : v m' q' ≠ v m q) :
     rcases Nat.lt_or_gt_of_ne hnm with hlt | hgt
     · left
       have : (n : Rat) + 1 ≤ m := by exact_mod_cast hlt
-      have := Rat.mul_le_mul_of_nonneg_right this (le_of_lt hp)
+      have := Rat.mul_le_mul_of_nonneg_right this (Rat.le_of_lt hp)
       grind
     · right
       have : (m : Rat) + 1 ≤ n := by exact_mod_cast hgt
-      have := Rat.mul_le_mul_of_nonneg_right this (le_of_lt hp)
+      have := Rat.mul_le_mul_of_nonneg_right this (Rat.le_of_lt hp)
       grind
 
 end Srtfp.Reader

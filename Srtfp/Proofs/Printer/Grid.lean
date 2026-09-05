@@ -52,7 +52,7 @@ theorem u_le_v (hm : 1 ≤ m) : u m q i ≤ v m q := by
   rw [s_cast hm]
   have h10 := ten_zpow_pos i
   have hfl := Rat.floor_le (v m q / (10 : Rat) ^ i)
-  have := Rat.mul_le_mul_of_nonneg_right hfl (le_of_lt h10)
+  have := Rat.mul_le_mul_of_nonneg_right hfl (Rat.le_of_lt h10)
   rwa [Rat.div_mul_cancel (Rat.ne_of_gt h10)] at this
 
 theorem v_lt_w (hm : 1 ≤ m) : v m q < w m q i := by
@@ -74,7 +74,7 @@ theorem s_pos_iff (hm : 1 ≤ m) : 1 ≤ s m q i ↔ (10 : Rat) ^ i ≤ v m q :=
     have : (1 : Rat) ≤ s m q i := by exact_mod_cast hs
     have hu := u_le_v (q := q) (i := i) hm
     unfold u at hu
-    have := Rat.mul_le_mul_of_nonneg_right this (le_of_lt h10)
+    have := Rat.mul_le_mul_of_nonneg_right this (Rat.le_of_lt h10)
     grind
   · intro hv
     have hV : (1 : Rat) ≤ v m q / (10 : Rat) ^ i := by
@@ -107,11 +107,11 @@ theorem onGrid_le_u_or_w_le (hx : OnGrid i x) : x ≤ u m q i ∨ w m q i ≤ x 
   rcases Nat.lt_or_ge k (s m q i + 1) with hk | hk
   · left
     unfold u
-    exact Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast (show k ≤ s m q i by omega)) (le_of_lt h10)
+    exact Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast (show k ≤ s m q i by omega)) (Rat.le_of_lt h10)
   · right
     unfold w
     have : ((s m q i : Rat) + 1) ≤ k := by exact_mod_cast hk
-    exact Rat.mul_le_mul_of_nonneg_right this (le_of_lt h10)
+    exact Rat.mul_le_mul_of_nonneg_right this (Rat.le_of_lt h10)
 
 /-- The grid meets `R_v` iff a neighbour does (R3 and convexity). -/
 theorem hit_iff_neighbour (hm : 1 ≤ m) :
@@ -123,7 +123,7 @@ theorem hit_iff_neighbour (hm : 1 ≤ m) :
     · left
       exact InRv_convex hxR (InRv_v hm) hxu (u_le_v hm)
     · right
-      exact InRv_convex (InRv_v hm) hxR (le_of_lt (v_lt_w hm)) hwx
+      exact InRv_convex (InRv_v hm) hxR (Rat.le_of_lt (v_lt_w hm)) hwx
   · rintro (h | h)
     · exact ⟨_, onGrid_u, h⟩
     · exact ⟨_, onGrid_w, h⟩
@@ -162,7 +162,7 @@ theorem grid_point_side (hm : 1 ≤ m) (hx : OnGrid i x) (hxR : InRv m q x = tru
     (x ≤ u m q i) ∨ (w m q i ≤ x ∧ InRv m q (w m q i) = true) := by
   rcases onGrid_le_u_or_w_le (m := m) (q := q) hx with h | h
   · exact Or.inl h
-  · exact Or.inr ⟨h, InRv_convex (InRv_v hm) hxR (le_of_lt (v_lt_w hm)) h⟩
+  · exact Or.inr ⟨h, InRv_convex (InRv_v hm) hxR (Rat.le_of_lt (v_lt_w hm)) h⟩
 
 theorem grid_point_side' (hm : 1 ≤ m) (hx : OnGrid i x) (hxR : InRv m q x = true) :
     (w m q i ≤ x) ∨ (x ≤ u m q i ∧ InRv m q (u m q i) = true) := by
@@ -176,10 +176,10 @@ private theorem close_u (hm : 1 ≤ m)
     |v m q - u m q i| ≤ |v m q - x| := by
   have huv := u_le_v (q := q) (i := i) hm
   have hvw := v_lt_w (q := q) (i := i) hm
-  rw [abs_of_nonneg (by grind)]
+  rw [Rat.abs_of_nonneg (by grind)]
   rcases grid_point_side hm hx hxR with h | ⟨h, hw⟩
-  · rw [abs_of_nonneg (by grind)]; grind
-  · rw [abs_of_nonpos (by grind)]; have := hle hw; grind
+  · rw [Rat.abs_of_nonneg (by grind)]; grind
+  · rw [Rat.abs_of_nonpos (by grind)]; have := hle hw; grind
 
 private theorem close_w (hm : 1 ≤ m)
     (hle : InRv m q (u m q i) = true → w m q i - v m q ≤ v m q - u m q i)
@@ -187,10 +187,10 @@ private theorem close_w (hm : 1 ≤ m)
     |v m q - w m q i| ≤ |v m q - x| := by
   have huv := u_le_v (q := q) (i := i) hm
   have hvw := v_lt_w (q := q) (i := i) hm
-  rw [abs_of_nonpos (by grind)]
+  rw [Rat.abs_of_nonpos (by grind)]
   rcases grid_point_side' hm hx hxR with h | ⟨h, hu⟩
-  · rw [abs_of_nonpos (by grind)]; grind
-  · rw [abs_of_nonneg (by grind)]; have := hle hu; grind
+  · rw [Rat.abs_of_nonpos (by grind)]; grind
+  · rw [Rat.abs_of_nonneg (by grind)]; have := hle hu; grind
 
 private theorem tie_u (hm : 1 ≤ m)
     (hc : InRv m q (w m q i) = true →
@@ -199,10 +199,10 @@ private theorem tie_u (hm : 1 ≤ m)
     (heq : |v m q - u m q i| = |v m q - x|) : s m q i % 2 = 0 := by
   have huv := u_le_v (q := q) (i := i) hm
   have hvw := v_lt_w (q := q) (i := i) hm
-  rw [abs_of_nonneg (by grind)] at heq
+  rw [Rat.abs_of_nonneg (by grind)] at heq
   rcases grid_point_side hm hx hxR with h | ⟨h, hw⟩
-  · rw [abs_of_nonneg (by grind)] at heq; exact absurd (by grind) hne
-  · rw [abs_of_nonpos (by grind)] at heq
+  · rw [Rat.abs_of_nonneg (by grind)] at heq; exact absurd (by grind) hne
+  · rw [Rat.abs_of_nonpos (by grind)] at heq
     rcases hc hw with hlt | ⟨_, he⟩
     · exfalso; grind
     · exact he
@@ -214,10 +214,10 @@ private theorem tie_w (hm : 1 ≤ m)
     (heq : |v m q - w m q i| = |v m q - x|) : (s m q i + 1) % 2 = 0 := by
   have huv := u_le_v (q := q) (i := i) hm
   have hvw := v_lt_w (q := q) (i := i) hm
-  rw [abs_of_nonpos (by grind)] at heq
+  rw [Rat.abs_of_nonpos (by grind)] at heq
   rcases grid_point_side' hm hx hxR with h | ⟨h, hu⟩
-  · rw [abs_of_nonpos (by grind)] at heq; exact absurd (by grind) hne
-  · rw [abs_of_nonneg (by grind)] at heq
+  · rw [Rat.abs_of_nonpos (by grind)] at heq; exact absurd (by grind) hne
+  · rw [Rat.abs_of_nonneg (by grind)] at heq
     have hc' := hc hu
     have hge : w m q i - v m q ≤ v m q - u m q i := by grind
     have heqd : v m q - u m q i = w m q i - v m q := by grind

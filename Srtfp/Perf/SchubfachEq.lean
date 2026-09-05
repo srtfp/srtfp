@@ -291,12 +291,12 @@ theorem eq_of_onGrid_coarse {j : Int} (hj : vr m q - vl m q < (10 : Rat) ^ j) {x
   rcases Nat.lt_trichotomy a b with hab | hab | hab
   · exfalso
     have : ((a : Rat) + 1) * (10 : Rat) ^ j ≤ b * (10 : Rat) ^ j :=
-      Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast hab) (le_of_lt h10)
+      Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast hab) (Rat.le_of_lt h10)
     grind
   · rw [hab]
   · exfalso
     have : ((b : Rat) + 1) * (10 : Rat) ^ j ≤ a * (10 : Rat) ^ j :=
-      Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast hab) (le_of_lt h10)
+      Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast hab) (Rat.le_of_lt h10)
     grind
 
 /-- R11: a grid no finer than `|R_v|` meets `R_v`. -/
@@ -318,7 +318,7 @@ theorem hit_of_le_width {j : Int} (hm : 1 ≤ m) (hj : (10 : Rat) ^ j ≤ vr m q
     ⟨_, by rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hfl0]⟩
   push_cast at hlt
   rw [hc] at hfl hlt
-  have hfl' := Rat.mul_le_mul_of_nonneg_right hfl (le_of_lt h10)
+  have hfl' := Rat.mul_le_mul_of_nonneg_right hfl (Rat.le_of_lt h10)
   have hlt' := Rat.mul_lt_mul_of_pos_right hlt h10
   rw [Rat.div_mul_cancel (Rat.ne_of_gt h10)] at hfl' hlt'
   refine ⟨((c + 1 : Nat) : Rat) * (10 : Rat) ^ j, ⟨c + 1, rfl⟩, ?_⟩
@@ -328,9 +328,9 @@ theorem hit_of_le_width {j : Int} (hm : 1 ≤ m) (hj : (10 : Rat) ^ j ≤ vr m q
   have hhi : ((c : Rat) + 1) * (10 : Rat) ^ j ≤ vr m q := by grind
   unfold InRv
   by_cases hev : m % 2 = 0
-  · rw [if_pos hev]; simp only [decide_eq_true_eq]; exact ⟨le_of_lt hlo, hhi⟩
+  · rw [if_pos hev]; simp only [decide_eq_true_eq]; exact ⟨Rat.le_of_lt hlo, hhi⟩
   · rw [if_neg hev]; simp only [decide_eq_true_eq]
-    refine ⟨hlo, lt_of_le_of_ne hhi fun heq => ?_⟩
+    refine ⟨hlo, Rat.lt_of_le_of_ne hhi fun heq => ?_⟩
     -- the endpoint case: `|R_v| = 10^j` and `vl` on the grid, impossible for odd `m`
     have hw : vr m q - vl m q = (10 : Rat) ^ j := by grind
     have hvl' : vl m q = (c : Rat) * (10 : Rat) ^ j := by grind
@@ -496,7 +496,7 @@ theorem shortestUnsigned_spec (h : InRange m q) :
       have h2 : (10 : Rat) ^ (k + 2) = 10 ^ (k + 1) * 10 := by
         rw [show k + 2 = (k + 1) + 1 by omega, Rat.zpow_add_one (by decide)]
       have h3 : (1 : Rat) * 10 ^ j ≤ (c : Rat) * 10 ^ j :=
-        Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast hc) (le_of_lt (ten_zpow_pos j))
+        Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast hc) (Rat.le_of_lt (ten_zpow_pos j))
       have hvlv := vl_lt_v (q := q) hm
       grind
     by_cases hW : InRv m q ((10 : Rat) ^ (k + 1)) = true
@@ -531,7 +531,7 @@ theorem shortestUnsigned_spec (h : InRange m q) :
       -- so `s = 9`, and the pick is `10`
       have hs9 : Printer.s m q k = 9 := by
         have hfl : (9 : Int) ≤ (v m q / (10 : Rat) ^ k).floor :=
-          Rat.le_floor_iff.mpr (by rw [Reader.le_div_iff h10k]; push_cast; exact le_of_lt hT3.1)
+          Rat.le_floor_iff.mpr (by rw [Reader.le_div_iff h10k]; push_cast; exact Rat.le_of_lt hT3.1)
         have hsc : ((Printer.s m q k : Nat) : Int) = (v m q / (10 : Rat) ^ k).floor := by
           exact_mod_cast s_cast (q := q) (i := k) hm
         omega
@@ -544,7 +544,7 @@ theorem shortestUnsigned_spec (h : InRange m q) :
           have h2 := hT3.2 (by push_cast at hmemp; exact hmemp)
           push_cast at h1
           rw [hTi] at h2
-          rw [abs_of_nonneg (by grind), abs_of_nonpos (by grind)] at h1
+          rw [Rat.abs_of_nonneg (by grind), Rat.abs_of_nonpos (by grind)] at h1
           grind
         · omega
       rw [hp10]

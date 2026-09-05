@@ -84,15 +84,15 @@ theorem read_spec (d : Decimal) :
       rw [← hn] at hlo hhi hlo' hhi'
       unfold InRv vl vr
       have hvl : ((n : Rat) - 1/2) * 2 ^ k ≤ y * 2 ^ k :=
-        Rat.mul_le_mul_of_nonneg_right hlo (le_of_lt hP)
+        Rat.mul_le_mul_of_nonneg_right hlo (Rat.le_of_lt hP)
       have hvr : y * 2 ^ k ≤ ((n : Rat) + 1/2) * 2 ^ k :=
-        Rat.mul_le_mul_of_nonneg_right hhi (le_of_lt hP)
+        Rat.mul_le_mul_of_nonneg_right hhi (Rat.le_of_lt hP)
       have hirr : n = 2 ^ 52 ∧ k > -1074 → ((n : Rat) - 1/4) * 2 ^ k ≤ y * 2 ^ k := by
         rintro ⟨hn2, hk⟩
         rcases hy52 with h | h
         · omega
         · have : ((n : Rat) - 1/4) ≤ y := by rw [hn2, hc52]; grind
-          exact Rat.mul_le_mul_of_nonneg_right this (le_of_lt hP)
+          exact Rat.mul_le_mul_of_nonneg_right this (Rat.le_of_lt hP)
       split
       · rename_i heven
         simp only [decide_eq_true_eq]
@@ -146,8 +146,8 @@ theorem read_spec (d : Decimal) :
             have h2 : ((2 : Rat) ^ 53 - 1/2) * 2 ^ (971 : Int) ≤ (2 ^ 53 - 1/2) * 2 ^ k :=
               Rat.mul_le_mul_of_nonneg_left h1 (by grind)
             have h3 : ((2 : Rat) ^ 53 - 1/2) * 2 ^ k ≤ y * 2 ^ k :=
-              Rat.mul_le_mul_of_nonneg_right hlo (le_of_lt hP)
-            exact absurd hT' (Rat.not_lt.mpr (le_trans h2 h3))
+              Rat.mul_le_mul_of_nonneg_right hlo (Rat.le_of_lt hP)
+            exact absurd hT' (Rat.not_lt.mpr (Rat.le_trans h2 h3))
         refine ⟨rfl, rfl, ?_, ?_⟩
         · show Legal (2 ^ 52) (k + 1)
           exact ⟨by omega, by omega, by omega, fun _ => Nat.le_refl _⟩
@@ -161,11 +161,11 @@ theorem read_spec (d : Decimal) :
         constructor
         · have : ((2 : Rat) ^ 52 - 1/4) * (2 ^ k * 2) = (2 ^ 53 - 1/2) * 2 ^ k := by
             rw [h53]; grind
-          rw [this]; exact Rat.mul_le_mul_of_nonneg_right hlo (le_of_lt hP)
+          rw [this]; exact Rat.mul_le_mul_of_nonneg_right hlo (Rat.le_of_lt hP)
         · have : ((2 : Rat) ^ 52 + 1/2) * (2 ^ k * 2) = (2 ^ 53 + 1) * 2 ^ k := by
             rw [h53]; grind
           rw [this]
-          exact Rat.mul_le_mul_of_nonneg_right (by grind) (le_of_lt hP)
+          exact Rat.mul_le_mul_of_nonneg_right (by grind) (Rat.le_of_lt hP)
       · -- the grid point `r · 2^k`
         rename_i h53
         have hr' : (r.toNat : Rat) = r := hrN
@@ -191,9 +191,9 @@ theorem read_spec (d : Decimal) :
               rw [show (972 : Int) = 971 + 1 by rfl, Rat.zpow_add_one (by decide)]; grind
             have h4 := two_zpow_pos (971 : Int)
             have h5 : (2 : Rat) ^ 52 * 2 ^ k ≤ y * 2 ^ k :=
-              Rat.mul_le_mul_of_nonneg_right h1 (le_of_lt hP)
+              Rat.mul_le_mul_of_nonneg_right h1 (Rat.le_of_lt hP)
             have h6 : (2 : Rat) ^ 52 * 2 ^ (972 : Int) ≤ (2 : Rat) ^ 52 * 2 ^ k :=
-              Rat.mul_le_mul_of_nonneg_left h2 (le_of_lt (Rat.pow_pos (by decide)))
+              Rat.mul_le_mul_of_nonneg_left h2 (Rat.le_of_lt (Rat.pow_pos (by decide)))
             have h7 : (2 : Rat) ^ 53 = 2 ^ 52 * 2 := by rw [Rat.pow_succ]
             grind
           · exact h

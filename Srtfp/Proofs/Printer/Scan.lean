@@ -45,7 +45,7 @@ theorem vr_lt_two_pow_1024 (h : InRange m q) : vr m q < (2 : Rat) ^ (1024 : Nat)
   unfold vr
   calc ((m : Rat) + 1/2) * 2 ^ q < 2 ^ (53 : Nat) * 2 ^ q := Rat.mul_lt_mul_of_pos_right hm' h2
     _ ≤ 2 ^ (53 : Nat) * 2 ^ (971 : Int) :=
-        Rat.mul_le_mul_of_nonneg_left hq' (le_of_lt (Rat.pow_pos (by decide)))
+        Rat.mul_le_mul_of_nonneg_left hq' (Rat.le_of_lt (Rat.pow_pos (by decide)))
     _ = 2 ^ (1024 : Nat) := by
         show (2 : Rat) ^ (53 : Nat) * (2 : Rat) ^ (971 : Nat) = (2 : Rat) ^ (1024 : Nat)
         rw [← Rat.pow_add]
@@ -66,7 +66,7 @@ theorem candidate_none_above (h : InRange m q) (hi : 308 < i) : candidate m q i 
       exact_mod_cast two_pow_1024_lt
     have h3 : (10 : Rat) ^ (309 : Int) ≤ (10 : Rat) ^ i := zpow_le_zpow_right₀ (by decide) (by omega)
     have h4 : (1 : Rat) ≤ k := by exact_mod_cast hk
-    have h5 : (1 : Rat) * 10 ^ i ≤ (k : Rat) * 10 ^ i := Rat.mul_le_mul_of_nonneg_right h4 (le_of_lt h10)
+    have h5 : (1 : Rat) * 10 ^ i ≤ (k : Rat) * 10 ^ i := Rat.mul_le_mul_of_nonneg_right h4 (Rat.le_of_lt h10)
     grind
 
 /-! ## T2: the grid `10^{-324}` always meets `R_v` -/
@@ -104,7 +104,7 @@ theorem ten_zpow_neg_324_lt_width : (10 : Rat) ^ (-324 : Int) < 3/4 * (2 : Rat) 
   generalize (2 : Rat) ^ (1074 : Nat) = B at hB hAB ⊢
   have hA' := Rat.mul_inv_cancel A (Rat.ne_of_gt hA)
   have hB' := Rat.mul_inv_cancel B (Rat.ne_of_gt hB)
-  apply Rat.lt_of_mul_lt_mul_right (c := A * B) _ (le_of_lt (Rat.mul_pos hA hB))
+  apply Rat.lt_of_mul_lt_mul_right (c := A * B) _ (Rat.le_of_lt (Rat.mul_pos hA hB))
   calc A⁻¹ * (A * B) = B := by grind
     _ < 3/4 * A := by grind
     _ = 3/4 * B⁻¹ * (A * B) := by grind
@@ -145,7 +145,7 @@ theorem hit_at_bottom (h : InRange m q) : candidate m q (-324) ≠ none := by
   · have := Rat.mul_lt_mul_of_pos_right hVlt h10
     rw [hVmul] at this
     exact this
-  · have := Rat.mul_le_mul_of_nonneg_right hVle (le_of_lt h10)
+  · have := Rat.mul_le_mul_of_nonneg_right hVle (Rat.le_of_lt h10)
     rw [hVmul] at this
     grind
 
@@ -172,7 +172,7 @@ theorem mul_inv_lt_mul_inv {A B p r : Rat} (hA : 0 < A) (hB : 0 < B) (h : p * B 
     p * A⁻¹ < r * B⁻¹ := by
   have hA' := Rat.mul_inv_cancel A (Rat.ne_of_gt hA)
   have hB' := Rat.mul_inv_cancel B (Rat.ne_of_gt hB)
-  apply Rat.lt_of_mul_lt_mul_right (c := A * B) _ (le_of_lt (Rat.mul_pos hA hB))
+  apply Rat.lt_of_mul_lt_mul_right (c := A * B) _ (Rat.le_of_lt (Rat.mul_pos hA hB))
   calc p * A⁻¹ * (A * B) = p * B := by grind
     _ < r * A := h
     _ = r * B⁻¹ * (A * B) := by grind
@@ -215,8 +215,8 @@ theorem ten_pow_closer (h : InRange m q) (hw : InRv m q ((10 : Rat) ^ i) = true)
   subst hq
   have hm' : (m : Rat) ≤ 9 := by exact_mod_cast hm9
   have hm1' : (1 : Rat) ≤ m := by exact_mod_cast hm1
-  have hmP := Rat.mul_le_mul_of_nonneg_right hm' (le_of_lt hP)
-  have hmP1 := Rat.mul_le_mul_of_nonneg_right hm1' (le_of_lt hP)
+  have hmP := Rat.mul_le_mul_of_nonneg_right hm' (Rat.le_of_lt hP)
+  have hmP1 := Rat.mul_le_mul_of_nonneg_right hm1' (Rat.le_of_lt hP)
   have hP2 : (0 : Rat) < 2 ^ 1074 := Rat.pow_pos (by decide)
   rw [show (-1074 : Int) = -((1074 : Nat) : Int) by rfl, two_zpow_neg_eq] at hPq
   -- `i = -323`
@@ -259,7 +259,7 @@ theorem ten_pow_closer (h : InRange m q) (hw : InRv m q ((10 : Rat) ^ i) = true)
     · exact_mod_cast hge
   have hF := mul_inv_lt_mul_inv hT2 hP2 nineteen_two_pow_1074_lt
   rw [hPq] at hF
-  have := Rat.mul_le_mul_of_nonneg_right hm2 (le_of_lt hP)
+  have := Rat.mul_le_mul_of_nonneg_right hm2 (Rat.le_of_lt hP)
   grind
 
 /-! ## The loop invariant -/

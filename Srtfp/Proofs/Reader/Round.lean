@@ -15,7 +15,7 @@ namespace Srtfp.Reader
 open Srtfp.Printer (two_zpow_pos two_zpow_natCast)
 
 theorem le_div_iff {a b c : Rat} (hc : 0 < c) : a ≤ b / c ↔ a * c ≤ b := by
-  rw [← not_lt, ← not_lt, Rat.div_lt_iff hc]
+  rw [← Rat.not_lt, ← Rat.not_lt, Rat.div_lt_iff hc]
 
 theorem div_eq_iff {a b c : Rat} (hc : 0 < c) : a / c = b ↔ a = b * c := by
   constructor
@@ -72,7 +72,7 @@ theorem gridExp_spec {x : Rat} (hx : 0 ≤ x) :
   have hle := Rat.floor_le (x * 2 ^ 1074)
   have hlt := Rat.lt_floor_add_one (x * 2 ^ 1074)
   have hy0 : 0 ≤ (x * 2 ^ 1074).floor :=
-    Rat.le_floor_iff.mpr (by simpa using Rat.mul_nonneg hx (le_of_lt hP))
+    Rat.le_floor_iff.mpr (by simpa using Rat.mul_nonneg hx (Rat.le_of_lt hP))
   generalize (x * 2 ^ 1074).floor = y at *
   have hYy : ((y.toNat : Nat) : Rat) = (y : Rat) := by
     rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hy0]
@@ -90,7 +90,7 @@ theorem gridExp_spec {x : Rat} (hx : 0 ≤ x) :
       rw [← two_zpow_natCast]
       exact zpow_le_zpow_right₀ (by decide) (by push_cast; omega)
     rw [hsplit] at h2
-    exact Rat.lt_of_mul_lt_mul_right (by grind) (le_of_lt hP)
+    exact Rat.lt_of_mul_lt_mul_right (by grind) (Rat.le_of_lt hP)
   · by_cases hk : max ((L : Int) - 1074 - 52) (-1074) = -1074
     · exact Or.inl hk
     · right

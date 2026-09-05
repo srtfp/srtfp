@@ -71,7 +71,7 @@ theorem finer_is_longer (hj : j < i) (hd : 1 ≤ d)
   -- cancel `10^j`
   have hlo' : (d : Rat) * 10 ^ δ < f :=
     Rat.lt_of_mul_lt_mul_right (a := (d : Rat) * 10 ^ δ) (b := f) (c := 10 ^ j)
-      (by grind) (le_of_lt h10)
+      (by grind) (Rat.le_of_lt h10)
   have hloN : d * 10 ^ δ < f := by exact_mod_cast hlo'
   -- `10^(digits d - 1 + δ) ≤ d · 10^δ < f`
   have hpow : 10 ^ (digits d - 1 + δ) ≤ f := by

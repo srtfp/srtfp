@@ -103,12 +103,12 @@ theorem tie_eq_u_or_w {y : Rat} (hy : OnGrid i y) (hyR : InRv m q y = true)
     have huR : InRv m q (u m q i) = true := InRv_convex hyR (InRv_v hm) hyu huv
     have h1 := hclose _ onGrid_u huR
     rw [heq] at h1
-    rw [abs_of_nonneg (by grind), abs_of_nonneg (by grind)] at h1
+    rw [Rat.abs_of_nonneg (by grind), Rat.abs_of_nonneg (by grind)] at h1
     grind
   · right
     have h1 := hclose _ onGrid_w hwR
     rw [heq] at h1
-    rw [abs_of_nonpos (by grind), abs_of_nonpos (by grind)] at h1
+    rw [Rat.abs_of_nonpos (by grind), Rat.abs_of_nonpos (by grind)] at h1
     grind
 
 /-- On the output's grid, an exact tie is between the two neighbours `s` and
@@ -143,7 +143,7 @@ theorem tie_analysis {f : Nat} (hyR : InRv m q ((f : Rat) * (10 : Rat) ^ i) = tr
 omit h hs in
 theorem grid_mono {a b : Nat} (hab : a ≤ b) :
     (a : Rat) * (10 : Rat) ^ i ≤ (b : Rat) * (10 : Rat) ^ i :=
-  Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast hab) (le_of_lt (ten_zpow_pos i))
+  Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast hab) (Rat.le_of_lt (ten_zpow_pos i))
 
 omit h hs in
 /-- A positive value off the grid lies strictly between two consecutive grid points. -/
@@ -157,7 +157,7 @@ theorem between_grid {y : Rat} (hy : 0 < y) (hyng : ¬ OnGrid i y) :
     · exact hnn
   refine ⟨(y / (10 : Rat) ^ i).floor.toNat, ?_, ?_⟩
   · have hle := Rat.floor_le (y / (10 : Rat) ^ i)
-    have := Rat.mul_le_mul_of_nonneg_right hle (le_of_lt h10)
+    have := Rat.mul_le_mul_of_nonneg_right hle (Rat.le_of_lt h10)
     rw [Rat.div_mul_cancel (Rat.ne_of_gt h10)] at this
     rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hfl0]
     by_cases hlt : ((y / (10 : Rat) ^ i).floor : Rat) * (10 : Rat) ^ i < y
@@ -216,10 +216,10 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
     -- the two ways a finer point is strictly farther than the output
     have below (hyu : (f : Rat) * (10 : Rat) ^ b < u m q i) :
         |v m q - n * (10 : Rat) ^ i| < |v m q - f * (10 : Rat) ^ b| := by
-      have huR : InRv m q (u m q i) = true := InRv_convex hyR (InRv_v hm) (le_of_lt hyu) huv
+      have huR : InRv m q (u m q i) = true := InRv_convex hyR (InRv_v hm) (Rat.le_of_lt hyu) huv
       have hcu := hclose _ onGrid_u huR
-      rw [abs_of_nonneg (show 0 ≤ v m q - u m q i by grind)] at hcu
-      rw [abs_of_nonneg (show 0 ≤ v m q - f * (10 : Rat) ^ b by grind)]
+      rw [Rat.abs_of_nonneg (show 0 ≤ v m q - u m q i by grind)] at hcu
+      rw [Rat.abs_of_nonneg (show 0 ≤ v m q - f * (10 : Rat) ^ b by grind)]
       grind
     rcases Nat.lt_or_ge dy n with hlt | hge
     · rcases Nat.eq_zero_or_pos dy with hdy0 | hdy1
@@ -228,7 +228,7 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
         have h01 : (((0 : Nat) : Rat) + 1) = ((1 : Nat) : Rat) := by grind
         rw [h01] at hhi
         have h1R : InRv m q ((1 : Nat) * (10 : Rat) ^ i) = true :=
-          InRv_convex hyR hmem (le_of_lt hhi) (grid_mono hn)
+          InRv_convex hyR hmem (Rat.le_of_lt hhi) (grid_mono hn)
         have hdig : digits n = 1 := by
           rw [← same_len h hs (by omega) h1R]; exact digits_eq_one_of_le_nine (by omega)
         rcases Nat.lt_or_ge 1 (digits f) with hf | hf
@@ -248,8 +248,8 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
             have h1 : (f : Rat) * (10 : Rat) ^ b ≤ (f : Rat) * (10 : Rat) ^ (i - 1) :=
               Rat.mul_le_mul_of_nonneg_left hb' (by exact_mod_cast Nat.zero_le f)
             have h2 : (f : Rat) * (10 : Rat) ^ (i - 1) ≤ 9 * (10 : Rat) ^ (i - 1) :=
-              Rat.mul_le_mul_of_nonneg_right hf9' (le_of_lt hT)
-            exact le_trans h1 h2
+              Rat.mul_le_mul_of_nonneg_right hf9' (Rat.le_of_lt hT)
+            exact Rat.le_trans h1 h2
           rcases Nat.eq_zero_or_pos (s m q i) with hs0 | hs1
           · -- `s = 0`: the output is `10^i` and `v < 10^i`; T3 decides
             have hn1 : n = 1 := by omega
@@ -268,13 +268,13 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
             push_cast
             rw [hTi] at hT3 hvw ⊢
             have hvpos : 9 * (10 : Rat) ^ (i - 1) < v m q := by grind
-            rw [abs_of_nonpos (by grind), abs_of_nonneg (by grind)]
+            rw [Rat.abs_of_nonpos (by grind), Rat.abs_of_nonneg (by grind)]
             grind
           · -- `s ≥ 1`: the competitor lies below `u ≤ v`
             exact below (lt_of_lt_of_le hhi (by unfold u; exact grid_mono (i := i) hs1))
       · -- `(dy + 1) · 10^i ∈ R_v` shares `n`'s length, and `dy + 1` is not a power of ten
         have hd1R : InRv m q (((dy + 1 : Nat) : Rat) * (10 : Rat) ^ i) = true :=
-          InRv_convex hyR hmem (by push_cast; exact le_of_lt hhi) (grid_mono (by omega))
+          InRv_convex hyR hmem (by push_cast; exact Rat.le_of_lt hhi) (grid_mono (by omega))
         have hdig1 : digits (dy + 1) = digits n := same_len h hs (by omega) hd1R
         have h10' : (dy + 1) % 10 ≠ 0 :=
           fun e => no_coarser h hs (by omega) (onGrid_succ_of_ten_dvd e) hd1R
@@ -283,7 +283,7 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
         left; omega
     · -- above the output: `dy · 10^i ∈ R_v` shares `n`'s length
       have hdR : InRv m q ((dy : Rat) * (10 : Rat) ^ i) = true :=
-        InRv_convex hmem hyR (grid_mono hge) (le_of_lt hlo)
+        InRv_convex hmem hyR (grid_mono hge) (Rat.le_of_lt hlo)
       have hdig : digits dy = digits n := same_len h hs (by omega) hdR
       have := finer_is_longer hb (by omega) hlo
       left; omega
@@ -405,10 +405,10 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
     have hd₀ : Spec.dist ⟨s, 0, 0⟩ wd = 0 := by
       rw [Reader.dist_eq _ hfin, hmq, hus, hv0, Rat.mul_zero, show ((0 : Nat) : Rat) = 0 by simp,
         Rat.zero_mul, Rat.mul_zero, sub_zero]
-      exact abs_zero
+      exact Rat.abs_zero
     have hd' : 0 < Spec.dist d' wd := by
-      rw [Reader.dist_eq _ hfin, hmq, hus, hv0, hsign', hneg, abs_neg, sign_mul_abs]
-      exact abs_pos.mpr (Rat.ne_of_gt (Rat.mul_pos (by exact_mod_cast hf1) (ten_zpow_pos _)))
+      rw [Reader.dist_eq _ hfin, hmq, hus, hv0, hsign', hneg, Rat.abs_neg, sign_mul_abs]
+      exact Rat.abs_pos_iff.mpr (Rat.ne_of_gt (Rat.mul_pos (by exact_mod_cast hf1) (ten_zpow_pos _)))
     rcases Nat.lt_or_ge 1 (digits d'.significand) with hd | hd
     · left; rw [digits_zero]; exact hd
     · right

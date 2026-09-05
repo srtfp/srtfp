@@ -55,13 +55,13 @@ theorem lt_threshold_of_InRv {m : Nat} {q : Int} {x : Rat} (h : Legal m q) (hx :
   · have hq' : q = 971 := by have := h.2.2.1; omega
     subst hq'
     have hle : ((m : Rat) + 1/2) * 2 ^ (971 : Int) ≤ (2 ^ 53 - 1/2) * 2 ^ (971 : Int) :=
-      Rat.mul_le_mul_of_nonneg_right (by grind) (le_of_lt (two_zpow_pos _))
+      Rat.mul_le_mul_of_nonneg_right (by grind) (Rat.le_of_lt (two_zpow_pos _))
     by_cases heq : x = ((m : Rat) + 1/2) * 2 ^ (971 : Int)
     · have he := hev heq
       have hm2 : (m : Rat) + 2 ≤ 2 ^ 53 := by
         exact_mod_cast (show m + 2 ≤ 2 ^ 53 by have := h.1; omega)
       rw [heq]; exact Rat.mul_lt_mul_of_pos_right (by grind) (two_zpow_pos _)
-    · exact lt_of_lt_of_le (lt_of_le_of_ne hr heq) hle
+    · exact lt_of_lt_of_le (Rat.lt_of_le_of_ne hr heq) hle
 
 /-! ## The reader theorem -/
 

@@ -180,7 +180,7 @@ theorem sub192_192_toNat (aHi aMid aLo bHi bMid bLo : UInt64)
 private theorem cmp3_flip (x y : Int) :
     (if x < y then (-1 : Int) else if x = y then 0 else 1)
       = -(if y < x then (-1 : Int) else if y = x then 0 else 1) := by
-  rcases lt_trichotomy x y with h | h | h
+  rcases Int.lt_trichotomy x y with h | h | h
   · rw [if_pos h, if_neg (show ¬ y < x by omega), if_neg (show ¬ y = x by omega)]
   · rw [if_neg (show ¬ x < y by omega), if_pos h,
         if_neg (show ¬ y < x by omega), if_pos (show y = x by omega)]
@@ -196,7 +196,7 @@ private theorem cmp3_flip' (x y x' y' : Int) (hx : x' = x) (hy : y' = y) :
 
 private theorem negPos_eq (q : Int) :
     (if -q ≥ 0 then (-q).toNat else 0) = (if q < 0 then (-q).toNat else 0) := by
-  rcases lt_trichotomy q 0 with h | h | h
+  rcases Int.lt_trichotomy q 0 with h | h | h
   · rw [if_pos (show -q ≥ 0 by omega), if_pos h]
   · subst h; simp
   · rw [if_neg (show ¬ -q ≥ 0 by omega), if_neg (show ¬ q < 0 by omega)]
@@ -204,7 +204,7 @@ private theorem negPos_eq (q : Int) :
 private theorem negNeg_eq (q : Int) :
     (if -q < 0 then (- -q).toNat else 0) = (if q ≥ 0 then q.toNat else 0) := by
   rw [Int.neg_neg]
-  rcases lt_trichotomy q 0 with h | h | h
+  rcases Int.lt_trichotomy q 0 with h | h | h
   · rw [if_neg (show ¬ -q < 0 by omega), if_neg (show ¬ q ≥ 0 by omega)]
   · subst h; simp
   · rw [if_pos (show -q < 0 by omega), if_pos (show q ≥ 0 by omega)]

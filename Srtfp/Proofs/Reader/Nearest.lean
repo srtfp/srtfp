@@ -37,7 +37,7 @@ theorem nearest_of_InRv (h : Legal m q) (h' : Legal m' q') (hx : InRv m q x = tr
     ∧ (v m' q' ≠ v m q → |v m' q' - x| = |v m q - x| →
         m % 2 = 0 ∧ (v m' q' = v m q - gapL m q ∨ v m' q' = v m q + (2 : Rat) ^ q)) := by
   by_cases hne : v m' q' = v m q
-  · rw [hne]; exact ⟨le_refl _, fun h => absurd rfl h⟩
+  · rw [hne]; exact ⟨Rat.le_refl, fun h => absurd rfl h⟩
   obtain ⟨hl, hr⟩ := le_of_InRv hx
   have heven_l := even_of_eq_vl hx
   have heven_r := even_of_eq_vr hx
@@ -81,16 +81,16 @@ theorem nearestWord_of_InRv {d : Decimal} {w : UInt64} (hw : (Spec.unpack w).isF
   subst hs
   obtain ⟨hle, htie⟩ := nearest_of_InRv hleg hlegu hx
   rw [dist_of_sign]
-  refine ⟨le_trans hle (dist_ge _ _ v_nonneg hX), fun hne heq => ?_⟩
+  refine ⟨Rat.le_trans hle (dist_ge _ _ v_nonneg hX), fun hne heq => ?_⟩
   by_cases hv : v mu qu = v mw qw
   · exfalso
     rw [hv] at hne heq
     have h0 := tie_sign v_nonneg hX hne heq
     subst h0
     have h1 := (nearest_of_InRv hleg legal_zero hx).1
-    rw [sub_zero, sub_zero, v_zero_iff.mpr rfl, abs_zero] at h1
-    have hz : v mw qw = 0 := abs_eq_zero.mp (Rat.le_antisymm h1 (abs_nonneg _))
-    rw [hz, mul_zero, mul_zero] at hne
+    rw [sub_zero, sub_zero, v_zero_iff.mpr rfl, Rat.abs_zero] at h1
+    have hz : v mw qw = 0 := Rat.abs_eq_zero_iff.mp (Rat.le_antisymm h1 (Rat.abs_nonneg))
+    rw [hz, Rat.mul_zero, Rat.mul_zero] at hne
     exact hne rfl
   · have heq' : |v mu qu - X| = |v mw qw - X| :=
       Rat.le_antisymm (by rw [← heq]; exact dist_ge _ _ v_nonneg hX) hle
