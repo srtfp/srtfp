@@ -25,6 +25,8 @@ public import Srtfp.Perf.DecimalV13
 
 @[expose] public section
 
+open Float.Model.UnpackedFloat (Sign)
+
 namespace Srtfp.Schubfach
 
 /-! ## Unboxed verdicts -/
@@ -205,17 +207,17 @@ def shortestUnsigned_u64_opt_v14 (mU : UInt64) (qB : UInt64) : Option (UInt64 ×
 
 /-- `emitCheckedIdx` with the `expTable` index supplied directly. -/
 @[inline]
-def emitIdx (sign : Bool) (sig : Nat) (idx : Nat) : String :=
+def emitIdx (sign : Sign) (sig : Nat) (idx : Nat) : String :=
   if h : idx ≤ 616 then
     let core := toString sig ++ expTable[idx]'(by rw [expTable_size]; omega)
-    if sign then "-" ++ core else core
+    withSign sign core
   else
-    (if sign then "-" else "") ++ toString sig ++ "e" ++ intToStrRef ((idx : Int) - 324)
+    withSign sign (toString sig ++ "e" ++ intToStrRef ((idx : Int) - 324))
 
 /-- `emitTail7` over the v14 kernel. -/
 @[inline]
-def emitTail8 (sign : Bool) (mU qB : UInt64) : String :=
-  if mU = 0 then (if sign then "-0" else "0")
+def emitTail8 (sign : Sign) (mU qB : UInt64) : String :=
+  if mU = 0 then withSign sign "0"
   else
     match shortestUnsigned_u64_opt_v14 mU qB with
     | some (sU, kB) =>
@@ -223,16 +225,16 @@ def emitTail8 (sign : Bool) (mU qB : UInt64) : String :=
         emitIdx sign sU.toNat kB.toNat
       else
         let (sig', exp') := Srtfp.Decimal.canonicaliseAux sU.toNat ((kB.toNat : Int) - 324)
-        if sig' = 0 then (if sign then "-0" else "0")
+        if sig' = 0 then withSign sign "0"
         else emitChecked sign sig' exp'
     | none =>
       let (sig, exp) := shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074)
-      if sig = 0 then (if sign then "-0" else "0")
+      if sig = 0 then withSign sign "0"
       else if sig % 10 ≠ 0 then
         emitChecked sign sig exp
       else
         let (sig', exp') := Srtfp.Decimal.canonicaliseAux sig exp
-        if sig' = 0 then (if sign then "-0" else "0")
+        if sig' = 0 then withSign sign "0"
         else emitChecked sign sig' exp'
 
 /-- `toStringFast9` over the v14 kernel. -/
@@ -245,7 +247,7 @@ def toStringFast10 (f : _root_.Float) : String :=
     if mantBits ≠ 0 then "NaN"
     else if (bits >>> 63) ≠ 0 then "-Infinity" else "Infinity"
   else
-    emitTail8 (decide (bits >>> 63 ≠ 0))
+    emitTail8 (if bits >>> 63 = 0 then .positive else .negative)
       (if expBits = 0 then mantBits else mantBits + 4503599627370496)
       (if expBits = 0 then 0 else expBits - 1)
 
@@ -491,14 +493,14 @@ theorem shortestUnsigned_u64_opt_v14_some_eq_v13 (mU qB sU kB : UInt64)
 
 /-! ## Emit and entry points -/
 
-theorem emitIdx_eq (sign : Bool) (sig : Nat) (kB : UInt64) :
+theorem emitIdx_eq (sign : Sign) (sig : Nat) (kB : UInt64) :
     emitIdx sign sig kB.toNat = emitChecked sign sig ((kB.toNat : Int) - 324) := by
   rw [← emitCheckedIdx_eq sign sig _ (by omega)]
   unfold emitIdx emitCheckedIdx
   have h : (((kB.toNat : Int) - 324) + 324).toNat = kB.toNat := by omega
   simp only [h]
 
-theorem emitTail8_eq (sign : Bool) (mU qB : UInt64) :
+theorem emitTail8_eq (sign : Sign) (mU qB : UInt64) :
     emitTail8 sign mU qB = emitTail2 sign mU qB := by
   unfold emitTail8 emitTail2
   by_cases h0 : mU = 0
@@ -551,7 +553,7 @@ theorem floatToStrRef_eq_toStringFast10 : @floatToStrRef = @toStringFast10 := by
 /-- `decimalTail` over the v14 kernel: the exponent is unbiased once, at
     the exit. -/
 @[inline]
-def decimalTail_v14 (sign : Bool) (mU qB : UInt64) : _root_.Srtfp.Decimal :=
+def decimalTail_v14 (sign : Sign) (mU qB : UInt64) : _root_.Srtfp.Decimal :=
   if mU = 0 then ⟨sign, 0, 0⟩
   else
     match shortestUnsigned_u64_opt_v14 mU qB with
@@ -560,7 +562,7 @@ def decimalTail_v14 (sign : Bool) (mU qB : UInt64) : _root_.Srtfp.Decimal :=
       let (sig, exp) := shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074)
       Srtfp.Decimal.mk' sign sig exp
 
-theorem decimalTail_v14_eq (sign : Bool) (mU qB : UInt64) :
+theorem decimalTail_v14_eq (sign : Sign) (mU qB : UInt64) :
     decimalTail_v14 sign mU qB
       = decimalTailNat sign mU.toNat ((qB.toNat : Int) - 1074) := by
   unfold decimalTail_v14 decimalTailNat
@@ -590,7 +592,7 @@ def toDecimal_v14 (f : _root_.Float) : Except String _root_.Srtfp.Decimal :=
     if mantBits ≠ 0 then .error "NaN"
     else .error (if (bits >>> 63) ≠ 0 then "-Infinity" else "Infinity")
   else
-    .ok (decimalTail_v14 (decide (bits >>> 63 ≠ 0))
+    .ok (decimalTail_v14 (if bits >>> 63 = 0 then .positive else .negative)
       (if expBits = 0 then mantBits else mantBits + 4503599627370496)
       (if expBits = 0 then 0 else expBits - 1))
 

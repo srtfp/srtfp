@@ -18,6 +18,8 @@ public import Srtfp.Perf.SchubfachEq
 
 @[expose] public section
 
+open Float.Model.UnpackedFloat (Sign)
+
 namespace Srtfp.Schubfach
 
 open Srtfp.Float
@@ -36,10 +38,9 @@ def intToStrRef (e : Int) : String :=
 
 /-- Reference Decimal → String emit (shape from `BenchFloatToString.lean`). -/
 def decimalToStrRef (d : _root_.Srtfp.Decimal) : String :=
-  if d.significand = 0 then (if d.sign then "-0" else "0")
+  if d.significand = 0 then withSign d.sign "0"
   else
-    let signStr := if d.sign then "-" else ""
-    signStr ++ toString d.significand ++ "e" ++ intToStrRef d.exponent
+    withSign d.sign (toString d.significand ++ "e" ++ intToStrRef d.exponent)
 
 /-- Reference `Float → String`: the body of `floatToStr` in `BenchFloatToString.lean`. -/
 def floatToStrRef (f : _root_.Float) : String :=
@@ -55,40 +56,36 @@ def floatToStrRef (f : _root_.Float) : String :=
 @[inline]
 def toStringFast (f : _root_.Float) : String :=
   if isNaNBits f then "NaN"
-  else if isInfBits f then (if signBit f then "-Infinity" else "Infinity")
+  else if isInfBits f then (withSign (signBit f) "Infinity")
   else
     let d := decode f
-    if d.m = 0 then (if d.sign then "-0" else "0")
+    if d.m = 0 then withSign d.sign "0"
     else
       let (sig, exp) := shortestUnsigned_v5 d.m d.q
       -- Inline `Decimal.mk'_fast2` logic: derive the canonical (sig', exp').
-      if sig = 0 then (if d.sign then "-0" else "0")
+      if sig = 0 then withSign d.sign "0"
       else if sig % 10 ≠ 0 then
         -- No trailing zeros: skip canonicaliseAux entirely (common case for
         -- Schubfach outputs that don't end in 0).
-        let signStr := if d.sign then "-" else ""
-        signStr ++ toString sig ++ "e" ++ intToStrRef exp
+        withSign d.sign (toString sig ++ "e" ++ intToStrRef exp)
       else
         let (sig', exp') := canonicaliseAux sig exp
-        if sig' = 0 then (if d.sign then "-0" else "0")
+        if sig' = 0 then withSign d.sign "0"
         else
-          let signStr := if d.sign then "-" else ""
-          signStr ++ toString sig' ++ "e" ++ intToStrRef exp'
+          withSign d.sign (toString sig' ++ "e" ++ intToStrRef exp')
 
 /-! ## Equivalence proof. -/
 
-private theorem decimalToStrRef_mk' (sign : Bool) (sig : Nat) (exp : Int) :
+private theorem decimalToStrRef_mk' (sign : Sign) (sig : Nat) (exp : Int) :
     decimalToStrRef (_root_.Srtfp.Decimal.mk' sign sig exp)
-      = (if sig = 0 then (if sign then "-0" else "0")
+      = (if sig = 0 then withSign sign "0"
         else if sig % 10 ≠ 0 then
-          let signStr := if sign then "-" else ""
-          signStr ++ toString sig ++ "e" ++ intToStrRef exp
+          withSign sign (toString sig ++ "e" ++ intToStrRef exp)
         else
           let (sig', exp') := canonicaliseAux sig exp
-          if sig' = 0 then (if sign then "-0" else "0")
+          if sig' = 0 then withSign sign "0"
           else
-            let signStr := if sign then "-" else ""
-            signStr ++ toString sig' ++ "e" ++ intToStrRef exp') := by
+            withSign sign (toString sig' ++ "e" ++ intToStrRef exp')) := by
   unfold decimalToStrRef _root_.Srtfp.Decimal.mk' _root_.Srtfp.Decimal.canonical
   by_cases hs0 : sig = 0
   · simp [hs0]
@@ -119,16 +116,14 @@ theorem toStringFast_eq_ref (f : _root_.Float) : toStringFast f = floatToStrRef 
         (shortestUnsigned_v5_eq _ _).symm]
   -- pattern-match the prod
   obtain ⟨sig, exp⟩ : Nat × Int := shortestUnsigned_v5 (decode f).m (decode f).q
-  show (if sig = 0 then (if (decode f).sign then "-0" else "0")
+  show (if sig = 0 then withSign (decode f).sign "0"
         else if sig % 10 ≠ 0 then
-          let signStr := if (decode f).sign then "-" else ""
-          signStr ++ toString sig ++ "e" ++ intToStrRef exp
+          withSign (decode f).sign (toString sig ++ "e" ++ intToStrRef exp)
         else
           let (sig', exp') := canonicaliseAux sig exp
-          if sig' = 0 then (if (decode f).sign then "-0" else "0")
+          if sig' = 0 then withSign (decode f).sign "0"
           else
-            let signStr := if (decode f).sign then "-" else ""
-            signStr ++ toString sig' ++ "e" ++ intToStrRef exp')
+            withSign (decode f).sign (toString sig' ++ "e" ++ intToStrRef exp'))
       = decimalToStrRef (_root_.Srtfp.Decimal.mk' (decode f).sign sig exp)
   rw [decimalToStrRef_mk']
 

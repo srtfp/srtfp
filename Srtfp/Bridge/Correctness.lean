@@ -19,6 +19,7 @@ namespace Srtfp.Spec
 
 open Srtfp
 open Float.Model (UnpackedFloat)
+open Float.Model.UnpackedFloat (Sign)
 
 /-! ## Float-level vocabulary
 
@@ -33,8 +34,8 @@ theorem unpackF_eq (f : Float) : unpackF f = unpack f.toBits := rfl
 /-- The exact value of a finite `Float`: `wordVal f.toBits`. -/
 def floatVal (f : Float) : Rat := wordVal f.toBits
 
-/-- The sign (`true` is negative) and integer significand of a `Float`. -/
-def floatSign (f : Float) : Bool := wordSign f.toBits
+/-- The sign and integer significand of a `Float`. -/
+def floatSign (f : Float) : Sign := wordSign f.toBits
 def floatSig (f : Float) : Nat := wordSig f.toBits
 
 /-- The distance between a decimal's value and a float's. -/
@@ -51,7 +52,7 @@ structure NearestFloat (d : Decimal) (f : Float) : Prop where
 structure CorrectReaderF (p : Decimal → Float) : Prop where
   inRange : ∀ d : Decimal, |toRat d| < 2 ^ 1024 - 2 ^ 970 → NearestFloat d (p d)
   overflow : ∀ d : Decimal, 2 ^ 1024 - 2 ^ 970 ≤ |toRat d| →
-    unpackF (p d) = .infinity (sign d.sign)
+    unpackF (p d) = .infinity d.sign
 
 inductive BeatsF (f : Float) (d d' : Decimal) : Prop
   | shorter : digits d.significand < digits d'.significand → BeatsF f d d'
@@ -69,7 +70,7 @@ structure ShortestDecimalF (f : Float) (d : Decimal) : Prop where
 
 structure CorrectPrinterF (p : Float → Except String Decimal) : Prop where
   nan : ∀ f : Float, unpackF f = .notANumber → p f = .error "NaN"
-  inf : ∀ (f : Float) (s : Float.Model.UnpackedFloat.Sign), unpackF f = .infinity s →
+  inf : ∀ (f : Float) (s : Sign), unpackF f = .infinity s →
     p f = .error (match s with | .negative => "-Infinity" | .positive => "Infinity")
   finite : ∀ f : Float, (unpackF f).isFinite → ∃ d : Decimal, p f = .ok d ∧ ShortestDecimalF f d
 

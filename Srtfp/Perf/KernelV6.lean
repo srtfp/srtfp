@@ -612,7 +612,7 @@ def toDecimal_v7 (f : _root_.Float) : Except String _root_.Srtfp.Decimal :=
   if isNaNBits f then
     .error "NaN"
   else if isInfBits f then
-    .error (if signBit f then "-Infinity" else "Infinity")
+    .error (withSign (signBit f) "Infinity")
   else
     let d := decode f
     if d.m = 0 then .ok ⟨d.sign, 0, 0⟩

@@ -25,6 +25,8 @@ public import Srtfp.Proofs.Decimal.Canonical
 
 namespace Srtfp.Text
 
+open Float.Model.UnpackedFloat (Sign)
+
 /-! ## Digits -/
 
 theorem isDigit_digitChar : ∀ d, d < 10 → (digitChar d).isDigit = true := by decide
@@ -119,7 +121,7 @@ theorem charsVal_natChars (n : Nat) : charsVal (natChars n) = n := by
 
 /-! ## Canonicalisation absorbs trailing zeros -/
 
-theorem mk'_mul_ten (s : Bool) (v : Nat) (e : Int) :
+theorem mk'_mul_ten (s : Sign) (v : Nat) (e : Int) :
     Decimal.mk' s (v * 10) e = Decimal.mk' s v (e + 1) := by
   by_cases hv : v = 0
   · subst hv; rfl
@@ -130,7 +132,7 @@ theorem mk'_mul_ten (s : Bool) (v : Nat) (e : Int) :
 
 /-- Trailing zeros in the significand shift into the exponent: parsing
     a zero-padded rendering recovers the unpadded decimal. -/
-theorem mk'_shift (s : Bool) (v : Nat) (e : Int) (k : Nat) :
+theorem mk'_shift (s : Sign) (v : Nat) (e : Int) (k : Nat) :
     Decimal.mk' s (v * 10 ^ k) (e - k) = Decimal.mk' s v e := by
   induction k with
   | zero => simp
@@ -172,25 +174,27 @@ structure Lexeme.WF (popts : DecimalSyntax) (l : Lexeme) : Prop where
   dot : popts.requireDot = true → l.fracD ≠ []
 
 theorem lexSign_neg (allowPlus : Bool) (cs : List Char) :
-    lexSign allowPlus ('-' :: cs) = some (true, cs) := by
+    lexSign allowPlus ('-' :: cs) = some (.negative, cs) := by
   simp [lexSign]
 
-theorem lexSign_plus (cs : List Char) : lexSign true ('+' :: cs) = some (false, cs) := by
+theorem lexSign_plus (cs : List Char) : lexSign true ('+' :: cs) = some (.positive, cs) := by
   simp [lexSign]
 
 theorem lexSign_digits (allowPlus : Bool) {ds : List Char} (hds : Digits ds) (hne : ds ≠ [])
-    (rest : List Char) : lexSign allowPlus (ds ++ rest) = some (false, ds ++ rest) := by
+    (rest : List Char) : lexSign allowPlus (ds ++ rest) = some (.positive, ds ++ rest) := by
   obtain ⟨c, ds, rfl⟩ := List.exists_cons_of_ne_nil hne
   have hc := hds c (List.mem_cons_self ..)
   have h1 : c ≠ '-' := fun h => absurd (h ▸ hc) (by decide)
   have h2 : c ≠ '+' := fun h => absurd (h ▸ hc) (by decide)
   simp [lexSign, h1, h2]
 
-theorem lexExp_of_sign {cs ds : List Char} {neg : Bool} (h : lexSign true cs = some (neg, ds))
+theorem lexExp_of_sign {cs ds : List Char} {s : Sign} (h : lexSign true cs = some (s, ds))
     (hds : Digits ds) (hne : ds ≠ []) :
-    lexExp cs = some (if neg then -(charsVal ds : Int) else charsVal ds) := by
+    lexExp cs = some (match (generalizing := false) s with
+      | .negative => -(charsVal ds : Int) | .positive => charsVal ds) := by
   simp only [lexExp, h, Option.bind_some]
   rw [if_neg (fun h' => h'.elim hne fun h' => h' (List.all_eq_true.mpr hds))]
+  cases s <;> rfl
 
 /-- `T` is empty or begins with the exponent marker. -/
 def ExpTail (T : List Char) : Prop := ∀ c, T.head? = some c → c = 'e' ∨ c = 'E'
@@ -260,15 +264,15 @@ theorem lexMantissa_render {popts : DecimalSyntax} {l : Lexeme} (hwf : l.WF popt
 theorem lex_render {popts : DecimalSyntax} {l : Lexeme} (hwf : l.WF popts) (fopts : FormatOptions) :
     lex popts (render fopts l) = some l := by
   have hsign := lexSign_digits popts.allowExplicitMantissaPlus hwf.intD hwf.ne
-  obtain ⟨neg, intD, fracD, exp⟩ := l
+  obtain ⟨sign, intD, fracD, exp⟩ := l
   cases exp with
   | none =>
     have hM := lexMantissa_render hwf expTail_nil
     simp only [List.append_nil] at hM
-    cases neg <;> simp [lex, render, hsign, lexSign_neg, hM, lexExpTail]
+    cases sign <;> simp [lex, render, hsign, lexSign_neg, hM, lexExpTail]
   | some e =>
     have hM := lexMantissa_render hwf (expTail_expChars fopts e)
-    cases neg <;> simp [lex, render, hsign, lexSign_neg, hM, lexExpTail_expChars]
+    cases sign <;> simp [lex, render, hsign, lexSign_neg, hM, lexExpTail_expChars]
 
 /-! ## `place` produces well-formed lexemes -/
 
@@ -280,11 +284,11 @@ theorem lex_render {popts : DecimalSyntax} {l : Lexeme} (hwf : l.WF popts) (fopt
 def FormatOptions.CompatibleWith (fopts : FormatOptions) (popts : DecimalSyntax) : Prop :=
   popts.requireDot = true → 1 ≤ fopts.minFracDigits ∧ 1 ≤ fopts.sciMinFracDigits
 
-theorem split_wf {popts : DecimalSyntax} (neg : Bool) {D : List Char} {w n : Nat} (e : Option Int)
+theorem split_wf {popts : DecimalSyntax} (sign : Sign) {D : List Char} {w n : Nat} (e : Option Int)
     (hD : Digits D) (hDne : D ≠ []) (hw : 1 ≤ w)
     (hlead : 2 ≤ w → D.head? = some '0' → popts.allowLeadingZeros = true)
     (hn : popts.requireDot = true → 1 ≤ n) :
-    (Lexeme.split neg D w n e).WF popts where
+    (Lexeme.split sign D w n e).WF popts where
   intD := hD.take w
   fracD := digits_padTo (hD.drop w) n
   ne := by simp [Lexeme.split, List.take_eq_nil_iff, hDne]; omega
@@ -299,9 +303,9 @@ theorem split_wf {popts : DecimalSyntax} (neg : Bool) {D : List Char} {w n : Nat
     omega
 
 theorem place_wf {fopts : FormatOptions} {popts : DecimalSyntax}
-    (hcompat : fopts.CompatibleWith popts) (neg : Bool) {sig : Nat} {exp : Int}
-    (hcan : Decimal.IsCanonical ⟨neg, sig, exp⟩) :
-    (place fopts neg (natChars sig) exp).WF popts := by
+    (hcompat : fopts.CompatibleWith popts) (sign : Sign) {sig : Nat} {exp : Int}
+    (hcan : Decimal.IsCanonical ⟨sign, sig, exp⟩) :
+    (place fopts sign (natChars sig) exp).WF popts := by
   have hlen : 1 ≤ (natChars sig).length := List.length_pos_iff.mpr (natChars_ne_nil sig)
   have hzero : sig = 0 → exp = 0 := fun h0 => by
     rcases hcan with ⟨-, h⟩ | ⟨hne, -⟩
@@ -309,9 +313,9 @@ theorem place_wf {fopts : FormatOptions} {popts : DecimalSyntax}
     · exact absurd h0 hne
   simp only [place]
   split
-  · exact split_wf neg _ (digits_natChars sig) (natChars_ne_nil sig) (Nat.le_refl 1)
+  · exact split_wf sign _ (digits_natChars sig) (natChars_ne_nil sig) (Nat.le_refl 1)
       (fun h => by omega) (fun h => (hcompat h).2)
-  · refine split_wf neg _ (((digits_replicate _).append (digits_natChars _)).append (digits_replicate _))
+  · refine split_wf sign _ (((digits_replicate _).append (digits_natChars _)).append (digits_replicate _))
       (by simp [natChars_ne_nil]) ?_ ?_ (fun h => (hcompat h).1)
     · simp only [List.length_append, List.length_replicate]; omega
     · intro h2 h0
@@ -327,9 +331,9 @@ theorem place_wf {fopts : FormatOptions} {popts : DecimalSyntax}
 
 /-! ## `value` inverts `place` -/
 
-theorem value_split (neg : Bool) (D : List Char) (w n : Nat) (e : Option Int) :
-    (Lexeme.split neg D w n e).value
-      = Decimal.mk' neg (charsVal D) (e.getD 0 - (D.length - w : Nat)) := by
+theorem value_split (sign : Sign) (D : List Char) (w n : Nat) (e : Option Int) :
+    (Lexeme.split sign D w n e).value
+      = Decimal.mk' sign (charsVal D) (e.getD 0 - (D.length - w : Nat)) := by
   simp only [Lexeme.value, Lexeme.split, padTo, ← List.append_assoc, List.take_append_drop,
     charsVal_append, charsVal_replicate, List.length_append, List.length_replicate,
     List.length_drop, Nat.add_zero]
@@ -337,9 +341,9 @@ theorem value_split (neg : Bool) (D : List Char) (w n : Nat) (e : Option Int) :
       = (e.getD 0 - ↑(D.length - w)) - ↑(n - (D.length - w)) by omega]
   exact mk'_shift ..
 
-theorem value_place (fopts : FormatOptions) {neg : Bool} {sig : Nat} {exp : Int}
-    (hcan : Decimal.IsCanonical ⟨neg, sig, exp⟩) :
-    (place fopts neg (natChars sig) exp).value = ⟨neg, sig, exp⟩ := by
+theorem value_place (fopts : FormatOptions) {sign : Sign} {sig : Nat} {exp : Int}
+    (hcan : Decimal.IsCanonical ⟨sign, sig, exp⟩) :
+    (place fopts sign (natChars sig) exp).value = ⟨sign, sig, exp⟩ := by
   have hlen : 1 ≤ (natChars sig).length := List.length_pos_iff.mpr (natChars_ne_nil sig)
   have hself := Decimal.mk'_eq_self_of_isCanonical hcan
   simp only [place]
@@ -350,7 +354,7 @@ theorem value_place (fopts : FormatOptions) {neg : Bool} {sig : Nat} {exp : Int}
   · rw [value_split]
     simp only [charsVal_append, charsVal_replicate, charsVal_natChars, List.length_replicate,
       Nat.zero_mul, Nat.zero_add, Nat.add_zero]
-    rw [← hself, ← mk'_shift neg sig exp exp.toNat]
+    rw [← hself, ← mk'_shift sign sig exp exp.toNat]
     congr 1
     simp only [List.length_append, List.length_replicate, Option.getD_none]
     omega
@@ -364,8 +368,8 @@ theorem parse_format {fopts : FormatOptions} {popts : DecimalSyntax}
     (hcompat : fopts.CompatibleWith popts)
     (d : Decimal) (hcan : d.IsCanonical) :
     parse popts (format fopts d) = some d := by
-  obtain ⟨neg, sig, exp⟩ := d
-  rw [parse, format, String.toList_ofList, lex_render (place_wf hcompat neg hcan),
+  obtain ⟨sign, sig, exp⟩ := d
+  rw [parse, format, String.toList_ofList, lex_render (place_wf hcompat sign hcan),
     Option.map_some, value_place fopts hcan]
 
 /-- Whatever `parse` returns is canonical. -/

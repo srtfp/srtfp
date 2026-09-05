@@ -15,6 +15,7 @@ namespace Srtfp.Reader
 
 open Srtfp.Printer Srtfp.Model
 open Float.Model (UnpackedFloat)
+open Float.Model.UnpackedFloat (Sign)
 
 /-! ## The spec's vocabulary on an unpacked word -/
 
@@ -23,15 +24,10 @@ def mq : UnpackedFloat → Nat × Int
   | .finite _ m e _ => (m, e)
   | _ => (0, -1074)
 
-/-- The sign bit of a word (`true` is negative). -/
-def usign : UnpackedFloat → Bool
-  | .finite s _ _ _ | .zero s | .infinity s => Spec.negative s
-  | .notANumber => false
-
-theorem negative_sign (b : Bool) : Spec.negative (Spec.sign b) = b := by cases b <;> rfl
-
-theorem negative_inj {a b : UnpackedFloat.Sign} (h : Spec.negative a = Spec.negative b) : a = b := by
-  cases a <;> cases b <;> simp_all [Spec.negative]
+/-- The sign of a word; a NaN counts as positive. -/
+def usign : UnpackedFloat → Sign
+  | .finite s _ _ _ | .zero s | .infinity s => s
+  | .notANumber => .positive
 
 theorem legal_mq {w : UInt64} (hw : (Spec.unpack w).isFinite = true) :
     Legal (mq (Spec.unpack w)).1 (mq (Spec.unpack w)).2 := by
@@ -42,7 +38,7 @@ theorem legal_mq {w : UInt64} (hw : (Spec.unpack w).isFinite = true) :
   · exact legal_of_unpack hu
 
 theorem wordVal_eq {w : UInt64} (hw : (Spec.unpack w).isFinite = true) :
-    Spec.wordVal w = (if usign (Spec.unpack w) then -1 else 1 : Rat)
+    Spec.wordVal w = Spec.signVal (usign (Spec.unpack w))
       * v (mq (Spec.unpack w)).1 (mq (Spec.unpack w)).2 := by
   unfold Spec.wordVal
   generalize Spec.unpack w = u at *
@@ -72,7 +68,7 @@ theorem eq_of_mq_eq {u u' : UnpackedFloat} (hu : u.isFinite = true) (hu' : u'.is
     cases u' with
     | notANumber => simp [UnpackedFloat.isFinite] at hu'
     | infinity s' => simp [UnpackedFloat.isFinite] at hu'
-    | zero s' => rw [negative_inj hs]
+    | zero s' => cases (hs : s = s'); rfl
     | finite s' n' k' hn' => exfalso; simp [mq] at hm; omega
   | finite s n k hn =>
     cases u' with
@@ -82,46 +78,44 @@ theorem eq_of_mq_eq {u u' : UnpackedFloat} (hu : u.isFinite = true) (hu' : u'.is
     | finite s' n' k' hn' =>
       simp only [mq, Prod.mk.injEq] at hm
       obtain ⟨rfl, rfl⟩ := hm
-      rw [negative_inj hs]
+      cases (hs : s = s'); rfl
 
 /-! ## Signs -/
 
-theorem sign_mul_abs (s : Bool) (a : Rat) : |(if s then -1 else 1 : Rat) * a| = |a| := by
+theorem sign_mul_abs (s : Sign) (a : Rat) : |Spec.signVal s * a| = |a| := by
   cases s
-  · simp only [Bool.false_eq_true, if_false, one_mul]
-  · simp only [if_true]; rw [show (-1 : Rat) * a = -a by grind, abs_neg]
+  · simp only [Spec.signVal]; rw [show (-1 : Rat) * a = -a by grind, abs_neg]
+  · simp only [Spec.signVal, one_mul]
 
 /-- Same sign: the signed distance is the distance of the magnitudes. -/
-theorem dist_of_sign (s : Bool) (a b : Rat) :
-    |(if s then -1 else 1 : Rat) * a - (if s then -1 else 1 : Rat) * b| = |a - b| := by
-  rw [show (if s then -1 else 1 : Rat) * a - (if s then -1 else 1 : Rat) * b
-      = (if s then -1 else 1 : Rat) * (a - b) by grind, sign_mul_abs]
+theorem dist_of_sign (s : Sign) (a b : Rat) :
+    |Spec.signVal s * a - Spec.signVal s * b| = |a - b| := by
+  rw [show Spec.signVal s * a - Spec.signVal s * b = Spec.signVal s * (a - b) by grind, sign_mul_abs]
 
 /-- Any signs: the signed distance is at least the distance of the magnitudes. -/
-theorem dist_ge (s s' : Bool) {a b : Rat} (_ha : 0 ≤ a) (_hb : 0 ≤ b) :
-    |a - b| ≤ |(if s' then -1 else 1 : Rat) * a - (if s then -1 else 1 : Rat) * b| := by
-  cases s <;> cases s' <;> simp only [Bool.false_eq_true, if_true, if_false, abs_def] <;> grind
+theorem dist_ge (s s' : Sign) {a b : Rat} (_ha : 0 ≤ a) (_hb : 0 ≤ b) :
+    |a - b| ≤ |Spec.signVal s' * a - Spec.signVal s * b| := by
+  cases s <;> cases s' <;> simp only [Spec.signVal, abs_def] <;> grind
 
 /-- Equal signed and magnitude distances from a differently signed value: the
 other magnitude is zero. -/
-theorem tie_sign {s s' : Bool} {a b : Rat} (_ha : 0 ≤ a) (_hb : 0 ≤ b)
-    (hne : (if s' then -1 else 1 : Rat) * a ≠ (if s then -1 else 1 : Rat) * a)
-    (heq : |(if s' then -1 else 1 : Rat) * a - (if s then -1 else 1 : Rat) * b| = |a - b|) : b = 0 := by
-  cases s <;> cases s' <;> simp only [Bool.false_eq_true, if_true, if_false, abs_def] at hne heq ⊢
-    <;> grind
+theorem tie_sign {s s' : Sign} {a b : Rat} (_ha : 0 ≤ a) (_hb : 0 ≤ b)
+    (hne : Spec.signVal s' * a ≠ Spec.signVal s * a)
+    (heq : |Spec.signVal s' * a - Spec.signVal s * b| = |a - b|) : b = 0 := by
+  cases s <;> cases s' <;> simp only [Spec.signVal, abs_def] at hne heq ⊢ <;> grind
 
 theorem mag_nonneg (d : Decimal) : (0 : Rat) ≤ (d.significand : Rat) * (10 : Rat) ^ d.exponent :=
   Rat.mul_nonneg (by exact_mod_cast Nat.zero_le _) (le_of_lt (ten_zpow_pos _))
 
 theorem abs_toRat (d : Decimal) :
     |Spec.toRat d| = (d.significand : Rat) * (10 : Rat) ^ d.exponent := by
-  show |(if d.sign then -1 else 1 : Rat) * _| = _
+  show |Spec.signVal d.sign * _| = _
   rw [sign_mul_abs, abs_of_nonneg (mag_nonneg d)]
 
 theorem dist_eq (d : Decimal) {w : UInt64} (hw : (Spec.unpack w).isFinite = true) :
-    Spec.dist d w = |(if usign (Spec.unpack w) then -1 else 1 : Rat)
+    Spec.dist d w = |Spec.signVal (usign (Spec.unpack w))
       * v (mq (Spec.unpack w)).1 (mq (Spec.unpack w)).2
-      - (if d.sign then -1 else 1 : Rat) * ((d.significand : Rat) * (10 : Rat) ^ d.exponent)| := by
+      - Spec.signVal d.sign * ((d.significand : Rat) * (10 : Rat) ^ d.exponent)| := by
   unfold Spec.dist; rw [wordVal_eq hw]; rfl
 
 /-! ## Values -/

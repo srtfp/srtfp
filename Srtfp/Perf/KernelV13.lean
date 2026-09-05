@@ -20,6 +20,8 @@ public import Srtfp.Perf.Tactics
    falling back to the packed path). -/
 
 
+open Float.Model.UnpackedFloat (Sign)
+
 namespace Srtfp.Schubfach
 /-! ## Biased-window bridges at the `[5198, 5202]` guard -/
 
@@ -426,30 +428,30 @@ theorem shortestUnsigned_u64_opt_v13_k_range (mU qB : UInt64)
 
 /-- `emitTail7` over the v13 kernel. -/
 @[inline]
-def emitTail7 (sign : Bool) (mU qB : UInt64) : String :=
-  if mU = 0 then (if sign then "-0" else "0")
+def emitTail7 (sign : Sign) (mU qB : UInt64) : String :=
+  if mU = 0 then withSign sign "0"
   else
     match shortestUnsigned_u64_opt_v13 mU qB with
     | some (sU, exp) =>
       let sig := sU.toNat
-      if sig = 0 then (if sign then "-0" else "0")
+      if sig = 0 then withSign sign "0"
       else if sig % 10 ≠ 0 then
         emitCheckedIdx sign sig exp
       else
         let (sig', exp') := Srtfp.Decimal.canonicaliseAux sig exp
-        if sig' = 0 then (if sign then "-0" else "0")
+        if sig' = 0 then withSign sign "0"
         else emitChecked sign sig' exp'
     | none =>
       let (sig, exp) := shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074)
-      if sig = 0 then (if sign then "-0" else "0")
+      if sig = 0 then withSign sign "0"
       else if sig % 10 ≠ 0 then
         emitChecked sign sig exp
       else
         let (sig', exp') := Srtfp.Decimal.canonicaliseAux sig exp
-        if sig' = 0 then (if sign then "-0" else "0")
+        if sig' = 0 then withSign sign "0"
         else emitChecked sign sig' exp'
 
-theorem emitTail7_eq (sign : Bool) (mU qB : UInt64) :
+theorem emitTail7_eq (sign : Sign) (mU qB : UInt64) :
     emitTail7 sign mU qB = emitTail2 sign mU qB := by
   unfold emitTail7 emitTail2
   by_cases h0 : mU = 0
@@ -483,7 +485,7 @@ def toStringFast9 (f : _root_.Float) : String :=
     if mantBits ≠ 0 then "NaN"
     else if (bits >>> 63) ≠ 0 then "-Infinity" else "Infinity"
   else
-    emitTail7 (decide (bits >>> 63 ≠ 0))
+    emitTail7 (if bits >>> 63 = 0 then .positive else .negative)
       (if expBits = 0 then mantBits else mantBits + 4503599627370496)
       (if expBits = 0 then 0 else expBits - 1)
 

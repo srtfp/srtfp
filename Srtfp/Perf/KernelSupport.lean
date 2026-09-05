@@ -12,22 +12,24 @@ public import Srtfp.Perf.Tactics
 
 open Srtfp.Compat
 
+open Float.Model.UnpackedFloat (Sign)
+
 namespace Srtfp.Schubfach
 
 /-- `emitChecked` with the table index pre-computed and validated by a
     single `Nat` comparison. Faithful only for `-324 ≤ exp` (the caller
     holds `shortestUnsigned_u64_opt_v9_k_range`). -/
 @[inline]
-def emitCheckedIdx (sign : Bool) (sig : Nat) (exp : Int) : String :=
+def emitCheckedIdx (sign : Sign) (sig : Nat) (exp : Int) : String :=
   let idx : Nat := (exp + 324).toNat
   if h : idx ≤ 616 then
     let core := toString sig ++
       expTable[idx]'(by rw [expTable_size]; omega)
-    if sign then "-" ++ core else core
+    withSign sign core
   else
-    (if sign then "-" else "") ++ toString sig ++ "e" ++ intToStrRef exp
+    withSign sign (toString sig ++ "e" ++ intToStrRef exp)
 
-theorem emitCheckedIdx_eq (sign : Bool) (sig : Nat) (exp : Int)
+theorem emitCheckedIdx_eq (sign : Sign) (sig : Nat) (exp : Int)
     (hlo : -324 ≤ exp) :
     emitCheckedIdx sign sig exp = emitChecked sign sig exp := by
   unfold emitCheckedIdx emitChecked

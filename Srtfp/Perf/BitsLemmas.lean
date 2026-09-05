@@ -8,6 +8,8 @@ public import Srtfp.Perf.Bits
 
 @[expose] public section
 
+open Float.Model.UnpackedFloat (Sign)
+
 namespace Srtfp.Float
 
 /-! ## Word algebra: field bounds and packing round-trip
@@ -43,18 +45,15 @@ theorem or_or_eq_add' {s b mm : Nat} (hs : s = 0 ∨ s = 2 ^ 63)
 
 /-- `toNat` of the word assembled by `Word.pack`: with in-range fields it is
 the plain sum `2^63·sign + biasedExp·2^52 + mantissa`. -/
-theorem pack_toNat (sign : Bool) (biasedExp mantissa : Nat)
+theorem pack_toNat (sign : Sign) (biasedExp mantissa : Nat)
     (h_be : biasedExp < 2048) (h_m : mantissa < 2 ^ 52) :
     (Word.pack sign biasedExp mantissa).toNat
-      = 2 ^ 63 * (if sign then 1 else 0) + biasedExp * 2 ^ 52 + mantissa := by
+      = 2 ^ 63 * (match sign with | .negative => 1 | .positive => 0) + biasedExp * 2 ^ 52 + mantissa := by
   unfold Word.pack
   have h_be_tn : (UInt64.ofNat biasedExp).toNat = biasedExp :=
     Nat.mod_eq_of_lt (by omega)
   have h_m_tn : (UInt64.ofNat mantissa).toNat = mantissa :=
     Nat.mod_eq_of_lt (by omega)
-  have h1 : ((if sign = true then (1 : UInt64) <<< 63 else 0)).toNat
-      = 2 ^ 63 * (if sign then 1 else 0) := by
-    cases sign <;> simp
   have h2 : ((UInt64.ofNat biasedExp &&& 2047) <<< 52).toNat = biasedExp * 2 ^ 52 := by
     rw [UInt64.toNat_shiftLeft, UInt64.toNat_and, h_be_tn]
     rw [show ((2047 : UInt64)).toNat = 2 ^ 11 - 1 by decide]
@@ -66,13 +65,21 @@ theorem pack_toNat (sign : Bool) (biasedExp mantissa : Nat)
     rw [UInt64.toNat_and, h_m_tn]
     rw [show ((4503599627370495 : UInt64)).toNat = 2 ^ 52 - 1 by decide]
     exact Nat.and_two_pow_sub_one_of_lt_two_pow (by omega)
-  rw [UInt64.toNat_or, UInt64.toNat_or, h1, h2, h3]
-  exact or_or_eq_add (by cases sign <;> simp) h_be (by omega)
+  rw [UInt64.toNat_or, UInt64.toNat_or, h2, h3]
+  cases sign
+  · show ((1 : UInt64) <<< 63).toNat ||| biasedExp * 2 ^ 52 ||| mantissa
+      = 2 ^ 63 * 1 + biasedExp * 2 ^ 52 + mantissa
+    rw [show ((1 : UInt64) <<< 63).toNat = 2 ^ 63 * 1 by decide]
+    exact or_or_eq_add (by omega) h_be (by omega)
+  · show ((0 : UInt64)).toNat ||| biasedExp * 2 ^ 52 ||| mantissa
+      = 2 ^ 63 * 0 + biasedExp * 2 ^ 52 + mantissa
+    rw [show ((0 : UInt64)).toNat = 2 ^ 63 * 0 by decide]
+    exact or_or_eq_add (by omega) h_be (by omega)
 
 /-- The biased-exponent field of the word assembled by `Word.pack`:
 `Word.biasedExp (pack sign biasedExp mantissa) = biasedExp`. Pure
 `UInt64`/`Nat` arithmetic over `pack_toNat`. -/
-theorem pack_biasedExp (sign : Bool) (biasedExp mantissa : Nat)
+theorem pack_biasedExp (sign : Sign) (biasedExp mantissa : Nat)
     (h_be : biasedExp < 2048) (h_m : mantissa < 2 ^ 52) :
     Word.biasedExp (Word.pack sign biasedExp mantissa) = biasedExp := by
   have hw := pack_toNat sign biasedExp mantissa h_be h_m
@@ -86,7 +93,7 @@ theorem pack_biasedExp (sign : Bool) (biasedExp mantissa : Nat)
 /-- The mantissa field of the word assembled by `Word.pack`:
 `Word.mantissa (pack sign biasedExp mantissa) = mantissa`. Pure
 `UInt64`/`Nat` arithmetic over `pack_toNat`. -/
-theorem pack_mantissa (sign : Bool) (biasedExp mantissa : Nat)
+theorem pack_mantissa (sign : Sign) (biasedExp mantissa : Nat)
     (h_be : biasedExp < 2048) (h_m : mantissa < 2 ^ 52) :
     Word.mantissa (Word.pack sign biasedExp mantissa) = mantissa := by
   have hw := pack_toNat sign biasedExp mantissa h_be h_m
@@ -99,7 +106,7 @@ theorem pack_mantissa (sign : Bool) (biasedExp mantissa : Nat)
 /-- Projection round-trip of `Word.pack` — no NaN side condition needed at
 the word level (that condition exists only to discharge the runtime
 axiom's domain restriction on the `Float` side). -/
-theorem pack_proj (sign : Bool) (biasedExp : Nat) (mantissa : Nat)
+theorem pack_proj (sign : Sign) (biasedExp : Nat) (mantissa : Nat)
     (h_be : biasedExp < 2048) (h_m : mantissa < 2 ^ 52) :
     Word.signBit (Word.pack sign biasedExp mantissa) = sign ∧
     Word.biasedExp (Word.pack sign biasedExp mantissa) = biasedExp ∧
@@ -109,7 +116,7 @@ theorem pack_proj (sign : Bool) (biasedExp : Nat) (mantissa : Nat)
   have hw := pack_toNat sign biasedExp mantissa h_be h_m
   unfold Word.signBit
   have hs : ((Word.pack sign biasedExp mantissa) >>> 63).toNat
-      = ((if sign = true then (1 : UInt64) else 0)).toNat := by
+      = (match sign with | .negative => (1 : UInt64) | .positive => 0).toNat := by
     rw [UInt64.toNat_shiftRight, hw]
     rw [show ((63 : UInt64)).toNat % 64 = 63 by decide]
     rw [Nat.shiftRight_eq_div_pow]
@@ -121,7 +128,7 @@ theorem pack_proj (sign : Bool) (biasedExp : Nat) (mantissa : Nat)
 rules out the `biasedExp = 2047 ∧ mantissa ≠ 0` combination. This is the
 side condition the round-trip `Float.toBits_ofBits` demands, so every
 caller re-encoding bit fields via `fromBits` must supply it. -/
-theorem pack_isNaNPattern_false (sign : Bool) (biasedExp mantissa : Nat)
+theorem pack_isNaNPattern_false (sign : Sign) (biasedExp mantissa : Nat)
     (h_be : biasedExp < 2048) (h_m : mantissa < 2 ^ 52)
     (h_nan : biasedExp = 2047 → mantissa = 0) :
     _root_.Float.isNaNPattern (Word.pack sign biasedExp mantissa) = false := by
@@ -206,7 +213,8 @@ theorem pack_decode_eq (w : UInt64) :
   -- Pure UInt64 fact: OR of disjoint bit-field projections recovers W.
   generalize w = W
   -- Reduce the .toNat in biasedExpBits and mantissaBits casts.
-  show (if decide (W >>> 63 ≠ 0) = true then (1 : UInt64) <<< 63 else 0) |||
+  show (match (if W >>> 63 = 0 then Sign.positive else Sign.negative) with
+        | .negative => (1 : UInt64) <<< 63 | .positive => 0) |||
        (UInt64.ofNat (((W >>> 52) &&& 0x7FF).toNat) &&& 0x7FF) <<< 52 |||
        UInt64.ofNat ((W &&& 0x000F_FFFF_FFFF_FFFF).toNat) &&& 0x000F_FFFF_FFFF_FFFF = W
   -- UInt64.ofNat ∘ UInt64.toNat = id on `< 2^64` values; all here are.
@@ -240,7 +248,8 @@ theorem pack_decode_eq (w : UInt64) :
       have := congrArg UInt64.toNat hsgn
       rwa [UInt64.toNat_shiftRight, show ((63 : UInt64)).toNat % 64 = 63 by decide,
            Nat.shiftRight_eq_div_pow] at this
-    simp only [hsgn, ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, if_false]
+    rw [if_pos hsgn]
+    show ((0 : UInt64)).toNat ||| _ ||| _ = _
     rw [or_or_eq_add' (Or.inl (by decide)) ⟨_, by omega, rfl⟩ (by omega),
         show ((0 : UInt64)).toNat = 0 by decide]
     omega
@@ -249,7 +258,8 @@ theorem pack_decode_eq (w : UInt64) :
       rw [UInt64.toNat_shiftRight, show ((63 : UInt64)).toNat % 64 = 63 by decide,
           Nat.shiftRight_eq_div_pow] at h0
       omega
-    simp only [hsgn, ne_eq, not_false_eq_true, decide_true, if_true]
+    rw [if_neg hsgn]
+    show ((1 : UInt64) <<< 63).toNat ||| _ ||| _ = _
     rw [show ((1 : UInt64) <<< 63).toNat = 2 ^ 63 by decide]
     rw [or_or_eq_add' (Or.inr rfl) ⟨_, by omega, rfl⟩ (by omega)]
     omega
@@ -263,14 +273,14 @@ theorem mantissa_mod_two (w : UInt64) : Word.mantissa w % 2 = (Word.decode w).m 
   unfold Word.decode
   by_cases he : Word.biasedExp w = 0 <;> simp [he] <;> omega
 
-theorem isFinite_pack (sign : Bool) {biasedExp mantissa : Nat}
+theorem isFinite_pack (sign : Sign) {biasedExp mantissa : Nat}
     (h_be : biasedExp < 2047) (h_m : mantissa < 2 ^ 52) :
     Word.isFinite (Word.pack sign biasedExp mantissa) = true := by
   unfold Word.isFinite
   rw [pack_biasedExp sign biasedExp mantissa (by omega) h_m]
   simpa using h_be
 
-theorem decode_pack (sign : Bool) {biasedExp mantissa : Nat}
+theorem decode_pack (sign : Sign) {biasedExp mantissa : Nat}
     (h_be : biasedExp < 2048) (h_m : mantissa < 2 ^ 52) :
     Word.decode (Word.pack sign biasedExp mantissa) =
       if biasedExp = 0 then ⟨sign, mantissa, -1074⟩

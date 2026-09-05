@@ -34,7 +34,7 @@ theorem read_spec (d : Decimal) :
       ∧ Legal (mq (read d)).1 (mq (read d)).2
       ∧ InRv (mq (read d)).1 (mq (read d)).2 ((d.significand : Rat) * (10 : Rat) ^ d.exponent) = true)
     ∧ (2 ^ 1024 - 2 ^ 970 ≤ (d.significand : Rat) * (10 : Rat) ^ d.exponent →
-      read d = .infinity (Spec.sign d.sign)) := by
+      read d = .infinity d.sign) := by
   unfold read
   dsimp only
   rw [abs_toRat]
@@ -130,7 +130,7 @@ theorem read_spec (d : Decimal) :
           have : (1 : Rat) ≤ 2 ^ 52 := one_le_pow_rat (by decide) 52
           grind
       subst hk
-      refine ⟨rfl, negative_sign _, legal_zero, ?_⟩
+      refine ⟨rfl, rfl, legal_zero, ?_⟩
       exact mem 0 (by rw [hr0']; rfl) (fun h => absurd rfl h)
     · rename_i h0
       split
@@ -148,7 +148,7 @@ theorem read_spec (d : Decimal) :
             have h3 : ((2 : Rat) ^ 53 - 1/2) * 2 ^ k ≤ y * 2 ^ k :=
               Rat.mul_le_mul_of_nonneg_right hlo (le_of_lt hP)
             exact absurd hT' (Rat.not_lt.mpr (le_trans h2 h3))
-        refine ⟨rfl, negative_sign _, ?_, ?_⟩
+        refine ⟨rfl, rfl, ?_, ?_⟩
         · show Legal (2 ^ 52) (k + 1)
           exact ⟨by omega, by omega, by omega, fun _ => Nat.le_refl _⟩
         show InRv (2 ^ 52) (k + 1) (y * 2 ^ k) = true
@@ -197,7 +197,7 @@ theorem read_spec (d : Decimal) :
             have h7 : (2 : Rat) ^ 53 = 2 ^ 52 * 2 := by rw [Rat.pow_succ]
             grind
           · exact h
-        refine ⟨rfl, negative_sign _, ?_, ?_⟩
+        refine ⟨rfl, rfl, ?_, ?_⟩
         · show Legal r.toNat k
           exact ⟨by omega, hk0, hk, hn52⟩
         · show InRv r.toNat k (y * 2 ^ k) = true

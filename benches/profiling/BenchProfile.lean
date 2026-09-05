@@ -43,9 +43,9 @@ def pushDigits : Nat → ByteArray → UInt64 → ByteArray
 /-- UNVERIFIED emit alternative for measurement: digits written into a
     `ByteArray` (one out-of-line `lean_byte_array_push` per byte), then one
     `String.fromUTF8!` (runtime validation + copy). -/
-def emitBA (sign : Bool) (sU : UInt64) (exp : Int) : String :=
+def emitBA (sign : Float.Model.UnpackedFloat.Sign) (sU : UInt64) (exp : Int) : String :=
   let b := ByteArray.emptyWithCapacity 32
-  let b := if sign then b.push 45 else b
+  let b := match sign with | .negative => b.push 45 | .positive => b
   let b := pushDigits 20 b sU
   let b := b.push 101
   let b := if exp < 0 then pushDigits 20 (b.push 45) (UInt64.ofNat (-exp).toNat)
@@ -54,11 +54,11 @@ def emitBA (sign : Bool) (sU : UInt64) (exp : Int) : String :=
 
 /-- UNVERIFIED emit alternative: `String.push` per character on the
     `toString sig` string (exclusive after the first realloc). -/
-def emitPush (sign : Bool) (sig : Nat) (exp : Int) : String :=
+def emitPush (sign : Float.Model.UnpackedFloat.Sign) (sig : Nat) (exp : Int) : String :=
   let core := toString sig
   let core := core.push 'e'
   let core := if exp < 0 then (core.push '-') ++ toString (-exp).toNat else core ++ toString exp.toNat
-  if sign then "-" ++ core else core
+  match sign with | .negative => "-" ++ core | .positive => core
 
 def main (args : List String) : IO Unit := do
   let label := args.headD "uniform"
@@ -68,7 +68,7 @@ def main (args : List String) : IO Unit := do
     | _ => Corpora.uniform
   let sz := corpus.size
   let N : Nat := 1000
-  let decs : Array (Bool × Nat × Int) := corpus.filterMap (fun f =>
+  let decs : Array (Float.Model.UnpackedFloat.Sign × Nat × Int) := corpus.filterMap (fun f =>
     match Printer.toDecimal f with | .ok d => some (d.sign, d.significand, d.exponent) | _ => none)
   let sigs : Array Nat := decs.map (fun t => t.2.1)
   IO.println s!"# {label} corpus: {sz} floats, {decs.size} decoded"
@@ -95,7 +95,7 @@ def main (args : List String) : IO Unit := do
       a ^^^ (match Printer.toDecimal f with | .ok d => UInt64.ofNat d.significand | _ => 0))).toNat)
   timeIt "5 int→string (toString sig)" N decs.size (fun _ => sigs.foldl (init := 0) (fun a s => a ^^^ (toString s).length))
   timeIt "6 emit: sign++sig++e++exp" N decs.size (fun _ => decs.foldl (init := 0) (fun a t =>
-      let signStr := if t.1 then "-" else ""
+      let signStr := match t.1 with | .negative => "-" | .positive => ""
       a ^^^ (signStr ++ toString t.2.1 ++ "e" ++ toString t.2.2).length))
   timeIt "6b emit: emitChecked (live)" N decs.size (fun _ => decs.foldl (init := 0) (fun a t =>
       a ^^^ (emitChecked t.1 t.2.1 t.2.2).length))

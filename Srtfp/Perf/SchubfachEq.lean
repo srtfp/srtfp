@@ -17,6 +17,8 @@ public import Srtfp.Perf.Unpack
 
 open Srtfp.Compat
 
+open Float.Model.UnpackedFloat (Sign)
+
 namespace Srtfp.Schubfach
 
 open Srtfp Srtfp.Float Srtfp.Printer
@@ -381,7 +383,7 @@ theorem candidate_eq_pickNearer (_hm : 1 ≤ m) {k : Int}
         · rw [if_neg he, if_neg (by grind)]
 
 /-- `mk'` keeps the value. -/
-theorem mk'_value (s : Bool) {n : Nat} (hn : n ≠ 0) (i : Int) :
+theorem mk'_value (s : Sign) {n : Nat} (hn : n ≠ 0) (i : Int) :
     ((Decimal.mk' s n i).significand : Rat) * (10 : Rat) ^ (Decimal.mk' s n i).exponent
       = (n : Rat) * (10 : Rat) ^ i := by
   obtain ⟨-, -, -, hle, hv⟩ := mk_pos_props s n i hn
@@ -391,7 +393,7 @@ theorem mk'_value (s : Bool) {n : Nat} (hn : n ≠ 0) (i : Int) :
   rw [ten_zpow_split hle]
   grind
 
-theorem mk'_eq_of_value_eq (s : Bool) {n n' : Nat} {i i' : Int} (hn : 1 ≤ n) (hn' : 1 ≤ n')
+theorem mk'_eq_of_value_eq (s : Sign) {n n' : Nat} {i i' : Int} (hn : 1 ≤ n) (hn' : 1 ≤ n')
     (h : (n : Rat) * (10 : Rat) ^ i = (n' : Rat) * (10 : Rat) ^ i') :
     Decimal.mk' s n i = Decimal.mk' s n' i' := by
   obtain ⟨hs, hne, -, -, -⟩ := mk_pos_props s n i (by omega)
@@ -562,7 +564,7 @@ theorem shortestUnsigned_spec (h : InRange m q) :
       exact ⟨hn, rfl⟩
 
 /-- The finite case: Schubfach's canonicalised decimal is the scan's. -/
-theorem finite_eq (sb : Bool) (h : InRange m q) :
+theorem finite_eq (sb : Sign) (h : InRange m q) :
     (Except.ok (Decimal.mk' sb (shortestUnsigned m q).1 (shortestUnsigned m q).2) : Except String Decimal)
       = Except.ok ⟨sb, (shortest m q).1, (shortest m q).2⟩ := by
   obtain ⟨hpos, hval⟩ := shortestUnsigned_spec h
@@ -606,10 +608,9 @@ theorem toDecimalBits_eq_printer : Schubfach.toDecimalBits = Printer.toDecimalBi
         unfold Word.decode; rw [if_pos h0]
       rw [hdec]
       by_cases h2 : Word.mantissa w = 0
-      · rw [dif_pos h2]; simp [h2, negative_sign]
+      · rw [dif_pos h2]; simp [h2]
       · rw [dif_neg h2, if_neg h2]
         dsimp only
-        rw [negative_sign]
         exact finite_eq (Word.signBit w)
           ⟨Nat.pos_of_ne_zero h2, by omega, by omega, by omega, fun h => absurd rfl h⟩
     · rw [if_neg h0]
@@ -620,7 +621,6 @@ theorem toDecimalBits_eq_printer : Schubfach.toDecimalBits = Printer.toDecimalBi
         omega
       rw [hdec, if_neg (by omega : ¬ (Word.mantissa w + 2 ^ 52 = 0))]
       dsimp only
-      rw [negative_sign]
       exact finite_eq (Word.signBit w) ⟨by omega, by omega, by omega, by omega, fun _ => by omega⟩
 
 theorem toDecimal_eq_printer : Schubfach.toDecimal = Printer.toDecimal :=

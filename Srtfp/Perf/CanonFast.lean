@@ -27,6 +27,8 @@ public import Srtfp.Proofs.Decimal.Canonical
 
 @[expose] public section
 
+open Float.Model.UnpackedFloat (Sign)
+
 namespace Srtfp.Decimal
 
 theorem canonicaliseAux_zero (e : Int) : canonicaliseAux 0 e = (0, 0) := by
@@ -228,14 +230,14 @@ theorem canonical_eq_fast2_csimp : @Decimal.canonical = @canonical_fast2 := by
   rw [canonical_fast2_eq_fast, canonical_eq_fast]
 
 @[inline]
-def mk'_fast3 (sign : Bool) (significand : Nat) (exponent : Int) : Decimal :=
+def mk'_fast3 (sign : Sign) (significand : Nat) (exponent : Int) : Decimal :=
   if significand = 0 then ⟨sign, 0, 0⟩
   else if significand % 10 ≠ 0 then ⟨sign, significand, exponent⟩
   else
     let (s', e') := canonicaliseAux significand exponent
     ⟨sign, s', e'⟩
 
-theorem mk'_fast3_eq_fast2 (sign : Bool) (significand : Nat) (exponent : Int) :
+theorem mk'_fast3_eq_fast2 (sign : Sign) (significand : Nat) (exponent : Int) :
     mk'_fast3 sign significand exponent = mk'_fast2 sign significand exponent := rfl
 
 @[csimp]

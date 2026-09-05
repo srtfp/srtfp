@@ -33,7 +33,7 @@ def gridExp (x : Rat) : Int :=
     from the overflow threshold on, else the nearest point of the grid,
     `2^53` grid steps renormalised to the next grid. -/
 def read (d : Decimal) : UnpackedFloat :=
-  let s := Spec.sign d.sign
+  let s := d.sign
   let x := Rat.abs (Spec.toRat d)
   if 2 ^ 1024 - 2 ^ 970 ≤ x then .infinity s
   else

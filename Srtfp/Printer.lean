@@ -74,10 +74,10 @@ def toDecimalBits (w : UInt64) : Except String Decimal :=
   match Spec.unpack w with
   | .notANumber => .error "NaN"
   | .infinity s => .error (match s with | .negative => "-Infinity" | .positive => "Infinity")
-  | .zero s => .ok ⟨Spec.negative s, 0, 0⟩
+  | .zero s => .ok ⟨s, 0, 0⟩
   | .finite s m q _ =>
     let (n, i) := shortest m q
-    .ok ⟨Spec.negative s, n, i⟩
+    .ok ⟨s, n, i⟩
 
 /-- Render a `Float` as its shortest round-trip `Decimal`. -/
 def toDecimal (f : Float) : Except String Decimal := toDecimalBits f.toBits

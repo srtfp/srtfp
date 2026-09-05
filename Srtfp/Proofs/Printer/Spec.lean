@@ -329,15 +329,15 @@ theorem nonzero_output {s : Sign} {hm : 0 < m} (hu : Spec.unpack wd = .finite s 
   have h : InRange m q := ⟨hm, legal_of_unpack hu⟩
   have hfin : (Spec.unpack wd).isFinite = true := by rw [hu]; rfl
   have hri := reads_to_finite_iff hu
-  have hdist : ∀ z : Decimal, Spec.dist z wd = |(if Spec.negative s then -1 else 1 : Rat) * v m q
-      - (if z.sign then -1 else 1 : Rat) * ((z.significand : Rat) * (10 : Rat) ^ z.exponent)| := by
+  have hdist : ∀ z : Decimal, Spec.dist z wd = |Spec.signVal s * v m q
+      - Spec.signVal z.sign * ((z.significand : Rat) * (10 : Rat) ^ z.exponent)| := by
     intro z; rw [Reader.dist_eq z hfin, hu]; rfl
   rcases hsh : shortest m q with ⟨n, i⟩
   obtain ⟨hn, _, hmem, _, _⟩ := out_facts h hsh
   have h10 := out_ten h hsh
-  have hcan : (⟨Spec.negative s, n, i⟩ : Decimal).IsCanonical :=
+  have hcan : (⟨s, n, i⟩ : Decimal).IsCanonical :=
     Or.inr ⟨Nat.pos_iff_ne_zero.mp hn, h10⟩
-  refine ⟨⟨Spec.negative s, n, i⟩, ?_, hcan, ?_, ?_⟩
+  refine ⟨⟨s, n, i⟩, ?_, hcan, ?_, ?_⟩
   · unfold toDecimalBits; rw [hu]; simp only [hsh]
   · exact (hri _).mpr ⟨rfl, hmem⟩
   · intro d' hne hc' hrt'
@@ -357,7 +357,7 @@ theorem nonzero_output {s : Sign} {hm : 0 < m} (hu : Spec.unpack wd = .finite s 
       apply hne
       exact canonical_eq_of_value_eq hc' hcan (by rw [hsign']) hf1 hn e
     have hc := competitor h hsh hf1 hf10 hmem' hvne
-    have hd₀ : Spec.dist ⟨Spec.negative s, n, i⟩ wd = |v m q - n * (10 : Rat) ^ i| := by
+    have hd₀ : Spec.dist ⟨s, n, i⟩ wd = |v m q - n * (10 : Rat) ^ i| := by
       rw [hdist]; exact dist_of_sign _ _ _
     have hd' : Spec.dist d' wd = |v m q - d'.significand * (10 : Rat) ^ d'.exponent| := by
       rw [hdist, hsign']; exact dist_of_sign _ _ _
@@ -374,17 +374,17 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
   have hfin : (Spec.unpack wd).isFinite = true := by rw [hu]; rfl
   have hri := reads_to_iff hfin
   have hmq : mq (Spec.unpack wd) = (0, -1074) := by rw [hu]; rfl
-  have hus : usign (Spec.unpack wd) = Spec.negative s := by rw [hu]; rfl
+  have hus : usign (Spec.unpack wd) = s := by rw [hu]; rfl
   rw [hmq, hus] at hri
   have hP := two_zpow_pos (-1074 : Int)
   have hv0 : v 0 (-1074) = 0 := by
     unfold v; rw [show ((0 : Nat) : Rat) = 0 by simp, Rat.zero_mul]
-  refine ⟨⟨Spec.negative s, 0, 0⟩, ?_, Or.inl ⟨rfl, rfl⟩, ?_, ?_⟩
+  refine ⟨⟨s, 0, 0⟩, ?_, Or.inl ⟨rfl, rfl⟩, ?_, ?_⟩
   · unfold toDecimalBits; rw [hu]
   · rw [hri]
     refine ⟨rfl, ?_⟩
-    have h0 : ((⟨Spec.negative s, 0, 0⟩ : Decimal).significand : Rat)
-        * (10 : Rat) ^ (⟨Spec.negative s, 0, 0⟩ : Decimal).exponent = 0 := by simp
+    have h0 : ((⟨s, 0, 0⟩ : Decimal).significand : Rat)
+        * (10 : Rat) ^ (⟨s, 0, 0⟩ : Decimal).exponent = 0 := by simp
     rw [h0]
     apply InRv_of_strict
     · unfold vl; rw [if_neg (by decide), show ((0 : Nat) : Rat) = 0 by simp]
@@ -402,7 +402,7 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
         · exact absurd h0 hne0
       · exact hpos
     have hneg : ∀ a b : Rat, a * 0 - b = -b := fun a b => by grind
-    have hd₀ : Spec.dist ⟨Spec.negative s, 0, 0⟩ wd = 0 := by
+    have hd₀ : Spec.dist ⟨s, 0, 0⟩ wd = 0 := by
       rw [Reader.dist_eq _ hfin, hmq, hus, hv0, Rat.mul_zero, show ((0 : Nat) : Rat) = 0 by simp,
         Rat.zero_mul, Rat.mul_zero, sub_zero]
       exact abs_zero

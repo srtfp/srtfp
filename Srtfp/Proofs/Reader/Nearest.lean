@@ -132,7 +132,7 @@ theorem eq_of_nearestWord {d : Decimal} {w w' : UInt64} (h : Spec.NearestWord d 
   · obtain ⟨rfl, rfl⟩ := v_inj hleg hleg' hv
     rfl
   · -- both mantissas are even, yet `v mw qw` is a neighbour of `v mw' qw'`
-    have hne : (if s then -1 else 1 : Rat) * v mw' qw' ≠ (if s then -1 else 1 : Rat) * v mw qw :=
+    have hne : Spec.signVal s * v mw' qw' ≠ Spec.signVal s * v mw qw :=
       fun h => hv ((mul_left_cancel₀ (by cases s <;> decide) h).symm)
     have he := htie hne heqd
     have he' := htie' (Ne.symm hne) heqd.symm

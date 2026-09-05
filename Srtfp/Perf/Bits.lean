@@ -45,13 +45,15 @@ public import Srtfp.Decimal
 def Float.isNaNPattern (x : UInt64) : Bool :=
   ((x >>> 52) &&& 0x7FF == 0x7FF) && (x &&& 0xF_FFFF_FFFF_FFFF != 0)
 
+open Float.Model.UnpackedFloat (Sign)
+
 namespace Srtfp.Float
 
 /-- Decomposed finite binary64 value:
-    `value = (if sign then -1 else 1) * m * 2^q`.
+    `value = signVal sign * m * 2^q`.
     For zero, `m = 0` and `q = -1074` (the subnormal-zero convention). -/
 structure Decoded where
-  sign : Bool
+  sign : Sign
   /-- Integer significand. For normals, `m ∈ [2^52, 2^53)`. For subnormals,
       `m ∈ [0, 2^52)`. -/
   m : Nat
@@ -63,9 +65,9 @@ structure Decoded where
 
 namespace Word
 
-/-- The sign bit of a binary64 word (bit 63). -/
-def signBit (w : UInt64) : Bool :=
-  (w >>> 63) ≠ 0
+/-- The sign of a binary64 word (bit 63). -/
+def signBit (w : UInt64) : Sign :=
+  if w >>> 63 = 0 then .positive else .negative
 
 /-- The 11-bit biased exponent of a binary64 word (bits 62..52).
     Range `[0, 2047]`. -/
@@ -109,8 +111,8 @@ def isFinite (w : UInt64) : Bool :=
 
 /-- Assemble a binary64 word from raw bit fields. Inverse of the
     `(signBit, biasedExp, mantissa)` triple (see `pack_proj`). -/
-def pack (sign : Bool) (biasedExp mantissa : Nat) : UInt64 :=
-  (if sign then (1 : UInt64) <<< 63 else 0)
+def pack (sign : Sign) (biasedExp mantissa : Nat) : UInt64 :=
+  (match sign with | .negative => (1 : UInt64) <<< 63 | .positive => 0)
     ||| (UInt64.ofNat biasedExp &&& 0x7FF) <<< 52
     ||| (UInt64.ofNat mantissa &&& 0x000F_FFFF_FFFF_FFFF)
 
@@ -123,9 +125,9 @@ applied to `f.toBits` (see the `rfl` bridge lemmas below), but the bodies
 are spelled out directly so that existing proofs unfolding them see the
 raw bit expressions. -/
 
-/-- The sign bit of a `Float` (bit 63). -/
-def signBit (f : _root_.Float) : Bool :=
-  (f.toBits >>> 63) ≠ 0
+/-- The sign of a `Float` (bit 63). -/
+def signBit (f : _root_.Float) : Sign :=
+  if f.toBits >>> 63 = 0 then .positive else .negative
 
 /-- The 11-bit biased exponent of a `Float` (bits 62..52). Range `[0, 2047]`. -/
 def biasedExpBits (f : _root_.Float) : Nat :=
@@ -164,8 +166,8 @@ def isFiniteBits (f : _root_.Float) : Bool :=
 
 /-- Reassemble a `Float` from raw bit fields. Inverse of the
     `(signBit, biasedExpBits, mantissaBits)` triple. -/
-def fromBits (sign : Bool) (biasedExp : Nat) (mantissa : Nat) : _root_.Float :=
-  let s : UInt64 := if sign then (1 : UInt64) <<< 63 else 0
+def fromBits (sign : Sign) (biasedExp : Nat) (mantissa : Nat) : _root_.Float :=
+  let s : UInt64 := match sign with | .negative => (1 : UInt64) <<< 63 | .positive => 0
   let e : UInt64 := (UInt64.ofNat biasedExp &&& 0x7FF) <<< 52
   let mPart : UInt64 := UInt64.ofNat mantissa &&& 0x000F_FFFF_FFFF_FFFF
   _root_.Float.ofBits (s ||| e ||| mPart)
@@ -186,7 +188,7 @@ theorem isNaNBits_word (f : _root_.Float) : isNaNBits f = Word.isNaN f.toBits :=
 theorem isInfBits_word (f : _root_.Float) : isInfBits f = Word.isInf f.toBits := rfl
 theorem isFiniteBits_word (f : _root_.Float) :
     isFiniteBits f = Word.isFinite f.toBits := rfl
-theorem fromBits_word (sign : Bool) (biasedExp mantissa : Nat) :
+theorem fromBits_word (sign : Sign) (biasedExp mantissa : Nat) :
     fromBits sign biasedExp mantissa
       = _root_.Float.ofBits (Word.pack sign biasedExp mantissa) := rfl
 

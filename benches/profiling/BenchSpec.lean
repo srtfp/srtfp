@@ -12,9 +12,9 @@ open Srtfp
 
 /-- Verbatim copy of `Schubfach.decimalToStrRef`. -/
 def decimalToStrSpec (d : Decimal) : String :=
-  if d.significand = 0 then (if d.sign then "-0" else "0")
+  if d.significand = 0 then (match d.sign with | .negative => "-0" | .positive => "0")
   else
-    let signStr := if d.sign then "-" else ""
+    let signStr := match d.sign with | .negative => "-" | .positive => ""
     signStr ++ toString d.significand ++ "e" ++ toString d.exponent
 
 /-- The shape of `Schubfach.floatToStrRef`, over the grid-scan reference. -/

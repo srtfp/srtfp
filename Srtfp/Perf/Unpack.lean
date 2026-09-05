@@ -32,8 +32,8 @@ theorem unpackMantissa_toNat (w : UInt64) :
   rfl
 
 theorem unpackSign_eq (w : UInt64) :
-    Sign.ofBitVec (@unpackSign Format.binary64 w.toBitVec) = Spec.sign (Word.signBit w) := by
-  unfold Sign.ofBitVec Spec.sign Word.signBit
+    Sign.ofBitVec (@unpackSign Format.binary64 w.toBitVec) = Word.signBit w := by
+  unfold Sign.ofBitVec Word.signBit
   have hlt := w.toNat_lt
   have h1 : (@unpackSign Format.binary64 w.toBitVec).toNat = w.toNat >>> 63 := by
     unfold unpackSign
@@ -60,12 +60,12 @@ theorem exponentBias_eq : Format.binary64.exponentBias = 1023 := rfl
 theorem unpack_eq (w : UInt64) :
     Spec.unpack w =
       if Word.biasedExp w = 2047 then
-        (if Word.mantissa w = 0 then .infinity (Spec.sign (Word.signBit w)) else .notANumber)
+        (if Word.mantissa w = 0 then .infinity (Word.signBit w) else .notANumber)
       else if Word.biasedExp w = 0 then
-        (if h : Word.mantissa w = 0 then .zero (Spec.sign (Word.signBit w))
-         else .finite (Spec.sign (Word.signBit w)) (Word.mantissa w) (-1074) (Nat.pos_of_ne_zero h))
+        (if h : Word.mantissa w = 0 then .zero (Word.signBit w)
+         else .finite (Word.signBit w) (Word.mantissa w) (-1074) (Nat.pos_of_ne_zero h))
       else
-        .finite (Spec.sign (Word.signBit w)) (Word.mantissa w + 2 ^ 52)
+        .finite (Word.signBit w) (Word.mantissa w + 2 ^ 52)
           ((Word.biasedExp w : Int) - 1075) (by omega) := by
   have hE := unpackExponent_toNat w
   have hM := unpackMantissa_toNat w
@@ -107,12 +107,6 @@ theorem unpack_eq (w : UInt64) :
 
 /-! ## Consequences the proofs use -/
 
-theorem negative_sign (b : Bool) : Spec.negative (Spec.sign b) = b := by
-  cases b <;> rfl
-
-theorem sign_inj {a b : Bool} (h : Spec.sign a = Spec.sign b) : a = b := by
-  cases a <;> cases b <;> simp_all [Spec.sign]
-
 theorem isFinite_iff (w : UInt64) : (Spec.unpack w).isFinite = true ↔ Word.isFinite w = true := by
   have hb := word_biasedExp_lt w
   rw [unpack_eq]; unfold Word.isFinite
@@ -131,7 +125,7 @@ theorem unpack_eq_nan_iff (w : UInt64) : Spec.unpack w = .notANumber ↔ Word.is
     · simp_all
 
 theorem unpack_eq_inf_iff (w : UInt64) (s : Sign) :
-    Spec.unpack w = .infinity s ↔ Word.isInf w = true ∧ s = Spec.sign (Word.signBit w) := by
+    Spec.unpack w = .infinity s ↔ Word.isInf w = true ∧ s = Word.signBit w := by
   rw [unpack_eq]; unfold Word.isInf
   split
   · split <;> simp_all [eq_comm]
@@ -146,12 +140,12 @@ theorem wordSign_eq {w : UInt64} (hw : Word.isFinite w = true) :
   by_cases h0 : Word.biasedExp w = 0
   · rw [if_pos h0]
     by_cases hm : Word.mantissa w = 0
-    · rw [dif_pos hm]; exact negative_sign _
-    · rw [dif_neg hm]; exact negative_sign _
-  · rw [if_neg h0]; exact negative_sign _
+    · rw [dif_pos hm]
+    · rw [dif_neg hm]
+  · rw [if_neg h0]
 
 theorem wordVal_eq {w : UInt64} (hw : Word.isFinite w = true) :
-    Spec.wordVal w = (if (Word.decode w).sign then -1 else 1 : Rat)
+    Spec.wordVal w = Spec.signVal (Word.decode w).sign
       * Printer.v (Word.decode w).m (Word.decode w).q := by
   unfold Word.isFinite at hw; simp only [decide_eq_true_eq] at hw
   have he : (Word.biasedExp w : Int) - 1023 - 52 = (Word.biasedExp w : Int) - 1075 := by omega
@@ -160,8 +154,8 @@ theorem wordVal_eq {w : UInt64} (hw : Word.isFinite w = true) :
   · rw [if_pos h0]
     by_cases hm : Word.mantissa w = 0
     · rw [dif_pos hm]; simp [h0, hm]
-    · rw [dif_neg hm]; simp [h0, Spec.val, negative_sign]
-  · rw [if_neg h0]; simp [h0, Spec.val, negative_sign, Nat.shiftLeft_eq, he]
+    · rw [dif_neg hm]; simp [h0, Spec.val]
+  · rw [if_neg h0]; simp [h0, Spec.val, Nat.shiftLeft_eq, he]
 
 theorem wordSig_mod_two {w : UInt64} (hw : Word.isFinite w = true) :
     Spec.wordSig w % 2 = (Word.decode w).m % 2 := by

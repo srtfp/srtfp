@@ -6,6 +6,8 @@ public import Srtfp.Decimal
 
 @[expose] public section
 
+open Float.Model.UnpackedFloat (Sign)
+
 namespace Srtfp.Decimal
 
 /-! ## Unfolding lemmas for `canonicaliseAux` -/
@@ -76,7 +78,7 @@ theorem canonical_fixed_of_isCanonical (d : Decimal) (h : IsCanonical d) :
     rw [if_neg hne, canonicaliseAux_not_div _ _ hne h10]
 
 /-- `mk'` is the identity on canonical field triples. -/
-theorem mk'_eq_self_of_isCanonical {sign : Bool} {sig : Nat} {exp : Int}
+theorem mk'_eq_self_of_isCanonical {sign : Sign} {sig : Nat} {exp : Int}
     (h : IsCanonical ⟨sign, sig, exp⟩) :
     Decimal.mk' sign sig exp = ⟨sign, sig, exp⟩ :=
   canonical_fixed_of_isCanonical _ h

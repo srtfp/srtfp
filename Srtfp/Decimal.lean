@@ -9,15 +9,18 @@ public import Srtfp.Spec
 
 namespace Srtfp
 
+open Float.Model.UnpackedFloat (Sign)
+
+deriving instance DecidableEq, Inhabited for Sign
 deriving instance Repr, DecidableEq, Inhabited for Decimal
 
 namespace Decimal
 
 /-- The unique zero. -/
-def zero : Decimal := ⟨false, 0, 0⟩
+def zero : Decimal := ⟨.positive, 0, 0⟩
 
 /-- One: `+1 × 10^0`. -/
-def one : Decimal := ⟨false, 1, 0⟩
+def one : Decimal := ⟨.positive, 1, 0⟩
 
 instance (d : Decimal) : Decidable (IsCanonical d) := by
   unfold IsCanonical; exact inferInstance
@@ -32,7 +35,7 @@ termination_by s
 decreasing_by exact Nat.div_lt_self (Nat.pos_of_ne_zero hs) (by decide)
 
 /-- Canonical form: strip trailing zeros from the significand.
-    Zero keeps its sign (`⟨true, 0, 0⟩` is canonical negative zero). -/
+    Zero keeps its sign (`⟨.negative, 0, 0⟩` is canonical negative zero). -/
 def canonical (d : Decimal) : Decimal :=
   if d.significand = 0 then ⟨d.sign, 0, 0⟩
   else
@@ -40,20 +43,20 @@ def canonical (d : Decimal) : Decimal :=
     ⟨d.sign, s, e⟩
 
 /-- Smart constructor: build a canonical Decimal from raw inputs. -/
-def mk' (sign : Bool) (significand : Nat) (exponent : Int) : Decimal :=
+def mk' (sign : Sign) (significand : Nat) (exponent : Int) : Decimal :=
   canonical ⟨sign, significand, exponent⟩
 
 /-- Build a Decimal from a Nat (always integer, exponent 0). -/
-def ofNat (n : Nat) : Decimal := canonical ⟨false, n, 0⟩
+def ofNat (n : Nat) : Decimal := canonical ⟨.positive, n, 0⟩
 
 /-- Build a Decimal from an Int (sign + magnitude, exponent 0). -/
 def ofInt (i : Int) : Decimal :=
-  canonical ⟨i < 0, i.natAbs, 0⟩
+  canonical ⟨if i < 0 then .negative else .positive, i.natAbs, 0⟩
 
 /-- Negation: flip sign (zero stays canonical). -/
 def neg (d : Decimal) : Decimal :=
   if d.significand = 0 then zero
-  else { d with sign := !d.sign }
+  else { d with sign := -d.sign }
 
 instance : Neg Decimal := ⟨neg⟩
 
@@ -64,14 +67,14 @@ end Decimal
 `OfScientific.ofScientific mantissa expSign expMag` represents
 `mantissa × 10^(±expMag)` (`expSign = true` ↔ negative exponent).
 
-So `(1.23 : Decimal) = ⟨false, 123, -2⟩`, `(1e10 : Decimal) = ⟨false, 1, 10⟩`,
-`(-1.5 : Decimal) = ⟨true, 15, -1⟩` (negation via the `Neg Decimal` instance,
+So `(1.23 : Decimal) = ⟨.positive, 123, -2⟩`, `(1e10 : Decimal) = ⟨.positive, 1, 10⟩`,
+`(-1.5 : Decimal) = ⟨.negative, 15, -1⟩` (negation via the `Neg Decimal` instance,
 applied to the positive `OfScientific` result).
 
 The result is always canonicalised (trailing-zero stripped) via `Decimal.mk'`.-/
 instance : OfScientific Decimal where
   ofScientific (mantissa : Nat) (exponentSign : Bool) (decimalExponent : Nat) : Decimal :=
     let exp : Int := if exponentSign then -(decimalExponent : Int) else (decimalExponent : Int)
-    Decimal.mk' false mantissa exp
+    Decimal.mk' .positive mantissa exp
 
 end Srtfp

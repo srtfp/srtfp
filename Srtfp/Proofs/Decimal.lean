@@ -9,6 +9,8 @@ public import Srtfp.Decimal
 
 @[expose] public section
 
+open Float.Model.UnpackedFloat (Sign)
+
 namespace Srtfp
 
 /-- `canonicaliseAux` for `s ≠ 0`: preserves the product, produces a
@@ -49,7 +51,7 @@ private theorem canonicaliseAux_value_gen (s : Nat) (hs0 : s ≠ 0) :
     with the same sign, a (possibly smaller) significand without trailing
     decimal zeros, and an exponent such that
     `result.significand * 10^(result.exponent - exp).toNat = sig`. -/
-theorem mk_pos_props (sign : Bool) (sig : Nat) (exp : Int) (hsig : sig ≠ 0) :
+theorem mk_pos_props (sign : Sign) (sig : Nat) (exp : Int) (hsig : sig ≠ 0) :
     (Decimal.mk' sign sig exp).sign = sign ∧
     (Decimal.mk' sign sig exp).significand ≠ 0 ∧
     (Decimal.mk' sign sig exp).significand % 10 ≠ 0 ∧

@@ -20,6 +20,8 @@ public import Srtfp.Perf.Bits
 
 namespace Srtfp.Schubfach
 
+open Float.Model.UnpackedFloat (Sign)
+
 /-! ## The cleared-denominator interval test
 
 Exact comparison of `a · 2^q` with `b · 10^k` by clearing both denominators,
@@ -185,6 +187,11 @@ handles it. -/
 Top-level entry point. Returns `Except` so callers can refuse NaN / Infinity
 (which have no `Decimal` representation). -/
 
+/-- `s` with the sign in front: `"-" ++ s` for a negative sign. -/
+@[inline]
+def withSign (sign : Sign) (s : String) : String :=
+  match sign with | .negative => "-" ++ s | .positive => s
+
 /-- Render a binary64 *bit pattern* as its shortest round-trip `Decimal`,
     or `.error _` for NaN and Infinity. A pure function of the word, never
     consulting a runtime `Float`. -/
@@ -192,7 +199,7 @@ def toDecimalBits (w : UInt64) : Except String Decimal :=
   if Word.isNaN w then
     .error "NaN"
   else if Word.isInf w then
-    .error (if Word.signBit w then "-Infinity" else "Infinity")
+    .error (withSign (Word.signBit w) "Infinity")
   else
     let d := Word.decode w
     if d.m = 0 then .ok ⟨d.sign, 0, 0⟩

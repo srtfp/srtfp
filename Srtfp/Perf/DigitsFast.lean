@@ -17,6 +17,8 @@ public import Srtfp.Perf.Tactics
 
 @[expose] public section
 
+open Float.Model.UnpackedFloat (Sign)
+
 namespace Srtfp.Schubfach
 
 /-! ## The exponent suffix table -/
@@ -32,17 +34,17 @@ theorem expTable_size : expTable.size = 617 := by
 /-- Fast emit when `exp` is in the canonical binary64 range (always, for
     Schubfach outputs), reference emit otherwise. -/
 @[inline]
-def emitChecked (sign : Bool) (sig : Nat) (exp : Int) : String :=
+def emitChecked (sign : Sign) (sig : Nat) (exp : Int) : String :=
   if h : -324 ≤ exp ∧ exp ≤ 292 then
     let core := toString sig ++
       expTable[(exp + 324).toNat]'(by rw [expTable_size]; omega)
-    if sign then "-" ++ core else core
+    withSign sign core
   else
-    (if sign then "-" else "") ++ toString sig ++ "e" ++ intToStrRef exp
+    withSign sign (toString sig ++ "e" ++ intToStrRef exp)
 
-theorem emitChecked_eq (sign : Bool) (sig : Nat) (exp : Int) :
+theorem emitChecked_eq (sign : Sign) (sig : Nat) (exp : Int) :
     emitChecked sign sig exp =
-      (if sign then "-" else "") ++ toString sig ++ "e" ++ intToStrRef exp := by
+      withSign sign (toString sig ++ "e" ++ intToStrRef exp) := by
   unfold emitChecked
   split
   · rename_i h
@@ -50,9 +52,7 @@ theorem emitChecked_eq (sign : Bool) (sig : Nat) (exp : Int) :
           = "e" ++ intToStrRef (((exp + 324).toNat : Int) - 324) from by
       simp [expTable]]
     rw [show (((exp + 324).toNat : Int) - 324) = exp from by omega]
-    cases sign
-    · simp [String.empty_append, String.append_assoc]
-    · simp [String.append_assoc]
+    rw [String.append_assoc]
   · rfl
 
 /-! ## `toStringFast2`, `toStringFast3` -/
@@ -60,16 +60,16 @@ theorem emitChecked_eq (sign : Bool) (sig : Nat) (exp : Int) :
 open Srtfp.Float in
 /-- Everything after the bit fields are known. -/
 @[inline]
-def emitTail (sign : Bool) (m : Nat) (q : Int) : String :=
-  if m = 0 then (if sign then "-0" else "0")
+def emitTail (sign : Sign) (m : Nat) (q : Int) : String :=
+  if m = 0 then withSign sign "0"
   else
     let (sig, exp) := shortestUnsigned_v7 m q
-    if sig = 0 then (if sign then "-0" else "0")
+    if sig = 0 then withSign sign "0"
     else if sig % 10 ≠ 0 then
       emitChecked sign sig exp
     else
       let (sig', exp') := Srtfp.Decimal.canonicaliseAux sig exp
-      if sig' = 0 then (if sign then "-0" else "0")
+      if sig' = 0 then withSign sign "0"
       else emitChecked sign sig' exp'
 
 open Srtfp.Float in
@@ -77,7 +77,7 @@ open Srtfp.Float in
 @[inline]
 def toStringFast2 (f : _root_.Float) : String :=
   if isNaNBits f then "NaN"
-  else if isInfBits f then (if signBit f then "-Infinity" else "Infinity")
+  else if isInfBits f then (withSign (signBit f) "Infinity")
   else
     let d := decode f
     emitTail d.sign d.m d.q
@@ -101,7 +101,7 @@ def toStringFast3 (f : _root_.Float) : String :=
     if mantBits ≠ 0 then "NaN"
     else if (bits >>> 63) ≠ 0 then "-Infinity" else "Infinity"
   else
-    emitTail (decide (bits >>> 63 ≠ 0))
+    emitTail (if bits >>> 63 = 0 then .positive else .negative)
       (if expBits = 0 then mantBits.toNat
        else (mantBits + (4503599627370496 : UInt64)).toNat)
       (if expBits = 0 then -1074 else (expBits.toNat : Int) - 1075)
@@ -121,7 +121,8 @@ theorem toStringFast3_eq (f : _root_.Float) : toStringFast3 f = toStringFast2 f 
       have hNaN : ¬ isNaNBits f = true := by simp [isNaNBits, hbE, hm0]
       have hInf : isInfBits f = true := by simp [isInfBits, hbE, hm0]
       rw [if_neg (by simp [hm]), if_neg hNaN, if_pos hInf]
-      simp [signBit]
+      simp only [signBit]
+      split <;> simp_all [withSign]
     · -- NaN
       have hm0 : mantissaBits f ≠ 0 := by
         intro hc
@@ -138,7 +139,7 @@ theorem toStringFast3_eq (f : _root_.Float) : toStringFast3 f = toStringFast2 f 
     show emitTail _ _ _ = emitTail (decode f).sign (decode f).m (decode f).q
     congr 1
     · -- sign
-      show decide (f.toBits >>> 63 ≠ 0) = (decode f).sign
+      show (if f.toBits >>> 63 = 0 then Sign.positive else Sign.negative) = (decode f).sign
       have : (decode f).sign = signBit f := by
         unfold decode
         by_cases h : biasedExpBits f = 0 <;> simp [h]
@@ -179,19 +180,19 @@ theorem toStringFast3_eq (f : _root_.Float) : toStringFast3 f = toStringFast2 f 
 
 open Srtfp.Float in
 @[inline]
-def emitTail2 (sign : Bool) (mU qB : UInt64) : String :=
-  if mU = 0 then (if sign then "-0" else "0")
+def emitTail2 (sign : Sign) (mU qB : UInt64) : String :=
+  if mU = 0 then withSign sign "0"
   else
     let (sig, exp) := shortestUnsigned_v8 mU qB
-    if sig = 0 then (if sign then "-0" else "0")
+    if sig = 0 then withSign sign "0"
     else if sig % 10 ≠ 0 then
       emitChecked sign sig exp
     else
       let (sig', exp') := Srtfp.Decimal.canonicaliseAux sig exp
-      if sig' = 0 then (if sign then "-0" else "0")
+      if sig' = 0 then withSign sign "0"
       else emitChecked sign sig' exp'
 
-theorem emitTail2_eq (sign : Bool) (mU qB : UInt64) :
+theorem emitTail2_eq (sign : Sign) (mU qB : UInt64) :
     emitTail2 sign mU qB = emitTail sign mU.toNat ((qB.toNat : Int) - 1074) := by
   unfold emitTail2 emitTail
   by_cases h : mU.toNat = 0
@@ -209,7 +210,7 @@ def toStringFast4 (f : _root_.Float) : String :=
     if mantBits ≠ 0 then "NaN"
     else if (bits >>> 63) ≠ 0 then "-Infinity" else "Infinity"
   else
-    emitTail2 (decide (bits >>> 63 ≠ 0))
+    emitTail2 (if bits >>> 63 = 0 then .positive else .negative)
       (if expBits = 0 then mantBits else mantBits + 4503599627370496)
       (if expBits = 0 then 0 else expBits - 1)
 

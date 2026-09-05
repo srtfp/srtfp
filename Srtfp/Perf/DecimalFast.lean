@@ -18,6 +18,8 @@ public import Srtfp.Decimal
 
 @[expose] public section
 
+open Float.Model.UnpackedFloat (Sign)
+
 namespace Srtfp.Decimal
 
 /-! ## UInt64 inner loop -/
@@ -191,10 +193,10 @@ theorem canonical_eq_fast_csimp : @Decimal.canonical = @canonical_fast := by
 
 /-- Fast `mk'`: same body as `Decimal.mk'` but with `canonical` /
     `canonicaliseAux` inlined through their fast variants. -/
-def mk'_fast (sign : Bool) (significand : Nat) (exponent : Int) : Decimal :=
+def mk'_fast (sign : Sign) (significand : Nat) (exponent : Int) : Decimal :=
   canonical_fast ⟨sign, significand, exponent⟩
 
-theorem mk'_eq_fast (sign : Bool) (significand : Nat) (exponent : Int) :
+theorem mk'_eq_fast (sign : Sign) (significand : Nat) (exponent : Int) :
     Decimal.mk' sign significand exponent = mk'_fast sign significand exponent := by
   unfold mk'_fast Decimal.mk'
   exact canonical_eq_fast _
@@ -210,7 +212,7 @@ ctor allocation and re-use are visible in the generated C.
 first, then allocates exactly once (or returns the cached `Decimal.zero`). -/
 
 @[inline]
-def mk'_fast2 (sign : Bool) (significand : Nat) (exponent : Int) : Decimal :=
+def mk'_fast2 (sign : Sign) (significand : Nat) (exponent : Int) : Decimal :=
   if significand = 0 then ⟨sign, 0, 0⟩
   else if significand % 10 ≠ 0 then
     -- No trailing zeros: build the canonical Decimal directly.
@@ -220,7 +222,7 @@ def mk'_fast2 (sign : Bool) (significand : Nat) (exponent : Int) : Decimal :=
     let (s', e') := canonicaliseAux significand exponent
     ⟨sign, s', e'⟩
 
-theorem mk'_eq_fast2 (sign : Bool) (significand : Nat) (exponent : Int) :
+theorem mk'_eq_fast2 (sign : Sign) (significand : Nat) (exponent : Int) :
     Decimal.mk' sign significand exponent = mk'_fast2 sign significand exponent := by
   rw [mk'_eq_fast]
   unfold mk'_fast mk'_fast2 canonical_fast

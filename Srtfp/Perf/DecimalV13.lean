@@ -17,13 +17,15 @@ public import Srtfp.Perf.KernelV13
 
 @[expose] public section
 
+open Float.Model.UnpackedFloat (Sign)
+
 namespace Srtfp.Schubfach
 
 open Srtfp.Float
 
 /-- The `(m : Nat, q : Int)` shape of `toDecimal_v7`'s finite branch. -/
 @[inline]
-def decimalTailNat (sign : Bool) (m : Nat) (q : Int) : _root_.Srtfp.Decimal :=
+def decimalTailNat (sign : Sign) (m : Nat) (q : Int) : _root_.Srtfp.Decimal :=
   if m = 0 then ⟨sign, 0, 0⟩
   else
     let (sig, exp) := shortestUnsigned_v7 m q
@@ -32,7 +34,7 @@ def decimalTailNat (sign : Bool) (m : Nat) (q : Int) : _root_.Srtfp.Decimal :=
 /-- Everything after the bit fields are known: the `Decimal` analogue of
     `emitTail7`. -/
 @[inline]
-def decimalTail (sign : Bool) (mU qB : UInt64) : _root_.Srtfp.Decimal :=
+def decimalTail (sign : Sign) (mU qB : UInt64) : _root_.Srtfp.Decimal :=
   if mU = 0 then ⟨sign, 0, 0⟩
   else
     match shortestUnsigned_u64_opt_v13 mU qB with
@@ -41,7 +43,7 @@ def decimalTail (sign : Bool) (mU qB : UInt64) : _root_.Srtfp.Decimal :=
       let (sig, exp) := shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074)
       Srtfp.Decimal.mk' sign sig exp
 
-theorem decimalTail_eq (sign : Bool) (mU qB : UInt64) :
+theorem decimalTail_eq (sign : Sign) (mU qB : UInt64) :
     decimalTail sign mU qB = decimalTailNat sign mU.toNat ((qB.toNat : Int) - 1074) := by
   unfold decimalTail decimalTailNat
   by_cases h0 : mU = 0
@@ -69,7 +71,7 @@ def toDecimal_v13 (f : _root_.Float) : Except String _root_.Srtfp.Decimal :=
     if mantBits ≠ 0 then .error "NaN"
     else .error (if (bits >>> 63) ≠ 0 then "-Infinity" else "Infinity")
   else
-    .ok (decimalTail (decide (bits >>> 63 ≠ 0))
+    .ok (decimalTail (if bits >>> 63 = 0 then .positive else .negative)
       (if expBits = 0 then mantBits else mantBits + 4503599627370496)
       (if expBits = 0 then 0 else expBits - 1))
 
@@ -95,7 +97,8 @@ theorem toDecimal_v13_eq (f : _root_.Float) : toDecimal_v13 f = toDecimal_v7 f :
       have hNaN : ¬ isNaNBits f = true := by simp [isNaNBits, hbE, hm0]
       have hInf : isInfBits f = true := by simp [isInfBits, hbE, hm0]
       rw [if_neg (by simp [hm]), if_neg hNaN, if_pos hInf]
-      simp [signBit]
+      simp only [signBit]
+      split <;> simp_all [withSign]
     · -- NaN
       have hm0 : mantissaBits f ≠ 0 := by
         intro hc
@@ -111,7 +114,7 @@ theorem toDecimal_v13_eq (f : _root_.Float) : toDecimal_v13 f = toDecimal_v7 f :
     rw [if_neg h7, toDecimal_v7_finite f hNaN hInf, decimalTail_eq]
     congr 2
     · -- sign
-      show decide (f.toBits >>> 63 ≠ 0) = (decode f).sign
+      show (if f.toBits >>> 63 = 0 then Sign.positive else Sign.negative) = (decode f).sign
       have : (decode f).sign = signBit f := by
         unfold decode
         by_cases h : biasedExpBits f = 0 <;> simp [h]

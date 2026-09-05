@@ -90,7 +90,7 @@ theorem correctReader_iff_ofDecimal (p : Decimal → UInt64) :
       exact eq_of_nearestWord hn hfin hs hmem
     · have h1 := h.overflow d hd
       rw [abs_toRat] at hd
-      have h2 : Spec.unpack (ofDecimalBits d) = .infinity (Spec.sign d.sign) := by
+      have h2 : Spec.unpack (ofDecimalBits d) = .infinity d.sign := by
         rw [unpack_ofDecimalBits, (read_spec d).2 hd]
       exact word_inj (by rw [h1]; exact fun e => UnpackedFloat.noConfusion e) (h1.trans h2.symm)
   · intro h
@@ -135,7 +135,7 @@ theorem reads_to_iff {w : UInt64} (hw : (Spec.unpack w).isFinite = true) (d : De
 theorem reads_to_finite_iff {w : UInt64} {s : Sign} {m : Nat} {q : Int} {hm : 0 < m}
     (hw : Spec.unpack w = .finite s m q hm) (d : Decimal) :
     ofDecimalBits d = w ↔
-      (d.sign = Spec.negative s ∧ InRv m q ((d.significand : Rat) * (10 : Rat) ^ d.exponent) = true) := by
+      (d.sign = s ∧ InRv m q ((d.significand : Rat) * (10 : Rat) ^ d.exponent) = true) := by
   have hfin : (Spec.unpack w).isFinite = true := by rw [hw]; rfl
   rw [reads_to_iff hfin, hw]; rfl
 

@@ -23,7 +23,7 @@ namespace Srtfp
 
 /-- An exact base-10 value: `(-1)^sign · significand · 10^exponent`. -/
 structure Decimal where
-  sign : Bool
+  sign : Sign
   significand : Nat
   exponent : Int
 
@@ -43,19 +43,16 @@ Lean's model reads a binary64 word as `.finite s m e` (the value
 def unpack (w : UInt64) : UnpackedFloat :=
   UnpackedFloat.unpack Float.Model.Format.binary64 w.toBitVec
 
-/-- The sign as a `Bool`: `true` is negative. -/
-def negative : Sign → Bool
-  | .negative => true
-  | .positive => false
-
-/-- The sign of a `Bool`: `true` is negative. -/
-def sign (b : Bool) : Sign := if b then .negative else .positive
-
 /-! ## Values -/
 
+/-- `(-1)^sign`. -/
+def signVal : Sign → Rat
+  | .negative => -1
+  | .positive => 1
+
 /-- `(-1)^sign · m · base^e`. -/
-def val (base : Rat) (sign : Bool) (m : Nat) (e : Int) : Rat :=
-  (if sign then -1 else 1 : Rat) * (m * base ^ e)
+def val (base : Rat) (sign : Sign) (m : Nat) (e : Int) : Rat :=
+  signVal sign * (m * base ^ e)
 
 /-- The exact value of a decimal. -/
 def toRat (d : Decimal) : Rat := val 10 d.sign d.significand d.exponent
@@ -63,14 +60,14 @@ def toRat (d : Decimal) : Rat := val 10 d.sign d.significand d.exponent
 /-- The exact value of a finite word. -/
 def wordVal (w : UInt64) : Rat :=
   match unpack w with
-  | .finite s m e _ => val 2 (negative s) m e
+  | .finite s m e _ => val 2 s m e
   | _ => 0
 
-/-- The sign of a word (`true` is negative); a NaN counts as positive. -/
-def wordSign (w : UInt64) : Bool :=
+/-- The sign of a word; a NaN counts as positive. -/
+def wordSign (w : UInt64) : Sign :=
   match unpack w with
-  | .finite s _ _ _ | .zero s | .infinity s => negative s
-  | .notANumber => false
+  | .finite s _ _ _ | .zero s | .infinity s => s
+  | .notANumber => .positive
 
 /-- The integer significand of a finite word; `0` for a zero. -/
 def wordSig (w : UInt64) : Nat :=
@@ -116,7 +113,7 @@ sends the midpoint itself to infinity). -/
 structure CorrectReader (p : Decimal → UInt64) : Prop where
   inRange : ∀ d : Decimal, Rat.abs (toRat d) < 2 ^ 1024 - 2 ^ 970 → NearestWord d (p d)
   overflow : ∀ d : Decimal, 2 ^ 1024 - 2 ^ 970 ≤ Rat.abs (toRat d) →
-    unpack (p d) = .infinity (sign d.sign)
+    unpack (p d) = .infinity d.sign
 
 /-- `d` reads back to `w` under every correct reader. -/
 def ReadsTo (d : Decimal) (w : UInt64) : Prop := ∀ p, CorrectReader p → p d = w
