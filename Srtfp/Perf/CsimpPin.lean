@@ -17,6 +17,7 @@ module
      v5      no domain re-check on the hot path   (KernelV5.lean)
      v6-v8   biased index, side tables, u64 API   (KernelV6.lean)
      v13     boundary-product digits + flip3      (KernelV13*.lean)
+     v14     unboxed verdicts, biased exponent    (KernelV14.lean)
    (V9-V12 were dropped; shared pieces live on in KernelSupport.lean.)
 
    Wired into `lake test` via AxiomCheck.lean. Not imported by `PP`
@@ -26,6 +27,7 @@ public meta import Lean
 public import Srtfp.Perf.KernelV6
 public import Srtfp.Perf.KernelV13
 public import Srtfp.Perf.DecimalV13
+public import Srtfp.Perf.KernelV14
 
 @[expose] public section
 
@@ -45,9 +47,9 @@ run_cmd do
           unless t.toDeclName == tgt do
             throwError "csimp pin: {src} compiles to {t.toDeclName}, expected {tgt}"
         | none => throwError "csimp pin: {src} has no csimp replacement"
-      check `Srtfp.Printer.toDecimal `Srtfp.Schubfach.toDecimal_v13
-      check `Srtfp.Schubfach.toDecimal `Srtfp.Schubfach.toDecimal_v13
-      check `Srtfp.Schubfach.floatToStrRef `Srtfp.Schubfach.toStringFast9
+      check `Srtfp.Printer.toDecimal `Srtfp.Schubfach.toDecimal_v14
+      check `Srtfp.Schubfach.toDecimal `Srtfp.Schubfach.toDecimal_v14
+      check `Srtfp.Schubfach.floatToStrRef `Srtfp.Schubfach.toStringFast10
       check `Srtfp.Schubfach.shortestUnsigned `Srtfp.Schubfach.shortestUnsigned_v3
       check `Srtfp.Decimal.canonicaliseAux `Srtfp.Decimal.canonicaliseAux_fast2
       check `Srtfp.Decimal.mk' `Srtfp.Decimal.mk'_fast3))
@@ -60,9 +62,9 @@ run_cmd do
           unless t == tgt do
             throwError "csimp pin: {src} compiles to {t}, expected {tgt}"
         | none => throwError "csimp pin: {src} has no csimp replacement"
-      check `Srtfp.Printer.toDecimal `Srtfp.Schubfach.toDecimal_v13
-      check `Srtfp.Schubfach.toDecimal `Srtfp.Schubfach.toDecimal_v13
-      check `Srtfp.Schubfach.floatToStrRef `Srtfp.Schubfach.toStringFast9
+      check `Srtfp.Printer.toDecimal `Srtfp.Schubfach.toDecimal_v14
+      check `Srtfp.Schubfach.toDecimal `Srtfp.Schubfach.toDecimal_v14
+      check `Srtfp.Schubfach.floatToStrRef `Srtfp.Schubfach.toStringFast10
       check `Srtfp.Schubfach.shortestUnsigned `Srtfp.Schubfach.shortestUnsigned_v3
       check `Srtfp.Decimal.canonicaliseAux `Srtfp.Decimal.canonicaliseAux_fast2
       check `Srtfp.Decimal.mk' `Srtfp.Decimal.mk'_fast3))

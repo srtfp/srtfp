@@ -1,30 +1,27 @@
 module
-/- PROTOTYPE — UNVERIFIED, NOT REGISTERED. Do not import from `Srtfp.Perf`.
+/- v14 — the v13 kernel with no boxed value on the hot path.
 
-   v14: the v13 kernel with every boxed value removed from the hot path.
-   Measured purpose only (benches/profiling/BenchProfile.lean): it puts a
-   number on how much of the v13 kernel's time is Lean's boxing model
-   rather than arithmetic. Differences from `shortestUnsigned_u64_opt_v13`:
+   Same table entries, window guards, 192-bit boundary products, flipped
+   interval tests and tie-break as `shortestUnsigned_u64_opt_v13`; the
+   differences are representational:
 
-   * verdicts are `UInt8` (0 ambiguous, 1 greater, 2 less) instead of `Int`
-     (`-1`/`0`/`1` as boxed `Int` scalars, compared through
-     `lean_int_dec_lt` / `lean_int_dec_eq`, and `-1` built by `lean_int_neg`
-     at runtime);
+   * verdicts are `UInt8` (0 ambiguous, 1 greater, 2 less) instead of
+     `Int` (`-1`/`0`/`1` as boxed scalars, `-1` built at runtime);
    * the decimal exponent travels as the biased table index
-     `kB = k + 324 : UInt64` (which the emit indexes `expTable` with
-     directly) instead of `k : Int` (`lean_nat_to_int`, `lean_int_sub`,
-     `lean_int_add`, `Int.toNat` per call);
-   * `mulHi64 aU (1 <<< s)` (four 32×32 multiplies) is the shift
-     `aU >>> (64 - s)` it computes;
+     `kB = k + 324 : UInt64`, which the emit indexes `expTable` with
+     directly, instead of `k : Int`;
+   * the `s < 64` leg of `cmpScaledMixed_u64_L` computes the shift
+     `aU >>> (64 - s)` instead of `mulHi64 aU (1 <<< s)`;
    * the trailing-zero test runs on the `UInt64` significand.
 
-   Everything else (table entries, window guards, 192-bit boundary
-   products, flipped interval tests, tie-break) is v13 verbatim, so a
-   proof of `shortestUnsigned_u64_opt_v14 mU qB = (shortestUnsigned_u64_opt_v13 mU qB).map (biased)`
-   would be a leaf-by-leaf transfer in the style of
-   `shortestUnsigned_u64_opt_v13_some_eq_flip3`. Not attempted here. -/
+   Verified by a leaf-by-leaf transfer to v13:
+   `shortestUnsigned_u64_opt_v14_some_eq_v13` lifts every `some` exit to
+   the v13 exit with the unbiased exponent, so `toStringFast10` and
+   `toDecimal_v14` ride the v13 correctness chain and are registered as
+   the live `@[csimp]` rewrites (pinned in `CsimpPin.lean`). -/
 
 public import Srtfp.Perf.KernelV13
+public import Srtfp.Perf.DecimalV13
 
 @[expose] public section
 
@@ -238,7 +235,7 @@ def emitTail8 (sign : Bool) (mU qB : UInt64) : String :=
         if sig' = 0 then (if sign then "-0" else "0")
         else emitChecked sign sig' exp'
 
-/-- `toStringFast9` over the v14 kernel. PROTOTYPE: not proven, not registered. -/
+/-- `toStringFast9` over the v14 kernel. -/
 @[inline]
 def toStringFast10 (f : _root_.Float) : String :=
   let bits := f.toBits
@@ -260,5 +257,356 @@ def shortestUnsigned_v14 (mU qB : UInt64) : UInt64 × UInt64 :=
   | none =>
     let (s, k) := shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074)
     (UInt64.ofNat s, UInt64.ofNat (k + 324).toNat)
+
+/-! ## Leaf transfers to v13 -/
+
+theorem cmpScaledMixed_u64_L_v14_eq (aU s : UInt64) :
+    cmpScaledMixed_u64_L_v14 aU s = cmpScaledMixed_u64_L aU s := by
+  unfold cmpScaledMixed_u64_L_v14 cmpScaledMixed_u64_L
+  by_cases hs : s < 64
+  · rw [if_pos hs, if_pos hs]
+    have hs' : s.toNat < 64 := by
+      rw [UInt64.lt_iff_toNat_lt] at hs; exact hs
+    by_cases hs0 : s = 0
+    · rw [if_pos hs0]
+      subst hs0
+      have h1 : mulHi64 aU (1 <<< (0 : UInt64)) = 0 := by
+        apply UInt64.toNat_inj.mp
+        rw [mulHi64_toNat_eq, show ((1 : UInt64) <<< (0 : UInt64)) = 1 from rfl,
+            show ((1 : UInt64)).toNat = 1 from rfl, Nat.mul_one,
+            show ((0 : UInt64)).toNat = 0 from rfl]
+        exact Nat.div_eq_of_lt aU.toNat_lt
+      have h2 : aU <<< (0 : UInt64) = aU := by
+        apply UInt64.toNat_inj.mp
+        rw [UInt64.toNat_shiftLeft, show ((0 : UInt64)).toNat = 0 from rfl]
+        simp [Nat.mod_eq_of_lt aU.toNat_lt]
+      rw [h1, h2]
+    · rw [if_neg hs0]
+      have hpos : 0 < s.toNat := by
+        rcases Nat.eq_zero_or_pos s.toNat with h | h
+        · exact absurd (UInt64.toNat_inj.mp (by rw [h]; rfl)) hs0
+        · exact h
+      have h1 : aU >>> (64 - s) = mulHi64 aU (1 <<< s) := by
+        apply UInt64.toNat_inj.mp
+        have hle : s ≤ 64 := by
+          rw [UInt64.le_iff_toNat_le, show ((64 : UInt64)).toNat = 64 from rfl]; omega
+        rw [mulHi64_toNat_eq, UInt64.toNat_shiftRight, UInt64.toNat_shiftLeft,
+            UInt64.toNat_sub_of_le _ _ hle,
+            show ((64 : UInt64)).toNat = 64 from rfl, show ((1 : UInt64)).toNat = 1 from rfl,
+            Nat.mod_eq_of_lt (show 64 - s.toNat < 64 by omega),
+            Nat.mod_eq_of_lt hs', Nat.shiftLeft_eq, Nat.one_mul,
+            Nat.mod_eq_of_lt (Nat.pow_lt_pow_right (by decide) hs'),
+            Nat.shiftRight_eq_div_pow]
+        have h64 : (2 : Nat) ^ 64 = 2 ^ s.toNat * 2 ^ (64 - s.toNat) := by
+          rw [← Nat.pow_add]; congr 1; omega
+        rw [h64, Nat.mul_comm aU.toNat, Nat.mul_div_mul_left _ _ (Nat.two_pow_pos _)]
+      rw [h1]
+  · rw [if_neg hs, if_neg hs]
+
+/-- The `UInt8` verdict decides the `Int` verdict: `0 ↔ 0`, `1 ↔ 1`,
+    `2 ↔ -1`. -/
+theorem cmpVerdict_u8_cases (l_hi l_mid l_lo r_hi r_mid r_lo bU : UInt64) :
+    (cmpVerdict_u8 l_hi l_mid l_lo r_hi r_mid r_lo bU = 0
+        ∧ cmpVerdict_u64_inner l_hi l_mid l_lo r_hi r_mid r_lo bU = 0)
+    ∨ (cmpVerdict_u8 l_hi l_mid l_lo r_hi r_mid r_lo bU = 1
+        ∧ cmpVerdict_u64_inner l_hi l_mid l_lo r_hi r_mid r_lo bU = 1)
+    ∨ (cmpVerdict_u8 l_hi l_mid l_lo r_hi r_mid r_lo bU = 2
+        ∧ cmpVerdict_u64_inner l_hi l_mid l_lo r_hi r_mid r_lo bU = -1) := by
+  unfold cmpVerdict_u8 cmpVerdict_u64_inner
+  by_cases hg : gt192 l_hi l_mid l_lo r_hi r_mid r_lo = true
+  · simp only [if_pos hg]
+    decide
+  · simp only [if_neg hg]
+    obtain ⟨a, b, c⟩ := add192_64 l_hi l_mid l_lo bU
+    simp only []
+    by_cases hl : le192 a b c r_hi r_mid r_lo = true
+    · simp only [if_pos hl]
+      decide
+    · simp only [if_neg hl]
+      decide
+
+theorem inRoundingInterval_v14_eq
+    (lLHi lLMid lLLo leftU lRHi lRMid lRLo rightU w8 sU : UInt64) :
+    inRoundingInterval_v14 lLHi lLMid lLLo leftU lRHi lRMid lRLo rightU w8 sU
+      = inRoundingInterval_u64_flipped_u8 lLHi lLMid lLLo leftU lRHi lRMid lRLo rightU w8 sU := by
+  unfold inRoundingInterval_v14 inRoundingInterval_u64_flipped_u8
+  simp only [cmpScaledMixed_u64_L_v14_eq]
+  obtain ⟨cHi, cMid, cLo⟩ := cmpScaledMixed_u64_L (sU <<< 2) w8
+  simp only []
+  rcases cmpVerdict_u8_cases cHi cMid cLo lLHi lLMid lLLo leftU
+      with ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ <;>
+    rcases cmpVerdict_u8_cases cHi cMid cLo lRHi lRMid lRLo rightU
+      with ⟨h3, h4⟩ | ⟨h3, h4⟩ | ⟨h3, h4⟩ <;>
+    simp [h1, h2, h3, h4, inRoundingInterval_u8_AMBIG, inRoundingInterval_u8_TRUE,
+      inRoundingInterval_u8_FALSE]
+
+theorem pickNearer_v14_eq
+    (lLHi lLMid lLLo leftU lRHi lRMid lRLo rightU mHHi mHMid mHLo twoM w8 sU : UInt64) :
+    pickNearer_v14 lLHi lLMid lLLo leftU lRHi lRMid lRLo rightU mHHi mHMid mHLo twoM w8 sU
+      = pickNearer_u64_flipped lLHi lLMid lLLo leftU lRHi lRMid lRLo rightU
+          mHHi mHMid mHLo twoM w8 sU := by
+  unfold pickNearer_v14 pickNearer_u64_flipped cmpScaledMixed_u64_flipped
+  simp only [inRoundingInterval_v14_eq, cmpScaledMixed_u64_L_v14_eq]
+  obtain ⟨cHi, cMid, cLo⟩ := cmpScaledMixed_u64_L ((sU <<< 1) + 1) w8
+  simp only []
+  rcases cmpVerdict_u8_cases cHi cMid cLo mHHi mHMid mHLo twoM
+      with ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ <;>
+    simp [h1, h2]
+
+/-! ## The kernel transfer -/
+
+private theorem some_pair_congr {α β : Type} (a : α) {b c : β} (h : b = c) :
+    some (a, b) = some (a, c) := by rw [h]
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 3200000 in
+/-- Every `some` exit of v14 is the v13 exit with the exponent unbiased:
+    the guards and products coincide syntactically once the leaves are
+    rewritten, so this is a walk down the shared decision tree. -/
+theorem shortestUnsigned_u64_opt_v14_some_eq_v13 (mU qB sU kB : UInt64)
+    (hopt : shortestUnsigned_u64_opt_v14 mU qB = some (sU, kB)) :
+    shortestUnsigned_u64_opt_v13 mU qB = some (sU, (kB.toNat : Int) - 324) := by
+  unfold shortestUnsigned_u64_opt_v14 at hopt
+  unfold shortestUnsigned_u64_opt_v13
+  simp only [inRoundingInterval_v14_eq, pickNearer_v14_eq] at hopt
+  by_cases h_m0 : mU = 0
+  · rw [if_pos h_m0] at hopt; cases hopt
+  rw [if_neg h_m0] at hopt
+  rw [dif_neg h_m0]
+  by_cases h_m : mU ≥ (9007199254740992 : UInt64)
+  · rw [if_pos h_m] at hopt; cases hopt
+  rw [if_neg h_m] at hopt
+  rw [dif_neg h_m]
+  by_cases h_q : qB > 2045
+  · rw [if_pos h_q] at hopt; cases hopt
+  rw [if_neg h_q] at hopt
+  rw [dif_neg h_q]
+  by_cases h_k : kBOfMQ mU qB > 647
+  · rw [if_pos h_k] at hopt; cases hopt
+  rw [if_neg h_k] at hopt
+  rw [dif_neg h_k]
+  have hk1 : ((kBOfMQ mU qB + 1).toNat : Int) = ((kBOfMQ mU qB).toNat : Int) + 1 := by
+    rw [gt_iff_lt, UInt64.lt_iff_toNat_lt, show ((647 : UInt64)).toNat = 647 from rfl] at h_k
+    rw [UInt64.toNat_add, show ((1 : UInt64)).toNat = 1 from rfl, Nat.mod_eq_of_lt (by omega)]
+    omega
+  -- Zeta-expand the goal to hopt's shape, then name the shared subterms
+  -- so the guards are short.
+  simp (config := { maxSteps := 4000000 }) only []
+  set gTb := pow10Table128.getD (647 - (kBOfMQ mU qB).toNat) pow10Table128_default with hgTb
+  set uBb : UInt64 := hB128.getD (647 - (kBOfMQ mU qB).toNat) 0 + 4096 - qB with huBb
+  by_cases h_lo : uBb < 5197
+  · rw [if_pos h_lo] at hopt; cases hopt
+  rw [if_neg h_lo] at hopt
+  rw [dif_neg h_lo]
+  by_cases h_hi : uBb > 5202
+  · rw [if_pos h_hi] at hopt; cases hopt
+  rw [if_neg h_hi] at hopt
+  rw [dif_neg h_hi]
+  set m4b : UInt64 := mU <<< 2 with hm4b
+  set pLob : UInt64 := m4b * gTb.2.1 with hpLob
+  set pLoHb : UInt64 := mulHi64 m4b gTb.2.1 with hpLoHb
+  set pHib : UInt64 := m4b * gTb.1 with hpHib
+  set pHiHb : UInt64 := mulHi64 m4b gTb.1 with hpHiHb
+  set pMidb : UInt64 := pHib + pLoHb with hpMidb
+  set pCb : UInt64 := (if pMidb < pHib then (1 : UInt64) else 0) with hpCb
+  set pHb : UInt64 := pHiHb + pCb with hpHb
+  set p4b := shl2_192 pHb pMidb pLob with hp4b
+  set p5b := add192_192 p4b.1 p4b.2.1 p4b.2.2 pHb pMidb pLob with hp5b
+  set sUb : UInt64 := p5b.1 >>> (uBb - 5197) with hsUb
+  by_cases h_s : sUb ≥ (144115188075855872 : UInt64)
+  · rw [if_pos h_s] at hopt; cases hopt
+  rw [if_neg h_s] at hopt
+  rw [dif_neg h_s]
+  set irr := isIrregularB mU qB with hirr
+  set leftUb : UInt64 := (if irr = true then m4b - 1 else m4b - 2) with hleftUb
+  set rightUb : UInt64 := m4b + 2 with hrightUb
+  set tgb := add192_192 0 gTb.1 gTb.2.1 0 gTb.1 gTb.2.1 with htgb
+  set lBb := sub192_192 pHb pMidb pLob (if irr = true then 0 else tgb.1)
+      (if irr = true then gTb.1 else tgb.2.1) (if irr = true then gTb.2.1 else tgb.2.2) with hlBb
+  set rBb := add192_192 pHb pMidb pLob tgb.1 tgb.2.1 tgb.2.2 with hrBb
+  set uCb : UInt64 := hB128.getD (648 - (kBOfMQ mU qB).toNat) 0 + 4096 - qB with huCb
+  by_cases hge10 : sUb ≥ (10 : UInt64)
+  · rw [if_pos hge10] at hopt
+    rw [if_pos hge10]
+    set uVb := inRoundingInterval_u64_flipped_u8 lBb.1 lBb.2.1 lBb.2.2 leftUb
+        rBb.1 rBb.2.1 rBb.2.2 rightUb (uBb - 5070) (sUb / 10) with huVb
+    by_cases hu0 : uVb = inRoundingInterval_u8_AMBIG
+    · rw [if_pos hu0] at hopt; cases hopt
+    rw [if_neg hu0] at hopt
+    rw [if_neg hu0]
+    by_cases hu2 : uVb = inRoundingInterval_u8_TRUE
+    · rw [if_pos hu2] at hopt
+      rw [if_pos hu2]
+      cases hopt
+      exact some_pair_congr _ (by omega)
+    rw [if_neg hu2] at hopt
+    rw [if_neg hu2]
+    set wVb := inRoundingInterval_u64_flipped_u8 lBb.1 lBb.2.1 lBb.2.2 leftUb
+        rBb.1 rBb.2.1 rBb.2.2 rightUb (uBb - 5070) (sUb / 10 + 1) with hwVb
+    by_cases hw0 : wVb = inRoundingInterval_u8_AMBIG
+    · rw [if_pos hw0] at hopt; cases hopt
+    rw [if_neg hw0] at hopt
+    rw [if_neg hw0]
+    by_cases hw2 : wVb = inRoundingInterval_u8_TRUE
+    · rw [if_pos hw2] at hopt
+      rw [if_pos hw2]
+      cases hopt
+      exact some_pair_congr _ (by omega)
+    rw [if_neg hw2] at hopt
+    rw [if_neg hw2]
+    by_cases hc_lo : uCb < 5134
+    · rw [if_pos hc_lo] at hopt; cases hopt
+    rw [if_neg hc_lo] at hopt
+    rw [dif_neg hc_lo]
+    by_cases hc_hi : uCb > 5202
+    · rw [if_pos hc_hi] at hopt; cases hopt
+    rw [if_neg hc_hi] at hopt
+    rw [dif_neg hc_hi]
+    split at hopt
+    · cases hopt
+    · rename_i chosen heq
+      rw [heq]
+      cases hopt
+      rfl
+  · rw [if_neg hge10] at hopt
+    rw [if_neg hge10]
+    by_cases hs0 : sUb = 0
+    · rw [if_pos hs0] at hopt; cases hopt
+    rw [if_neg hs0] at hopt
+    rw [dif_neg hs0]
+    by_cases hc_lo : uCb < 5134
+    · rw [if_pos hc_lo] at hopt; cases hopt
+    rw [if_neg hc_lo] at hopt
+    rw [dif_neg hc_lo]
+    by_cases hc_hi : uCb > 5202
+    · rw [if_pos hc_hi] at hopt; cases hopt
+    rw [if_neg hc_hi] at hopt
+    rw [dif_neg hc_hi]
+    split at hopt
+    · cases hopt
+    · rename_i chosen heq
+      rw [heq]
+      cases hopt
+      rfl
+
+/-! ## Emit and entry points -/
+
+theorem emitIdx_eq (sign : Bool) (sig : Nat) (kB : UInt64) :
+    emitIdx sign sig kB.toNat = emitChecked sign sig ((kB.toNat : Int) - 324) := by
+  rw [← emitCheckedIdx_eq sign sig _ (by omega)]
+  unfold emitIdx emitCheckedIdx
+  have h : (((kB.toNat : Int) - 324) + 324).toNat = kB.toNat := by omega
+  simp only [h]
+
+theorem emitTail8_eq (sign : Bool) (mU qB : UInt64) :
+    emitTail8 sign mU qB = emitTail2 sign mU qB := by
+  unfold emitTail8 emitTail2
+  by_cases h0 : mU = 0
+  · rw [if_pos h0, if_pos h0]
+  rw [if_neg h0, if_neg h0]
+  have h8pk : shortestUnsigned_v8 mU qB
+      = shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074) := by
+    rw [shortestUnsigned_v8_eq_v7, shortestUnsigned_v7_eq_v5, shortestUnsigned_v5_eq,
+        ← shortestUnsigned_packed_eq]
+  rw [h8pk]
+  cases hv : shortestUnsigned_u64_opt_v14 mU qB with
+  | none => rfl
+  | some p =>
+    obtain ⟨sU, kB⟩ := p
+    have hpk : shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074)
+        = (sU.toNat, (kB.toNat : Int) - 324) :=
+      shortestUnsigned_u64_opt_flip3_some_eq_packed _ _ _ _
+        (shortestUnsigned_u64_opt_v13_some_eq_flip3 mU qB _
+          (shortestUnsigned_u64_opt_v14_some_eq_v13 mU qB sU kB hv))
+    rw [hpk]
+    simp only []
+    rw [emitIdx_eq]
+    have hmod : (sU % 10 = 0) ↔ (sU.toNat % 10 = 0) := by
+      rw [← UInt64.toNat_inj, UInt64.toNat_mod]; rfl
+    by_cases hs0 : sU.toNat = 0
+    · rw [if_pos hs0]
+      have hm0 : ¬ (sU % 10 ≠ 0) := fun hc => hc (hmod.mpr (by rw [hs0]))
+      rw [if_neg hm0, hs0, Srtfp.Decimal.canonicaliseAux_zero]
+      simp
+    · rw [if_neg hs0]
+      by_cases hm : sU.toNat % 10 ≠ 0
+      · rw [if_pos hm, if_pos (fun hc => hm (hmod.mp hc))]
+      · rw [if_neg hm, if_neg (fun hc => hm (fun hc' => hc (hmod.mpr hc')))]
+
+theorem toStringFast10_eq (f : _root_.Float) : toStringFast10 f = toStringFast4 f := by
+  unfold toStringFast10 toStringFast4
+  simp only [emitTail8_eq]
+
+/-- The live `Float → String` registration (later registrations win over
+    `floatToStrRef_eq_toStringFast9`; `CsimpPin.lean` asserts this one is
+    in force). -/
+@[csimp]
+theorem floatToStrRef_eq_toStringFast10 : @floatToStrRef = @toStringFast10 := by
+  funext f
+  rw [toStringFast10_eq]
+  exact congrFun floatToStrRef_eq_toStringFast4 f
+
+/-! ## `toDecimal` over the v14 kernel -/
+
+/-- `decimalTail` over the v14 kernel: the exponent is unbiased once, at
+    the exit. -/
+@[inline]
+def decimalTail_v14 (sign : Bool) (mU qB : UInt64) : _root_.Srtfp.Decimal :=
+  if mU = 0 then ⟨sign, 0, 0⟩
+  else
+    match shortestUnsigned_u64_opt_v14 mU qB with
+    | some (sU, kB) => Srtfp.Decimal.mk' sign sU.toNat ((kB.toNat : Int) - 324)
+    | none =>
+      let (sig, exp) := shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074)
+      Srtfp.Decimal.mk' sign sig exp
+
+theorem decimalTail_v14_eq (sign : Bool) (mU qB : UInt64) :
+    decimalTail_v14 sign mU qB
+      = decimalTailNat sign mU.toNat ((qB.toNat : Int) - 1074) := by
+  unfold decimalTail_v14 decimalTailNat
+  by_cases h0 : mU = 0
+  · rw [if_pos h0, if_pos (by rw [h0]; rfl)]
+  rw [if_neg h0, if_neg (fun hc => h0 (UInt64.toNat_inj.mp (by rw [hc]; rfl)))]
+  rw [shortestUnsigned_v7_eq, ← shortestUnsigned_packed_eq]
+  cases hv : shortestUnsigned_u64_opt_v14 mU qB with
+  | none => rfl
+  | some p =>
+    obtain ⟨sU, kB⟩ := p
+    have hpk : shortestUnsigned_packed mU.toNat ((qB.toNat : Int) - 1074)
+        = (sU.toNat, (kB.toNat : Int) - 324) :=
+      shortestUnsigned_u64_opt_flip3_some_eq_packed _ _ _ _
+        (shortestUnsigned_u64_opt_v13_some_eq_flip3 mU qB _
+          (shortestUnsigned_u64_opt_v14_some_eq_v13 mU qB sU kB hv))
+    rw [hpk]
+
+/-- `toDecimal_v13` over the v14 kernel: the `Float → Decimal` twin of
+    `toStringFast10`. -/
+@[inline]
+def toDecimal_v14 (f : _root_.Float) : Except String _root_.Srtfp.Decimal :=
+  let bits := f.toBits
+  let expBits : UInt64 := (bits >>> 52) &&& 0x7FF
+  let mantBits : UInt64 := bits &&& 0x000F_FFFF_FFFF_FFFF
+  if expBits = 0x7FF then
+    if mantBits ≠ 0 then .error "NaN"
+    else .error (if (bits >>> 63) ≠ 0 then "-Infinity" else "Infinity")
+  else
+    .ok (decimalTail_v14 (decide (bits >>> 63 ≠ 0))
+      (if expBits = 0 then mantBits else mantBits + 4503599627370496)
+      (if expBits = 0 then 0 else expBits - 1))
+
+theorem toDecimal_v14_eq (f : _root_.Float) : toDecimal_v14 f = toDecimal_v13 f := by
+  unfold toDecimal_v14 toDecimal_v13
+  simp only [decimalTail_v14_eq, decimalTail_eq]
+
+/-- The live `Float → Decimal` registrations. -/
+@[csimp]
+theorem toDecimal_eq_v14_csimp : @toDecimal = @toDecimal_v14 := by
+  funext f
+  rw [toDecimal_v14_eq, toDecimal_v13_eq, toDecimal_v7_eq]
+
+@[csimp]
+theorem printer_toDecimal_eq_v14_csimp : @Printer.toDecimal = @toDecimal_v14 := by
+  funext f
+  rw [toDecimal_v14_eq, toDecimal_v13_eq, toDecimal_v7_eq_printer]
 
 end Srtfp.Schubfach

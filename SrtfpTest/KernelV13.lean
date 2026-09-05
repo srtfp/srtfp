@@ -1,14 +1,13 @@
-/- Runtime cross-check that `shortestUnsigned_v13` (the live string-path
-   kernel: boundary-product `s = 5P` extraction + flipped interval tests)
-   agrees with `shortestUnsigned_v2` (the established UInt64 path) on the
-   Ryu corpus + Schubfach-edge inputs, including the inputs that earlier
-   kernels fall back on.
+/- Runtime cross-check that `shortestUnsigned_v13` (boundary-product
+   `s = 5P` extraction + flipped interval tests; the kernel the live v14
+   path is proven against) agrees with `shortestUnsigned_v2` (the
+   established UInt64 path) on the Ryu corpus + Schubfach-edge inputs,
+   including the inputs that earlier kernels fall back on.
 
-   v13 is the kernel the `floatToStrRef` `@[csimp]` selects at runtime
-   (`toStringFast9`), so this exercises the live shortest-decimal path.
    Its full correctness is the formal proof
-   `shortestUnsigned_u64_opt_v13_some_eq_packed`; this is a belt-and-
-   suspenders runtime witness over the corpus. -/
+   `shortestUnsigned_u64_opt_v13_some_eq_flip3` chained to the flip3
+   proofs; this is a belt-and-suspenders runtime witness over the corpus.
+   The live kernel itself is checked in `SrtfpTest/KernelV14.lean`. -/
 
 import SrtfpTest.Spec
 import Srtfp.Perf.Schubfach
