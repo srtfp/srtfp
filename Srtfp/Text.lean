@@ -9,6 +9,18 @@ module
    per-dialect instantiation; `Srtfp/Proofs/Text.lean` proves
    `parse (format d) = some d` once, for every compatible pair.
 
+   Both directions go through the `Lexeme`: the skeleton
+   `[-]int[.frac][e exp]` of a literal, as digit lists.
+
+     format = render ∘ place        parse = value ∘ lex
+
+   `place` chooses positional or scientific layout and pads; `render`
+   prints a lexeme; `lex` is the dialect grammar; `value` reads a
+   lexeme's digits back into a canonical `Decimal`. The round trip is
+   then two independent facts — `lex` inverts `render` on well-formed
+   lexemes, and `value` inverts `place` on canonical decimals — glued by
+   `place` only ever producing well-formed lexemes.
+
    Format-specific specials stay out: YAML's `.inf`/`.nan` tokens and
    MLIR's `0x...` raw-bits form are not decimal literals and belong to
    the consumer. Truncating presentations (C's `%.6e` rounding a longer
@@ -89,20 +101,28 @@ def digitChar (d : Nat) : Char := Char.ofNat (48 + d)
 
 def digitVal (c : Char) : Nat := c.toNat - 48
 
-def isDigitChar (c : Char) : Bool := 48 ≤ c.toNat && c.toNat ≤ 57
-
-/-- Decimal digits of `n`, most significant first, prepended to `acc`. -/
-def natCharsAux (n : Nat) (acc : List Char) : List Char :=
-  if h : n < 10 then digitChar n :: acc
-  else natCharsAux (n / 10) (digitChar (n % 10) :: acc)
-  termination_by n
-  decreasing_by exact Nat.div_lt_self (by omega) (by decide)
-
 /-- Decimal digits of `n`, most significant first (`natChars 0 = ['0']`). -/
-def natChars (n : Nat) : List Char := natCharsAux n []
+def natChars (n : Nat) : List Char :=
+  if n < 10 then [digitChar n] else natChars (n / 10) ++ [digitChar (n % 10)]
+decreasing_by omega
 
 /-- Value of a digit string, most significant first. -/
 def charsVal (ds : List Char) : Nat := ds.foldl (fun a c => 10 * a + digitVal c) 0
+
+/-! ## Lexemes -/
+
+/-- The skeleton `[-]int[.frac][e exp]` of a decimal literal: digit lists
+    (most significant first) and the exponent when one is written. -/
+structure Lexeme where
+  neg : Bool
+  intD : List Char
+  fracD : List Char
+  exp : Option Int
+  deriving Repr
+
+/-- The decimal a lexeme denotes, canonicalised. -/
+def Lexeme.value (l : Lexeme) : Decimal :=
+  Decimal.mk' l.neg (charsVal (l.intD ++ l.fracD)) (l.exp.getD 0 - l.fracD.length)
 
 /-! ## Formatting -/
 
@@ -113,94 +133,95 @@ def ExpMode.scientificAt : ExpMode → Int → Bool
   | .scientific, _ => true
   | .window lo hi, pe => decide (pe ≤ lo) || decide (hi ≤ pe)
 
-/-- `".frac"`, with `frac` zero-padded to `minFrac` digits; empty when
-    both are empty. -/
-def dotFrac (minFrac : Nat) (frac : List Char) : List Char :=
-  let frac := frac ++ List.replicate (minFrac - frac.length) '0'
-  if frac.isEmpty then [] else '.' :: frac
+/-- `ds` right-padded with zeros to at least `n` digits. -/
+def padTo (n : Nat) (ds : List Char) : List Char :=
+  ds ++ List.replicate (n - ds.length) '0'
 
-/-- Exponent suffix `"e<exp>"` per the options. -/
+/-- The lexeme whose digits are `D` with the point after the first `w`
+    of them, fraction padded to `n` digits. -/
+def Lexeme.split (neg : Bool) (D : List Char) (w n : Nat) (exp : Option Int) : Lexeme :=
+  ⟨neg, D.take w, padTo n (D.drop w), exp⟩
+
+/-- Lay out the significand digits `ds` (nonempty) and exponent `exp`
+    per `opts`. Scientific keeps one digit before the point and writes
+    the exponent; positional writes the digits with the point `(-exp)⁺`
+    places from their right end, zeros filling whatever positions the
+    significand does not cover (`⟨5, -4⟩` becomes `0.0005`,
+    `⟨15, 2⟩` becomes `1500`). -/
+def place (opts : FormatOptions) (neg : Bool) (ds : List Char) (exp : Int) : Lexeme :=
+  let pointExp : Int := exp + ds.length - 1
+  if opts.mode.scientificAt pointExp then
+    .split neg ds 1 opts.sciMinFracDigits (some pointExp)
+  else
+    let D := List.replicate (-pointExp).toNat '0' ++ ds ++ List.replicate exp.toNat '0'
+    .split neg D (D.length - (-exp).toNat) opts.minFracDigits none
+
+/-- `|e|` zero-padded on the left to at least `n` digits. -/
+def expDigits (n : Nat) (e : Int) : List Char :=
+  List.replicate (n - (natChars e.natAbs).length) '0' ++ natChars e.natAbs
+
+/-- Exponent suffix `e<exp>` per the options. -/
 def expChars (opts : FormatOptions) (e : Int) : List Char :=
   (if opts.upperExp then 'E' else 'e')
     :: (if e < 0 then ['-'] else if opts.expPlus then ['+'] else [])
-    ++ (List.replicate (opts.expMinDigits - (natChars e.natAbs).length) '0'
-        ++ natChars e.natAbs)
+    ++ expDigits opts.expMinDigits e
 
-/-- Render an unsigned `(significand digits, exponent)` pair. -/
-def formatMag (opts : FormatOptions) (ds : List Char) (exp : Int) : List Char :=
-  let pointExp : Int := exp + ds.length - 1
-  if opts.mode.scientificAt pointExp then
-    ds.take 1 ++ dotFrac opts.sciMinFracDigits (ds.drop 1) ++ expChars opts pointExp
-  else if 0 ≤ exp then
-    ds ++ List.replicate exp.toNat '0' ++ dotFrac opts.minFracDigits []
-  else if (ds.length : Int) + exp ≤ 0 then
-    '0' :: dotFrac opts.minFracDigits
-      (List.replicate (-((ds.length : Int) + exp)).toNat '0' ++ ds)
-  else
-    let whole := ((ds.length : Int) + exp).toNat
-    ds.take whole ++ dotFrac opts.minFracDigits (ds.drop whole)
-
-/-- Render a `Decimal` as a character list. -/
-def formatChars (opts : FormatOptions) (d : Decimal) : List Char :=
-  (if d.sign then ['-'] else []) ++ formatMag opts (natChars d.significand) d.exponent
+/-- Print a lexeme: sign, integer digits, `.frac` when there is a
+    fraction, the exponent suffix when there is an exponent. -/
+def render (opts : FormatOptions) (l : Lexeme) : List Char :=
+  (if l.neg then ['-'] else [])
+    ++ l.intD
+    ++ (if l.fracD = [] then [] else '.' :: l.fracD)
+    ++ (match l.exp with | some e => expChars opts e | none => [])
 
 /-- Render a `Decimal` as a `String`. -/
 def format (opts : FormatOptions) (d : Decimal) : String :=
-  String.ofList (formatChars opts d)
+  String.ofList (render opts (place opts d.sign (natChars d.significand) d.exponent))
 
 /-! ## Parsing -/
 
-/-- Parse a nonempty all-digit run as the (possibly negated) exponent
-    value, requiring end of input. -/
-def parseExpDigits (neg : Bool) (rest : List Char) : Option Int :=
-  let ds := rest.takeWhile isDigitChar
-  if ds.isEmpty ∨ ¬ (rest.dropWhile isDigitChar).isEmpty then none
-  else some (if neg then -(charsVal ds : Int) else (charsVal ds : Int))
+/-- An optional leading sign; `'+'` only when `allowPlus`. -/
+def lexSign (allowPlus : Bool) (cs : List Char) : Option (Bool × List Char) :=
+  if cs.head? = some '-' then some (true, cs.tail)
+  else if cs.head? = some '+' then (if allowPlus then some (false, cs.tail) else none)
+  else some (false, cs)
 
-/-- Parse the optional exponent suffix and require end of input.
-    Returns the exponent value (`0` when absent). -/
-def parseExpTail (cs : List Char) : Option Int :=
-  if cs.isEmpty then some 0
-  else if cs.head? = some 'e' ∨ cs.head? = some 'E' then
-    if cs.tail.head? = some '-' then parseExpDigits true cs.tail.tail
-    else if cs.tail.head? = some '+' then parseExpDigits false cs.tail.tail
-    else parseExpDigits false cs.tail
-  else none
+/-- `[+-]?digits`, to end of input, as an exponent value. -/
+def lexExp (cs : List Char) : Option Int :=
+  (lexSign true cs).bind fun (neg, ds) =>
+    if ds = [] ∨ ¬ ds.all Char.isDigit then none
+    else some (if neg then -(charsVal ds : Int) else charsVal ds)
 
-/-- Parse the digits-and-dot mantissa body (no sign), returning the
-    integer-part and fraction-part digit strings and the remainder. -/
-def parseMantissa (opts : DecimalSyntax) (cs : List Char) :
+/-- The optional exponent suffix, then end of input. -/
+def lexExpTail : List Char → Option (Option Int)
+  | [] => some none
+  | c :: cs => if c = 'e' ∨ c = 'E' then (lexExp cs).map some else none
+
+/-- The digits-and-dot body under dialect `opts`: the integer and
+    fraction digit runs and the unconsumed remainder. -/
+def lexMantissa (opts : DecimalSyntax) (cs : List Char) :
     Option (List Char × List Char × List Char) :=
-  let intD := cs.takeWhile isDigitChar
-  let rest := cs.dropWhile isDigitChar
-  if intD.isEmpty ∧ ¬ opts.allowLeadingDot then none
+  let intD := cs.takeWhile Char.isDigit
+  let rest := cs.dropWhile Char.isDigit
+  if intD = [] ∧ ¬ opts.allowLeadingDot then none
   else if ¬ opts.allowLeadingZeros ∧ 2 ≤ intD.length ∧ intD.head? = some '0' then none
   else if rest.head? = some '.' then
-    let fracD := rest.tail.takeWhile isDigitChar
-    if fracD.isEmpty ∧ intD.isEmpty then none
-    else if fracD.isEmpty ∧ ¬ opts.allowTrailingDot then none
-    else some (intD, fracD, rest.tail.dropWhile isDigitChar)
-  else if opts.requireDot ∨ intD.isEmpty then none
+    let fracD := rest.tail.takeWhile Char.isDigit
+    if fracD = [] ∧ (intD = [] ∨ ¬ opts.allowTrailingDot) then none
+    else some (intD, fracD, rest.tail.dropWhile Char.isDigit)
+  else if opts.requireDot ∨ intD = [] then none
   else some (intD, [], rest)
 
-/-- Parse a decimal literal under dialect `opts`, given the sign
-    separately (for callers whose lexer already consumed it). The result
-    is canonical (`Decimal.mk'`). -/
-def parseMag (opts : DecimalSyntax) (sign : Bool) (cs : List Char) : Option Decimal :=
-  (parseMantissa opts cs).bind fun (intD, fracD, rest) =>
-    (parseExpTail rest).map fun e =>
-      Decimal.mk' sign (charsVal (intD ++ fracD)) (e - fracD.length)
+/-- Lex a decimal literal under dialect `opts`. -/
+def lex (opts : DecimalSyntax) (cs : List Char) : Option Lexeme := do
+  let (neg, cs) ← lexSign opts.allowExplicitMantissaPlus cs
+  let (intD, fracD, rest) ← lexMantissa opts cs
+  let exp ← lexExpTail rest
+  pure ⟨neg, intD, fracD, exp⟩
 
-/-- Parse a decimal literal (with optional leading sign) under dialect
-    `opts`. The result is canonical (`Decimal.mk'`). -/
-def parseChars (opts : DecimalSyntax) (cs : List Char) : Option Decimal :=
-  if cs.head? = some '-' then parseMag opts true cs.tail
-  else if cs.head? = some '+' then
-    if opts.allowExplicitMantissaPlus then parseMag opts false cs.tail else none
-  else parseMag opts false cs
-
-/-- Parse a decimal literal from a `String`. -/
+/-- Parse a decimal literal from a `String`. The result is canonical
+    (`Decimal.mk'`). -/
 def parse (opts : DecimalSyntax) (s : String) : Option Decimal :=
-  parseChars opts s.toList
+  (lex opts s.toList).map Lexeme.value
 
 end Srtfp.Text
