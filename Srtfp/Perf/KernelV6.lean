@@ -185,13 +185,6 @@ def hB128 : Array UInt64 :=
 def hB192 : Array UInt64 :=
   pow10Table192.map (fun t => UInt64.ofNat (t.2.2.2 + 2048).toNat)
 
-/-- All 128-table `h` values lie in `[-2048, 2048)`. -/
-def hBounds128Bool : Bool :=
-  (List.range pow10Table128.size).all fun i =>
-    decide (-2048 ≤ (pow10Table128[i]!).2.2 ∧ (pow10Table128[i]!).2.2 < 2048)
-
-theorem hBounds128 : hBounds128Bool = true := by decide +kernel
-
 /-- All 192-table `h` values lie in `[-2048, 2048)`. -/
 def hBounds192Bool : Bool :=
   (List.range pow10Table192.size).all fun i =>
@@ -199,12 +192,12 @@ def hBounds192Bool : Bool :=
 
 theorem hBounds192 : hBounds192Bool = true := by decide +kernel
 
+/-- All 128-table `h` values lie in `[-2048, 2048)`. -/
 private theorem hBound128_at (i : Nat) (hi : i < pow10Table128.size) :
     -2048 ≤ (pow10Table128[i]!).2.2 ∧ (pow10Table128[i]!).2.2 < 2048 := by
-  have hAll := hBounds128
-  unfold hBounds128Bool at hAll
-  rw [List.all_eq_true] at hAll
-  exact decide_eq_true_eq.mp (hAll i (List.mem_range.mpr hi))
+  rw [pow10Table128_size_eq] at hi
+  rw [pow10Table128_getElem! i hi]
+  exact pow10Shift_bounds _ (by show (-324 : Int) ≤ _; omega) (by show _ ≤ (324 : Int); omega)
 
 private theorem hBound192_at (i : Nat) (hi : i < pow10Table192.size) :
     -2048 ≤ (pow10Table192[i]!).2.2.2 ∧ (pow10Table192[i]!).2.2.2 < 2048 := by

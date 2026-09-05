@@ -11,10 +11,10 @@ package srtfp where
   -- Per-process build memory guard (`lean -M`, in MB). This counts Lean's
   -- allocator accounting, which runs above resident RSS. Elaboration memory
   -- accumulates across a module's declarations on ≥4.32 toolchains, so the
-  -- heavy proofs are split one-per-module (KernelV13{Resid,Flip3*,WReg},
-  -- R20Band*Sweep*): the worst single process is now KernelV13Flip3LegPick
-  -- at ~4.1 GB cgroup peak, with KernelV6/TableInvariant ~3.5-4 GB and
-  -- everything else ≤ ~2.5 GB. 8 GB covers the worst with allocator
+  -- heavy proofs are split one-per-module (KernelV13{Resid,Flip3*},
+  -- R20Band*Sweep*): the worst single process is KernelV13Flip3LegPick
+  -- at ~4.1 GB cgroup peak, with KernelV6 ~3.5-4 GB and everything else
+  -- ≤ ~2.5 GB. 8 GB covers the worst with allocator
   -- headroom yet aborts a runaway proof with `memory_exception` instead of
   -- OOM-ing the machine; the library parallel-builds comfortably in 16 GB.
   -- `weakLeanArgs` so the limit applies on every build but never enters the
