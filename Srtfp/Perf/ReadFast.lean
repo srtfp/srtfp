@@ -211,9 +211,8 @@ theorem toBits_pack_finite (s : Sign) {n : Nat} {k : Int} (hn : 0 < n) (hleg : L
 theorem packFinite_toBits (sign : Sign) {nU : UInt64} {n : Nat} {k : Int} (hn : nU.toNat = n)
     (h53 : n ≤ 2 ^ 53) (hk0 : -1074 ≤ k) (hk1 : k ≤ 970) (h52 : k ≠ -1074 → 2 ^ 52 ≤ n) :
     (if nU = 0 then Word.pack sign 0 0 else packFinite sign nU k)
-      = (Float.Model.pack (if h : n = 0 then .zero sign
-          else if n = 2 ^ 53 then .finite sign (2 ^ 52) (k + 1) (by decide)
-          else .finite sign n k (Nat.pos_of_ne_zero h))).toBits := by
+      = (Float.Model.pack (ofSig sign n k)).toBits := by
+  unfold ofSig
   by_cases hn0 : n = 0
   · rw [if_pos (by word), dif_pos hn0, toBits_pack_zero]
   rw [if_neg (by word), dif_neg hn0]
@@ -453,7 +452,7 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
   -- assemble
   subst h
   rw [packFinite_toBits sign (n := nN) _ hn53 (by omega) (by omega) hn52]
-  · unfold readMag; rw [if_neg hthr]; dsimp only; rw [hk', hn', Int.toNat_natCast]
+  · unfold readMag; rw [if_neg hthr, hk', hn', Int.toNat_natCast]
   · rw [← hnN]; simp only [apply_ite UInt64.toNat, hq, hqU1, hqUodd, hbU0, hrestZ]
 
 /-! ## Proof: the table entry against `10^e` -/
@@ -732,13 +731,10 @@ theorem threshold_pos : (0 : Rat) < (2 : Rat) ^ 1024 - 2 ^ 970 := by
 
 theorem readMag_zero (s : Sign) : readMag s 0 = .zero s := by
   unfold readMag
-  rw [if_neg (Rat.not_le.mpr threshold_pos)]
-  dsimp only
-  have h0 : roundEven (0 / (2 : Rat) ^ gridExp 0) = 0 := by
+  rw [if_neg (Rat.not_le.mpr threshold_pos), show roundEven (0 / (2 : Rat) ^ gridExp 0) = 0 by
     rw [Rat.div_def, Rat.zero_mul]
     exact roundEven_eq_of (n := 0) (by grind) (by grind) (fun h => absurd h (by grind))
-      (fun h => absurd h (by grind))
-  rw [h0]
+      (fun h => absurd h (by grind))]
   rfl
 
 theorem readMag_infinity (s : Sign) {x : Rat} (hx : (2 : Rat) ^ 1024 - 2 ^ 970 ≤ x) :

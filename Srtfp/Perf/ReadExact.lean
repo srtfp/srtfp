@@ -19,9 +19,6 @@ public import Srtfp.Proofs.Reader.Compute
 
 @[expose] public section
 
--- `2^1074` and `2^1024` are handled symbolically; the elaborator need not evaluate them.
-set_option exponentiation.threshold 1100
-
 open Srtfp.Compat
 
 namespace Srtfp.Reader
@@ -164,6 +161,7 @@ theorem two_zpow_mul_two_pow (j : Int) (hj : -1074 ≤ j) :
     Int.toNat_of_nonneg (by omega)]
   try simp
 
+set_option exponentiation.threshold 1100 in
 /-- `2^j` against a quotient, scaled to naturals by `2^1074`. -/
 theorem div_lt_two_zpow_iff {N D : Nat} (hD : 0 < D) {j : Int} (hj : -1074 ≤ j) :
     ((N : Rat) / D < (2 : Rat) ^ j) ↔ N * 2 ^ 1074 < 2 ^ (j + 1074).toNat * D := by
@@ -172,6 +170,7 @@ theorem div_lt_two_zpow_iff {N D : Nat} (hD : 0 < D) {j : Int} (hj : -1074 ≤ j
     show (2 : Rat) ^ j * 2 ^ (1074 : Nat) * D = 2 ^ j * D * 2 ^ (1074 : Nat) by grind,
     Rat.mul_lt_mul_right (Rat.pow_pos (by decide))]
 
+set_option exponentiation.threshold 1100 in
 theorem two_zpow_le_div_iff {N D : Nat} (hD : 0 < D) {j : Int} (hj : -1074 ≤ j) :
     ((2 : Rat) ^ j ≤ (N : Rat) / D) ↔ 2 ^ (j + 1074).toNat * D ≤ N * 2 ^ 1074 := by
   have hP : (0 : Rat) < (2 : Rat) ^ (1074 : Nat) := Rat.pow_pos (by decide)
@@ -183,18 +182,26 @@ theorem two_zpow_le_div_iff {N D : Nat} (hD : 0 < D) {j : Int} (hj : -1074 ≤ j
 
 /-! ## The reader -/
 
+/-- The float for a significand `n ≤ 2^53` on the grid `2^k`: zero, the carry
+    `2^52 · 2^(k+1)`, or `n · 2^k`. -/
+def ofSig (s : Sign) (n : Nat) (k : Int) : UnpackedFloat :=
+  if h : n = 0 then .zero s
+  else if n = 2 ^ 53 then .finite s (2 ^ 52) (k + 1) (Nat.two_pow_pos 52)
+  else .finite s n k (Nat.pos_of_ne_zero h)
+
 /-- `read` on a sign and a magnitude: the body of `read`. -/
 def readMag (s : Sign) (x : Rat) : UnpackedFloat :=
   if 2 ^ 1024 - 2 ^ 970 ≤ x then .infinity s
-  else
-    let k := gridExp x
-    let n := (roundEven (x / 2 ^ k)).toNat
-    if h : n = 0 then .zero s
-    else if n = 2 ^ 53 then .finite s (2 ^ 52) (k + 1) (by decide)
-    else .finite s n k (Nat.pos_of_ne_zero h)
+  else ofSig s (roundEven (x / 2 ^ gridExp x)).toNat (gridExp x)
 
 theorem read_eq_readMag (d : Decimal) : read d = readMag d.sign (Rat.abs (Spec.toRat d)) := rfl
 
+/-- `roundEven (N / D / 2^k)` on naturals: `p / q` with `p = N · 2^max(-k,0)`,
+    `q = D · 2^max(k,0)`. -/
+def roundEvenScaled (N D : Nat) (k : Int) : Nat :=
+  roundEvenNat (N * 2 ^ (-k).toNat) (D * 2 ^ k.toNat)
+
+set_option exponentiation.threshold 1100 in
 /-- `Reader.read` in `Nat` arithmetic: `x = N / D`. -/
 def readExact (d : Decimal) : UnpackedFloat :=
   let N := d.significand * 10 ^ d.exponent.toNat
@@ -203,10 +210,7 @@ def readExact (d : Decimal) : UnpackedFloat :=
   else
     let Y := N * 2 ^ 1074 / D
     let k : Int := max ((Y.log2 : Int) - 1126) (-1074)
-    let n := if 0 ≤ k then roundEvenNat N (D * 2 ^ k.toNat) else roundEvenNat (N * 2 ^ (-k).toNat) D
-    if h : n = 0 then .zero d.sign
-    else if n = 2 ^ 53 then .finite d.sign (2 ^ 52) (k + 1) (by decide)
-    else .finite d.sign n k (Nat.pos_of_ne_zero h)
+    ofSig d.sign (roundEvenScaled N D k) k
 
 /-- The magnitude of a decimal as a quotient of naturals. -/
 theorem abs_toRat_div (d : Decimal) :
@@ -225,10 +229,11 @@ theorem abs_toRat_div (d : Decimal) :
     push_cast
     rw [Rat.div_def]
 
+set_option exponentiation.threshold 1100 in
 theorem readExact_eq (d : Decimal) : readExact d = read d := by
-  unfold readExact read
+  rw [read_eq_readMag, abs_toRat_div]
+  unfold readExact readMag
   dsimp only
-  rw [abs_toRat_div]
   generalize hN : d.significand * 10 ^ d.exponent.toNat = N
   generalize hD : 10 ^ (-d.exponent).toNat = D
   have hD0 : 0 < D := by rw [← hD]; exact Nat.pow_pos (by decide)
@@ -270,22 +275,10 @@ theorem readExact_eq (d : Decimal) : readExact d = read d := by
   rw [hk]
   generalize max ((L : Int) - 1126) (-1074) = k at *
   -- the significand
-  have hn : (roundEven ((N : Rat) / D / (2 : Rat) ^ k)).toNat
-      = if 0 ≤ k then roundEvenNat N (D * 2 ^ k.toNat) else roundEvenNat (N * 2 ^ (-k).toNat) D := by
-    split
-    · rename_i hk0
-      generalize hkn : k.toNat = kn
-      have hk' : k = (kn : Int) := by omega
-      rw [show (N : Rat) / D / (2 : Rat) ^ k = (N : Rat) / ((D * 2 ^ kn : Nat) : Rat) by
-        rw [hk', Rat.zpow_natCast]; push_cast; rw [div_div]]
-      rw [roundEven_div _ _ (Nat.mul_pos hD0 (Nat.pow_pos (by decide)))]
-      exact Int.toNat_natCast _
-    · rename_i hk0
-      generalize hkn : (-k).toNat = kn
-      have hk' : k = -(kn : Int) := by omega
-      rw [show (N : Rat) / D / (2 : Rat) ^ k = ((N * 2 ^ kn : Nat) : Rat) / D by
-        rw [hk', Rat.zpow_neg, Rat.zpow_natCast]; push_cast
-        rw [Rat.div_def, Rat.div_def, Rat.div_def, Rat.inv_inv]; grind]
-      rw [roundEven_div _ _ hD0]
-      exact Int.toNat_natCast _
-  simp only [hn]
+  rw [show (roundEven ((N : Rat) / D / (2 : Rat) ^ k)).toNat = roundEvenScaled N D k by
+    unfold roundEvenScaled
+    rw [show (N : Rat) / D / (2 : Rat) ^ k
+        = ((N * 2 ^ (-k).toNat : Nat) : Rat) / ((D * 2 ^ k.toNat : Nat) : Rat) by
+      rw [zpow_eq_div 2 k, Rat.div_def, inv_div, div_mul_div_comm]; push_cast; rfl,
+      roundEven_div _ _ (Nat.mul_pos hD0 (Nat.pow_pos (by decide)))]
+    exact Int.toNat_natCast _]

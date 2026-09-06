@@ -67,6 +67,9 @@ theorem div_mul_mul {a b d : Rat} (hb : b ≠ 0) : a / b * (b * d) = a * d := by
 theorem div_mul_div_comm (a b c d : Rat) : a / b * (c / d) = a * c / (b * d) := by
   rw [Rat.div_def, Rat.div_def, Rat.div_def, Rat.inv_mul_rev]; grind
 
+theorem inv_div (a b : Rat) : (a / b)⁻¹ = b / a := by
+  rw [Rat.div_def, Rat.inv_mul_rev, Rat.inv_inv, Rat.div_def]
+
 theorem div_lt_div_iff {a b c d : Rat} (hb : 0 < b) (hd : 0 < d) :
     a / b < c / d ↔ a * d < c * b := by
   rw [← div_mul_mul (Rat.ne_of_gt hb) (d := d), ← div_mul_mul (Rat.ne_of_gt hd) (d := b), Rat.mul_comm d b,
