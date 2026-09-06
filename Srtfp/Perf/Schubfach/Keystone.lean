@@ -193,115 +193,63 @@ theorem farAll_of_sweep (M u a bound : Nat) (hM : 0 < M) (hco : Nat.Coprime u M)
   by_contra hbad
   unfold farFromMultipleBelow at hbad
   push_neg at hbad
-  -- Divisible case: gap = M, trivially far — contradiction.
-  by_cases hndm : (m * u) % M = 0
-  · rw [hndm, Nat.sub_zero] at hbad
-    have : M ≤ M * 2 ^ a := Nat.le_mul_of_pos_right _ (Nat.two_pow_pos a)
-    omega
-  -- The reduced pair (p, d).
+  -- `m·u` is not a multiple of `M`: its gap `G` lies in `[1, M)`, and `c·M = m·u + G`
+  have hndm : (m * u) % M ≠ 0 := fun h => by
+    rw [h, Nat.sub_zero] at hbad
+    exact absurd hbad (Nat.not_lt.mpr (Nat.le_mul_of_pos_right _ (Nat.two_pow_pos a)))
   have hceil := ceilNum_mul_eq M u m hM hndm
-  set c := ceilNum M u m with hc_def
-  set G := gap M u m with hG_def
-  have hG_pos : 1 ≤ G := by
-    rw [hG_def]; unfold gap
-    have : (m * u) % M < M := Nat.mod_lt _ hM
-    omega
-  have hG_lt : G < M := by
-    rw [hG_def]; unfold gap
-    have h1 : 0 < (m * u) % M := Nat.pos_of_ne_zero hndm
-    omega
-  have hceil' : c * M = m * u + G := by
-    rw [hc_def, hG_def]; exact hceil
-  set g := Nat.gcd c m with hg_def
-  have hc_pos : 0 < c := by
-    -- c·M = m·u + G ≥ 1, so c ≥ 1
-    by_contra hc0
-    push_neg at hc0
-    have : c = 0 := by omega
-    rw [this] at hceil'
-    omega
-  have hg_pos : 0 < g := by
-    rw [hg_def]; exact Nat.gcd_pos_of_pos_left _ hc_pos
-  have hg_dvd_c : g ∣ c := by rw [hg_def]; exact Nat.gcd_dvd_left _ _
-  have hg_dvd_m : g ∣ m := by rw [hg_def]; exact Nat.gcd_dvd_right _ _
-  set d := m / g with hd_def
-  set p := c / g with hp_def
-  have hd_pos : 0 < d := by
-    rw [hd_def]; exact Nat.div_pos (Nat.le_of_dvd hm hg_dvd_m) hg_pos
-  have hd_le_m : d ≤ m := by rw [hd_def]; exact Nat.div_le_self _ _
-  have hcop : Nat.gcd p d = 1 := by
-    rw [hp_def, hd_def, hg_def]
-    exact Nat.coprime_div_gcd_div_gcd (by rw [← hg_def]; omega)
-  -- g divides the gap, and the scaled-down ceiling identity holds.
-  have hg_dvd_G : g ∣ G := by
-    have h1 : g ∣ c * M := Nat.dvd_trans hg_dvd_c (Nat.dvd_mul_right c M)
-    have h2 : g ∣ m * u := Nat.dvd_trans hg_dvd_m (Nat.dvd_mul_right m u)
-    have : G = c * M - m * u := by omega
-    rw [this]
-    exact Nat.dvd_sub h1 h2
+  have hG : 1 ≤ gap M u m ∧ gap M u m < M := by
+    unfold gap; have := Nat.mod_lt (m * u) hM; omega
+  rw [show M - (m * u) % M = gap M u m from rfl] at hbad
+  generalize gap M u m = G at *
+  generalize ceilNum M u m = c at *
+  have hc : 0 < c := Nat.pos_of_ne_zero (fun h => by subst h; omega)
+  -- reduce `(c, m)` by their gcd `g` to the coprime `(p, d)`: `p·M = d·u + G/g`
+  generalize hg : Nat.gcd c m = g
+  have hgc : g ∣ c := hg ▸ Nat.gcd_dvd_left _ _
+  have hgm : g ∣ m := hg ▸ Nat.gcd_dvd_right _ _
+  have hg0 : 0 < g := hg ▸ Nat.gcd_pos_of_pos_left _ hc
+  have hgG : g ∣ G := by
+    rw [show G = c * M - m * u by omega]
+    exact Nat.dvd_sub (Nat.dvd_trans hgc (Nat.dvd_mul_right c M))
+      (Nat.dvd_trans hgm (Nat.dvd_mul_right m u))
+  have hcop : Nat.gcd (c / g) (m / g) = 1 := by
+    rw [← hg]; exact Nat.coprime_div_gcd_div_gcd (hg ▸ hg0)
+  generalize hp : c / g = p at hcop
+  generalize hd : m / g = d at hcop
+  have hd0 : 0 < d := by rw [← hd]; exact Nat.div_pos (Nat.le_of_dvd hm hgm) hg0
+  have hdm : d ≤ m := by rw [← hd]; exact Nat.div_le_self _ _
   have hceil_d : p * M = d * u + G / g := by
-    obtain ⟨c', hc'⟩ := hg_dvd_c
-    obtain ⟨m', hm'⟩ := hg_dvd_m
-    obtain ⟨G', hG'⟩ := hg_dvd_G
-    have hp' : p = c' := by rw [hp_def, hc']; exact Nat.mul_div_cancel_left _ hg_pos
-    have hd' : d = m' := by rw [hd_def, hm']; exact Nat.mul_div_cancel_left _ hg_pos
-    have hGg : G / g = G' := by rw [hG']; exact Nat.mul_div_cancel_left _ hg_pos
-    rw [hp', hd', hGg]
-    -- g·c'·M = g·m'·u + g·G'  ⟹ cancel g
-    have hbig : g * (c' * M) = g * (m' * u + G') := by
-      have h1 : c * M = g * (c' * M) := by rw [hc']; grind
-      have h2 : m * u = g * (m' * u) := by rw [hm']; grind
-      have h3 : G = g * G' := hG'
-      have hdist : g * (m' * u + G') = g * (m' * u) + g * G' := by grind
-      omega
-    have := Nat.eq_of_mul_eq_mul_left hg_pos hbig
-    omega
-  have hGg_pos : 1 ≤ G / g := Nat.one_le_div_iff hg_pos |>.mpr (Nat.le_of_dvd (by omega) hg_dvd_G)
-  have hGg_lt : G / g < M := Nat.lt_of_le_of_lt (Nat.div_le_self _ _) hG_lt
-  -- d·u mod M = M − G/g, i.e. gap at d is G/g.
-  have hp_pos : 0 < p := by
-    rcases Nat.eq_zero_or_pos p with h0 | h0
-    · rw [h0, Nat.zero_mul] at hceil_d
-      omega
-    · exact h0
+    apply Nat.eq_of_mul_eq_mul_left hg0
+    rw [Nat.mul_add, ← Nat.mul_assoc, ← Nat.mul_assoc, ← hp, ← hd, Nat.mul_div_cancel' hgc,
+      Nat.mul_div_cancel' hgm, Nat.mul_div_cancel' hgG]
+    exact hceil
+  have hGg : 1 ≤ G / g ∧ G / g < M :=
+    ⟨(Nat.one_le_div_iff hg0).mpr (Nat.le_of_dvd (by omega) hgG),
+      Nat.lt_of_le_of_lt (Nat.div_le_self _ _) hG.2⟩
+  have hp0 : 0 < p := Nat.pos_of_ne_zero (fun h => by subst h; omega)
+  -- so the gap of `d` is `G/g`, and `(p, d)` approximates `u/M` to Legendre quality
   have hmod_d : (d * u) % M = M - G / g := by
     obtain ⟨p', hp'⟩ : ∃ p', p = p' + 1 := ⟨p - 1, by omega⟩
-    have hdu : d * u = (p' * M) + (M - G / g) := by
-      have hexp : (p' + 1) * M = p' * M + M := by grind
-      rw [hp'] at hceil_d
-      omega
-    rw [hdu, Nat.add_comm, Nat.add_mul_mod_self_right]
+    rw [hp', Nat.succ_mul] at hceil_d
+    rw [show d * u = (M - G / g) + p' * M by omega, Nat.add_mul_mod_self_right]
     exact Nat.mod_eq_of_lt (by omega)
-  -- Legendre smallness for (p, d): |u·d − M·p| = G/g and (G/g)·2d < M.
-  have hGdef : G = M - (m * u) % M := by rw [hG_def]; rfl
-  have hbad' : G * 2 ^ a < M := by rw [← hGdef] at hbad; exact hbad
   have habs : ((u : Int) * d - (M : Int) * p).natAbs = G / g := by
-    have h1 : (p : Int) * M = (d : Int) * u + ((G / g : Nat) : Int) := by
-      exact_mod_cast hceil_d
-    have hc1 : (u : Int) * d = (d : Int) * u := by grind
-    have hc2 : (M : Int) * p = (p : Int) * M := by grind
+    have h1 : (p : Int) * M = (d : Int) * u + ((G / g : Nat) : Int) := by exact_mod_cast hceil_d
+    have hc1 : (u : Int) * d = (d : Int) * u := Int.mul_comm _ _
+    have hc2 : (M : Int) * p = (p : Int) * M := Int.mul_comm _ _
     omega
   have hsmall : ((u : Int) * d - (M : Int) * p).natAbs * (2 * d) < M := by
     rw [habs]
-    have h2d : 2 * d ≤ 2 ^ a := by omega
-    have hGg_le : G / g ≤ G := Nat.div_le_self _ _
-    calc G / g * (2 * d) ≤ G * 2 ^ a := Nat.mul_le_mul hGg_le h2d
-      _ < M := hbad'
-  have hd_lt_M : d < M := by omega
-  obtain ⟨n, hreg, hdenN⟩ := small_den_is_denN u M p d hM hco hcop hd_pos hd_lt_M hsmall
-  have hn79 : n < 79 := bracket_index_lt_79 u M d n hM hreg hdenN (by omega)
-  have hmem : denN u M n ∈ convDenoms u M bound :=
-    denN_mem_convDenoms u M bound hM n hreg hn79 (by omega)
-  rw [List.all_eq_true] at hSweep
-  have hfar_d : farFromMultipleBelow M u (denN u M n) a :=
-    (farB_iff M u _ a).mp (hSweep _ hmem)
-  rw [hdenN] at hfar_d
-  unfold farFromMultipleBelow at hfar_d
-  rw [hmod_d] at hfar_d
-  have hsimp : M - (M - G / g) = G / g := by omega
-  rw [hsimp] at hfar_d
-  have hmono : G / g * 2 ^ a ≤ G * 2 ^ a :=
-    Nat.mul_le_mul_right _ (Nat.div_le_self _ _)
+    exact Nat.lt_of_le_of_lt (Nat.mul_le_mul (Nat.div_le_self _ _) (by omega : 2 * d ≤ 2 ^ a)) hbad
+  -- Legendre: `d` is a swept continuant denominator, so it is far; but its gap is `≤ G`
+  obtain ⟨n, hreg, hdenN⟩ := small_den_is_denN u M p d hM hco hcop hd0 (by omega) hsmall
+  have hfar := (farB_iff M u _ a).mp ((List.all_eq_true.mp hSweep) _
+    (denN_mem_convDenoms u M bound hM n hreg
+      (bracket_index_lt_79 u M d n hM hreg hdenN (by omega)) (by omega)))
+  unfold farFromMultipleBelow at hfar
+  rw [hdenN, hmod_d, show M - (M - G / g) = G / g by omega] at hfar
+  have := Nat.mul_le_mul_right (2 ^ a) (Nat.div_le_self G g)
   omega
 
 end Srtfp.Schubfach.R20

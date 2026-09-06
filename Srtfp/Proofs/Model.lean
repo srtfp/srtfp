@@ -107,12 +107,9 @@ theorem unpack_packComponents (s : Sign) (e : BitVec 11) (m : BitVec 52) :
   unfold UnpackedFloat.unpack
   simp only [unpackSign_packComponents, unpackExponent_packComponents, unpackMantissa_packComponents,
     Sign.ofBitVec_toBitVec, exponentBias_eq]
-  have hE : (e = -1#11) ↔ e.toNat = 2047 :=
-    ⟨fun h => by rw [h]; rfl, fun h => BitVec.eq_of_toNat_eq (by rw [h]; rfl)⟩
-  have hZ : (e = 0#11) ↔ e.toNat = 0 :=
-    ⟨fun h => by rw [h]; rfl, fun h => BitVec.eq_of_toNat_eq (by rw [h]; rfl)⟩
-  have hM : (m = 0#52) ↔ m.toNat = 0 :=
-    ⟨fun h => by rw [h]; rfl, fun h => BitVec.eq_of_toNat_eq (by rw [h]; rfl)⟩
+  have hE : (e = -1#11) ↔ e.toNat = 2047 := by rw [BitVec.toNat_eq]; rfl
+  have hZ : (e = 0#11) ↔ e.toNat = 0 := by rw [BitVec.toNat_eq]; rfl
+  have hM : (m = 0#52) ↔ m.toNat = 0 := by rw [BitVec.toNat_eq]; rfl
   have hcat : ((1#1 : BitVec 1) ++ m).toNat = m.toNat + 2 ^ 52 := by
     have h2 := Nat.two_pow_add_eq_or_of_lt m.isLt 1
     rw [Nat.mul_one] at h2
@@ -120,22 +117,8 @@ theorem unpack_packComponents (s : Sign) (e : BitVec 11) (m : BitVec 52) :
     show 1 <<< 52 ||| _ = _
     rw [Nat.shiftLeft_eq, Nat.one_mul, ← h2]
     omega
-  by_cases h1 : e.toNat = 2047
-  · rw [if_pos (hE.mpr h1), if_pos h1]
-    by_cases h2 : m.toNat = 0
-    · rw [if_pos (hM.mpr h2), if_pos h2]
-    · rw [if_neg (fun h => h2 (hM.mp h)), if_neg h2]
-  · rw [if_neg (fun h => h1 (hE.mp h)), if_neg h1]
-    by_cases h2 : e.toNat = 0
-    · rw [if_pos (hZ.mpr h2), if_pos h2]
-      by_cases h3 : m.toNat = 0
-      · rw [dif_pos (hM.mpr h3), dif_pos h3]
-      · rw [dif_neg (fun h => h3 (hM.mp h)), dif_neg h3]
-        simp only [UnpackedFloat.finite.injEq, h2, true_and]
-        omega
-    · rw [if_neg (fun h => h2 (hZ.mp h)), if_neg h2]
-      simp only [UnpackedFloat.finite.injEq, hcat, true_and]
-      omega
+  simp only [hE, hZ, hM, hcat]
+  by_cases h1 : e.toNat = 2047 <;> by_cases h2 : e.toNat = 0 <;> simp [h1, h2] <;> omega
 
 /-! ## `unpack ∘ pack` on canonical unpacked floats -/
 

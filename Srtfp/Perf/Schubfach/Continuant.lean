@@ -267,227 +267,112 @@ If `denI n ≤ d < denI (n+1)` inside the regime and the coprime fraction
 `d = denI n`.  This is Legendre's theorem for the rational `u/M`,
 in scaled integer form. -/
 
+/-- Two integers of the same sign: the first is no longer than their sum. -/
+theorem natAbs_le_natAbs_add {x y : Int} (h : 0 ≤ x * y) : x.natAbs ≤ (x + y).natAbs := by
+  rcases Int.le_total 0 x with hx | hx <;> rcases Int.le_total 0 y with hy | hy
+  · omega
+  · have := Int.mul_nonpos_of_nonneg_of_nonpos hx hy
+    rcases Int.mul_eq_zero.mp (by omega : x * y = 0) with rfl | rfl <;> omega
+  · have := Int.mul_nonpos_of_nonpos_of_nonneg hx hy
+    rcases Int.mul_eq_zero.mp (by omega : x * y = 0) with rfl | rfl <;> omega
+  · omega
+
 theorem bracket_eq_denI (u M p d n : Nat) (hM : 0 < M)
     (hpos : ∀ i, i ≤ n+1 → 0 < rem u M i)
     (hcop : Nat.gcd p d = 1) (hd : 0 < d)
     (hlo : denI u M n ≤ (d : Int)) (hhi : (d : Int) < denI u M (n+1))
     (hsmall : ((u : Int) * d - (M : Int) * p).natAbs * (2 * d) < M) :
     (d : Int) = denI u M n := by
-  -- Abbreviations.
   have hD0 : 0 < denI u M n := denI_pos u M hM n (fun i hi => hpos i (by omega))
   have hD1 : 0 < denI u M (n+1) := denI_pos u M hM (n+1) hpos
-  -- Determinant, as a disjunction.
-  have hdet : numI u M (n+1) * denI u M n - numI u M n * denI u M (n+1) = 1
-      ∨ numI u M (n+1) * denI u M n - numI u M n * denI u M (n+1) = -1 := by
-    have := det_eq u M n
-    rcases Nat.mod_two_eq_zero_or_one n with hk | hk
-    · left; rw [if_pos hk] at this; exact this
-    · right; rw [if_neg (by omega)] at this; exact this
-  -- Cramer coefficients.
-  set Δ : Int := numI u M (n+1) * denI u M n - numI u M n * denI u M (n+1) with hΔ_def
-  have hΔsq : Δ * Δ = 1 := by rcases hdet with h | h <;> (try rw [← hΔ_def] at h) <;> rw [h] <;> decide
-  set α : Int := Δ * ((d : Int) * numI u M (n+1) - (p : Int) * denI u M (n+1)) with hα_def
-  set β : Int := Δ * ((p : Int) * denI u M n - (d : Int) * numI u M n) with hβ_def
+  obtain ⟨X, hX⟩ : ∃ X : Int, (u : Int) * d - (M : Int) * p = X := ⟨_, rfl⟩
+  rw [hX] at hsmall
+  -- Cramer's rule with the determinant `Δ = ±1`: `d = α D_n + β D_(n+1)`, `p = α N_n + β N_(n+1)`
+  obtain ⟨Δ, hΔ⟩ : ∃ Δ : Int, numI u M (n+1) * denI u M n - numI u M n * denI u M (n+1) = Δ :=
+    ⟨_, rfl⟩
+  have hΔ1 : Δ = 1 ∨ Δ = -1 := by
+    have := det_eq u M n; rw [hΔ] at this; split at this <;> simp_all
+  have hΔsq : Δ * Δ = 1 := by rcases hΔ1 with rfl | rfl <;> decide
+  have hΔabs : Δ.natAbs = 1 := by rcases hΔ1 with rfl | rfl <;> rfl
+  obtain ⟨α, hα⟩ : ∃ α : Int,
+      Δ * ((d : Int) * numI u M (n+1) - (p : Int) * denI u M (n+1)) = α := ⟨_, rfl⟩
+  obtain ⟨β, hβ⟩ : ∃ β : Int, Δ * ((p : Int) * denI u M n - (d : Int) * numI u M n) = β :=
+    ⟨_, rfl⟩
   have eq1 : α * denI u M n + β * denI u M (n+1) = (d : Int) := by
-    rw [hα_def, hβ_def]
-    have h1 : Δ * ((d : Int) * numI u M (n+1) - (p : Int) * denI u M (n+1)) * denI u M n
-        + Δ * ((p : Int) * denI u M n - (d : Int) * numI u M n) * denI u M (n+1)
-        = (Δ * Δ) * (d : Int) := by rw [← hΔ_def] at *; grind
-    rw [h1, hΔsq]; grind
+    have e : α * denI u M n + β * denI u M (n+1) = Δ * Δ * d := by
+      subst hα hβ; rw [← hΔ]; grind
+    rw [e, hΔsq, Int.one_mul]
   have eq2 : α * numI u M n + β * numI u M (n+1) = (p : Int) := by
-    rw [hα_def, hβ_def]
-    have h1 : Δ * ((d : Int) * numI u M (n+1) - (p : Int) * denI u M (n+1)) * numI u M n
-        + Δ * ((p : Int) * denI u M n - (d : Int) * numI u M n) * numI u M (n+1)
-        = (Δ * Δ) * (p : Int) := by rw [← hΔ_def] at *; grind
-    rw [h1, hΔsq]; grind
-  -- The error decomposition.
-  have heq3 : (u : Int) * d - (M : Int) * p = α * eI u M n + β * eI u M (n+1) := by
-    have h1 : (u : Int) * ((d : Int)) - (M : Int) * ((p : Int))
-        = (u : Int) * (α * denI u M n + β * denI u M (n+1))
-          - (M : Int) * (α * numI u M n + β * numI u M (n+1)) := by rw [eq1, eq2]
-    rw [h1]
-    show _ = α * ((u : Int) * denI u M n - (M : Int) * numI u M n)
-        + β * ((u : Int) * denI u M (n+1) - (M : Int) * numI u M (n+1))
-    grind
+    have e : α * numI u M n + β * numI u M (n+1) = Δ * Δ * p := by
+      subst hα hβ; rw [← hΔ]; grind
+    rw [e, hΔsq, Int.one_mul]
+  -- the error decomposes the same way: `X = α e_n + β e_(n+1)`
+  have heq3 : X = α * eI u M n + β * eI u M (n+1) := by
+    rw [← hX, ← eq1, ← eq2]; simp only [eI]; grind
   by_cases hβ0 : β = 0
-  · -- `d = α · denI n` with `gcd p d = 1` forces `α = 1`.
-    rw [hβ0] at eq1 eq2
+  · -- `d = α D_n` and `p = α N_n` with `p, d` coprime: `α = ±1`, and `d > 0` picks `α = 1`
+    subst hβ0
     simp only [Int.zero_mul, Int.add_zero] at eq1 eq2
-    have hd_eq : d = α.natAbs * (denI u M n).natAbs := by
-      have := congrArg Int.natAbs eq1
-      rw [Int.natAbs_mul] at this
-      simpa using this.symm
-    have hp_eq : p = α.natAbs * (numI u M n).natAbs := by
-      have := congrArg Int.natAbs eq2
-      rw [Int.natAbs_mul] at this
-      simpa using this.symm
-    have hdvd_d : α.natAbs ∣ d := ⟨(denI u M n).natAbs, hd_eq⟩
-    have hdvd_p : α.natAbs ∣ p := ⟨(numI u M n).natAbs, hp_eq⟩
-    have hα1 : α.natAbs = 1 := Nat.dvd_one.mp (hcop ▸ Nat.dvd_gcd hdvd_p hdvd_d)
-    have : α = 1 ∨ α = -1 := by omega
-    rcases this with h1 | h1
-    · rw [h1] at eq1; omega
-    · rw [h1] at eq1
-      exfalso
-      omega
-  · by_cases hα0 : α = 0
-    · -- `d = β · denI (n+1) ≥ denI (n+1) > d`, impossible.
-      exfalso
-      rw [hα0] at eq1
-      simp only [Int.zero_mul, Int.zero_add] at eq1
-      have hβ1 : 1 ≤ β.natAbs := by omega
-      have hd_eq : d = β.natAbs * (denI u M (n+1)).natAbs := by
-        have := congrArg Int.natAbs eq1
-        rw [Int.natAbs_mul] at this
-        simpa using this.symm
-      have hD1' : (denI u M (n+1)).natAbs ≤ d := by
-        rw [hd_eq]
-        exact Nat.le_mul_of_pos_left _ (by omega)
-      omega
-    · -- Both nonzero: opposite signs, best approximation, contradiction.
-      exfalso
-      -- Opposite signs.
-      have hsigns : (1 ≤ α ∧ β ≤ -1) ∨ (α ≤ -1 ∧ 1 ≤ β) := by
-        rcases Int.lt_or_le 0 β with hβpos | hβnonpos
-        · right
-          refine ⟨?_, by omega⟩
-          -- α·D0 = d − β·D1 ≤ d − D1 < 0
-          have hβD1 : denI u M (n+1) ≤ β * denI u M (n+1) := by
-            have : 1 * denI u M (n+1) ≤ β * denI u M (n+1) :=
-              Int.mul_le_mul_of_nonneg_right (by omega) (by omega)
-            omega
-          have hαD0_neg : α * denI u M n < 0 := by omega
-          by_contra hcon
-          push_neg at hcon
-          have : 0 ≤ α := by omega
-          have : 0 ≤ α * denI u M n := Int.mul_nonneg this (by omega)
-          omega
-        · left
-          have hβneg : β < 0 := by omega
-          refine ⟨?_, by omega⟩
-          -- α·D0 = d + (−β)·D1 ≥ d + D1 > 0
-          have hβD1 : denI u M (n+1) ≤ (-β) * denI u M (n+1) := by
-            have : 1 * denI u M (n+1) ≤ (-β) * denI u M (n+1) :=
-              Int.mul_le_mul_of_nonneg_right (by omega) (by omega)
-            omega
-          have hαD0_pos : 0 < α * denI u M n := by
-            have hexp : α * denI u M n = (d : Int) + (-β) * denI u M (n+1) := by grind
-            omega
-          by_contra hcon
-          push_neg at hcon
-          have hα_nonpos : α ≤ 0 := by omega
-          have : α * denI u M n ≤ 0 :=
-            Int.mul_nonpos_of_nonpos_of_nonneg hα_nonpos (by omega)
-          omega
-      -- Parity of the error terms.
-      have hE0 := eI_eq u M n
-      have hE1 := eI_eq u M (n+1)
-      set X : Int := (u : Int) * d - (M : Int) * p with hX_def
-      set R0 : Int := ((rem u M (n+1) : Nat) : Int) with hR0_def
-      set R1 : Int := ((rem u M (n+2) : Nat) : Int) with hR1_def
-      have hR0nn : 0 ≤ R0 := by rw [hR0_def]; omega
-      have hR1nn : 0 ≤ R1 := by rw [hR1_def]; omega
-      -- Best approximation: R0 ≤ |X|.
-      have hbest : R0 ≤ X ∨ X ≤ -R0 := by
-        rcases Nat.mod_two_eq_zero_or_one n with hk | hk
-        · -- eI n = R0, eI (n+1) = −R1
-          rw [if_pos hk] at hE0
-          rw [if_neg (by omega : ¬((n+1) % 2 = 0))] at hE1
-          try simp only [show n+1+1 = n+2 from rfl] at hE1
-          rcases hsigns with ⟨hα1, hβ1⟩ | ⟨hα1, hβ1⟩
-          · -- X = α·R0 + (−β)·R1 ≥ R0
-            left
-            have h1 : R0 ≤ α * R0 := by
-              have : 1 * R0 ≤ α * R0 := Int.mul_le_mul_of_nonneg_right hα1 hR0nn
-              omega
-            have h2 : 0 ≤ (-β) * R1 := Int.mul_nonneg (by omega) hR1nn
-            have hXe : X = α * R0 + (-β) * R1 := by
-              rw [heq3, hE0, hE1]; grind
-            omega
-          · -- X = α·R0 + (−β)·R1 ≤ −R0
-            right
-            have h1 : α * R0 ≤ -R0 := by
-              have : α * R0 ≤ (-1) * R0 := Int.mul_le_mul_of_nonneg_right hα1 hR0nn
-              omega
-            have h2 : (-β) * R1 ≤ 0 := Int.mul_nonpos_of_nonpos_of_nonneg (by omega) hR1nn
-            have hXe : X = α * R0 + (-β) * R1 := by
-              rw [heq3, hE0, hE1]; grind
-            omega
-        · -- eI n = −R0, eI (n+1) = R1
-          rw [if_neg (by omega : ¬(n % 2 = 0))] at hE0
-          rw [if_pos (by omega : (n+1) % 2 = 0)] at hE1
-          try simp only [show n+1+1 = n+2 from rfl] at hE1
-          rcases hsigns with ⟨hα1, hβ1⟩ | ⟨hα1, hβ1⟩
-          · -- X = −α·R0 + β·R1 ≤ −R0
-            right
-            have h1 : α * (-R0) ≤ -R0 := by
-              have : 1 * R0 ≤ α * R0 := Int.mul_le_mul_of_nonneg_right hα1 hR0nn
-              grind
-            have h2 : β * R1 ≤ 0 := Int.mul_nonpos_of_nonpos_of_nonneg (by omega) hR1nn
-            have hXe : X = α * (-R0) + β * R1 := by
-              rw [heq3, hE0, hE1]
-            omega
-          · left
-            have h1 : R0 ≤ α * (-R0) := by
-              have : α * R0 ≤ (-1) * R0 := Int.mul_le_mul_of_nonneg_right hα1 hR0nn
-              grind
-            have h2 : 0 ≤ β * R1 := Int.mul_nonneg (by omega) hR1nn
-            have hXe : X = α * (-R0) + β * R1 := by
-              rw [heq3, hE0, hE1]
-            omega
-      have hbestN : rem u M (n+1) ≤ X.natAbs := by
-        rw [hR0_def] at hbest
-        omega
-      -- The contradiction: M ≤ M·|β| = |d·eI n − denI n·X| ≤ 2d·|X| < M.
-      have hkey : (M : Int) * Δ * β = (d : Int) * eI u M n - denI u M n * X := by
-        rw [hβ_def, hX_def]
-        show (M : Int) * Δ * (Δ * ((p : Int) * denI u M n - (d : Int) * numI u M n)) = _
-        have h1 : (M : Int) * Δ * (Δ * ((p : Int) * denI u M n - (d : Int) * numI u M n))
-            = (Δ * Δ) * ((M : Int) * ((p : Int) * denI u M n - (d : Int) * numI u M n)) := by grind
-        rw [h1, hΔsq, Int.one_mul]
-        show (M : Int) * ((p : Int) * denI u M n - (d : Int) * numI u M n)
-            = (d : Int) * ((u : Int) * denI u M n - (M : Int) * numI u M n)
-              - denI u M n * ((u : Int) * d - (M : Int) * p)
-        grind
-      -- Pass to natAbs.
-      have hMβ_natAbs : M * β.natAbs = ((d : Int) * eI u M n - denI u M n * X).natAbs := by
-        have := congrArg Int.natAbs hkey
-        rw [Int.natAbs_mul, Int.natAbs_mul] at this
-        have hΔabs : Δ.natAbs = 1 := by rcases hdet with h | h <;> (try rw [← hΔ_def] at h) <;> rw [h] <;> rfl
-        rw [hΔabs] at this
-        simpa using this
-      have htri : ((d : Int) * eI u M n - denI u M n * X).natAbs
-          ≤ ((d : Int) * eI u M n).natAbs + (denI u M n * X).natAbs :=
-        Int.natAbs_sub_le _ _
-      have h1 : ((d : Int) * eI u M n).natAbs = d * (eI u M n).natAbs := by
-        rw [Int.natAbs_mul]; simp
-      have h2 : (denI u M n * X).natAbs = (denI u M n).natAbs * X.natAbs := Int.natAbs_mul _ _
-      have hE0abs : (eI u M n).natAbs = rem u M (n+1) := by
-        have := eI_eq u M n
-        rcases Nat.mod_two_eq_zero_or_one n with hk | hk
-        · rw [if_pos hk] at this; rw [this]; simp
-        · rw [if_neg (by omega)] at this; rw [this]; simp
-      have hD0d : (denI u M n).natAbs ≤ d := by omega
-      have hb1 : 1 ≤ β.natAbs := by omega
-      -- Chain it all in Nat.
-      have hchain : M ≤ d * rem u M (n+1) + d * X.natAbs := by
-        calc M = M * 1 := by omega
-          _ ≤ M * β.natAbs := Nat.mul_le_mul_left M hb1
-          _ = ((d : Int) * eI u M n - denI u M n * X).natAbs := hMβ_natAbs
-          _ ≤ ((d : Int) * eI u M n).natAbs + (denI u M n * X).natAbs := htri
-          _ = d * rem u M (n+1) + (denI u M n).natAbs * X.natAbs := by rw [h1, h2, hE0abs]
-          _ ≤ d * rem u M (n+1) + d * X.natAbs := by
-              have := Nat.mul_le_mul_right (X.natAbs) hD0d
-              omega
-      have hfinal : d * rem u M (n+1) + d * X.natAbs ≤ 2 * (d * X.natAbs) := by
-        have := Nat.mul_le_mul_left d hbestN
-        omega
-      have hsmall' : 2 * (d * X.natAbs) < M := by
-        have hcomm : X.natAbs * (2 * d) = 2 * (d * X.natAbs) := by grind
-        omega
-      have hlt : M < M :=
-        Nat.lt_of_le_of_lt (Nat.le_trans hchain hfinal) hsmall'
-      omega
+    have hα1 : α.natAbs = 1 := Nat.dvd_one.mp (hcop ▸ Nat.dvd_gcd
+      (by simpa using Int.natAbs_dvd_natAbs.mpr ⟨_, eq2.symm⟩)
+      (by simpa using Int.natAbs_dvd_natAbs.mpr ⟨_, eq1.symm⟩))
+    rcases (by omega : α = 1 ∨ α = -1) with rfl | rfl <;> omega
+  by_cases hα0 : α = 0
+  · -- `d = β D_(n+1)` is at least `D_(n+1) > d`
+    subst hα0
+    simp only [Int.zero_mul, Int.zero_add] at eq1
+    have := Int.natAbs_mul β (denI u M (n+1))
+    have := Nat.le_mul_of_pos_left (denI u M (n+1)).natAbs (by omega : 0 < β.natAbs)
+    omega
+  -- both nonzero: `D_n ≤ d < D_(n+1)` forces opposite signs
+  have hsigns : (1 ≤ α ∧ β ≤ -1) ∨ (α ≤ -1 ∧ 1 ≤ β) := by
+    have hD1' := Int.le_of_lt hD1
+    have hD0' := Int.le_of_lt hD0
+    rcases Int.lt_or_le 0 β with hb | hb
+    · have := Int.mul_le_mul_of_nonneg_right (by omega : 1 ≤ β) hD1'
+      rcases Int.lt_or_le α 0 with ha | ha
+      · omega
+      · have := Int.mul_nonneg ha hD0'; omega
+    · have := Int.mul_le_mul_of_nonneg_right (by omega : β ≤ -1) hD1'
+      rcases Int.lt_or_le 0 α with ha | ha
+      · omega
+      · have := Int.mul_nonpos_of_nonpos_of_nonneg ha hD0'; omega
+  -- `e_n` and `e_(n+1)` alternate in sign too, so `α e_n` and `β e_(n+1)` agree: `|X| ≥ |e_n|`
+  have hE0 := eI_eq u M n
+  have hE1 := eI_eq u M (n+1)
+  have hE0abs : (eI u M n).natAbs = rem u M (n+1) := by rw [hE0]; split <;> simp
+  have hprod : 0 ≤ (α * eI u M n) * (β * eI u M (n+1)) := by
+    have h1 : α * β ≤ 0 := by
+      rcases hsigns with ⟨ha, hb⟩ | ⟨ha, hb⟩
+      · exact Int.mul_nonpos_of_nonneg_of_nonpos (by omega) (by omega)
+      · exact Int.mul_nonpos_of_nonpos_of_nonneg (by omega) (by omega)
+    have h2 : eI u M n * eI u M (n+1) ≤ 0 := by
+      rw [hE0, hE1]
+      rcases Nat.mod_two_eq_zero_or_one n with hk | hk
+      · rw [if_pos hk, if_neg (by omega)]
+        exact Int.mul_nonpos_of_nonneg_of_nonpos (by omega) (by omega)
+      · rw [if_neg (by omega), if_pos (by omega)]
+        exact Int.mul_nonpos_of_nonpos_of_nonneg (by omega) (by omega)
+    rw [show (α * eI u M n) * (β * eI u M (n+1)) = (α * β) * (eI u M n * eI u M (n+1)) by grind]
+    exact Int.mul_nonneg_of_nonpos_of_nonpos h1 h2
+  have hbest : rem u M (n+1) ≤ X.natAbs := by
+    have h := natAbs_le_natAbs_add hprod
+    rw [← heq3, Int.natAbs_mul, hE0abs] at h
+    exact Nat.le_trans (Nat.le_mul_of_pos_left _ (by omega)) h
+  -- `M ≤ M |β| = |d e_n − D_n X| ≤ d rem (n+1) + d |X| ≤ 2d |X| < M`
+  have hkey : (M : Int) * Δ * β = (d : Int) * eI u M n - denI u M n * X := by
+    have e : (M : Int) * Δ * β = Δ * Δ * ((d : Int) * eI u M n - denI u M n * X) := by
+      subst hβ; rw [← hX]; simp only [eI]; grind
+    rw [e, hΔsq, Int.one_mul]
+  have hMβ := congrArg Int.natAbs hkey
+  rw [Int.natAbs_mul, Int.natAbs_mul, hΔabs, Nat.mul_one, Int.natAbs_natCast] at hMβ
+  have htri := Int.natAbs_sub_le ((d : Int) * eI u M n) (denI u M n * X)
+  rw [Int.natAbs_mul, Int.natAbs_mul, hE0abs, Int.natAbs_natCast] at htri
+  have := Nat.mul_le_mul_right X.natAbs (by omega : (denI u M n).natAbs ≤ d)
+  have := Nat.le_mul_of_pos_right M (by omega : 0 < β.natAbs)
+  have := Nat.mul_le_mul_left d hbest
+  have : X.natAbs * (2 * d) = 2 * (d * X.natAbs) := by grind
+  omega
 
 end Srtfp.Schubfach.R20
 

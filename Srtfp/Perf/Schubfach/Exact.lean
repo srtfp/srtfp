@@ -208,6 +208,46 @@ theorem isIrregular_iff : isIrregular m q = true ↔ (m = 2 ^ 52 ∧ q > -1074) 
   unfold isIrregular minNormalSignificand minBinaryExp
   simp [Nat.shiftLeft_eq]
 
+/-- `a·10^x ≤ c·2^y` from its cross-multiplied `Nat` form (the shape of R14 and R15). -/
+theorem le_of_ratio {a c : Nat} {x y : Int}
+    (h : a * (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)
+        ≤ c * (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)) :
+    (a : Rat) * (10 : Rat) ^ x ≤ (c : Rat) * (2 : Rat) ^ y := by
+  have r2 := zpow_ratio 2 (by decide) y
+  have r10 := zpow_ratio 10 (by decide) x
+  have d2 := denom_pos 2 (by decide) y
+  have d10 := denom_pos 10 (by decide) x
+  have h' : ((a * (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)
+        : Nat) : Rat)
+      ≤ ((c * (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)
+        : Nat) : Rat) := by
+    exact_mod_cast h
+  push_cast at h'
+  rw [← r2, ← r10] at h'
+  generalize ((if y ≥ 0 then 1 else 2 ^ y.natAbs : Nat) : Rat) = D2 at *
+  generalize ((if x ≥ 0 then 1 else 10 ^ x.natAbs : Nat) : Rat) = D10 at *
+  exact Rat.le_of_mul_le_mul_right (c := D2 * D10) (by grind) (by grind)
+
+/-- `c·2^y < a·10^x` from its cross-multiplied `Nat` form. -/
+theorem lt_of_ratio {a c : Nat} {x y : Int}
+    (h : c * (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)
+        < a * (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)) :
+    (c : Rat) * (2 : Rat) ^ y < (a : Rat) * (10 : Rat) ^ x := by
+  have r2 := zpow_ratio 2 (by decide) y
+  have r10 := zpow_ratio 10 (by decide) x
+  have d2 := denom_pos 2 (by decide) y
+  have d10 := denom_pos 10 (by decide) x
+  have h' : ((c * (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)
+        : Nat) : Rat)
+      < ((a * (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)
+        : Nat) : Rat) := by
+    exact_mod_cast h
+  push_cast at h'
+  rw [← r2, ← r10] at h'
+  generalize ((if y ≥ 0 then 1 else 2 ^ y.natAbs : Nat) : Rat) = D2 at *
+  generalize ((if x ≥ 0 then 1 else 10 ^ x.natAbs : Nat) : Rat) = D10 at *
+  exact Rat.lt_of_mul_lt_mul_right (c := D2 * D10) (by grind) (by grind)
+
 /-- R10 for Schubfach's `k` (R14/R15 on the binary64 range). -/
 theorem k_spec (h : InRange m q) :
     (10 : Rat) ^ kOfMQ m q ≤ vr m q - vl m q ∧ vr m q - vl m q < (10 : Rat) ^ (kOfMQ m q + 1) := by
@@ -219,58 +259,17 @@ theorem k_spec (h : InRange m q) :
   · rw [if_pos hirr, if_pos (isIrregular_iff.mp hirr)]
     have hR := R14HoldsAt_in_binary64_range q hq1 hq2
     dsimp only [R14HoldsAt] at hR
-    obtain ⟨h1, h2⟩ := hR
-    generalize hk : floorLog10ThreeQuartersPow2 q = k at h1 h2 ⊢
-    have r2 := zpow_ratio 2 (by decide) q
-    have r10 := zpow_ratio 10 (by decide) k
-    have r10' := zpow_ratio 10 (by decide) (k + 1)
-    have d2 := denom_pos 2 (by decide) q
-    have d10 := denom_pos 10 (by decide) k
-    have d10' := denom_pos 10 (by decide) (k + 1)
-    have h1' : ((4 * (if k ≥ 0 then 10 ^ k.natAbs else 1) * (if q ≥ 0 then 1 else 2 ^ q.natAbs) : Nat) : Rat)
-        ≤ ((3 * (if q ≥ 0 then 2 ^ q.natAbs else 1) * (if k ≥ 0 then 1 else 10 ^ k.natAbs) : Nat) : Rat) := by
-      exact_mod_cast h1
-    have h2' : ((3 * (if q ≥ 0 then 2 ^ q.natAbs else 1) * (if k + 1 ≥ 0 then 1 else 10 ^ (k + 1).natAbs) : Nat) : Rat)
-        < ((4 * (if k + 1 ≥ 0 then 10 ^ (k + 1).natAbs else 1) * (if q ≥ 0 then 1 else 2 ^ q.natAbs) : Nat) : Rat) := by
-      exact_mod_cast h2
-    push_cast at h1' h2'
-    rw [← r2, ← r10] at h1'
-    rw [← r2, ← r10'] at h2'
-    generalize ((if q ≥ 0 then 1 else 2 ^ q.natAbs : Nat) : Rat) = D2 at *
-    generalize ((if k ≥ 0 then 1 else 10 ^ k.natAbs : Nat) : Rat) = D10 at *
-    generalize ((if k + 1 ≥ 0 then 1 else 10 ^ (k + 1).natAbs : Nat) : Rat) = D10' at *
-    have hp := two_zpow_pos q
-    constructor
-    · exact Rat.le_of_mul_le_mul_right (c := 4 * D2 * D10) (by grind) (by grind)
-    · exact Rat.lt_of_mul_lt_mul_right (c := 4 * D2 * D10') (by grind) (by grind)
+    have e1 := le_of_ratio hR.1
+    have e2 := lt_of_ratio hR.2
+    push_cast at e1 e2
+    constructor <;> grind
   · rw [if_neg hirr, if_neg (fun h => hirr (isIrregular_iff.mpr h))]
     have hR := R15HoldsAt_in_binary64_range q hq1 hq2
     dsimp only [R15HoldsAt] at hR
-    obtain ⟨h1, h2⟩ := hR
-    generalize hk : floorLog10Pow2 q = k at h1 h2 ⊢
-    have r2 := zpow_ratio 2 (by decide) q
-    have r10 := zpow_ratio 10 (by decide) k
-    have r10' := zpow_ratio 10 (by decide) (k + 1)
-    have d2 := denom_pos 2 (by decide) q
-    have d10 := denom_pos 10 (by decide) k
-    have d10' := denom_pos 10 (by decide) (k + 1)
-    have h1' : (((if k ≥ 0 then 10 ^ k.natAbs else 1) * (if q ≥ 0 then 1 else 2 ^ q.natAbs) : Nat) : Rat)
-        ≤ (((if q ≥ 0 then 2 ^ q.natAbs else 1) * (if k ≥ 0 then 1 else 10 ^ k.natAbs) : Nat) : Rat) := by
-      exact_mod_cast h1
-    have h2' : (((if q ≥ 0 then 2 ^ q.natAbs else 1) * (if k + 1 ≥ 0 then 1 else 10 ^ (k + 1).natAbs) : Nat) : Rat)
-        < (((if k + 1 ≥ 0 then 10 ^ (k + 1).natAbs else 1) * (if q ≥ 0 then 1 else 2 ^ q.natAbs) : Nat) : Rat) := by
-      exact_mod_cast h2
-    push_cast at h1' h2'
-    rw [← r2, ← r10] at h1'
-    rw [← r2, ← r10'] at h2'
-    generalize ((if q ≥ 0 then 1 else 2 ^ q.natAbs : Nat) : Rat) = D2 at *
-    generalize ((if k ≥ 0 then 1 else 10 ^ k.natAbs : Nat) : Rat) = D10 at *
-    generalize ((if k + 1 ≥ 0 then 1 else 10 ^ (k + 1).natAbs : Nat) : Rat) = D10' at *
-    have hp := two_zpow_pos q
-    rw [Rat.one_mul]
-    constructor
-    · exact Rat.le_of_mul_le_mul_right (c := D2 * D10) (by grind) (by grind)
-    · exact Rat.lt_of_mul_lt_mul_right (c := D2 * D10') (by grind) (by grind)
+    have e1 := le_of_ratio (a := 1) (c := 1) (by rw [Nat.one_mul, Nat.one_mul]; exact hR.1)
+    have e2 := lt_of_ratio (a := 1) (c := 1) (by rw [Nat.one_mul, Nat.one_mul]; exact hR.2)
+    push_cast at e1 e2
+    constructor <;> grind
 
 /-! ## R8, R9: grids around `k` -/
 
