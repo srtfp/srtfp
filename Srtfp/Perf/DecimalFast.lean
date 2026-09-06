@@ -81,25 +81,26 @@ theorem stripC_le (p j s c : UInt64) (B : Nat) (hc : c.toNat ≤ B) (hj : j.toNa
     (hB : B + 8 < 2 ^ 64) : (stripC p j s c).toNat ≤ B + 8 := by
   unfold stripC; split <;> word
 
-/-- One chunk preserves `canonicaliseAux`, with the exponent carried as
-    `e + count`. -/
-theorem stripSC_canon (p j s c : UInt64) (jn : Nat) (e : Int)
-    (hp : p.toNat = 10 ^ jn) (hj : j.toNat = jn) (hs : s.toNat ≠ 0)
-    (hno : c.toNat + jn < 2 ^ 64) :
+/-- One chunk keeps `canonicaliseAux` (the exponent carried as `e + count`),
+    a nonzero significand, and the count below its bound. -/
+theorem chunk (p j : UInt64) (jn B : Nat) {s c : UInt64} {s₀ : Nat} {e : Int}
+    (hp : p.toNat = 10 ^ jn) (hj : j.toNat = jn) (hjn : jn ≤ 8) (hs : s.toNat ≠ 0)
+    (hc : c.toNat ≤ B) (hB : B + 8 < 2 ^ 64)
+    (he : canonicaliseAux s.toNat (e + (c.toNat : Int)) = canonicaliseAux s₀ e) :
     canonicaliseAux (stripS p s).toNat (e + ((stripC p j s c).toNat : Int))
-      = canonicaliseAux s.toNat (e + (c.toNat : Int)) := by
+        = canonicaliseAux s₀ e
+      ∧ (stripS p s).toNat ≠ 0 ∧ (stripC p j s c).toNat ≤ B + 8 := by
+  refine ⟨?_, stripS_ne_zero p s hs, stripC_le p j s c B hc (by omega) hB⟩
   unfold stripS stripC
   by_cases h : s % p = 0
-  · simp only [h, if_true]
-    rw [UInt64.toNat_div, hp, UInt64.toNat_add, hj, Nat.mod_eq_of_lt hno]
-    have hm : s.toNat % 10 ^ jn = 0 := by
-      have := congrArg UInt64.toNat h
-      rw [UInt64.toNat_mod, hp] at this
-      exact this
-    rw [show (e + ((c.toNat + jn : Nat) : Int)) = e + (c.toNat : Int) + (jn : Int) from by
-          push_cast; omega]
-    exact (canonicaliseAux_div_pow s.toNat (e + (c.toNat : Int)) jn hs hm).symm
-  · simp only [h, if_false]
+  · rw [if_pos h, if_pos h, ← he]
+    word_simp at h ⊢
+    rw [hp] at h
+    rw [hp, hj]
+    rw [Nat.mod_eq_of_lt (by omega : c.toNat + jn < 2 ^ 64),
+      show e + ((c.toNat + jn : Nat) : Int) = e + (c.toNat : Int) + (jn : Int) by push_cast; omega]
+    exact (canonicaliseAux_div_pow s.toNat (e + (c.toNat : Int)) jn hs h).symm
+  · rw [if_neg h, if_neg h]; exact he
 
 /-- `canonicaliseAux` with the trailing zeros stripped in chunks of
     `10^8, 10^8, 10^4, 10^2, 10`, all in `UInt64` (significand and zero
@@ -145,53 +146,23 @@ theorem canonicaliseAux_eq_fast (s : Nat) (e : Int) :
       rw [Nat.shiftRight_eq_div_pow] at hlt
       exact Nat.lt_of_div_eq_zero (Nat.two_pow_pos 64) hlt
     have hsU : (UInt64.ofNat s).toNat = s := UInt64.toNat_ofNat_of_lt' hs64
-    have hne : (UInt64.ofNat s).toNat ≠ 0 := by rw [hsU]; exact hs0
     dsimp only
-    -- chunk 1
-    generalize hs1 : stripS 100000000 (UInt64.ofNat s) = s1
-    generalize hc1 : stripC 100000000 8 (UInt64.ofNat s) 0 = c1
-    have e1 : canonicaliseAux s1.toNat (e + (c1.toNat : Int)) = canonicaliseAux s e := by
-      rw [← hs1, ← hc1, stripSC_canon _ _ _ _ 8 e (by decide) (by decide) hne (by decide), hsU]
-      simp
-    have n1 : s1.toNat ≠ 0 := by rw [← hs1]; exact stripS_ne_zero _ _ hne
-    have b1 : c1.toNat ≤ 8 := by
-      rw [← hc1]; exact stripC_le _ _ _ _ 0 (by decide) (by decide) (by decide)
-    -- chunk 2
-    generalize hs2 : stripS 100000000 s1 = s2
-    generalize hc2 : stripC 100000000 8 s1 c1 = c2
-    have e2 : canonicaliseAux s2.toNat (e + (c2.toNat : Int)) = canonicaliseAux s e := by
-      rw [← hs2, ← hc2, stripSC_canon _ _ _ _ 8 e (by decide) (by decide) n1 (by omega), e1]
-    have n2 : s2.toNat ≠ 0 := by rw [← hs2]; exact stripS_ne_zero _ _ n1
-    have b2 : c2.toNat ≤ 16 := by
-      rw [← hc2]; exact stripC_le _ _ _ _ 8 b1 (by decide) (by decide)
-    -- chunk 3
-    generalize hs3 : stripS 10000 s2 = s3
-    generalize hc3 : stripC 10000 4 s2 c2 = c3
-    have e3 : canonicaliseAux s3.toNat (e + (c3.toNat : Int)) = canonicaliseAux s e := by
-      rw [← hs3, ← hc3, stripSC_canon _ _ _ _ 4 e (by decide) (by decide) n2 (by omega), e2]
-    have n3 : s3.toNat ≠ 0 := by rw [← hs3]; exact stripS_ne_zero _ _ n2
-    have b3 : c3.toNat ≤ 24 := by
-      rw [← hc3]; exact stripC_le _ _ _ _ 16 b2 (by decide) (by decide)
-    -- chunk 4
-    generalize hs4 : stripS 100 s3 = s4
-    generalize hc4 : stripC 100 2 s3 c3 = c4
-    have e4 : canonicaliseAux s4.toNat (e + (c4.toNat : Int)) = canonicaliseAux s e := by
-      rw [← hs4, ← hc4, stripSC_canon _ _ _ _ 2 e (by decide) (by decide) n3 (by omega), e3]
-    have n4 : s4.toNat ≠ 0 := by rw [← hs4]; exact stripS_ne_zero _ _ n3
-    have b4 : c4.toNat ≤ 32 := by
-      rw [← hc4]; exact stripC_le _ _ _ _ 24 b3 (by decide) (by decide)
-    -- chunk 5
-    generalize hs5 : stripS 10 s4 = s5
-    generalize hc5 : stripC 10 1 s4 c4 = c5
-    have e5 : canonicaliseAux s5.toNat (e + (c5.toNat : Int)) = canonicaliseAux s e := by
-      rw [← hs5, ← hc5, stripSC_canon _ _ _ _ 1 e (by decide) (by decide) n4 (by omega), e4]
-    have n5 : s5.toNat ≠ 0 := by rw [← hs5]; exact stripS_ne_zero _ _ n4
-    -- finisher
+    -- the five chunks: `10^8, 10^8, 10^4, 10^2, 10`
+    have e0 : canonicaliseAux (UInt64.ofNat s).toNat (e + ((0 : UInt64).toNat : Int))
+        = canonicaliseAux s e := by rw [hsU]; simp
+    obtain ⟨e1, n1, b1⟩ := chunk 100000000 8 8 0 rfl rfl (by decide) (by rw [hsU]; exact hs0)
+      (by decide) (by decide) e0
+    obtain ⟨e2, n2, b2⟩ := chunk 100000000 8 8 8 rfl rfl (by decide) n1 b1 (by decide) e1
+    obtain ⟨e3, n3, b3⟩ := chunk 10000 4 4 16 rfl rfl (by decide) n2 b2 (by decide) e2
+    obtain ⟨e4, n4, b4⟩ := chunk 100 2 2 24 rfl rfl (by decide) n3 b3 (by decide) e3
+    obtain ⟨e5, n5, -⟩ := chunk 10 1 1 32 rfl rfl (by decide) n4 b4 (by decide) e4
+    generalize stripS 10 (stripS 100 (stripS 10000 (stripS 100000000 (stripS 100000000
+      (UInt64.ofNat s))))) = s5 at e5 n5 ⊢
+    -- the finisher
     by_cases hz : s5 % 10 = 0
     · rw [if_pos hz, e5]
     · rw [if_neg hz, ← e5]
-      have hz' : s5.toNat % 10 ≠ 0 := fun hc => hz ((UInt64_mod10_eq_zero_iff s5).mpr hc)
-      rw [canonicaliseAux_not_div _ _ n5 hz']
+      exact canonicaliseAux_not_div _ _ n5 (fun hc => hz ((UInt64_mod10_eq_zero_iff s5).mpr hc))
   · rw [dif_neg hlt]
 
 /-- The live registration for `canonicaliseAux`. -/

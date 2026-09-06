@@ -97,6 +97,20 @@ can verify in one batched kernel reduction (`List.range … |>.all …`).
 The companion lemmas `allR⋯Range_iff_forall` translate between the
 `Bool` witness and the surface `∀ e : Int` statement. -/
 
+/-- A decidable predicate holds on `[lo, hi]` iff its `List.all` witness is
+    `true` (`lo ≤ hi + 1` keeps the `toNat` from truncating the range). -/
+theorem all_range_iff (P : Int → Prop) [DecidablePred P] (lo hi : Int) (hlh : lo ≤ hi + 1) :
+    (List.range (hi - lo + 1).toNat).all (fun i => decide (P (lo + i))) = true
+      ↔ ∀ e : Int, lo ≤ e → e ≤ hi → P e := by
+  rw [List.all_eq_true]
+  simp only [List.mem_range, decide_eq_true_eq]
+  constructor
+  · intro hall e hlo hhi
+    have := hall (e - lo).toNat (by omega)
+    rwa [show lo + ((e - lo).toNat : Int) = e by omega] at this
+  · intro hall i hi
+    exact hall _ (by omega) (by omega)
+
 /-- Decidable bounded-universal witness for R15 on `[lo, hi]`. -/
 def R15ForRange (lo hi : Int) : Prop :=
   (List.range (hi - lo + 1).toNat).all (fun i => decide (R15HoldsAt (lo + i))) = true
@@ -109,61 +123,13 @@ def R14ForRange (lo hi : Int) : Prop :=
 R15. The non-empty-range hypothesis `lo ≤ hi + 1` is there so the
 `(hi - lo + 1).toNat` truncation does not silently drop cases. -/
 theorem R15ForRange_iff_forall (lo hi : Int) (hlh : lo ≤ hi + 1) :
-    R15ForRange lo hi ↔ ∀ e : Int, lo ≤ e → e ≤ hi → R15HoldsAt e := by
-  unfold R15ForRange
-  have hnn : 0 ≤ hi - lo + 1 := by omega
-  refine ⟨?_, ?_⟩
-  · intro hall e hlo hhi
-    have h0 : 0 ≤ e - lo := by omega
-    have hlt : e - lo < hi - lo + 1 := by omega
-    have hi_eq : (((e - lo).toNat : Nat) : Int) = e - lo := Int.toNat_of_nonneg h0
-    have hi_lt : (e - lo).toNat < (hi - lo + 1).toNat := by
-      have h1 : (((e - lo).toNat : Nat) : Int) < (((hi - lo + 1).toNat : Nat) : Int) := by
-        rw [hi_eq, Int.toNat_of_nonneg hnn]; exact hlt
-      exact_mod_cast h1
-    rw [List.all_eq_true] at hall
-    have hd := hall (e - lo).toNat (List.mem_range.mpr hi_lt)
-    have hadd : lo + ((e - lo).toNat : Int) = e := by rw [hi_eq]; omega
-    rw [hadd] at hd
-    exact of_decide_eq_true hd
-  · intro hall
-    rw [List.all_eq_true]
-    intro i hi_mem
-    rw [List.mem_range] at hi_mem
-    apply decide_eq_true
-    have hi_lt_nat : (i : Int) < ((hi - lo + 1).toNat : Int) := by exact_mod_cast hi_mem
-    rw [Int.toNat_of_nonneg hnn] at hi_lt_nat
-    have hi_nn : (0 : Int) ≤ i := Int.natCast_nonneg _
-    apply hall <;> omega
+    R15ForRange lo hi ↔ ∀ e : Int, lo ≤ e → e ≤ hi → R15HoldsAt e :=
+  all_range_iff _ lo hi hlh
 
 /-- Equivalence between the `Bool` form and the surface `∀ e` form for R14. -/
 theorem R14ForRange_iff_forall (lo hi : Int) (hlh : lo ≤ hi + 1) :
-    R14ForRange lo hi ↔ ∀ e : Int, lo ≤ e → e ≤ hi → R14HoldsAt e := by
-  unfold R14ForRange
-  have hnn : 0 ≤ hi - lo + 1 := by omega
-  refine ⟨?_, ?_⟩
-  · intro hall e hlo hhi
-    have h0 : 0 ≤ e - lo := by omega
-    have hlt : e - lo < hi - lo + 1 := by omega
-    have hi_eq : (((e - lo).toNat : Nat) : Int) = e - lo := Int.toNat_of_nonneg h0
-    have hi_lt : (e - lo).toNat < (hi - lo + 1).toNat := by
-      have h1 : (((e - lo).toNat : Nat) : Int) < (((hi - lo + 1).toNat : Nat) : Int) := by
-        rw [hi_eq, Int.toNat_of_nonneg hnn]; exact hlt
-      exact_mod_cast h1
-    rw [List.all_eq_true] at hall
-    have hd := hall (e - lo).toNat (List.mem_range.mpr hi_lt)
-    have hadd : lo + ((e - lo).toNat : Int) = e := by rw [hi_eq]; omega
-    rw [hadd] at hd
-    exact of_decide_eq_true hd
-  · intro hall
-    rw [List.all_eq_true]
-    intro i hi_mem
-    rw [List.mem_range] at hi_mem
-    apply decide_eq_true
-    have hi_lt_nat : (i : Int) < ((hi - lo + 1).toNat : Int) := by exact_mod_cast hi_mem
-    rw [Int.toNat_of_nonneg hnn] at hi_lt_nat
-    have hi_nn : (0 : Int) ≤ i := Int.natCast_nonneg _
-    apply hall <;> omega
+    R14ForRange lo hi ↔ ∀ e : Int, lo ≤ e → e ≤ hi → R14HoldsAt e :=
+  all_range_iff _ lo hi hlh
 
 /-! ## Brute-force sweeps over the binary64 range
 
@@ -239,32 +205,8 @@ def R16ForRange (lo hi : Int) : Prop :=
   (List.range (hi - lo + 1).toNat).all (fun i => decide (R16HoldsAt (lo + i))) = true
 
 theorem R16ForRange_iff_forall (lo hi : Int) (hlh : lo ≤ hi + 1) :
-    R16ForRange lo hi ↔ ∀ e : Int, lo ≤ e → e ≤ hi → R16HoldsAt e := by
-  unfold R16ForRange
-  have hnn : 0 ≤ hi - lo + 1 := by omega
-  refine ⟨?_, ?_⟩
-  · intro hall e hlo hhi
-    have h0 : 0 ≤ e - lo := by omega
-    have hlt : e - lo < hi - lo + 1 := by omega
-    have hi_eq : (((e - lo).toNat : Nat) : Int) = e - lo := Int.toNat_of_nonneg h0
-    have hi_lt : (e - lo).toNat < (hi - lo + 1).toNat := by
-      have h1 : (((e - lo).toNat : Nat) : Int) < (((hi - lo + 1).toNat : Nat) : Int) := by
-        rw [hi_eq, Int.toNat_of_nonneg hnn]; exact hlt
-      exact_mod_cast h1
-    rw [List.all_eq_true] at hall
-    have hd := hall (e - lo).toNat (List.mem_range.mpr hi_lt)
-    have hadd : lo + ((e - lo).toNat : Int) = e := by rw [hi_eq]; omega
-    rw [hadd] at hd
-    exact of_decide_eq_true hd
-  · intro hall
-    rw [List.all_eq_true]
-    intro i hi_mem
-    rw [List.mem_range] at hi_mem
-    apply decide_eq_true
-    have hi_lt_nat : (i : Int) < ((hi - lo + 1).toNat : Int) := by exact_mod_cast hi_mem
-    rw [Int.toNat_of_nonneg hnn] at hi_lt_nat
-    have hi_nn : (0 : Int) ≤ i := Int.natCast_nonneg _
-    apply hall <;> omega
+    R16ForRange lo hi ↔ ∀ e : Int, lo ≤ e → e ≤ hi → R16HoldsAt e :=
+  all_range_iff _ lo hi hlh
 
 set_option exponentiation.threshold 4096 in
 set_option maxRecDepth 8192 in

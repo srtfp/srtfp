@@ -125,12 +125,8 @@ theorem q_add_r (h : InRange m q) :
 theorem flog2B_toNat (kB : UInt64) (hk : kB.toNat ≤ 616) :
     ((flog2B kB).toNat : Int) = flog2pow10 (324 - kB.toNat) + 2 ^ 20 := by
   unfold flog2B flog2pow10
-  rw [UInt64.toNat_shiftRight, UInt64.toNat_add, UInt64.toNat_mul, UInt64.toNat_sub,
-    show (38 : UInt64).toNat % 64 = 38 from rfl, show (324 : UInt64).toNat = 324 from rfl,
-    show (913124641741 : UInt64).toNat = 913124641741 from rfl,
-    show (288230376151711744 : UInt64).toNat = 2 ^ 58 from rfl,
-    Int.fdiv_eq_ediv_of_nonneg _ (by decide), Nat.shiftRight_eq_div_pow]
-  omega
+  rw [Int.fdiv_eq_ediv_of_nonneg _ (by decide)]
+  word
 
 /-- `h` of (9), from the biased `qB = q + 1074` and the table index `kB`. -/
 @[inline] def hOf (qB kB : UInt64) : UInt64 := qB + flog2B kB - 1049648
@@ -141,8 +137,7 @@ theorem hOf_toNat (qB kB : UInt64) (hk : kB.toNat ≤ 616)
     ((hOf qB kB).toNat : Int) = (qB.toNat : Int) - 1074 + flog2pow10 (324 - kB.toNat) + 2 := by
   unfold hOf
   have hf := flog2B_toNat kB hk
-  rw [UInt64.toNat_sub, UInt64.toNat_add, show (1049648 : UInt64).toNat = 1049648 from rfl]
-  omega
+  word
 
 /-- `h = q + r + 127` for `k` in range (R16 is exact there). -/
 theorem h_eq (h : InRange m q) :
