@@ -209,10 +209,73 @@ theorem R14HoldsAt_in_binary64_range :
     ∀ e : Int, -1074 ≤ e → e ≤ 971 → R14HoldsAt e :=
   (R14ForRange_iff_forall (-1074) 971 (by decide)).mp R14_binary64_decidable
 
-/-! ## Public correctness API
+/-! ## R16: `⌊log₂ 10^e⌋`
 
-The Schubfach algorithm only consumes the *value* of `floorLog10Pow2`
-together with the surrounding inequality; we pack both into a single
-existential for ergonomic destructuring at the use site. -/
+The same method for the third floor-log of §9.1, with `Q = 38` and
+`C = ⌊2^38 · log₂ 10⌋`. The kernel needs it at `e = -k` for
+`k ∈ [K_min, K_max] = [-324, 292]`, so the sweep covers `[-292, 324]`. -/
+
+/-- `⌊log₂(10^e)⌋` via R16. Valid for `e ∈ [-1838394, 1838394]`. -/
+@[inline]
+def flog2pow10 (e : Int) : Int :=
+  Int.fdiv (e * 913124641741) (2 ^ 38)
+
+/-- `R16HoldsAt e`: `2^k ≤ 10^e < 2^(k+1)` for `k = flog2pow10 e`, cross-multiplied. -/
+@[reducible] def R16HoldsAt (e : Int) : Prop :=
+  let k := flog2pow10 e
+  let eAbs : Nat := e.natAbs
+  let kAbs : Nat := k.natAbs
+  let p10e_n : Nat := if e ≥ 0 then 10 ^ eAbs else 1
+  let p10e_d : Nat := if e ≥ 0 then 1         else 10 ^ eAbs
+  let p2k_n  : Nat := if k ≥ 0 then 2 ^ kAbs else 1
+  let p2k_d  : Nat := if k ≥ 0 then 1        else 2 ^ kAbs
+  let k1     : Int := k + 1
+  let k1Abs  : Nat := k1.natAbs
+  let p2k1_n : Nat := if k1 ≥ 0 then 2 ^ k1Abs else 1
+  let p2k1_d : Nat := if k1 ≥ 0 then 1         else 2 ^ k1Abs
+  (p2k_n * p10e_d ≤ p10e_n * p2k_d) ∧ (p10e_n * p2k1_d < p2k1_n * p10e_d)
+
+def R16ForRange (lo hi : Int) : Prop :=
+  (List.range (hi - lo + 1).toNat).all (fun i => decide (R16HoldsAt (lo + i))) = true
+
+theorem R16ForRange_iff_forall (lo hi : Int) (hlh : lo ≤ hi + 1) :
+    R16ForRange lo hi ↔ ∀ e : Int, lo ≤ e → e ≤ hi → R16HoldsAt e := by
+  unfold R16ForRange
+  have hnn : 0 ≤ hi - lo + 1 := by omega
+  refine ⟨?_, ?_⟩
+  · intro hall e hlo hhi
+    have h0 : 0 ≤ e - lo := by omega
+    have hlt : e - lo < hi - lo + 1 := by omega
+    have hi_eq : (((e - lo).toNat : Nat) : Int) = e - lo := Int.toNat_of_nonneg h0
+    have hi_lt : (e - lo).toNat < (hi - lo + 1).toNat := by
+      have h1 : (((e - lo).toNat : Nat) : Int) < (((hi - lo + 1).toNat : Nat) : Int) := by
+        rw [hi_eq, Int.toNat_of_nonneg hnn]; exact hlt
+      exact_mod_cast h1
+    rw [List.all_eq_true] at hall
+    have hd := hall (e - lo).toNat (List.mem_range.mpr hi_lt)
+    have hadd : lo + ((e - lo).toNat : Int) = e := by rw [hi_eq]; omega
+    rw [hadd] at hd
+    exact of_decide_eq_true hd
+  · intro hall
+    rw [List.all_eq_true]
+    intro i hi_mem
+    rw [List.mem_range] at hi_mem
+    apply decide_eq_true
+    have hi_lt_nat : (i : Int) < ((hi - lo + 1).toNat : Int) := by exact_mod_cast hi_mem
+    rw [Int.toNat_of_nonneg hnn] at hi_lt_nat
+    have hi_nn : (0 : Int) ≤ i := Int.natCast_nonneg _
+    apply hall <;> omega
+
+set_option exponentiation.threshold 4096 in
+set_option maxRecDepth 8192 in
+set_option maxHeartbeats 16000000 in
+theorem R16_range_decidable : R16ForRange (-292) 324 := by
+  unfold R16ForRange; decide
+
+/-- R16 (cross-multiplied) holds on `[-292, 324]`, which covers `-k` for
+    every `k ∈ [K_min, K_max]`. -/
+theorem R16HoldsAt_in_range :
+    ∀ e : Int, -292 ≤ e → e ≤ 324 → R16HoldsAt e :=
+  (R16ForRange_iff_forall (-292) 324 (by decide)).mp R16_range_decidable
 
 end Srtfp.Schubfach
