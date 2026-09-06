@@ -108,9 +108,8 @@ end Word
 /-! ## Float layer
 
 Each function is *definitionally* the corresponding word-layer function
-applied to `f.toBits` (see the `rfl` bridge lemmas below), but the bodies
-are spelled out directly so that existing proofs unfolding them see the
-raw bit expressions. -/
+applied to `f.toBits`, with the body spelled out so that proofs unfolding
+it see the raw bit expressions. -/
 
 /-- The sign of a `Float` (bit 63). -/
 def signBit (f : _root_.Float) : Sign :=
