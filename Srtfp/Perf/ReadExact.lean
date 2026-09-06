@@ -298,8 +298,7 @@ theorem readExact_eq (d : Decimal) : readExact d = read d := by
       generalize hkn : k.toNat = kn
       have hk' : k = (kn : Int) := by omega
       rw [show (N : Rat) / D / (2 : Rat) ^ k = (N : Rat) / ((D * 2 ^ kn : Nat) : Rat) by
-        rw [hk', Rat.zpow_natCast]; push_cast
-        rw [Rat.div_def, Rat.div_def, Rat.div_def, Rat.mul_assoc, Rat.inv_mul_rev, Rat.mul_comm (2 ^ kn : Rat)⁻¹]]
+        rw [hk', Rat.zpow_natCast]; push_cast; rw [div_div]]
       rw [roundEven_div _ _ (Nat.mul_pos hD0 (Nat.pow_pos (by decide)))]
       exact Int.toNat_natCast _
     · rename_i hk0

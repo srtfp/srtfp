@@ -91,7 +91,6 @@ theorem hit_at_bottom (h : InRange m q) : candidate m q (-324) ≠ none := by
 
 /-! ## T3: a power of ten in `R_v` is nearer than the one-digit decimal below it -/
 
-set_option exponentiation.threshold 1100 in
 /-- If `10^i` and `9 · 10^(i-1)` both lie in `R_v`, then `v` is nearer to
     `10^i`. Only a subnormal `v` with `m ≤ 9` has an interval that wide,
     and then `i = -323` and `m ≥ 2`. -/
@@ -100,80 +99,43 @@ theorem ten_pow_closer (h : InRange m q) (hw : InRv m q ((10 : Rat) ^ i) = true)
     (10 : Rat) ^ i - v m q < v m q - 9 * (10 : Rat) ^ (i - 1) := by
   obtain ⟨hm1, hm53, hq0, hq1, hnorm⟩ := h
   have hP := two_zpow_pos q
-  have hT := ten_zpow_pos (i - 1)
   have hTi : (10 : Rat) ^ i = 10 ^ (i - 1) * 10 := by
     rw [← Rat.zpow_add_one (by decide), Int.sub_add_cancel]
-  have hr := (le_of_InRv hw).2
+  obtain ⟨hl', hr⟩ := le_of_InRv hw
   have hl := (le_of_InRv h9).1
   have hvl : ((m : Rat) - 1/2) * 2 ^ q ≤ vl m q := by unfold vl; split <;> grind
   unfold vr at hr; unfold v
   rw [hTi] at hr ⊢
-  generalize hPq : (2 : Rat) ^ q = P at *
-  generalize hTi' : (10 : Rat) ^ (i - 1) = T at *
-  -- `(m - 1/2) P ≤ 9 T` and `10 T ≤ (m + 1/2) P` give `m ≤ 9`, so `q = Q_min`
+  have hm1' : (1 : Rat) ≤ m := by exact_mod_cast hm1
+  -- `(m - 1/2) 2^q ≤ 9 T` and `10 T ≤ (m + 1/2) 2^q` give `m ≤ 9`, so `q = Q_min`
   have hm9 : m ≤ 9 := by
-    have := Rat.le_of_mul_le_mul_right (show (10 * (m : Rat) - 5) * P ≤ (9 * m + 9/2) * P by grind) hP
+    have := Rat.le_of_mul_le_mul_right
+      (show (10 * (m : Rat) - 5) * 2 ^ q ≤ (9 * m + 9/2) * 2 ^ q by grind) hP
     have : m < 10 := by exact_mod_cast (show (m : Rat) < 10 by grind)
     omega
-  have hq : q = -1074 := by
-    rcases Int.lt_or_eq_of_le hq0 with hlt | heq
-    · exact absurd (hnorm (by omega)) (by omega)
-    · exact heq.symm
-  subst hq
-  have hm' : (m : Rat) ≤ 9 := by exact_mod_cast hm9
-  have hm1' : (1 : Rat) ≤ m := by exact_mod_cast hm1
-  have hmP := Rat.mul_le_mul_of_nonneg_right hm' (Rat.le_of_lt hP)
+  obtain rfl : q = -1074 := by omega
+  have hmP := Rat.mul_le_mul_of_nonneg_right (show (m : Rat) ≤ 9 by exact_mod_cast hm9) (Rat.le_of_lt hP)
   have hmP1 := Rat.mul_le_mul_of_nonneg_right hm1' (Rat.le_of_lt hP)
-  have hP2 : (0 : Rat) < 2 ^ 1074 := Rat.pow_pos (by decide)
-  rw [show (-1074 : Int) = -((1074 : Nat) : Int) by rfl, zpow_neg_natCast] at hPq
-  -- `i = -323`: the powers of ten on either side miss the interval
-  have hi1 : i ≤ -323 := by
-    rcases Int.lt_or_le (-323) i with hi | hi
-    · exfalso
-      have hT1 : (10 : Rat) ^ (-((323 : Nat) : Int)) ≤ T := by
-        rw [← hTi']; exact zpow_le_zpow_right₀ (by decide) (by omega)
-      rw [zpow_neg_natCast] at hT1
-      have hF := mul_inv_lt_mul_inv hP2 (Rat.pow_pos (by decide))
-        (show 19 * (10 : Rat) ^ 323 < 20 * 2 ^ 1074 by
-          exact_mod_cast (by decide +kernel : 19 * (10 : Nat) ^ 323 < 20 * 2 ^ 1074))
-      rw [hPq] at hF
-      grind
-    · exact hi
-  have hi2 : -323 ≤ i := by
-    rcases Int.lt_or_le i (-323) with hi | hi
-    · exfalso
-      have hT1 : T ≤ (10 : Rat) ^ (-((325 : Nat) : Int)) := by
-        rw [← hTi']; exact zpow_le_zpow_right₀ (by decide) (by omega)
-      rw [zpow_neg_natCast] at hT1
-      have hF := mul_inv_lt_mul_inv (Rat.pow_pos (by decide)) hP2
-        (show 18 * (2 : Rat) ^ 1074 < 1 * 10 ^ 325 by
-          exact_mod_cast (by decide +kernel : 18 * (2 : Nat) ^ 1074 < 1 * 10 ^ 325))
-      rw [hPq] at hF
-      grind
-    · exact hi
-  have hi : i = -323 := by omega
-  subst hi
-  have hT' : T = ((10 : Rat) ^ (324 : Nat))⁻¹ := by
-    rw [← hTi', ← zpow_neg_natCast]; rfl
-  subst hT'
-  have hT2 : (0 : Rat) < 10 ^ 324 := Rat.pow_pos (by decide)
-  -- `m ≥ 2`, and then the inequality
+  -- `i = -323`: `2^(-1075) ≤ v_l ≤ 10^i ≤ v_r < 10 · 2^(-1074)`
+  obtain rfl : i = -323 := by
+    have h1 := ten_zpow_lt_two_zpow (x := -324) (y := -1075) (by decide +kernel)
+    have h2 := lt_of_ratio (a := 1) (c := 10) (x := -322) (y := -1074) (by decide +kernel)
+    have h3 : (2 : Rat) ^ (-1074 : Int) = 2 ^ (-1075 : Int) * 2 := by
+      rw [← Rat.zpow_add_one (by decide)]; rfl
+    simp only [Rat.natCast_ofNat, Rat.one_mul] at h2
+    have := lt_of_zpow_lt (a := 10) (by decide) (show (10 : Rat) ^ (-324 : Int) < 10 ^ i by grind)
+    have := lt_of_zpow_lt (a := 10) (by decide) (show (10 : Rat) ^ i < 10 ^ (-322 : Int) by grind)
+    omega
+  rw [show (-323 : Int) - 1 = -324 by decide] at hr hl ⊢
+  -- `m ≥ 2` (`m = 1` puts `v_r` below `10^(-323)`), and then the inequality
+  have h4 := lt_of_ratio (a := 20) (c := 3) (x := -324) (y := -1074) (by decide +kernel)
+  have h5 := lt_of_ratio' (a := 19) (c := 4) (x := -324) (y := -1074) (by decide +kernel)
+  simp only [Rat.natCast_ofNat] at h4 h5
   have hm2 : (2 : Rat) ≤ m := by
     rcases Nat.lt_or_ge m 2 with hlt | hge
-    · exfalso
-      have hF := mul_inv_lt_mul_inv hP2 hT2
-        (show 3 * (10 : Rat) ^ 324 < 20 * 2 ^ 1074 by
-          exact_mod_cast (by decide +kernel : 3 * (10 : Nat) ^ 324 < 20 * 2 ^ 1074))
-      rw [hPq] at hF
-      have : m = 1 := by omega
-      subst this
-      push_cast at hr
-      grind
+    · exfalso; obtain rfl : m = 1 := by omega
+      simp only [Rat.natCast_ofNat] at hr; grind
     · exact_mod_cast hge
-  have hF := mul_inv_lt_mul_inv hT2 hP2
-    (show 19 * (2 : Rat) ^ 1074 < 4 * 10 ^ 324 by
-      exact_mod_cast (by decide +kernel : 19 * (2 : Nat) ^ 1074 < 4 * 10 ^ 324))
-  rw [hPq] at hF
   have := Rat.mul_le_mul_of_nonneg_right hm2 (Rat.le_of_lt hP)
   grind
 

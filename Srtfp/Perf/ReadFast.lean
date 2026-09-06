@@ -102,20 +102,17 @@ def roundCore (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exact : Bool)
       if s < 130 ∨ 192 < s then declined
       else
         let sN : Nat := s.toNat
-        -- `q = P >>> s`, `b` = bit `s - 1`, `rest` = the bits below it
+        -- `q = P >>> s`, `b` = bit `s - 1`, `lowZero` = the bits below it are zero
         let q : UInt64 := if sN = 192 then 0 else pHi >>> UInt64.ofNat (sN - 128)
         let b : UInt64 := (pHi >>> UInt64.ofNat (sN - 129)) &&& 1
         let restHi : UInt64 := pHi &&& ((1 <<< UInt64.ofNat (sN - 129)) - 1)
-        let restZero : Bool := restHi = 0 && pMid = 0 && pLo = 0
-        let restSmall : Bool := restHi = 0 && pMid = 0 && pLo < mz
-        if exact then
-          let n : UInt64 := if b = 0 then q else if restZero then q + (q &&& 1) else q + 1
-          if n = 0 then Word.pack sign 0 0 else packFinite sign n k
+        let lowZero : Bool := restHi = 0 && pMid = 0
+        -- an inexact `P` whose rest is below `mz` may hide a tie: decline
+        if !exact && lowZero && pLo < mz then declined
         else
-          if restSmall then declined
-          else
-            let n : UInt64 := if b = 0 then q else q + 1
-            if n = 0 then Word.pack sign 0 0 else packFinite sign n k
+          let n : UInt64 :=
+            if b = 0 then q else if exact && lowZero && pLo = 0 then q + (q &&& 1) else q + 1
+          if n = 0 then Word.pack sign 0 0 else packFinite sign n k
 
 /-! ## The kernel -/
 
@@ -132,21 +129,21 @@ def readFast (d : Decimal) : UInt64 :=
     let z : UInt64 := lzShift mU
     let mz : UInt64 := mU <<< z
     if 0 ≤ e then
-      let (gHi, gLo, h) := pow10Lookup128 e
-      let (pHi, pMid, pLo) := mul64x128 mz gHi gLo
-      roundCore d.sign mz pHi pMid pLo (h + (z.toNat : Int)) (decide (e ≤ 54))
+      let g := pow10Lookup128 e        -- `(gHi, gLo, h)`
+      let p := mul64x128 mz g.1 g.2.1  -- `(pHi, pMid, pLo)`
+      roundCore d.sign mz p.1 p.2.1 p.2.2 (g.2.2 + (z.toNat : Int)) (decide (e ≤ 54))
     else
       let ne : Nat := (-e).toNat
       if ne ≤ 27 ∧ m % 5 ^ ne = 0 then
         let mU' : UInt64 := UInt64.ofNat (m / 5 ^ ne)
         let z' : UInt64 := lzShift mU'
         let mz' : UInt64 := mU' <<< z'
-        let (pHi, pMid, pLo) := mul64x128 mz' 9223372036854775808 0
-        roundCore d.sign mz' pHi pMid pLo (127 - e + (z'.toNat : Int)) true
+        let p := mul64x128 mz' 9223372036854775808 0
+        roundCore d.sign mz' p.1 p.2.1 p.2.2 (127 - e + (z'.toNat : Int)) true
       else
-        let (gHi, gLo, h) := pow10Lookup128 e
-        let (pHi, pMid, pLo) := mul64x128 mz gHi gLo
-        roundCore d.sign mz pHi pMid pLo (h + (z.toNat : Int)) false
+        let g := pow10Lookup128 e
+        let p := mul64x128 mz g.1 g.2.1
+        roundCore d.sign mz p.1 p.2.1 p.2.2 (g.2.2 + (z.toNat : Int)) false
 
 /-- The live reader: the fast kernel, `readExact` when it declines. -/
 def ofDecimalBits_fast (d : Decimal) : UInt64 :=
@@ -187,57 +184,49 @@ theorem sign_toBitVec_toNat (s : Sign) :
   cases s <;> rfl
 
 open Srtfp.Model Float.Model Float.Model.UnpackedFloat in
-theorem toBits_pack_zero (s : Sign) :
-    (Float.Model.pack (.zero s)).toBits = Word.pack s 0 0 := by
+/-- The three fields, as a word. -/
+theorem ofBitVec_packComponents (s : Sign) (e : BitVec 11) (m : BitVec 52) :
+    UInt64.ofBitVec (packComponents Format.binary64 s e m) = Word.pack s e.toNat m.toNat := by
   apply UInt64.toNat_inj.mp
-  show (UnpackedFloat.pack Format.binary64 (.zero s)).toNat = _
-  rw [pack_toNat s 0 0 (by decide) (by decide)]
-  show (packComponents Format.binary64 s 0 0).toNat = _
-  rw [packComponents_toNat, sign_toBitVec_toNat]
-  cases s <;> rfl
+  rw [UInt64.toNat_ofBitVec, packComponents_toNat, sign_toBitVec_toNat, pack_toNat s _ _ e.isLt m.isLt]
+  cases s <;> simp only [] <;> omega
 
-open Srtfp.Model Float.Model Float.Model.UnpackedFloat in
-theorem toBits_pack_infinity (s : Sign) :
-    (Float.Model.pack (.infinity s)).toBits = Word.pack s 2047 0 := by
-  apply UInt64.toNat_inj.mp
-  show (UnpackedFloat.pack Format.binary64 (.infinity s)).toNat = _
-  rw [pack_toNat s 2047 0 (by decide) (by decide)]
-  show (packComponents Format.binary64 s (-1#_) 0).toNat = _
-  rw [packComponents_toNat, sign_toBitVec_toNat]
-  cases s <;> rfl
+theorem toBits_pack_zero (s : Sign) : (Float.Model.pack (.zero s)).toBits = Word.pack s 0 0 :=
+  ofBitVec_packComponents s 0 0
+
+theorem toBits_pack_infinity (s : Sign) : (Float.Model.pack (.infinity s)).toBits = Word.pack s 2047 0 :=
+  ofBitVec_packComponents s (-1#_) 0
 
 open Srtfp.Model Float.Model Float.Model.UnpackedFloat in
 theorem toBits_pack_finite (s : Sign) {n : Nat} {k : Int} (hn : 0 < n) (hleg : Legal n k) :
     (Float.Model.pack (.finite s n k hn)).toBits
       = Word.pack s (if n < 2 ^ 52 then 0 else (k + 1075).toNat) (n % 2 ^ 52) := by
-  obtain ⟨h53, hk0, hk1, hnorm⟩ := hleg
-  obtain ⟨hA, hB, hC, hD, hMB⟩ := binary64_facts
-  apply UInt64.toNat_inj.mp
-  show (UnpackedFloat.pack Format.binary64 (.finite s n k hn)).toNat = _
-  rw [pack_toNat s _ _ (by split <;> omega) (Nat.mod_lt _ (by decide))]
-  unfold UnpackedFloat.pack
-  simp only
-  split
-  · exfalso; omega
-  split
-  · rename_i hl
-    have hn52 : 2 ^ 52 ≤ n := by
-      have := Nat.log2_self_le (by omega : n ≠ 0)
-      rw [show n.log2 = 52 by omega] at this
-      exact this
-    rw [packComponents_toNat, sign_toBitVec_toNat, if_neg (by omega)]
-    simp only [BitVec.toNat_ofNat]
-    cases s <;> (try simp only []) <;> omega
-  · rename_i hl
-    have hlt : n < 2 ^ 52 := by
-      have h1 : n < 2 ^ (n.log2 + 1) := Nat.lt_log2_self
-      have h3 : n.log2 + 1 ≤ 52 := by
-        have := (Nat.log2_lt (by omega : n ≠ 0)).mpr h53
-        omega
-      exact Nat.lt_of_lt_of_le h1 (Nat.pow_le_pow_right (by decide) h3)
-    rw [packComponents_toNat, sign_toBitVec_toNat, if_pos hlt]
-    simp only [BitVec.toNat_ofNat]
-    cases s <;> (try simp only []) <;> omega
+  obtain ⟨hA, hB, -, -, -⟩ := binary64_facts
+  show UInt64.ofBitVec (UnpackedFloat.pack Format.binary64 (.finite s n k hn)) = _
+  rw [pack_finite s hn hleg, ofBitVec_packComponents, BitVec.toNat_ofNat, BitVec.toNat_ofNat, hB,
+    Nat.mod_eq_of_lt (by have := hleg.2.2.1; split <;> omega)]
+
+/-- The kernel's word for a significand `n ≤ 2^53` on the grid `k` is the
+    packing of `readMag`'s result. -/
+theorem packFinite_toBits (sign : Sign) {nU : UInt64} {n : Nat} {k : Int} (hn : nU.toNat = n)
+    (h53 : n ≤ 2 ^ 53) (hk0 : -1074 ≤ k) (hk1 : k ≤ 970) (h52 : k ≠ -1074 → 2 ^ 52 ≤ n) :
+    (if nU = 0 then Word.pack sign 0 0 else packFinite sign nU k)
+      = (Float.Model.pack (if h : n = 0 then .zero sign
+          else if n = 2 ^ 53 then .finite sign (2 ^ 52) (k + 1) (by decide)
+          else .finite sign n k (Nat.pos_of_ne_zero h))).toBits := by
+  by_cases hn0 : n = 0
+  · rw [if_pos (by word), dif_pos hn0, toBits_pack_zero]
+  rw [if_neg (by word), dif_neg hn0]
+  unfold packFinite
+  by_cases hc53 : n = 2 ^ 53
+  · rw [if_pos hc53, if_neg (by word), if_pos (by word),
+      toBits_pack_finite sign (by decide) ⟨by decide, by omega, by omega, fun _ => Nat.le_refl _⟩,
+      if_neg (Nat.lt_irrefl _), Nat.mod_self, show k + 1 + 1075 = k + 1076 by omega]
+  rw [if_neg hc53, toBits_pack_finite sign (Nat.pos_of_ne_zero hn0) ⟨by omega, by omega, by omega, h52⟩]
+  by_cases hlt : n < 2 ^ 52
+  · rw [if_pos (by word), if_pos hlt, Nat.mod_eq_of_lt hlt, hn]
+  · rw [if_neg (by word), if_neg (by word), if_neg hlt,
+      show (nU - 4503599627370496).toNat = n % 2 ^ 52 by word]
 
 /-! ## Proof: the shifts -/
 
@@ -266,43 +255,26 @@ theorem shift_facts (pHi pMid pLo : UInt64) {sN : Nat} (h130 : 130 ≤ sN) (h192
     ∧ ((pHi >>> UInt64.ofNat (sN - 129)) &&& 1).toNat = val192 pHi pMid pLo / 2 ^ (sN - 1) % 2
     ∧ val192 pHi pMid pLo % 2 ^ (sN - 1)
         = (pHi &&& ((1 <<< UInt64.ofNat (sN - 129)) - 1)).toNat * 2 ^ 128 + pMid.toNat * 2 ^ 64 + pLo.toNat := by
-  have hHi := pHi.toNat_lt
   have hMid := pMid.toNat_lt
   have hLo := pLo.toNat_lt
-  have hlow : pMid.toNat * 2 ^ 64 + pLo.toNat < 2 ^ 128 := by omega
-  -- `P / 2^j = pHi / 2^(j - 128)` for `128 ≤ j`, and `P % 2^j` likewise
-  have hdiv : ∀ j, 128 ≤ j → val192 pHi pMid pLo / 2 ^ j = pHi.toNat / 2 ^ (j - 128) := by
+  -- `P = pHi · 2^128 + low` with `low < 2^128`: for `128 ≤ j`, `P / 2^j` and `P % 2^j` come from `pHi`
+  have key : ∀ j, 128 ≤ j → val192 pHi pMid pLo / 2 ^ j = pHi.toNat / 2 ^ (j - 128)
+      ∧ val192 pHi pMid pLo % 2 ^ j
+        = pHi.toNat % 2 ^ (j - 128) * 2 ^ 128 + pMid.toNat * 2 ^ 64 + pLo.toNat := by
     intro j hj
-    unfold val192
-    rw [show 2 ^ j = 2 ^ 128 * 2 ^ (j - 128) by rw [← Nat.pow_add, Nat.add_sub_cancel' hj],
-      ← Nat.div_div_eq_div_mul, Nat.add_assoc, Nat.mul_comm, Nat.mul_add_div (Nat.two_pow_pos 128),
-      Nat.div_eq_of_lt hlow, Nat.add_zero]
-  have hmod : ∀ j, 128 ≤ j → val192 pHi pMid pLo % 2 ^ j
-      = pHi.toNat % 2 ^ (j - 128) * 2 ^ 128 + pMid.toNat * 2 ^ 64 + pLo.toNat := by
-    intro j hj
-    have h1 := Nat.div_add_mod (val192 pHi pMid pLo) (2 ^ j)
-    have h2 := Nat.div_add_mod pHi.toNat (2 ^ (j - 128))
-    rw [hdiv j hj] at h1
-    generalize hR : val192 pHi pMid pLo % 2 ^ j = R at *
-    have h3 : 2 ^ j = 2 ^ (j - 128) * 2 ^ 128 := by
-      rw [← Nat.pow_add, Nat.sub_add_cancel hj]
-    rw [h3] at h1
-    unfold val192 at h1
-    generalize pHi.toNat / 2 ^ (j - 128) = A at *
-    generalize pHi.toNat % 2 ^ (j - 128) = B at *
-    generalize 2 ^ (j - 128) = T at *
-    rw [← h2, Nat.add_mul, Nat.mul_right_comm T (2 ^ 128) A] at h1
-    omega
+    have h1 := Nat.div_add_mod pHi.toNat (2 ^ (j - 128))
+    have h2 := Nat.mod_lt pHi.toNat (Nat.two_pow_pos (j - 128))
+    rw [show 2 ^ j = 2 ^ (j - 128) * 2 ^ 128 by rw [← Nat.pow_add, Nat.sub_add_cancel hj]]
+    refine (Nat.div_mod_unique (Nat.mul_pos (Nat.two_pow_pos _) (Nat.two_pow_pos _))).mpr ⟨?_, by omega⟩
+    unfold val192; rw [Nat.mul_right_comm (2 ^ (j - 128))]; omega
   refine ⟨?_, ?_, ?_⟩
   · split
     · rename_i h; subst h
       rw [UInt64.toNat_ofNat, Nat.div_eq_of_lt (val192_lt _ _ _)]
-    · rw [toNat_shiftRight_lt (by omega), hdiv sN (by omega)]
-  · rw [UInt64.toNat_and, toNat_shiftRight_lt (by omega), hdiv (sN - 1) (by omega),
+    · rw [toNat_shiftRight_lt (by omega), (key sN (by omega)).1]
+  · rw [UInt64.toNat_and, toNat_shiftRight_lt (by omega), (key (sN - 1) (by omega)).1,
       show sN - 1 - 128 = sN - 129 by omega]; word
-  · rw [toNat_and_mask (by omega), hmod (sN - 1) (by omega), show sN - 1 - 128 = sN - 129 by omega]
-
-/-! ## Proof: two rounding facts -/
+  · rw [toNat_and_mask (by omega), (key (sN - 1) (by omega)).2, show sN - 1 - 128 = sN - 129 by omega]
 
 /-! ## Proof: the rounding core -/
 
@@ -360,190 +332,129 @@ theorem round_from_bits (Pn sN : Nat) (hs : 1 ≤ sN) (X : Rat) (mz : Nat) (exac
         have hr1 : (1 : Rat) ≤ r := by exact_mod_cast Nat.pos_of_ne_zero hr0
         apply roundEven_eq_of_between (by omega : 0 < 2 * H) <;> push_cast <;> grind
 
+/-- The rounding core on a product: `P = mz · g` with `g − 1 < Y ≤ g`
+    (`Y = g` when `exact`), `mz ≥ 2^63` and `Y ≥ 2^127`, so `X = mz · Y` has
+    191 or 192 bits. The word is `readMag` of `X / 2^hz`. -/
 theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exact : Bool)
-    (X : Rat) (hX190 : (2 : Rat) ^ (190 : Nat) ≤ X) (hXP : X ≤ (val192 pHi pMid pLo : Rat))
-    (hPX : if exact then X = (val192 pHi pMid pLo : Rat) else (val192 pHi pMid pLo : Rat) - mz.toNat < X)
+    (Y : Rat) (g : Nat) (hmz : 2 ^ 63 ≤ mz.toNat) (hP : val192 pHi pMid pLo = mz.toNat * g)
+    (hY : (2 : Rat) ^ (127 : Nat) ≤ Y) (hYg : Y ≤ g) (hgY : if exact then Y = g else (g : Rat) - 1 < Y)
     {w : UInt64} (h : roundCore sign mz pHi pMid pLo hz exact = w) (hw : w ≠ declined) :
-    w = (Float.Model.pack (readMag sign (X / (2 : Rat) ^ hz))).toBits := by
-  have htop : (pHi >>> 63).toNat = pHi.toNat / 2 ^ 63 := by word
+    w = (Float.Model.pack (readMag sign (mz.toNat * Y / (2 : Rat) ^ hz))).toBits := by
+  -- `2^190 ≤ X ≤ P`, and `P - mz < X` unless `X = P`
+  have hmzR : (2 : Rat) ^ (63 : Nat) ≤ mz.toNat := by exact_mod_cast hmz
+  have hmz0 : (0 : Rat) ≤ mz.toNat := Rat.natCast_nonneg
+  have hPR : (val192 pHi pMid pLo : Rat) = mz.toNat * g := by rw [hP, Rat.natCast_mul]
+  have hX190 : (2 : Rat) ^ (190 : Nat) ≤ mz.toNat * Y := by
+    rw [show (2 : Rat) ^ (190 : Nat) = 2 ^ (63 : Nat) * 2 ^ (127 : Nat) by rw [← Rat.pow_add]]
+    exact Rat.le_trans (Rat.mul_le_mul_of_nonneg_right hmzR (Rat.pow_nonneg (by decide)))
+      (Rat.mul_le_mul_of_nonneg_left hY hmz0)
+  have hXP : mz.toNat * Y ≤ (val192 pHi pMid pLo : Rat) := by
+    rw [hPR]; exact Rat.mul_le_mul_of_nonneg_left hYg hmz0
+  have hPX : if exact then mz.toNat * Y = (val192 pHi pMid pLo : Rat)
+      else (val192 pHi pMid pLo : Rat) - mz.toNat < mz.toNat * Y := by
+    rw [hPR]
+    split at hgY
+    · rename_i hex; rw [if_pos hex, hgY]
+    · rename_i hex; rw [if_neg hex]
+      have := Rat.mul_lt_mul_of_pos_left hgY (lt_of_lt_of_le (Rat.pow_pos (by decide)) hmzR); grind
+  generalize mz.toNat * Y = X at *
   have hHi := pHi.toNat_lt
   have hMid := pMid.toNat_lt
   have hLo := pLo.toNat_lt
-  have hmz := mz.toNat_lt
-  have hPlt := val192_lt pHi pMid pLo
+  have hmz64 := mz.toNat_lt
   have hPval : val192 pHi pMid pLo = pHi.toNat * 2 ^ 128 + pMid.toNat * 2 ^ 64 + pLo.toNat := rfl
   unfold roundCore at h
   dsimp only at h
-  split at h
-  · exact absurd h.symm hw
-  rename_i hmargin
-  split at h
-  · exact absurd h.symm hw
-  rename_i ht
-  split at h
-  · exact absurd h.symm hw
-  rename_i hs
+  iterate 4 (split at h; exact absurd h.symm hw)
+  rename_i hmargin ht hs hguard
   generalize htN : (pHi >>> 63).toNat = topN at *
+  word_simp at htN
   generalize hk : max (190 + (topN : Int) - hz - 52) (-1074) = k at *
   generalize hsN : (hz + k).toNat = sN at *
   have hs130 : 130 ≤ sN := by omega
   have hs192 : sN ≤ 192 := by omega
-  have hsInt : (sN : Int) = hz + k := by omega
-  generalize hPn : val192 pHi pMid pLo = Pn at *
-  -- the bit length of `X` is that of `P`: `2^(190 + topN) ≤ X < 2^(191 + topN)`
-  have hbits : (2 : Rat) ^ (190 + topN : Nat) ≤ X ∧ X < (2 : Rat) ^ (191 + topN : Nat) := by
-    have hPnat : Pn < 2 ^ (191 + topN) ∧ (topN = 1 → 2 ^ 191 ≤ Pn) := by
-      rw [hPval] at hPlt
-      rcases (show topN = 0 ∨ topN = 1 by omega) with rfl | rfl <;> omega
-    have hPR : (Pn : Rat) < (2 : Rat) ^ (191 + topN : Nat) := by exact_mod_cast hPnat.1
-    refine ⟨?_, lt_of_le_of_lt hXP hPR⟩
-    have : topN = 0 ∨ topN = 1 := by omega
-    rcases this with h0 | h1
-    · subst h0; exact hX190
-    · subst h1
-      have hP191 : 2 ^ 191 ≤ Pn := hPnat.2 rfl
-      split at hPX
-      · rw [hPX]; exact_mod_cast hP191
-      · -- not exact: `P` is at least `2^191 + mz`
-        rename_i hex
-        have hmarg : 2 ^ 191 + mz.toNat ≤ Pn := by
-          simp only [hex, Bool.not_false, Bool.true_and, Bool.and_eq_true, decide_eq_true_eq]
-            at hmargin
-          rw [hPval]; word_simp at hmargin htN ⊢; omega
-        have : ((2 ^ 191 + mz.toNat : Nat) : Rat) ≤ Pn := by exact_mod_cast hmarg
-        push_cast at this
-        exact Rat.le_of_lt (lt_of_le_of_lt (by grind) hPX)
-  -- `x = X / 2^hz` lies in the binade `[2^t, 2^(t+1))`, `t = 190 + topN - hz`
-  have hzpos : (0 : Rat) < (2 : Rat) ^ hz := two_zpow_pos hz
-  have hx : (2 : Rat) ^ (190 + (topN : Int) - hz) ≤ X / (2 : Rat) ^ hz
-      ∧ X / (2 : Rat) ^ hz < (2 : Rat) ^ (190 + (topN : Int) - hz + 1) := by
-    constructor
-    · rw [show 190 + (topN : Int) - hz = ((190 + topN : Nat) : Int) - hz by omega,
-        zpow_sub (b := 2) (by decide), Rat.zpow_natCast, le_div_iff hzpos, Rat.div_mul_cancel (Rat.ne_of_gt hzpos)]
-      exact hbits.1
-    · rw [show 190 + (topN : Int) - hz + 1 = ((191 + topN : Nat) : Int) - hz by omega,
-        zpow_sub (b := 2) (by decide), Rat.zpow_natCast, Rat.div_lt_iff hzpos, Rat.div_mul_cancel (Rat.ne_of_gt hzpos)]
-      exact hbits.2
-  generalize hxdef : X / (2 : Rat) ^ hz = x at *
-  have hxpos : (0 : Rat) < x := lt_of_lt_of_le (two_zpow_pos _) hx.1
-  have hk' : gridExp x = k := by
-    apply gridExp_eq_of (Rat.le_of_lt hxpos)
-    · omega
-    · exact lt_of_lt_of_le hx.2 (zpow_le_zpow_right₀ (by decide) (by omega))
-    · rcases (show k = -1074 ∨ k = 190 + (topN : Int) - hz - 52 by omega) with hc | hc
-      · exact Or.inl hc
-      · right
-        rw [hc, show 190 + (topN : Int) - hz - 52 + 52 = 190 + (topN : Int) - hz by omega]
-        exact hx.1
-  have hthr : ¬ ((2 : Rat) ^ 1024 - 2 ^ 970 ≤ x) := by
-    have h1 : x < (2 : Rat) ^ (1023 : Int) :=
-      lt_of_lt_of_le hx.2 (zpow_le_zpow_right₀ (by decide) (by omega))
-    have h2 : (2 : Rat) ^ (1023 : Int) ≤ (2 : Rat) ^ 1024 - 2 ^ 970 := by decide +kernel
-    exact Rat.not_le.mpr (lt_of_lt_of_le h1 h2)
-  -- the scaled value `x / 2^k = X / 2^s`
-  have hsdef : x / (2 : Rat) ^ k = X / (2 : Rat) ^ sN := by
-    rw [← hxdef, Rat.div_def, Rat.div_def, Rat.mul_assoc, ← Rat.inv_mul_rev,
-      ← Rat.zpow_add (by decide) k hz, show k + hz = (sN : Int) by omega, Rat.zpow_natCast,
-      ← Rat.div_def]
-  -- the kernel's bits
   obtain ⟨hq, hb, hrest⟩ := shift_facts pHi pMid pLo hs130 hs192
-  rw [hPn] at hq hb hrest
+  generalize hPn : val192 pHi pMid pLo = Pn at *
   generalize hqU : (if sN = 192 then (0 : UInt64) else pHi >>> UInt64.ofNat (sN - 128)) = qU at *
   generalize hbU : (pHi >>> UInt64.ofNat (sN - 129)) &&& 1 = bU at *
   generalize hrU : pHi &&& ((1 <<< UInt64.ofNat (sN - 129)) - 1) = rU at *
-  have hQlt : Pn / 2 ^ sN < 2 ^ 62 := by
-    apply Nat.div_lt_of_lt_mul
-    calc Pn < 2 ^ 192 := hPlt
-      _ = 2 ^ 130 * 2 ^ 62 := by rw [← Nat.pow_add]
-      _ ≤ 2 ^ sN * 2 ^ 62 := Nat.mul_le_mul_right _ (Nat.pow_le_pow_right (by decide) hs130)
+  -- the two guards on an inexact `P`, as facts about `P`
+  have hmarg : exact = false → topN = 1 → 2 ^ 191 + mz.toNat ≤ Pn := by
+    rintro rfl h1
+    simp only [Bool.not_false, Bool.true_and, Bool.and_eq_true, decide_eq_true_eq] at hmargin
+    word_simp at hmargin; omega
+  have hguard' : exact = false → mz.toNat ≤ Pn % 2 ^ (sN - 1) := by
+    rintro rfl
+    simp only [Bool.not_false, Bool.true_and, Bool.and_eq_true, decide_eq_true_eq] at hguard
+    rw [hrest]; word_simp at hguard; omega
+  -- the bit length of `X` is that of `P`: `2^(190 + topN) ≤ X < 2^(191 + topN)`
+  have hbits : (2 : Rat) ^ (190 + topN : Nat) ≤ X ∧ X < (2 : Rat) ^ (191 + topN : Nat) := by
+    have hPhi : Pn < 2 ^ (191 + topN) := by
+      rcases (show topN = 0 ∨ topN = 1 by omega) with rfl | rfl <;> omega
+    refine ⟨?_, lt_of_le_of_lt hXP (by exact_mod_cast hPhi)⟩
+    rcases (show topN = 0 ∨ topN = 1 by omega) with rfl | rfl
+    · exact hX190
+    cases exact
+    · rw [if_neg Bool.false_ne_true] at hPX
+      have hm : ((2 ^ 191 + mz.toNat : Nat) : Rat) ≤ Pn := by exact_mod_cast hmarg rfl rfl
+      push_cast at hm
+      exact Rat.le_of_lt (lt_of_le_of_lt (by grind) hPX)
+    · rw [if_pos rfl] at hPX
+      rw [hPX]; exact_mod_cast (by omega : 2 ^ (190 + 1) ≤ Pn)
+  -- `x = X / 2^hz` lies in the binade `[2^t, 2^(t + 1))`, `t = 190 + topN - hz`
+  have hzpos : (0 : Rat) < (2 : Rat) ^ hz := two_zpow_pos hz
+  have hx : (2 : Rat) ^ (190 + (topN : Int) - hz) ≤ X / (2 : Rat) ^ hz
+      ∧ X / (2 : Rat) ^ hz < (2 : Rat) ^ (190 + (topN : Int) - hz + 1) := by
+    rw [le_div_iff hzpos, Rat.div_lt_iff hzpos, ← Rat.zpow_add (by decide), ← Rat.zpow_add (by decide),
+      show 190 + (topN : Int) - hz + hz = ((190 + topN : Nat) : Int) by omega,
+      show 190 + (topN : Int) - hz + 1 + hz = ((191 + topN : Nat) : Int) by omega,
+      Rat.zpow_natCast, Rat.zpow_natCast]
+    exact hbits
+  generalize hxdef : X / (2 : Rat) ^ hz = x at *
+  have hk' : gridExp x = k :=
+    gridExp_eq_of (Rat.le_of_lt (lt_of_lt_of_le (two_zpow_pos _) hx.1)) (by omega)
+      (lt_of_lt_of_le hx.2 (zpow_le_zpow_right₀ (by decide) (by omega)))
+      (Or.imp_right (fun (hc : k + 52 = 190 + (topN : Int) - hz) => hc ▸ hx.1) (by omega))
+  have hthr : ¬ ((2 : Rat) ^ 1024 - 2 ^ 970 ≤ x) :=
+    Rat.not_le.mpr (lt_of_lt_of_le
+      (lt_of_lt_of_le hx.2 (zpow_le_zpow_right₀ (by decide) (by omega : _ ≤ (1023 : Int))))
+      (by decide +kernel))
+  -- the scaled value `x / 2^k = X / 2^s`
+  have hsdef : x / (2 : Rat) ^ k = X / (2 : Rat) ^ sN := by
+    rw [← hxdef, ← div_div, ← Rat.zpow_add (by decide), show hz + k = (sN : Int) by omega,
+      Rat.zpow_natCast]
+  -- the kernel's bits
+  have hQlt : Pn / 2 ^ sN < 2 ^ 62 :=
+    Nat.div_lt_of_lt_mul (Nat.lt_of_lt_of_le (by omega : Pn < 2 ^ 192)
+      (by rw [← Nat.pow_add]; exact Nat.pow_le_pow_right (by decide) (by omega)))
   have hqU1 : (qU + 1).toNat = Pn / 2 ^ sN + 1 := by word
   have hqUodd : (qU + (qU &&& 1)).toNat = Pn / 2 ^ sN + Pn / 2 ^ sN % 2 := by word
   have hbU0 : (bU = 0) ↔ Pn / 2 ^ (sN - 1) % 2 = 0 := by word
-  have hrestZ : ((rU = 0 && pMid = 0 && pLo = 0) = true) ↔ Pn % 2 ^ (sN - 1) = 0 := by
-    simp only [Bool.and_eq_true, decide_eq_true_eq]; word
-  have hrestS : ((rU = 0 && pMid = 0 && pLo < mz) = true) ↔ Pn % 2 ^ (sN - 1) < mz.toNat := by
-    simp only [Bool.and_eq_true, decide_eq_true_eq]; word
-  -- the significand, as a natural
+  have hrestZ : ((exact && (rU = 0 && pMid = 0) && pLo = 0) = true) ↔ (exact ∧ Pn % 2 ^ (sN - 1) = 0) := by
+    rw [Bool.and_assoc, Bool.and_eq_true]
+    exact and_congr_right fun _ => by simp only [Bool.and_eq_true, decide_eq_true_eq]; rw [hrest]; word
+  -- the significand, as `roundEven` and as the kernel's word
   generalize hnN : (if Pn / 2 ^ (sN - 1) % 2 = 0 then Pn / 2 ^ sN
       else if exact ∧ Pn % 2 ^ (sN - 1) = 0 then Pn / 2 ^ sN + Pn / 2 ^ sN % 2
       else Pn / 2 ^ sN + 1 : Nat) = nN
-  -- the kernel's word, and the guard it checked
-  have hw : ∃ nU : UInt64, nU.toNat = nN ∧ (exact = false → mz.toNat ≤ Pn % 2 ^ (sN - 1))
-      ∧ w = (if nU = 0 then Word.pack sign 0 0 else packFinite sign nU k) := by
-    split at h
-    · rename_i hex
-      refine ⟨_, ?_, fun hc => absurd hex (by simp [hc]), h.symm⟩
-      rw [← hnN]
-      split
-      · rename_i hb0; rw [if_pos (hbU0.mp hb0)]; exact hq
-      · rename_i hb0
-        rw [if_neg (fun hc => hb0 (hbU0.mpr hc))]
-        split
-        · rename_i hz0; rw [if_pos ⟨hex, hrestZ.mp hz0⟩]; exact hqUodd
-        · rename_i hz0; rw [if_neg (fun hc => hz0 (hrestZ.mpr hc.2))]; exact hqU1
-    · rename_i hex
-      have hex' : exact = false := by simpa using hex
-      split at h
-      · exact absurd h.symm hw
-      rename_i hsmall
-      refine ⟨_, ?_, fun _ => Nat.le_of_not_lt (fun hc => hsmall (hrestS.mpr hc)),
-        h.symm⟩
-      rw [← hnN]
-      split
-      · rename_i hb0; rw [if_pos (hbU0.mp hb0)]; exact hq
-      · rename_i hb0
-        rw [if_neg (fun hc => hb0 (hbU0.mpr hc)),
-          if_neg (fun hc => by rw [hex'] at hc; exact Bool.false_ne_true hc.1)]
-        exact hqU1
-  obtain ⟨nU, hnU, hguard, hwdef⟩ := hw
-  have hround := round_from_bits Pn sN (by omega) X mz.toNat exact hXP hPX hguard
-  rw [hnN] at hround
-  have hn' : roundEven (x / (2 : Rat) ^ k) = nN := by rw [hsdef, hround]
-  -- the significand's bounds
+  have hn' : roundEven (x / (2 : Rat) ^ k) = nN := by
+    rw [hsdef, round_from_bits Pn sN (by omega) X mz.toNat exact hXP hPX hguard', hnN]
   have hkpos : (0 : Rat) < (2 : Rat) ^ k := two_zpow_pos k
   have hn53 : nN ≤ 2 ^ 53 := by
-    have hlt : x / (2 : Rat) ^ k < ((2 ^ 53 : Nat) : Rat) := by
-      rw [← two_zpow_natCast, Rat.div_lt_iff hkpos, Rat.mul_comm, ← Rat.zpow_add (by decide)]
-      exact lt_of_lt_of_le hx.2 (zpow_le_zpow_right₀ (by decide) (by omega))
-    have := roundEven_le hlt
-    rw [hn'] at this
-    exact_mod_cast this
-  have hn52 : k ≠ -1074 → 2 ^ 52 ≤ nN := by
-    intro hk1074
-    have hkt : k + ((52 : Nat) : Int) = 190 + (topN : Int) - hz := by omega
-    have hge : ((2 ^ 52 : Nat) : Rat) ≤ x / (2 : Rat) ^ k := by
-      rw [← two_zpow_natCast, le_div_iff hkpos, ← Rat.zpow_add (by decide), Int.add_comm, hkt]
-      exact hx.1
-    have := roundEven_ge hge
-    rw [hn'] at this
-    exact_mod_cast this
+    have := roundEven_le (x := x / 2 ^ k) (b := 2 ^ 53) (by
+      rw [← two_zpow_natCast, Rat.div_lt_iff hkpos, ← Rat.zpow_add (by decide)]
+      exact lt_of_lt_of_le hx.2 (zpow_le_zpow_right₀ (by decide) (by omega)))
+    rw [hn'] at this; exact_mod_cast this
+  have hn52 : k ≠ -1074 → 2 ^ 52 ≤ nN := fun hk1074 => by
+    have := roundEven_ge (y := x / 2 ^ k) (b := 2 ^ 52) (by
+      rw [← two_zpow_natCast, le_div_iff hkpos, ← Rat.zpow_add (by decide)]
+      exact Rat.le_trans (zpow_le_zpow_right₀ (by decide) (by omega)) hx.1)
+    rw [hn'] at this; exact_mod_cast this
   -- assemble
-  rw [hwdef]
-  unfold readMag
-  rw [if_neg hthr]
-  dsimp only
-  rw [hk', hn', Int.toNat_natCast]
-  by_cases hn0 : nN = 0
-  · have hnU0 : nU = 0 := by word
-    rw [if_pos hnU0, dif_pos hn0, toBits_pack_zero]
-  · have hnU0 : nU ≠ 0 := by word
-    rw [if_neg hnU0, dif_neg hn0]
-    unfold packFinite
-    by_cases hc53 : nN = 2 ^ 53
-    · have h1 : ¬ nU < 4503599627370496 := by word
-      have h2 : nU = 9007199254740992 := by word
-      rw [if_pos hc53, if_neg h1, if_pos h2,
-        toBits_pack_finite sign (by decide) ⟨by decide, by omega, by omega, fun _ => Nat.le_refl _⟩,
-        if_neg (Nat.lt_irrefl _), Nat.mod_self, show k + 1 + 1075 = k + 1076 by omega]
-    · rw [if_neg hc53,
-        toBits_pack_finite sign (Nat.pos_of_ne_zero hn0) ⟨by omega, by omega, by omega, hn52⟩]
-      by_cases hlt : nN < 2 ^ 52
-      · have h1 : nU < 4503599627370496 := by word
-        rw [if_pos h1, if_pos hlt, Nat.mod_eq_of_lt hlt, hnU]
-      · have h1 : ¬ nU < 4503599627370496 := by word
-        have h2 : nU ≠ 9007199254740992 := by word
-        rw [if_neg h1, if_neg h2, if_neg hlt,
-          show (nU - 4503599627370496).toNat = nN % 2 ^ 52 by word]
+  subst h
+  rw [packFinite_toBits sign (n := nN) _ hn53 (by omega) (by omega) hn52]
+  · unfold readMag; rw [if_neg hthr]; dsimp only; rw [hk', hn', Int.toNat_natCast]
+  · rw [← hnN]; simp only [apply_ite UInt64.toNat, hq, hqU1, hqUodd, hbU0, hrestZ]
 
 /-! ## Proof: the table entry against `10^e` -/
 
@@ -619,57 +530,31 @@ theorem table_bounds (e : Int) (hLo : -324 ≤ e) (hHi : e ≤ 324) :
     ∧ (0 ≤ e → e ≤ 54 →
         (((pow10Lookup128 e).1.toNat * 2 ^ 64 + (pow10Lookup128 e).2.1.toNat : Nat) : Rat)
           = (10 : Rat) ^ e * (2 : Rat) ^ (pow10Lookup128 e).2.2) := by
-  have h3 : pow10Table128_kMin = -324 := rfl
-  have h4 : pow10Table128_kMax = 324 := rfl
-  have hinv := pow10Lookup128_invariant e (by omega) (by omega)
-  dsimp only at hinv
-  rw [toNat_of_if, toNat_neg_of_if, toNat_of_if, toNat_neg_of_if] at hinv
-  simp only [Nat.mul_assoc] at hinv
-  have hlook := pow10Lookup128_eq e (by omega) (by omega)
-  have hh : (pow10Lookup128 e).2.2 = pow10Shift e := by rw [hlook]; rfl
+  have hinv := pow10Lookup128_invariant e hLo hHi
   have hge := pow10Num_ge e hLo hHi
   have hdvd := pow10Den_dvd e
-  unfold pow10Num pow10Den at hge hdvd
-  rw [← hh] at hge hdvd
-  generalize hg : (pow10Lookup128 e).1.toNat * 2 ^ 64 + (pow10Lookup128 e).2.1.toNat = g at *
-  generalize hhh : (pow10Lookup128 e).2.2 = hh' at *
-  generalize hnum : 10 ^ e.toNat * 2 ^ hh'.toNat = num at *
-  generalize hden : 10 ^ (-e).toNat * 2 ^ (-hh').toNat = den at *
-  have hden0 : 0 < den := by
-    rw [← hden]; exact Nat.mul_pos (Nat.pow_pos (by decide)) (Nat.pow_pos (by decide))
+  rw [show pow10Shift e = (pow10Lookup128 e).2.2 by rw [pow10Lookup128_eq e hLo hHi]; rfl] at hge hdvd
+  generalize (pow10Lookup128 e).1.toNat * 2 ^ 64 + (pow10Lookup128 e).2.1.toNat = g at *
+  generalize (pow10Lookup128 e).2.2 = hh at *
+  have hden0 := pow10Den_pos e hh
+  generalize hnum : pow10Num e hh = num at *
+  generalize hden : pow10Den e hh = den at *
   have hdenR : (0 : Rat) < den := by exact_mod_cast hden0
   -- `10^e · 2^h = num / den`
-  have hval : (10 : Rat) ^ e * (2 : Rat) ^ hh' = (num : Rat) / den := by
-    rw [zpow_eq_div 10 e, zpow_eq_div 2 hh', ← hnum, ← hden]
-    push_cast
-    rw [Rat.div_def, Rat.div_def, Rat.div_def, Rat.inv_mul_rev]
-    grind
-  rw [hval]
-  refine ⟨?_, ?_, ?_, ?_⟩
-  · rw [div_le_iff hdenR]
-    exact_mod_cast hinv.1
+  rw [show (10 : Rat) ^ e * (2 : Rat) ^ hh = (num : Rat) / den by
+    rw [zpow_eq_div 10 e, zpow_eq_div 2 hh, div_mul_div_comm, ← hnum, ← hden]
+    unfold pow10Num pow10Den; push_cast; rfl]
+  refine ⟨(div_le_iff hdenR).mpr (by exact_mod_cast hinv.1), ?_,
+    (le_div_iff hdenR).mpr (by exact_mod_cast hge), fun he0 he54 => ?_⟩
   · rw [Rat.lt_div_iff hdenR]
-    have h1' := (Rat.natCast_lt_natCast).mpr hinv.2
-    push_cast at h1'
-    grind
-  · rw [le_div_iff hdenR]
-    exact_mod_cast hge
-  · intro he0 he54
-    have hd := hdvd he0 he54
-    obtain ⟨q, hq⟩ := hd
-    have h1 := hinv.1
-    have h2 := hinv.2
-    rw [hq] at h1 h2 ⊢
-    have hgq : g = q := by
-      have ha : q ≤ g := Nat.le_of_mul_le_mul_left (by rw [Nat.mul_comm den g]; exact h1) hden0
-      have hb : g < q + 1 := Nat.lt_of_mul_lt_mul_left (by
-        rw [Nat.mul_comm den g]
-        calc g * den < den * q + den := h2
-          _ = den * (q + 1) := by rw [Nat.mul_add, Nat.mul_one])
-      omega
-    rw [hgq]
-    push_cast
-    rw [Rat.mul_comm, Rat.div_def, Rat.mul_assoc, Rat.mul_inv_cancel _ (Rat.ne_of_gt hdenR), Rat.mul_one]
+    have := Rat.natCast_lt_natCast.mpr hinv.2; push_cast at this; grind
+  · obtain ⟨q, hq⟩ := hdvd he0 he54
+    rw [hq] at hinv ⊢
+    rw [show g = q by
+      rw [← Nat.mul_div_cancel g hden0]
+      exact Nat.div_eq_of_lt_le (Nat.mul_comm den q ▸ hinv.1)
+        (by rw [Nat.succ_mul, Nat.mul_comm q den]; exact hinv.2)]
+    push_cast; rw [Rat.mul_comm]; exact (Rat.mul_div_cancel (Rat.ne_of_gt hdenR)).symm
 
 /-! ## Proof: the normalised significand -/
 
@@ -705,46 +590,34 @@ theorem lzShift_spec {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64) :
   dsimp only
   obtain ⟨e1, l1, b1⟩ := lz_step (UInt64.ofNat m) 4294967296 32 32 (by decide) (by decide) (by decide)
     (by rw [hmN]; show 2 ^ 0 ≤ m; omega)
-  generalize hz1 : (if UInt64.ofNat m < 4294967296 then (32 : UInt64) else 0) = z1 at *
-  generalize hm1 : UInt64.ofNat m <<< z1 = m1 at *
+  generalize (if UInt64.ofNat m < 4294967296 then (32 : UInt64) else 0) = z1 at *
+  generalize UInt64.ofNat m <<< z1 = m1 at *
   obtain ⟨e2, l2, b2⟩ := lz_step m1 281474976710656 16 16 (by decide) (by decide) (by decide) l1
-  generalize hz2 : (if m1 < 281474976710656 then (16 : UInt64) else 0) = z2 at *
-  generalize hm2 : m1 <<< z2 = m2 at *
+  generalize (if m1 < 281474976710656 then (16 : UInt64) else 0) = z2 at *
+  generalize m1 <<< z2 = m2 at *
   obtain ⟨e3, l3, b3⟩ := lz_step m2 72057594037927936 8 8 (by decide) (by decide) (by decide) l2
-  generalize hz3 : (if m2 < 72057594037927936 then (8 : UInt64) else 0) = z3 at *
-  generalize hm3 : m2 <<< z3 = m3 at *
+  generalize (if m2 < 72057594037927936 then (8 : UInt64) else 0) = z3 at *
+  generalize m2 <<< z3 = m3 at *
   obtain ⟨e4, l4, b4⟩ := lz_step m3 1152921504606846976 4 4 (by decide) (by decide) (by decide) l3
-  generalize hz4 : (if m3 < 1152921504606846976 then (4 : UInt64) else 0) = z4 at *
-  generalize hm4 : m3 <<< z4 = m4 at *
+  generalize (if m3 < 1152921504606846976 then (4 : UInt64) else 0) = z4 at *
+  generalize m3 <<< z4 = m4 at *
   obtain ⟨e5, l5, b5⟩ := lz_step m4 4611686018427387904 2 2 (by decide) (by decide) (by decide) l4
-  generalize hz5 : (if m4 < 4611686018427387904 then (2 : UInt64) else 0) = z5 at *
-  generalize hm5 : m4 <<< z5 = m5 at *
+  generalize (if m4 < 4611686018427387904 then (2 : UInt64) else 0) = z5 at *
+  generalize m4 <<< z5 = m5 at *
   obtain ⟨e6, l6, b6⟩ := lz_step m5 9223372036854775808 1 1 (by decide) (by decide) (by decide) l5
-  generalize hz6 : (if m5 < 9223372036854775808 then (1 : UInt64) else 0) = z6 at *
-  generalize hm6 : m5 <<< z6 = m6 at *
+  generalize (if m5 < 9223372036854775808 then (1 : UInt64) else 0) = z6 at *
+  generalize m5 <<< z6 = m6 at *
   have h6lt := m6.toNat_lt
-  -- the shift as a natural
   generalize hZ : z1.toNat + z2.toNat + z3.toNat + z4.toNat + z5.toNat + z6.toNat = Z at *
-  have hsum : (z1 + z2 + z3 + z4 + z5 + z6).toNat = Z := by word
-  -- the normalised value
-  have hval : m6.toNat = m * 2 ^ Z := by
-    rw [e6, e5, e4, e3, e2, e1, hmN, ← hZ]
-    simp only [Nat.mul_assoc, ← Nat.pow_add]
-  rw [hsum]
+  rw [show (z1 + z2 + z3 + z4 + z5 + z6).toNat = Z by word]
   -- `2^63 ≤ m · 2^Z < 2^64` pins `log2 m = 63 - Z`
-  have hZ63 : Z ≤ 63 := by omega
-  have hlo : 2 ^ (63 - Z) ≤ m := by
-    have : 2 ^ (63 - Z) * 2 ^ Z ≤ m * 2 ^ Z := by
-      rw [← Nat.pow_add, show 63 - Z + Z = 63 by omega, ← hval]; exact l6
-    exact Nat.le_of_mul_le_mul_right this (Nat.two_pow_pos _)
-  have hhi : m < 2 ^ (64 - Z) := by
-    have : m * 2 ^ Z < 2 ^ (64 - Z) * 2 ^ Z := by
-      rw [← Nat.pow_add, show 64 - Z + Z = 64 by omega, ← hval]; exact h6lt
-    exact Nat.lt_of_mul_lt_mul_right this
-  have h1 : m.log2 < 64 - Z := (Nat.log2_lt hm0).mpr hhi
-  have h2 : 63 - Z < m.log2 + 1 := by
-    have := Nat.lt_of_le_of_lt hlo (Nat.lt_log2_self (n := m))
-    exact (Nat.pow_lt_pow_iff_right (by decide)).mp this
+  have hval : m6.toNat = m * 2 ^ Z := by
+    rw [e6, e5, e4, e3, e2, e1, hmN, ← hZ]; simp only [Nat.mul_assoc, ← Nat.pow_add]
+  have hlog : m.log2 = 63 - Z := (Nat.log2_eq_iff hm0).mpr
+    ⟨Nat.le_of_mul_le_mul_right (c := 2 ^ Z)
+      (by rw [← Nat.pow_add, show 63 - Z + Z = 63 by omega, ← hval]; exact l6) (Nat.two_pow_pos Z),
+     Nat.lt_of_mul_lt_mul_right (a := 2 ^ Z)
+      (by rw [← Nat.pow_add, show 63 - Z + 1 + Z = 64 by omega, ← hval]; exact h6lt)⟩
   omega
 
 theorem lzShift_eq {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64) :
@@ -752,21 +625,21 @@ theorem lzShift_eq {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64) :
   apply UInt64.toNat_inj.mp
   rw [lzShift_spec hm0 hm, UInt64.toNat_ofNat', Nat.mod_eq_of_lt (by omega)]
 
-
+/-- The normalised significand `mz = m · 2^(63 - log2 m)`, at least `2^63`. -/
 theorem mz_facts {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64) :
     (UInt64.ofNat m <<< UInt64.ofNat (63 - m.log2)).toNat = m * 2 ^ (63 - m.log2)
-    ∧ 2 ^ 63 ≤ m * 2 ^ (63 - m.log2) ∧ m * 2 ^ (63 - m.log2) < 2 ^ 64 := by
+    ∧ 2 ^ 63 ≤ m * 2 ^ (63 - m.log2) := by
   have hL1 : 2 ^ m.log2 ≤ m := Nat.log2_self_le hm0
   have hL2 : m < 2 ^ (m.log2 + 1) := Nat.lt_log2_self
   have hL64 : m.log2 < 64 := (Nat.log2_lt hm0).mpr hm
-  generalize hL : m.log2 = L at *
+  generalize m.log2 = L at *
   have hlo : 2 ^ 63 ≤ m * 2 ^ (63 - L) := by
     have := Nat.mul_le_mul_right (2 ^ (63 - L)) hL1
     rwa [← Nat.pow_add, Nat.add_sub_cancel' (by omega)] at this
   have hhi : m * 2 ^ (63 - L) < 2 ^ 64 := by
     have := Nat.mul_lt_mul_of_pos_right hL2 (Nat.two_pow_pos (63 - L))
     rwa [← Nat.pow_add, show L + 1 + (63 - L) = 64 by omega] at this
-  refine ⟨?_, hlo, hhi⟩
+  refine ⟨?_, hlo⟩
   word_simp
   rw [Nat.mod_eq_of_lt hm, Nat.mod_eq_of_lt (by omega : 63 - L < 2 ^ 64),
     Nat.mod_eq_of_lt (by omega : 63 - L < 64), Nat.mod_eq_of_lt hhi]
@@ -776,65 +649,44 @@ theorem mz_facts {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64) :
 /-- The table regime: `X = mz · 10^e · 2^h` against `P = mz · g`. -/
 theorem roundCore_table (sign : Sign) {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64) {e : Int}
     (hLo : -324 ≤ e) (hHi : e ≤ 324) (exact : Bool) (hex : exact = true → 0 ≤ e ∧ e ≤ 54)
-    {gHi gLo : UInt64} {hh : Int} (hg : pow10Lookup128 e = (gHi, gLo, hh))
-    {pHi pMid pLo : UInt64}
-    (hp : mul64x128 (UInt64.ofNat m <<< lzShift (UInt64.ofNat m)) gHi gLo = (pHi, pMid, pLo))
     {w : UInt64}
-    (h : roundCore sign (UInt64.ofNat m <<< lzShift (UInt64.ofNat m)) pHi pMid pLo
-      (hh + ((lzShift (UInt64.ofNat m)).toNat : Int)) exact = w) (hw : w ≠ declined) :
+    (h : let mz := UInt64.ofNat m <<< lzShift (UInt64.ofNat m)
+         let g := pow10Lookup128 e
+         let p := mul64x128 mz g.1 g.2.1
+         roundCore sign mz p.1 p.2.1 p.2.2 (g.2.2 + ((lzShift (UInt64.ofNat m)).toNat : Int)) exact = w)
+    (hw : w ≠ declined) :
     w = (Float.Model.pack (readMag sign ((m : Rat) * (10 : Rat) ^ e))).toBits := by
-  rw [lzShift_eq hm0 hm] at hp
+  dsimp only at h
   rw [lzShift_spec hm0 hm, lzShift_eq hm0 hm] at h
-  obtain ⟨hmzN, hmzlo, hmzhi⟩ := mz_facts hm0 hm
-  generalize hz : 63 - m.log2 = z at *
-  generalize hmz : UInt64.ofNat m <<< UInt64.ofNat z = mz at *
+  obtain ⟨hmzN, hmzlo⟩ := mz_facts hm0 hm
+  generalize 63 - m.log2 = z at *
+  generalize UInt64.ofNat m <<< UInt64.ofNat z = mz at *
   obtain ⟨hb1, hb2, hb3, hb4⟩ := table_bounds e hLo hHi
-  rw [hg] at hb1 hb2 hb3 hb4
-  dsimp only at hb1 hb2 hb3 hb4
-  generalize hgN : gHi.toNat * 2 ^ 64 + gLo.toNat = g at *
-  have hPval : val192 pHi pMid pLo = mz.toNat * g := by
-    have := mul64x128_val mz gHi gLo
-    rw [hp] at this
-    simpa [hgN] using this
-  have hmzR : (2 : Rat) ^ (63 : Nat) ≤ (mz.toNat : Rat) := by rw [hmzN]; exact_mod_cast hmzlo
-  have hmzpos : (0 : Rat) < (mz.toNat : Rat) := lt_of_lt_of_le (Rat.pow_pos (by decide)) hmzR
-  have hzpos : (0 : Rat) < (2 : Rat) ^ hh * (2 : Rat) ^ (z : Nat) :=
-    Rat.mul_pos (two_zpow_pos _) (Rat.pow_pos (by decide))
-  have hxeq : (mz.toNat : Rat) * ((10 : Rat) ^ e * (2 : Rat) ^ hh) / (2 : Rat) ^ (hh + (z : Int))
-      = (m : Rat) * (10 : Rat) ^ e := by
+  have hPval := mul64x128_val mz (pow10Lookup128 e).1 (pow10Lookup128 e).2.1
+  generalize (pow10Lookup128 e).1.toNat * 2 ^ 64 + (pow10Lookup128 e).2.1.toNat = g at *
+  generalize (pow10Lookup128 e).2.2 = hh at *
+  -- `X / 2^(h + z) = m · 10^e`
+  rw [show (m : Rat) * (10 : Rat) ^ e
+      = (mz.toNat : Rat) * ((10 : Rat) ^ e * (2 : Rat) ^ hh) / (2 : Rat) ^ (hh + (z : Int)) by
     rw [Rat.zpow_add (by decide), Rat.zpow_natCast, hmzN]
     push_cast
     rw [show (m : Rat) * 2 ^ z * ((10 : Rat) ^ e * 2 ^ hh) = (m : Rat) * 10 ^ e * (2 ^ hh * 2 ^ z) by grind,
-      Rat.mul_div_cancel (Rat.ne_of_gt hzpos)]
-  have key := roundCore_spec sign mz pHi pMid pLo (hh + (z : Int)) exact
-    ((mz.toNat : Rat) * ((10 : Rat) ^ e * (2 : Rat) ^ hh)) ?_ ?_ ?_ h hw
-  · rw [hxeq] at key; exact key
-  · calc (2 : Rat) ^ (190 : Nat) = 2 ^ (63 : Nat) * 2 ^ (127 : Nat) := by rw [← Rat.pow_add]
-      _ ≤ (mz.toNat : Rat) * 2 ^ (127 : Nat) :=
-          Rat.mul_le_mul_of_nonneg_right hmzR (Rat.pow_nonneg (by decide))
-      _ ≤ (mz.toNat : Rat) * ((10 : Rat) ^ e * 2 ^ hh) :=
-          Rat.mul_le_mul_of_nonneg_left hb3 (Rat.le_of_lt hmzpos)
-  · rw [hPval]; push_cast
-    exact Rat.mul_le_mul_of_nonneg_left hb1 (Rat.le_of_lt hmzpos)
-  · rw [hPval]; push_cast
-    split
-    · rename_i hex'
-      rw [← hb4 (hex hex').1 (hex hex').2]
-    · have := Rat.mul_lt_mul_of_pos_left hb2 hmzpos
-      grind
+      Rat.mul_div_cancel (Rat.ne_of_gt (Rat.mul_pos (two_zpow_pos _) (Rat.pow_pos (by decide))))]]
+  exact roundCore_spec sign mz _ _ _ _ exact _ g (by omega) hPval hb3 hb1
+    (by split
+        · exact (hb4 (hex ‹_›).1 (hex ‹_›).2).symm
+        · exact hb2) h hw
 
 /-- The exact binary regime: `x = (m / 5^{-e}) · 2^e`, run with `g = 2^127`. -/
 theorem roundCore_binary (sign : Sign) {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64) {e : Int}
-    (he : e < 0) (hdiv : m % 5 ^ (-e).toNat = 0)
-    {pHi pMid pLo : UInt64}
-    (hp : mul64x128 (UInt64.ofNat (m / 5 ^ (-e).toNat)
-      <<< lzShift (UInt64.ofNat (m / 5 ^ (-e).toNat))) 9223372036854775808 0 = (pHi, pMid, pLo))
-    {w : UInt64}
-    (h : roundCore sign (UInt64.ofNat (m / 5 ^ (-e).toNat)
-      <<< lzShift (UInt64.ofNat (m / 5 ^ (-e).toNat))) pHi pMid pLo
-      (127 - e + ((lzShift (UInt64.ofNat (m / 5 ^ (-e).toNat))).toNat : Int)) true = w)
+    (he : e < 0) (hdiv : m % 5 ^ (-e).toNat = 0) {w : UInt64}
+    (h : let mz := UInt64.ofNat (m / 5 ^ (-e).toNat) <<< lzShift (UInt64.ofNat (m / 5 ^ (-e).toNat))
+         let p := mul64x128 mz 9223372036854775808 0
+         roundCore sign mz p.1 p.2.1 p.2.2
+           (127 - e + ((lzShift (UInt64.ofNat (m / 5 ^ (-e).toNat))).toNat : Int)) true = w)
     (hw : w ≠ declined) :
     w = (Float.Model.pack (readMag sign ((m : Rat) * (10 : Rat) ^ e))).toBits := by
+  dsimp only at h
   generalize hne : (-e).toNat = ne at *
   generalize hm' : m / 5 ^ ne = m' at *
   have h5pos : 0 < 5 ^ ne := Nat.pow_pos (by decide)
@@ -843,41 +695,27 @@ theorem roundCore_binary (sign : Sign) {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 6
   have hm'0 : m' ≠ 0 := by intro hc; rw [hc, Nat.zero_mul] at hmm; exact hm0 hmm
   have hm'lt : m' < 2 ^ 64 := by
     rw [hmm] at hm; exact Nat.lt_of_le_of_lt (Nat.le_mul_of_pos_right _ h5pos) hm
-  rw [lzShift_eq hm'0 hm'lt] at hp
   rw [lzShift_spec hm'0 hm'lt, lzShift_eq hm'0 hm'lt] at h
-  obtain ⟨hmzN, hmzlo, hmzhi⟩ := mz_facts hm'0 hm'lt
-  generalize hz : 63 - m'.log2 = z at *
-  generalize hmz : UInt64.ofNat m' <<< UInt64.ofNat z = mz at *
-  have hPval : val192 pHi pMid pLo = mz.toNat * 2 ^ 127 := by
-    have := mul64x128_val mz 9223372036854775808 0
-    rw [hp, show (9223372036854775808 : UInt64).toNat = 2 ^ 63 by decide, UInt64.toNat_ofNat,
-      show (2 : Nat) ^ 63 * 2 ^ 64 + 0 % 2 ^ 64 = 2 ^ 127 by decide] at this
-    exact this
-  have hmzR : (2 : Rat) ^ (63 : Nat) ≤ (mz.toNat : Rat) := by rw [hmzN]; exact_mod_cast hmzlo
-  have hmzpos : (0 : Rat) < (mz.toNat : Rat) := lt_of_lt_of_le (Rat.pow_pos (by decide)) hmzR
+  obtain ⟨hmzN, hmzlo⟩ := mz_facts hm'0 hm'lt
+  generalize 63 - m'.log2 = z at *
+  generalize UInt64.ofNat m' <<< UInt64.ofNat z = mz at *
+  have hPval := mul64x128_val mz 9223372036854775808 0
+  rw [show (9223372036854775808 : UInt64).toNat * 2 ^ 64 + (0 : UInt64).toNat = 2 ^ 127 by decide] at hPval
   -- `X / 2^(127 - e + z) = m · 10^e`
-  have hxeq : (mz.toNat : Rat) * (2 : Rat) ^ (127 : Nat) / (2 : Rat) ^ (127 - e + (z : Int))
-      = (m : Rat) * (10 : Rat) ^ e := by
-    have he' : e = -(ne : Int) := by omega
-    have hnat : m' * 2 ^ z * 2 ^ 127 * 10 ^ ne = m * 2 ^ (127 + ne + z) := by
-      rw [hmm, show (10 : Nat) = 2 * 5 by rfl, Nat.mul_pow, Nat.pow_add, Nat.pow_add]
-      grind
+  rw [show (m : Rat) * (10 : Rat) ^ e
+      = (mz.toNat : Rat) * ((2 ^ 127 : Nat) : Rat) / (2 : Rat) ^ (127 - e + (z : Int)) by
     have hcast : (m' : Rat) * 2 ^ z * 2 ^ (127 : Nat) * (10 : Rat) ^ ne = (m : Rat) * 2 ^ (127 + ne + z) := by
-      exact_mod_cast hnat
-    rw [hmzN, he', show (127 : Int) - -(ne : Int) + (z : Int) = ((127 + ne + z : Nat) : Int) by omega,
-      Rat.zpow_natCast, Rat.zpow_neg, Rat.zpow_natCast, div_eq_iff (Rat.pow_pos (by decide))]
+      exact_mod_cast (show m' * 2 ^ z * 2 ^ 127 * 10 ^ ne = m * 2 ^ (127 + ne + z) by
+        rw [hmm, show (10 : Nat) = 2 * 5 by rfl, Nat.mul_pow, Nat.pow_add, Nat.pow_add]; grind)
+    rw [hmzN, show e = -(ne : Int) by omega,
+      show (127 : Int) - -(ne : Int) + (z : Int) = ((127 + ne + z : Nat) : Int) by omega,
+      Rat.zpow_natCast, Rat.zpow_neg, Rat.zpow_natCast, eq_div_iff (Rat.pow_pos (by decide))]
     push_cast
-    have h10 : (0 : Rat) < (10 : Rat) ^ ne := Rat.pow_pos (by decide)
-    have hinv : (10 : Rat) ^ ne * ((10 : Rat) ^ ne)⁻¹ = 1 := Rat.mul_inv_cancel _ (Rat.ne_of_gt h10)
-    grind
-  have key := roundCore_spec sign mz pHi pMid pLo (127 - e + (z : Int)) true
-    ((mz.toNat : Rat) * (2 : Rat) ^ (127 : Nat)) ?_ ?_ ?_ h hw
-  · rw [hxeq] at key; exact key
-  · calc (2 : Rat) ^ (190 : Nat) = 2 ^ (63 : Nat) * 2 ^ (127 : Nat) := by rw [← Rat.pow_add]
-      _ ≤ (mz.toNat : Rat) * 2 ^ (127 : Nat) :=
-          Rat.mul_le_mul_of_nonneg_right hmzR (Rat.pow_nonneg (by decide))
-  · rw [hPval]; push_cast; exact Rat.le_refl
-  · rw [if_pos rfl, hPval, Rat.natCast_mul, ← two_zpow_natCast, Rat.zpow_natCast]
+    have hinv : (10 : Rat) ^ ne * ((10 : Rat) ^ ne)⁻¹ = 1 :=
+      Rat.mul_inv_cancel _ (Rat.ne_of_gt (Rat.pow_pos (by decide)))
+    grind]
+  exact roundCore_spec sign mz _ _ _ _ true _ (2 ^ 127) (by omega) hPval (by exact_mod_cast Nat.le_refl _)
+    Rat.le_refl (by rw [if_pos rfl]) h hw
 
 /-! ## Proof: the kernel -/
 
@@ -911,16 +749,13 @@ theorem readMag_infinity (s : Sign) {x : Rat} (hx : (2 : Rat) ^ 1024 - 2 ^ 970 �
 theorem overflow_of_big {m : Nat} (hm : m ≠ 0) {e : Int} (he : 308 < e) :
     (2 : Rat) ^ 1024 - 2 ^ 970 ≤ (m : Rat) * (10 : Rat) ^ e := by
   have h1 : (2 : Rat) ^ (1024 : Nat) ≤ (10 : Rat) ^ (309 : Nat) := by
-    have := Rat.natCast_le_natCast.mpr (show (2 : Nat) ^ 1024 ≤ 10 ^ 309 by decide +kernel)
-    rw [Rat.natCast_pow, Rat.natCast_pow] at this
-    exact this
-  have h2 : (10 : Rat) ^ (309 : Int) ≤ (10 : Rat) ^ e := zpow_le_zpow_right₀ (by decide) (by omega)
-  have h2' : (10 : Rat) ^ (309 : Nat) ≤ (10 : Rat) ^ e := h2
-  have h3 : (1 : Rat) ≤ (m : Rat) := by exact_mod_cast (Nat.one_le_iff_ne_zero.mpr hm)
-  have h4 : (1 : Rat) * (10 : Rat) ^ e ≤ (m : Rat) * (10 : Rat) ^ e :=
-    Rat.mul_le_mul_of_nonneg_right h3 (Rat.le_of_lt (Rat.zpow_pos (by decide)))
-  have h5 := two_zpow_pos (970 : Int)
-  have h5' : (0 : Rat) < (2 : Rat) ^ (970 : Nat) := h5
+    exact_mod_cast (show (2 : Nat) ^ 1024 ≤ 10 ^ 309 by decide +kernel)
+  have h2 : (10 : Rat) ^ (309 : Nat) ≤ (10 : Rat) ^ e :=
+    zpow_le_zpow_right₀ (a := 10) (by decide) (by omega : (309 : Int) ≤ e)
+  have h3 : (1 : Rat) * (10 : Rat) ^ e ≤ (m : Rat) * (10 : Rat) ^ e :=
+    Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast Nat.one_le_iff_ne_zero.mpr hm)
+      (Rat.le_of_lt (ten_zpow_pos e))
+  have h5 : (0 : Rat) < (2 : Rat) ^ (970 : Nat) := Rat.pow_pos (by decide)
   grind
 
 theorem readFast_some (d : Decimal) {w : UInt64} (h : readFast d = w) (hw : w ≠ declined) :
@@ -931,9 +766,7 @@ theorem readFast_some (d : Decimal) {w : UInt64} (h : readFast d = w) (hw : w �
   rw [read_eq_readMag, abs_toRat]
   split at h
   · rename_i hm0
-    rw [← h, hm0]
-    push_cast
-    rw [Rat.zero_mul, readMag_zero, toBits_pack_zero]
+    rw [← h, hm0]; push_cast; rw [Rat.zero_mul, readMag_zero, toBits_pack_zero]
   rename_i hm0
   split at h
   · exact absurd h.symm hw
@@ -947,35 +780,12 @@ theorem readFast_some (d : Decimal) {w : UInt64} (h : readFast d = w) (hw : w �
   rename_i hsmall
   have hm' : d.significand < 2 ^ 64 := by omega
   split at h
-  · rename_i he
-    rcases hg : pow10Lookup128 d.exponent with ⟨gHi, gLo, hh⟩
-    rw [hg] at h
-    dsimp only at h
-    rcases hp : mul64x128 (UInt64.ofNat d.significand <<< lzShift (UInt64.ofNat d.significand)) gHi gLo
-      with ⟨pHi, pMid, pLo⟩
-    rw [hp] at h
-    dsimp only at h
-    exact roundCore_table d.sign hm0 hm' (by omega) (by omega) _
-      (fun hx => ⟨he, of_decide_eq_true hx⟩) hg hp h hw
-  · rename_i he
-    split at h
-    · rename_i hb
-      obtain ⟨-, hdiv⟩ := hb
-      rcases hp : mul64x128 (UInt64.ofNat (d.significand / 5 ^ (-d.exponent).toNat)
-          <<< lzShift (UInt64.ofNat (d.significand / 5 ^ (-d.exponent).toNat))) 9223372036854775808 0
-        with ⟨pHi, pMid, pLo⟩
-      rw [hp] at h
-      dsimp only at h
-      exact roundCore_binary d.sign hm0 hm' (by omega) hdiv hp h hw
-    · rcases hg : pow10Lookup128 d.exponent with ⟨gHi, gLo, hh⟩
-      rw [hg] at h
-      dsimp only at h
-      rcases hp : mul64x128 (UInt64.ofNat d.significand <<< lzShift (UInt64.ofNat d.significand)) gHi gLo
-        with ⟨pHi, pMid, pLo⟩
-      rw [hp] at h
-      dsimp only at h
-      exact roundCore_table d.sign hm0 hm' (by omega) (by omega) false
-        (fun hx => absurd hx (by decide)) hg hp h hw
+  · exact roundCore_table d.sign hm0 hm' (by omega) (by omega) _
+      (fun hx => ⟨‹_›, of_decide_eq_true hx⟩) h hw
+  split at h
+  · rename_i hb; exact roundCore_binary d.sign hm0 hm' (by omega) hb.2 h hw
+  · exact roundCore_table d.sign hm0 hm' (by omega) (by omega) false
+      (fun hx => absurd hx (by decide)) h hw
 
 /-! ## Registration -/
 

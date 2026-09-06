@@ -138,46 +138,37 @@ theorem unpack_pack_zero (s : Sign) :
   show UnpackedFloat.unpack Format.binary64 (packComponents Format.binary64 s 0 0) = _
   rw [unpack_packComponents]; rfl
 
+/-- `pack` of a legal finite float: the biased exponent, `0` for a
+    subnormal, and the low 52 bits of the significand. -/
+theorem pack_finite (s : Sign) {n : Nat} {k : Int} (hn : 0 < n) (h : Legal n k) :
+    UnpackedFloat.pack Format.binary64 (.finite s n k hn)
+      = packComponents Format.binary64 s (BitVec.ofNat _ (if n < 2 ^ 52 then 0 else (k + 1075).toNat))
+          (BitVec.ofNat _ n) := by
+  obtain ⟨h53, hk0, hk1, hnorm⟩ := h
+  obtain ⟨hA, hB, hC, hD, hMB⟩ := binary64_facts
+  have hlog : n.log2 = 52 ↔ ¬ n < 2 ^ 52 := by rw [Nat.log2_eq_iff (by omega)]; omega
+  unfold UnpackedFloat.pack
+  simp only
+  rw [if_neg (by omega)]
+  split
+  · rw [if_neg (hlog.mp (by omega)),
+      show (k + Format.binary64.exponentBias + Format.binary64.mantissaBitsWithoutImplicit).toNat
+        = (k + 1075).toNat by omega]
+  · rw [if_pos (by have := hlog.mpr; omega)]
+
 theorem unpack_pack_finite (s : Sign) {n : Nat} {k : Int} (hn : 0 < n) (h : Legal n k) :
     UnpackedFloat.unpack Format.binary64 (UnpackedFloat.pack Format.binary64 (.finite s n k hn))
       = .finite s n k hn := by
   obtain ⟨h53, hk0, hk1, hnorm⟩ := h
-  obtain ⟨hA, hB, hC, hD, hMB⟩ := binary64_facts
-  unfold UnpackedFloat.pack
-  simp only
-  split
-  · exfalso; omega
-  split
-  · -- normal: `2^52 ≤ n < 2^53`
-    rename_i hl
-    have hn52 : 2 ^ 52 ≤ n := by
-      have := Nat.log2_self_le (by omega : n ≠ 0)
-      rw [show n.log2 = 52 by omega] at this
-      exact this
-    rw [unpack_packComponents]
-    simp only [BitVec.toNat_ofNat]
-    rw [if_neg (by omega), if_neg (by omega)]
-    simp only [UnpackedFloat.finite.injEq, true_and]
-    omega
-  · -- subnormal: `n < 2^52`, `k = -1074`
-    rename_i hl
-    have hlt : n < 2 ^ 52 := by
-      have h1 : n < 2 ^ (n.log2 + 1) := Nat.lt_log2_self
-      have h3 : n.log2 + 1 ≤ 52 := by
-        have := (Nat.log2_lt (by omega : n ≠ 0)).mpr h53
-        omega
-      have h2 : 2 ^ (n.log2 + 1) ≤ 2 ^ 52 := Nat.pow_le_pow_right (by decide) h3
-      exact Nat.lt_of_lt_of_le h1 h2
-    have hk : k = -1074 := by
-      rcases Int.lt_or_eq_of_le hk0 with h | h
-      · exact absurd (hnorm (by omega)) (by omega)
-      · exact h.symm
-    subst hk
-    rw [unpack_packComponents]
-    simp only [BitVec.toNat_ofNat]
-    rw [if_neg (by omega), if_pos trivial, dif_neg (by omega)]
-    simp only [UnpackedFloat.finite.injEq, true_and, and_true]
-    omega
+  rw [pack_finite s hn ⟨h53, hk0, hk1, hnorm⟩, unpack_packComponents]
+  simp only [BitVec.toNat_ofNat]
+  by_cases hlt : n < 2 ^ 52
+  · -- subnormal: `k = -1074`
+    rw [if_pos hlt, if_neg (by omega), if_pos (by omega), dif_neg (by omega)]
+    simp only [UnpackedFloat.finite.injEq, true_and]; omega
+  · -- normal
+    rw [if_neg hlt, if_neg (by omega), if_neg (by omega)]
+    simp only [UnpackedFloat.finite.injEq, true_and]; omega
 
 /-! ## The bounds of a finite word -/
 
@@ -206,7 +197,6 @@ theorem pack_unpack_packComponents (s : Sign) (e : BitVec 11) (m : BitVec 52)
       = packComponents Format.binary64 s e m := by
   have hElt := e.isLt
   have hMlt := m.isLt
-  obtain ⟨hA, hB, hC, hD, hMB⟩ := binary64_facts
   rw [unpack_packComponents]
   split
   · rename_i hE
@@ -229,31 +219,13 @@ theorem pack_unpack_packComponents (s : Sign) (e : BitVec 11) (m : BitVec 52)
         show packComponents Format.binary64 s 0 0 = _
         apply BitVec.eq_of_toNat_eq
         rw [packComponents_toNat, packComponents_toNat, hZ, hM]; rfl
-      · rename_i hM
-        unfold UnpackedFloat.pack
-        simp only
-        have hlog : m.toNat.log2 < 52 := (Nat.log2_lt (by omega)).mpr (by omega)
-        split
-        · exfalso; omega
-        split
-        · exfalso; omega
+      · rw [pack_finite s _ ⟨by omega, by omega, by decide, fun h => absurd rfl h⟩, if_pos hMlt]
         apply BitVec.eq_of_toNat_eq
-        rw [packComponents_toNat, packComponents_toNat]
-        simp only [BitVec.toNat_ofNat]
-        omega
+        rw [packComponents_toNat, packComponents_toNat, BitVec.toNat_ofNat, BitVec.toNat_ofNat]; omega
     · rename_i hZ
-      unfold UnpackedFloat.pack
-      simp only
-      have hlog : (m.toNat + 2 ^ 52).log2 = 52 := by
-        rw [Nat.log2_eq_iff (by omega)]; omega
-      split
-      · exfalso; omega
-      split
-      · apply BitVec.eq_of_toNat_eq
-        rw [packComponents_toNat, packComponents_toNat]
-        simp only [BitVec.toNat_ofNat]
-        omega
-      · exfalso; omega
+      rw [pack_finite s _ ⟨by omega, by omega, by omega, fun _ => by omega⟩, if_neg (by omega)]
+      apply BitVec.eq_of_toNat_eq
+      rw [packComponents_toNat, packComponents_toNat, BitVec.toNat_ofNat, BitVec.toNat_ofNat]; omega
 
 /-- `pack ∘ unpack` is the identity on words that are not a NaN (other
     than the canonical one). -/

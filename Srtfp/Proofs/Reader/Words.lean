@@ -195,36 +195,24 @@ theorem gap (h : Legal m q) (h' : Legal m' q') (hne : v m' q' ≠ v m q) :
   have hp := two_zpow_pos q
   have hgl := gapL_le (m := m) (q := q)
   rcases Int.lt_or_le q' q with hlt | hle
-  · -- `q' < q`: every such value is below the binade of `m · 2^q`
+  · -- `q' < q`: such a value is at most `(2^53 - 1) 2^(q-1)`, the value below the binade
     left
-    have hq0 := h'.2.1
-    have hm : 2 ^ 52 ≤ m := h.2.2.2 (by omega)
-    have hm53 := h'.1
     have hp1 := two_zpow_pos (q - 1)
     have h2 : (2 : Rat) ^ q = 2 ^ (q - 1) * 2 := by
       rw [← Rat.zpow_add_one (by decide), Int.sub_add_cancel]
     have hq' : (2 : Rat) ^ q' ≤ (2 : Rat) ^ (q - 1) := zpow_le_zpow_right₀ (by decide) (by omega)
-    have hm' : (m' : Rat) + 1 ≤ 2 ^ 53 := by exact_mod_cast hm53
-    have hv' : (m' : Rat) * (2 : Rat) ^ q' ≤ (2 ^ 53 - 1) * (2 : Rat) ^ (q - 1) :=
-      calc (m' : Rat) * (2 : Rat) ^ q' ≤ m' * (2 : Rat) ^ (q - 1) :=
-            Rat.mul_le_mul_of_nonneg_left hq' (by exact_mod_cast Nat.zero_le m')
-        _ ≤ (2 ^ 53 - 1) * (2 : Rat) ^ (q - 1) :=
-            Rat.mul_le_mul_of_nonneg_right (by grind) (Rat.le_of_lt hp1)
-    unfold gapL v
-    by_cases hirr : m = 2 ^ 52 ∧ q > -1074
-    · rw [if_pos hirr, hirr.1]; push_cast
-      generalize (2 : Rat) ^ (q - 1) = P1 at *
-      generalize (2 : Rat) ^ q = P at *
-      grind
-    · rw [if_neg hirr]
-      have hm1 : 2 ^ 52 + 1 ≤ m := by
-        rcases Nat.eq_or_lt_of_le hm with heq | hlt'
-        · exact absurd ⟨heq.symm, by omega⟩ hirr
-        · omega
-      have hmq : (2 ^ 52 + 1 : Rat) ≤ m := by exact_mod_cast hm1
-      have := Rat.mul_le_mul_of_nonneg_right hmq (Rat.le_of_lt hp)
-      generalize (2 : Rat) ^ (q - 1) = P1 at *
-      generalize (2 : Rat) ^ q = P at *
+    have hm' : (m' : Rat) + 1 ≤ 2 ^ 53 := by exact_mod_cast h'.1
+    have hv' : v m' q' ≤ (2 ^ 53 - 1) * (2 : Rat) ^ (q - 1) :=
+      Rat.le_trans (Rat.mul_le_mul_of_nonneg_left hq' Rat.natCast_nonneg)
+        (Rat.mul_le_mul_of_nonneg_right (by grind) (Rat.le_of_lt hp1))
+    have hq0' := h'.2.1
+    have hm : 2 ^ 52 ≤ m := h.2.2.2 (by omega)
+    refine Rat.le_trans hv' ?_
+    unfold v gapL
+    split
+    · rename_i hirr; rw [hirr.1]; push_cast; grind
+    · have := Rat.mul_le_mul_of_nonneg_right (show (2 ^ 52 + 1 : Rat) ≤ m by exact_mod_cast (by omega : 2 ^ 52 + 1 ≤ m))
+        (Rat.le_of_lt hp)
       grind
   · -- `q ≤ q'`: the value is on the grid `2^q`, at some `n ≠ m`
     rw [v_eq_mul hle] at hne ⊢

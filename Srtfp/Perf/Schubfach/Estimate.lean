@@ -39,25 +39,15 @@ theorem k_range (h : InRange m q) : kMin ≤ kOfMQ m q ∧ kOfMQ m q ≤ kMax :=
         rfl
       have := zpow_le_zpow_right₀ (a := (2 : Rat)) (by decide) hq1
       grind
-    have hnum : (10 : Rat) ^ (-324 : Int) < (2 : Rat) ^ (-1076 : Int) := by
-      rw [show (-324 : Int) = -((324 : Nat) : Int) from rfl,
-        show (-1076 : Int) = -((1076 : Nat) : Int) from rfl,
-        zpow_neg_natCast, zpow_neg_natCast]
-      exact inv_lt_inv (Rat.pow_pos (by decide))
-        (by exact_mod_cast (by decide +kernel : (2 : Nat) ^ 1076 < 10 ^ 324))
-    have : (10 : Rat) ^ (-324 : Int) < 10 ^ (k + 1) := by grind
-    have := lt_of_zpow_lt (by decide) this
+    have hnum := ten_zpow_lt_two_zpow (x := -324) (y := -1076) (by decide +kernel)
+    have := lt_of_zpow_lt (by decide) (show (10 : Rat) ^ (-324 : Int) < 10 ^ (k + 1) by grind)
     omega
   · -- `10^k ≤ 2^q ≤ 2^971 < 10^293`
     have hw : (if m = 2 ^ 52 ∧ q > -1074 then 3 / 4 else 1) * (2 : Rat) ^ q ≤ 2 ^ q := by
       split <;> grind
     have hhi : (2 : Rat) ^ q ≤ 2 ^ (971 : Int) := zpow_le_zpow_right₀ (by decide) hq2
-    have hnum : (2 : Rat) ^ (971 : Int) < (10 : Rat) ^ (293 : Int) := by
-      rw [show (971 : Int) = ((971 : Nat) : Int) from rfl, show (293 : Int) = ((293 : Nat) : Int) from rfl,
-        Rat.zpow_natCast, Rat.zpow_natCast]
-      exact_mod_cast (by decide +kernel : 2 ^ 971 < 10 ^ 293)
-    have : (10 : Rat) ^ k < 10 ^ (293 : Int) := by grind
-    have := lt_of_zpow_lt (by decide) this
+    have hnum := two_zpow_lt_ten_zpow (x := 293) (y := 971) (by decide +kernel)
+    have := lt_of_zpow_lt (by decide) (show (10 : Rat) ^ k < 10 ^ (293 : Int) by grind)
     omega
 
 /-! ## `h = q + ⌊log₂ 10^{-k}⌋ + 2` (9) -/

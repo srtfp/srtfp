@@ -64,6 +64,9 @@ theorem div_div (a b c : Rat) : a / (b * c) = a / b / c := by
 theorem div_mul_mul {a b d : Rat} (hb : b ≠ 0) : a / b * (b * d) = a * d := by
   rw [← Rat.mul_assoc, Rat.div_mul_cancel hb]
 
+theorem div_mul_div_comm (a b c d : Rat) : a / b * (c / d) = a * c / (b * d) := by
+  rw [Rat.div_def, Rat.div_def, Rat.div_def, Rat.inv_mul_rev]; grind
+
 theorem div_le_div_iff {a b c d : Rat} (hb : 0 < b) (hd : 0 < d) :
     a / b ≤ c / d ↔ a * d ≤ c * b := by
   rw [← div_mul_mul (Rat.ne_of_gt hb) (d := d), ← div_mul_mul (Rat.ne_of_gt hd) (d := b), Rat.mul_comm d b]
@@ -202,6 +205,90 @@ theorem le_of_zpow_le {a : Rat} (ha : 1 < a) {x y : Int} (h : a ^ x ≤ a ^ y) :
   rcases Int.lt_or_le y x with h' | h'
   · exact absurd (zpow_lt_zpow ha h') (Rat.not_lt.mpr h)
   · exact h'
+
+/-! ## Ratios of powers of two and ten, cross-multiplied
+
+`b^e` is `N_b / D_b` with `N_b = b^|e|`, `D_b = 1` for `e ≥ 0` and `N_b = 1`,
+`D_b = b^|e|` otherwise; comparing `a · 10^x` with `c · 2^y` is comparing the
+naturals `a · N₁₀ · D₂` and `c · N₂ · D₁₀`. -/
+
+theorem zpow_ratio (b : Nat) (hb : 0 < b) (e : Int) :
+    (b : Rat) ^ e * ((if e ≥ 0 then 1 else b ^ e.natAbs : Nat) : Rat)
+      = ((if e ≥ 0 then b ^ e.natAbs else 1 : Nat) : Rat) := by
+  have hbq : (b : Rat) ≠ 0 := Rat.ne_of_gt (by exact_mod_cast hb)
+  by_cases he : e ≥ 0
+  · rw [if_pos he, if_pos he]; push_cast
+    rw [Rat.mul_one, ← Rat.zpow_natCast, Int.natAbs_of_nonneg he]
+  · rw [if_neg he, if_neg he]; push_cast
+    rw [← Rat.zpow_natCast, Int.ofNat_natAbs_of_nonpos (by omega), ← Rat.zpow_add hbq,
+      show e + -e = 0 by omega, Rat.zpow_zero]
+
+theorem denom_pos (b : Nat) (hb : 0 < b) (e : Int) :
+    (0 : Rat) < ((if e ≥ 0 then 1 else b ^ e.natAbs : Nat) : Rat) := by
+  have : 0 < (if e ≥ 0 then 1 else b ^ e.natAbs : Nat) := by split <;> first | decide | exact Nat.pow_pos hb
+  exact_mod_cast this
+
+/-- The cross-multiplied `Nat` forms of `a·10^x` and `c·2^y` are the rationals
+    scaled by one positive `D`. -/
+theorem cross_eq (a c : Nat) (x y : Int) :
+    ∃ D : Rat, 0 < D
+      ∧ ((a * (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs) : Nat) : Rat)
+          = (a : Rat) * (10 : Rat) ^ x * D
+      ∧ ((c * (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs) : Nat) : Rat)
+          = (c : Rat) * (2 : Rat) ^ y * D := by
+  refine ⟨_, Rat.mul_pos (denom_pos 2 (by decide) y) (denom_pos 10 (by decide) x), ?_, ?_⟩
+  · push_cast; rw [← zpow_ratio 10 (by decide) x]; push_cast; grind
+  · push_cast; rw [← zpow_ratio 2 (by decide) y]; push_cast; grind
+
+theorem le_of_ratio {a c : Nat} {x y : Int}
+    (h : a * (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)
+        ≤ c * (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)) :
+    (a : Rat) * (10 : Rat) ^ x ≤ (c : Rat) * (2 : Rat) ^ y := by
+  obtain ⟨D, hD, e1, e2⟩ := cross_eq a c x y
+  exact Rat.le_of_mul_le_mul_right (by rw [← e1, ← e2]; exact_mod_cast h) hD
+
+theorem lt_of_ratio' {a c : Nat} {x y : Int}
+    (h : a * (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)
+        < c * (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)) :
+    (a : Rat) * (10 : Rat) ^ x < (c : Rat) * (2 : Rat) ^ y := by
+  obtain ⟨D, hD, e1, e2⟩ := cross_eq a c x y
+  exact Rat.lt_of_mul_lt_mul_right (by rw [← e1, ← e2]; exact_mod_cast h) (Rat.le_of_lt hD)
+
+theorem le_of_ratio' {a c : Nat} {x y : Int}
+    (h : c * (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)
+        ≤ a * (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)) :
+    (c : Rat) * (2 : Rat) ^ y ≤ (a : Rat) * (10 : Rat) ^ x := by
+  obtain ⟨D, hD, e1, e2⟩ := cross_eq a c x y
+  exact Rat.le_of_mul_le_mul_right (by rw [← e1, ← e2]; exact_mod_cast h) hD
+
+theorem lt_of_ratio {a c : Nat} {x y : Int}
+    (h : c * (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)
+        < a * (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)) :
+    (c : Rat) * (2 : Rat) ^ y < (a : Rat) * (10 : Rat) ^ x := by
+  obtain ⟨D, hD, e1, e2⟩ := cross_eq a c x y
+  exact Rat.lt_of_mul_lt_mul_right (by rw [← e1, ← e2]; exact_mod_cast h) (Rat.le_of_lt hD)
+
+/-- The comparisons between plain powers (`a = c = 1`). -/
+theorem two_zpow_le_ten_zpow {x y : Int}
+    (h : (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)
+        ≤ (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)) :
+    (2 : Rat) ^ y ≤ (10 : Rat) ^ x :=
+  Rat.le_of_mul_le_mul_left
+    (le_of_ratio' (a := 1) (c := 1) (by rw [Nat.one_mul, Nat.one_mul]; exact h)) (by decide)
+
+theorem two_zpow_lt_ten_zpow {x y : Int}
+    (h : (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)
+        < (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)) :
+    (2 : Rat) ^ y < (10 : Rat) ^ x :=
+  Rat.lt_of_mul_lt_mul_left
+    (lt_of_ratio (a := 1) (c := 1) (by rw [Nat.one_mul, Nat.one_mul]; exact h)) (by decide)
+
+theorem ten_zpow_lt_two_zpow {x y : Int}
+    (h : (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)
+        < (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)) :
+    (10 : Rat) ^ x < (2 : Rat) ^ y :=
+  Rat.lt_of_mul_lt_mul_left
+    (lt_of_ratio' (a := 1) (c := 1) (by rw [Nat.one_mul, Nat.one_mul]; exact h)) (by decide)
 
 /-! ## Floors -/
 

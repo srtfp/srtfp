@@ -179,74 +179,9 @@ theorem candidate_eq_pick (hm : 1 ≤ m)
 
 /-! ## R10: `10^k ≤ ‖R_v‖ < 10^{k+1}` -/
 
-/-- `b^e` as the ratio of the two `Nat` powers `R14HoldsAt` / `R15HoldsAt` use. -/
-theorem zpow_ratio (b : Nat) (hb : 0 < b) (e : Int) :
-    (b : Rat) ^ e * ((if e ≥ 0 then 1 else b ^ e.natAbs : Nat) : Rat)
-      = ((if e ≥ 0 then b ^ e.natAbs else 1 : Nat) : Rat) := by
-  have hbq : (b : Rat) ≠ 0 := by
-    have : (0 : Rat) < b := by exact_mod_cast hb
-    grind
-  by_cases he : e ≥ 0
-  · rw [if_pos he, if_pos he]
-    have h1 : ((e.natAbs : Nat) : Int) = e := Int.natAbs_of_nonneg he
-    push_cast
-    rw [Rat.mul_one, ← Rat.zpow_natCast, h1]
-  · rw [if_neg he, if_neg he]
-    have h1 : ((e.natAbs : Nat) : Int) = -e := Int.ofNat_natAbs_of_nonpos (by omega)
-    push_cast
-    rw [← Rat.zpow_natCast, h1, ← Rat.zpow_add hbq, show e + -e = 0 by omega, Rat.zpow_zero]
-
-theorem denom_pos (b : Nat) (hb : 0 < b) (e : Int) :
-    (0 : Rat) < ((if e ≥ 0 then 1 else b ^ e.natAbs : Nat) : Rat) := by
-  have : 0 < (if e ≥ 0 then 1 else b ^ e.natAbs : Nat) := by
-    split
-    · decide
-    · exact Nat.pow_pos hb
-  exact_mod_cast this
-
 theorem isIrregular_iff : isIrregular m q = true ↔ (m = 2 ^ 52 ∧ q > -1074) := by
   unfold isIrregular minNormalSignificand minBinaryExp
   simp [Nat.shiftLeft_eq]
-
-/-- `a·10^x ≤ c·2^y` from its cross-multiplied `Nat` form (the shape of R14 and R15). -/
-theorem le_of_ratio {a c : Nat} {x y : Int}
-    (h : a * (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)
-        ≤ c * (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)) :
-    (a : Rat) * (10 : Rat) ^ x ≤ (c : Rat) * (2 : Rat) ^ y := by
-  have r2 := zpow_ratio 2 (by decide) y
-  have r10 := zpow_ratio 10 (by decide) x
-  have d2 := denom_pos 2 (by decide) y
-  have d10 := denom_pos 10 (by decide) x
-  have h' : ((a * (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)
-        : Nat) : Rat)
-      ≤ ((c * (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)
-        : Nat) : Rat) := by
-    exact_mod_cast h
-  push_cast at h'
-  rw [← r2, ← r10] at h'
-  generalize ((if y ≥ 0 then 1 else 2 ^ y.natAbs : Nat) : Rat) = D2 at *
-  generalize ((if x ≥ 0 then 1 else 10 ^ x.natAbs : Nat) : Rat) = D10 at *
-  exact Rat.le_of_mul_le_mul_right (c := D2 * D10) (by grind) (by grind)
-
-/-- `c·2^y < a·10^x` from its cross-multiplied `Nat` form. -/
-theorem lt_of_ratio {a c : Nat} {x y : Int}
-    (h : c * (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)
-        < a * (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)) :
-    (c : Rat) * (2 : Rat) ^ y < (a : Rat) * (10 : Rat) ^ x := by
-  have r2 := zpow_ratio 2 (by decide) y
-  have r10 := zpow_ratio 10 (by decide) x
-  have d2 := denom_pos 2 (by decide) y
-  have d10 := denom_pos 10 (by decide) x
-  have h' : ((c * (if y ≥ 0 then 2 ^ y.natAbs else 1) * (if x ≥ 0 then 1 else 10 ^ x.natAbs)
-        : Nat) : Rat)
-      < ((a * (if x ≥ 0 then 10 ^ x.natAbs else 1) * (if y ≥ 0 then 1 else 2 ^ y.natAbs)
-        : Nat) : Rat) := by
-    exact_mod_cast h
-  push_cast at h'
-  rw [← r2, ← r10] at h'
-  generalize ((if y ≥ 0 then 1 else 2 ^ y.natAbs : Nat) : Rat) = D2 at *
-  generalize ((if x ≥ 0 then 1 else 10 ^ x.natAbs : Nat) : Rat) = D10 at *
-  exact Rat.lt_of_mul_lt_mul_right (c := D2 * D10) (by grind) (by grind)
 
 /-- R10 for Schubfach's `k` (R14/R15 on the binary64 range). -/
 theorem k_spec (h : InRange m q) :

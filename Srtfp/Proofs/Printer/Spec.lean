@@ -24,7 +24,7 @@ variable {m : Nat} {q i : Int} {n : Nat} {wd : UInt64} {d : Decimal}
 theorem canonical_sig (hc : d.IsCanonical) (hne : d ≠ ⟨d.sign, 0, 0⟩) :
     1 ≤ d.significand ∧ d.significand % 10 ≠ 0 := by
   rcases hc with ⟨h0, he⟩ | ⟨h0, h10⟩
-  · exfalso; apply hne; cases d; simp_all
+  · exact absurd (by cases d; exact congr (congr (congrArg Decimal.mk rfl) h0) he) hne
   · exact ⟨Nat.pos_of_ne_zero h0, h10⟩
 
 /-- Canonical decimals of the same sign and value are equal. -/
@@ -394,13 +394,9 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
   · intro d' hne hc' hrt'
     obtain ⟨hsign', hmem'⟩ := (hri d').mp hrt'
     have hf1 : 1 ≤ d'.significand := by
-      rcases Nat.eq_zero_or_pos d'.significand with h0 | hpos
-      · exfalso
-        apply hne
-        rcases hc' with ⟨_, he⟩ | ⟨hne0, _⟩
-        · cases d'; simp_all
-        · exact absurd h0 hne0
-      · exact hpos
+      rcases hc' with ⟨h0, he⟩ | ⟨hne0, -⟩
+      · exact absurd (by cases d'; exact congr (congr (congrArg Decimal.mk hsign') h0) he) hne
+      · exact Nat.pos_of_ne_zero hne0
     have hneg : ∀ a b : Rat, a * 0 - b = -b := fun a b => by grind
     have hd₀ : Spec.dist ⟨s, 0, 0⟩ wd = 0 := by
       rw [Reader.dist_eq _ hfin, hmq, hus, hv0, Rat.mul_zero, show ((0 : Nat) : Rat) = 0 by simp,

@@ -98,33 +98,11 @@ theorem r_spec (k : Int) :
 /-- R16's magic constant agrees with the exact floor-log on the table's range. -/
 theorem flog2pow10_eq_exact (e : Int) (hlo : -292 ≤ e) (hhi : e ≤ 324) :
     flog2pow10 e = flog2pow10Exact e := by
-  have hR := R16HoldsAt_in_range e hlo hhi
-  dsimp only [R16HoldsAt] at hR
-  obtain ⟨h1, h2⟩ := hR
-  generalize hk : flog2pow10 e = a at h1 h2 ⊢
+  obtain ⟨h1, h2⟩ := R16HoldsAt_in_range e hlo hhi
+  generalize flog2pow10 e = a at h1 h2 ⊢
   -- the cross-multiplied R16 as `2^a ≤ 10^e < 2^(a+1)` over `Rat`
-  have r10 := Exact.zpow_ratio 10 (by decide) e
-  have r2 := Exact.zpow_ratio 2 (by decide) a
-  have r2' := Exact.zpow_ratio 2 (by decide) (a + 1)
-  have d10 := Exact.denom_pos 10 (by decide) e
-  have d2 := Exact.denom_pos 2 (by decide) a
-  have d2' := Exact.denom_pos 2 (by decide) (a + 1)
-  have h1' : (((if a ≥ 0 then 2 ^ a.natAbs else 1) * (if e ≥ 0 then 1 else 10 ^ e.natAbs) : Nat) : Rat)
-      ≤ (((if e ≥ 0 then 10 ^ e.natAbs else 1) * (if a ≥ 0 then 1 else 2 ^ a.natAbs) : Nat) : Rat) := by
-    exact_mod_cast h1
-  have h2' : (((if e ≥ 0 then 10 ^ e.natAbs else 1) * (if a + 1 ≥ 0 then 1 else 2 ^ (a + 1).natAbs) : Nat) : Rat)
-      < (((if a + 1 ≥ 0 then 2 ^ (a + 1).natAbs else 1) * (if e ≥ 0 then 1 else 10 ^ e.natAbs) : Nat) : Rat) := by
-    exact_mod_cast h2
-  push_cast at h1' h2'
-  rw [← r10, ← r2] at h1'
-  rw [← r10, ← r2'] at h2'
-  generalize ((if e ≥ 0 then 1 else 10 ^ e.natAbs : Nat) : Rat) = D10 at *
-  generalize ((if a ≥ 0 then 1 else 2 ^ a.natAbs : Nat) : Rat) = D2 at *
-  generalize ((if a + 1 ≥ 0 then 1 else 2 ^ (a + 1).natAbs : Nat) : Rat) = D2' at *
-  have hA : (2 : Rat) ^ a ≤ (10 : Rat) ^ e :=
-    Rat.le_of_mul_le_mul_right (c := D10 * D2) (by grind) (by grind)
-  have hB : (10 : Rat) ^ e < (2 : Rat) ^ (a + 1) :=
-    Rat.lt_of_mul_lt_mul_right (c := D10 * D2') (by grind) (by grind)
+  have hA := two_zpow_le_ten_zpow (x := e) (y := a) h1
+  have hB := ten_zpow_lt_two_zpow (x := e) (y := a + 1) h2
   -- both `a` and the exact value are the floor of `log₂ 10^e`
   obtain ⟨hC, hD⟩ := flog2pow10Exact_spec e
   have h1 := lt_of_zpow_lt (by decide) (lt_of_le_of_lt hA hD)
