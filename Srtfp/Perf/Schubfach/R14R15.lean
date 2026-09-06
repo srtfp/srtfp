@@ -1,5 +1,5 @@
 module
-/- R14/R15 magic-constant correctness on the binary64 range (M3.8.1).
+/- R14/R15 magic-constant correctness on the binary64 range.
 
    The Schubfach printer (`Srtfp.Schubfach`) uses two integer
    approximations of transcendental floor-log functions:

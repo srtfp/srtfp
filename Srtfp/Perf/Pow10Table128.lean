@@ -1,13 +1,13 @@
 module
-/- The 128-bit power-of-ten table for the Schubfach multiply-shift kernel.
+/- The 128-bit power-of-ten table of the fast reader (`ReadFast.lean`).
 
    For each `k ∈ [-324, 324]` the entry `(gHi, gLo, h)` is the 128-bit
    ceiling approximation of `10^k`:
 
        g = gHi · 2^64 + gLo = ⌈10^k · 2^h⌉,   2^127 ≤ g < 2^128,
 
-   so `g · 2^{-h} ∈ [10^k, 10^k + 2^{-h})`, the invariant the kernel
-   proofs consume (`pow10Lookup128_invariant`,
+   so `g · 2^{-h} ∈ [10^k, 10^k + 2^{-h})`, the invariant the reader's
+   proof consumes (`pow10Lookup128_invariant`,
    `Srtfp/Perf/TableInvariant.lean`). The magnitude (the multiply) and
    the scaling (the shift) evaluate `b · 10^k` as a 192-bit product and a
    power-of-two shift. The table is computed once, when the module loads. -/

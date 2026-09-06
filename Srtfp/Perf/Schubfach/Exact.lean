@@ -43,8 +43,6 @@ def Vl (m : Nat) (q k : Int) : Rat := vl m q / (10 : Rat) ^ k
 /-- `V_r = v_r · 10^{-k}`. -/
 def Vr (m : Nat) (q k : Int) : Rat := vr m q / (10 : Rat) ^ k
 
-/-- Definition 2: `s = ⌊V⌋`, the scan's `s`. -/
-theorem s_eq_floor (hm : 1 ≤ m) : ((s m q k : Nat) : Rat) = ((V m q k).floor : Rat) := s_cast hm
 
 /-! ## §9.2: the tests
 

@@ -147,13 +147,4 @@ def isNaNBits (f : _root_.Float) : Bool :=
 def isInfBits (f : _root_.Float) : Bool :=
   biasedExpBits f = 2047 && mantissaBits f = 0
 
-/-! ## Bridges: the Float layer is the word layer at `f.toBits`
-
-All are `rfl`: the two layers are definitionally equal, so bits-level
-theorems about `Word.*` transport to `Float`-level statements (and back)
-by rewriting with these. -/
-
-theorem decode_word (f : _root_.Float) : decode f = Word.decode f.toBits := rfl
-theorem isNaNBits_word (f : _root_.Float) : isNaNBits f = Word.isNaN f.toBits := rfl
-theorem isInfBits_word (f : _root_.Float) : isInfBits f = Word.isInf f.toBits := rfl
 end Srtfp.Float

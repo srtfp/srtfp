@@ -53,28 +53,6 @@ theorem two_zpow_le_ten_zpow {j : Int} (hj : 0 ≤ j) : (2 : Rat) ^ j ≤ (10 : 
   rw [Rat.zpow_natCast, Rat.zpow_natCast]
   exact_mod_cast Nat.pow_le_pow_left (by decide : 2 ≤ 10) n
 
-/-- `10^j ≤ 2^j` for `j ≤ 0`. -/
-theorem ten_zpow_le_two_zpow {j : Int} (hj : j ≤ 0) : (10 : Rat) ^ j ≤ (2 : Rat) ^ j := by
-  obtain ⟨n, rfl⟩ : ∃ n : Nat, j = -(n : Int) := ⟨(-j).toNat, by omega⟩
-  have h2 := Rat.zpow_pos (n := (n : Int)) (by decide : (0 : Rat) < 2)
-  have h10 := Rat.zpow_pos (n := (n : Int)) (by decide : (0 : Rat) < 10)
-  have hle : (2 : Rat) ^ (n : Int) ≤ (10 : Rat) ^ (n : Int) := two_zpow_le_ten_zpow (Int.natCast_nonneg _)
-  have e2 : (2 : Rat) ^ (-(n : Int)) * (2 : Rat) ^ (n : Int) = 1 := by
-    rw [← Rat.zpow_add (by decide), show -(n : Int) + n = 0 by omega, Rat.zpow_zero]
-  have e10 : (10 : Rat) ^ (-(n : Int)) * (10 : Rat) ^ (n : Int) = 1 := by
-    rw [← Rat.zpow_add (by decide), show -(n : Int) + n = 0 by omega, Rat.zpow_zero]
-  refine Rat.le_of_mul_le_mul_right (c := (2 : Rat) ^ (n : Int) * (10 : Rat) ^ (n : Int)) ?_
-    (Rat.mul_pos h2 h10)
-  generalize (2 : Rat) ^ (n : Int) = A at *
-  generalize (10 : Rat) ^ (n : Int) = B at *
-  generalize (2 : Rat) ^ (-(n : Int)) = A' at *
-  generalize (10 : Rat) ^ (-(n : Int)) = B' at *
-  -- `B' · (A · B) = A ≤ B = A' · (A · B)`
-  have l1 : B' * (A * B) = A := by
-    rw [Rat.mul_comm A B, ← Rat.mul_assoc, e10, Rat.one_mul]
-  have l2 : A' * (A * B) = B := by rw [← Rat.mul_assoc, e2, Rat.one_mul]
-  rw [l1, l2]; exact hle
-
 /-! ## The bands: `k` against `q` and `q − 1` (from R10) -/
 
 theorem width_lt_two_zpow (hirr : isIrregular m q = true) :

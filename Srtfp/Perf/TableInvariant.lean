@@ -4,9 +4,9 @@ module
 
      10^k⁺ · 2^h⁺ ≤ g · 10^k⁻ · 2^h⁻ < 10^k⁺ · 2^h⁺ + 10^k⁻ · 2^h⁻,   g = gHi · 2^64 + gLo,
 
-   the `Nat` form of `g · 2^{-h} ∈ [10^k, 10^k + 2^{-h})`. Downstream
-   proofs (Schubfach §9.6–9.8 multiply-shift correctness) take it for the
-   specific `pow10Lookup128 k` they need. -/
+   the `Nat` form of `g · 2^{-h} ∈ [10^k, 10^k + 2^{-h})`. The fast
+   reader's proof (`Srtfp/Perf/ReadFast.lean`) takes it for the specific
+   `pow10Lookup128 k` it needs. -/
 public import Srtfp.Perf.Pow10Table128
 
 @[expose] public section
@@ -103,24 +103,6 @@ theorem pow10Ceil_lt (k : Int) (hLo : pow10Table128_kMin ≤ k) (hHi : k ≤ pow
   have := hAll (k + 324).toNat (List.mem_range.mpr (by omega))
   rw [decide_eq_true_eq, show (((k + 324).toNat : Nat) : Int) - 324 = k by omega] at this
   exact this
-
-/-- The shift lies in `[-2048, 2048)`, so the biased table `hB128` is exact. -/
-theorem pow10Shift_bounds (k : Int)
-    (hLo : pow10Table128_kMin ≤ k) (hHi : k ≤ pow10Table128_kMax) :
-    -2048 ≤ pow10Shift k ∧ pow10Shift k < 2048 := by
-  have h3 : pow10Table128_kMin = -324 := rfl
-  have h4 : pow10Table128_kMax = 324 := rfl
-  have hbig : (10 : Nat) ^ 324 < 2 ^ 1077 := by decide +kernel
-  unfold pow10Shift
-  split
-  · have : Nat.log2 (10 ^ k.toNat) < 1077 := by
-      rw [Nat.log2_lt (Nat.ne_of_gt (Nat.pow_pos (by decide)))]
-      exact Nat.lt_of_le_of_lt (Nat.pow_le_pow_right (by decide) (by omega)) hbig
-    omega
-  · have : Nat.log2 (10 ^ (-k).toNat) < 1077 := by
-      rw [Nat.log2_lt (Nat.ne_of_gt (Nat.pow_pos (by decide)))]
-      exact Nat.lt_of_le_of_lt (Nat.pow_le_pow_right (by decide) (by omega)) hbig
-    omega
 
 /-! ## The invariant -/
 

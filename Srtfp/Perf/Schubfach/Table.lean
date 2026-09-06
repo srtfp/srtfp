@@ -286,21 +286,6 @@ theorem two_pow_125_lt_g (k : Int) : 2 ^ 125 < g k := by
   have h2 : ((2 ^ 125 : Nat) : Rat) < (g k : Rat) := lt_of_le_of_lt h1 hg
   exact_mod_cast h2
 
-theorem g_le_two_pow_126 (k : Int) : g k ≤ 2 ^ 126 := by
-  obtain ⟨-, hr⟩ := r_spec k
-  obtain ⟨hg, -⟩ := g_spec k
-  have hp := Printer.two_zpow_pos (-(r k))
-  have h1 : (2 : Rat) ^ (-(r k)) * (10 : Rat) ^ (-k) < ((2 ^ 126 : Nat) : Rat) := by
-    calc (2 : Rat) ^ (-(r k)) * (10 : Rat) ^ (-k) < (2 : Rat) ^ (-(r k)) * (2 : Rat) ^ (r k + 126) :=
-          Rat.mul_lt_mul_of_pos_left hr hp
-      _ = ((2 ^ 126 : Nat) : Rat) := by
-          rw [← Rat.zpow_add (by decide), show -(r k) + (r k + 126) = ((126 : Nat) : Int) by omega,
-            two_zpow_lit]
-  have h2 : ((g k - 1 : Nat) : Rat) < ((2 ^ 126 : Nat) : Rat) := lt_of_le_of_lt hg h1
-  have h3 : g k - 1 < 2 ^ 126 := by exact_mod_cast h2
-  have := two_pow_125_lt_g k
-  omega
-
 /-- The paper's table check: every entry is strictly below `2^126`. -/
 def gBelowBool : Bool :=
   (List.range 617).all fun i => decide (g ((i : Int) + kMin) < 2 ^ 126)

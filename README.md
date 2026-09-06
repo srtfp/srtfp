@@ -41,14 +41,14 @@ The library is three tiers, each a separate import:
   and the theorems above stated on raw IEEE-754 bit patterns (`UInt64`).
   Uses nothing beyond Lean's three standard axioms (`propext`,
   `Quot.sound`, `Classical.choice`); a build-time audit enforces this.
-- **Performance (`import Srtfp.Perf`, opt-in)**: the Schubfach
-  algorithm and its fixed-width `UInt64` kernels and precomputed
-  tables for printing, and an Eisel–Lemire kernel with an exact
-  big-integer fallback for reading, each proven equal to the reference
-  and registered as a `@[csimp]` rewrite, so compiled code runs the fast
-  path while the proofs still speak about the reference. Same axiom
-  budget as the reference tier. Deleting `Srtfp/Perf/` leaves the
-  library working, only slower.
+- **Performance (`import Srtfp.Perf`, opt-in)**: Giulietti's Schubfach
+  printer on 64-bit words, written to follow the paper and proven
+  result by result (`Srtfp/Perf/Schubfach/`), and an Eisel–Lemire
+  kernel with an exact big-integer fallback for reading, each proven
+  equal to the reference and registered as a `@[csimp]` rewrite, so
+  compiled code runs the fast path while the proofs still speak about
+  the reference. Same axiom budget as the reference tier. Deleting
+  `Srtfp/Perf/` leaves the library working, only slower.
 - **Float (`import Srtfp.Bridge`, opt-in)**: the same theorems attached
   to the runtime `Float` type, across the bit round-trip
   `Float.toBits_ofBits` (constructing a non-NaN `Float` from bits and
@@ -123,8 +123,8 @@ printer against C++ std::to_chars, JDK Schubfach, and CPython repr,
 on three input distributions](benches/perf.svg)
 
 3–10× faster than CPython's `repr` (depending on the corpus), within
-2.5× of C++'s `std::to_chars` and the JDK's Schubfach on *nice* and
-*uniform* inputs, and level with the JDK on the *adversarial* corpus.
+2× of C++'s `std::to_chars` and the JDK's Schubfach on *nice* and
+*uniform* inputs, and ahead of the JDK on the *adversarial* corpus.
 The three corpora probe different regimes: *nice* mirrors a typical
 JSON payload, *uniform* draws random finite doubles, and *adversarial*
 is a stress set containing the finite values from Ryū's test suite.

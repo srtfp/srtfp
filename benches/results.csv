@@ -1,13 +1,13 @@
 impl,corpus,ns_per_call
-Lean (this repo),nice,49
-JDK (Schubfach),nice,24
-to_chars (+string),nice,20
-CPython repr,nice,166
-Lean (this repo),uniform,61
-JDK (Schubfach),uniform,28
-to_chars (+string),uniform,25
-CPython repr,uniform,628
-Lean (this repo),adversarial,55
-JDK (Schubfach),adversarial,54
-to_chars (+string),adversarial,21
-CPython repr,adversarial,268
+Lean (this repo),nice,96
+JDK (Schubfach),nice,58
+to_chars (+string),nice,45
+CPython repr,nice,298
+Lean (this repo),uniform,110
+JDK (Schubfach),uniform,59
+to_chars (+string),uniform,52
+CPython repr,uniform,1123
+Lean (this repo),adversarial,90
+JDK (Schubfach),adversarial,98
+to_chars (+string),adversarial,48
+CPython repr,adversarial,492

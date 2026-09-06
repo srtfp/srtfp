@@ -12,7 +12,7 @@ open SrtfpSpec
 def main : IO UInt32 :=
   lspecIO (.ofList [
     ("ryu d2s + f2s edge cases", [Srtfp.Tests.Ryu.ryuTests]),
-    ("live printer kernel, fallback and emitter vs reference scan",
+    ("live printer kernel and emitter vs reference scan",
       [Srtfp.Tests.Kernel.runTests]),
     ("text layer round-trip and dialect cross-check",
       [Srtfp.Tests.Text.runRoundTripTests, Srtfp.Tests.Text.runDialectTests]),

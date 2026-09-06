@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-09-06T01:11:02.988382</dc:date>
+    <dc:date>2026-09-06T16:54:39.640915</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -30,10 +30,10 @@ z
   </g>
   <g id="axes_1">
    <g id="patch_2">
-    <path d="M 72.83 330.68 
+    <path d="M 81.2 330.68 
 L 628.56 330.68 
 L 628.56 19.952 
-L 72.83 19.952 
+L 81.2 19.952 
 z
 " style="fill: #ffffff"/>
    </g>
@@ -41,347 +41,332 @@ z
     <g id="xtick_1">
      <g id="line2d_1">
       <defs>
-       <path id="mcb1182d6ee" d="M 0 0 
+       <path id="m49dcae11cf" d="M 0 0 
 L 0 3.5 
 " style="stroke: #000000; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#mcb1182d6ee" x="170.263182" y="330.68" style="stroke: #000000; stroke-width: 0.8"/>
+       <use xlink:href="#m49dcae11cf" x="177.165714" y="330.68" style="stroke: #000000; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_1">
-      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="170.263182" y="350.243438" transform="rotate(-0 170.263182 350.243438)">nice</text>
+      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="177.165714" y="350.243438" transform="rotate(-0 177.165714 350.243438)">nice</text>
      </g>
     </g>
     <g id="xtick_2">
      <g id="line2d_2">
       <g>
-       <use xlink:href="#mcb1182d6ee" x="350.695" y="330.68" style="stroke: #000000; stroke-width: 0.8"/>
+       <use xlink:href="#m49dcae11cf" x="354.88" y="330.68" style="stroke: #000000; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_2">
-      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="350.695" y="350.243438" transform="rotate(-0 350.695 350.243438)">uniform</text>
+      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="354.88" y="350.243438" transform="rotate(-0 354.88 350.243438)">uniform</text>
      </g>
     </g>
     <g id="xtick_3">
      <g id="line2d_3">
       <g>
-       <use xlink:href="#mcb1182d6ee" x="531.126818" y="330.68" style="stroke: #000000; stroke-width: 0.8"/>
+       <use xlink:href="#m49dcae11cf" x="532.594286" y="330.68" style="stroke: #000000; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_3">
-      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="531.126818" y="350.243438" transform="rotate(-0 531.126818 350.243438)">adversarial</text>
+      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="532.594286" y="350.243438" transform="rotate(-0 532.594286 350.243438)">adversarial</text>
      </g>
     </g>
    </g>
    <g id="matplotlib.axis_2">
     <g id="ytick_1">
      <g id="line2d_4">
-      <path d="M 72.83 330.68 
+      <path d="M 81.2 330.68 
 L 628.56 330.68 
-" clip-path="url(#p8451a58a3e)" style="fill: none; stroke: #b0b0b0; stroke-opacity: 0.25; stroke-width: 0.5; stroke-linecap: square"/>
+" clip-path="url(#pb15fe85ad0)" style="fill: none; stroke: #b0b0b0; stroke-opacity: 0.25; stroke-width: 0.5; stroke-linecap: square"/>
      </g>
      <g id="line2d_5">
       <defs>
-       <path id="mf16c7b1191" d="M 0 0 
+       <path id="mfa6c8dc667" d="M 0 0 
 L -3.5 0 
 " style="stroke: #000000; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#mf16c7b1191" x="72.83" y="330.68" style="stroke: #000000; stroke-width: 0.8"/>
+       <use xlink:href="#mfa6c8dc667" x="81.2" y="330.68" style="stroke: #000000; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_4">
-      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: end" x="65.83" y="336.961719" transform="rotate(-0 65.83 336.961719)">0</text>
+      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: end" x="74.2" y="336.961719" transform="rotate(-0 74.2 336.961719)">0</text>
      </g>
     </g>
     <g id="ytick_2">
      <g id="line2d_6">
-      <path d="M 72.83 283.557161 
-L 628.56 283.557161 
-" clip-path="url(#p8451a58a3e)" style="fill: none; stroke: #b0b0b0; stroke-opacity: 0.25; stroke-width: 0.5; stroke-linecap: square"/>
+      <path d="M 81.2 277.976273 
+L 628.56 277.976273 
+" clip-path="url(#pb15fe85ad0)" style="fill: none; stroke: #b0b0b0; stroke-opacity: 0.25; stroke-width: 0.5; stroke-linecap: square"/>
      </g>
      <g id="line2d_7">
       <g>
-       <use xlink:href="#mf16c7b1191" x="72.83" y="283.557161" style="stroke: #000000; stroke-width: 0.8"/>
+       <use xlink:href="#mfa6c8dc667" x="81.2" y="277.976273" style="stroke: #000000; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_5">
-      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: end" x="65.83" y="289.83888" transform="rotate(-0 65.83 289.83888)">100</text>
+      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: end" x="74.2" y="284.257991" transform="rotate(-0 74.2 284.257991)">200</text>
      </g>
     </g>
     <g id="ytick_3">
      <g id="line2d_8">
-      <path d="M 72.83 236.434322 
-L 628.56 236.434322 
-" clip-path="url(#p8451a58a3e)" style="fill: none; stroke: #b0b0b0; stroke-opacity: 0.25; stroke-width: 0.5; stroke-linecap: square"/>
+      <path d="M 81.2 225.272545 
+L 628.56 225.272545 
+" clip-path="url(#pb15fe85ad0)" style="fill: none; stroke: #b0b0b0; stroke-opacity: 0.25; stroke-width: 0.5; stroke-linecap: square"/>
      </g>
      <g id="line2d_9">
       <g>
-       <use xlink:href="#mf16c7b1191" x="72.83" y="236.434322" style="stroke: #000000; stroke-width: 0.8"/>
+       <use xlink:href="#mfa6c8dc667" x="81.2" y="225.272545" style="stroke: #000000; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_6">
-      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: end" x="65.83" y="242.716041" transform="rotate(-0 65.83 242.716041)">200</text>
+      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: end" x="74.2" y="231.554264" transform="rotate(-0 74.2 231.554264)">400</text>
      </g>
     </g>
     <g id="ytick_4">
      <g id="line2d_10">
-      <path d="M 72.83 189.311483 
-L 628.56 189.311483 
-" clip-path="url(#p8451a58a3e)" style="fill: none; stroke: #b0b0b0; stroke-opacity: 0.25; stroke-width: 0.5; stroke-linecap: square"/>
+      <path d="M 81.2 172.568818 
+L 628.56 172.568818 
+" clip-path="url(#pb15fe85ad0)" style="fill: none; stroke: #b0b0b0; stroke-opacity: 0.25; stroke-width: 0.5; stroke-linecap: square"/>
      </g>
      <g id="line2d_11">
       <g>
-       <use xlink:href="#mf16c7b1191" x="72.83" y="189.311483" style="stroke: #000000; stroke-width: 0.8"/>
+       <use xlink:href="#mfa6c8dc667" x="81.2" y="172.568818" style="stroke: #000000; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_7">
-      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: end" x="65.83" y="195.593202" transform="rotate(-0 65.83 195.593202)">300</text>
+      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: end" x="74.2" y="178.850537" transform="rotate(-0 74.2 178.850537)">600</text>
      </g>
     </g>
     <g id="ytick_5">
      <g id="line2d_12">
-      <path d="M 72.83 142.188644 
-L 628.56 142.188644 
-" clip-path="url(#p8451a58a3e)" style="fill: none; stroke: #b0b0b0; stroke-opacity: 0.25; stroke-width: 0.5; stroke-linecap: square"/>
+      <path d="M 81.2 119.865091 
+L 628.56 119.865091 
+" clip-path="url(#pb15fe85ad0)" style="fill: none; stroke: #b0b0b0; stroke-opacity: 0.25; stroke-width: 0.5; stroke-linecap: square"/>
      </g>
      <g id="line2d_13">
       <g>
-       <use xlink:href="#mf16c7b1191" x="72.83" y="142.188644" style="stroke: #000000; stroke-width: 0.8"/>
+       <use xlink:href="#mfa6c8dc667" x="81.2" y="119.865091" style="stroke: #000000; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_8">
-      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: end" x="65.83" y="148.470363" transform="rotate(-0 65.83 148.470363)">400</text>
+      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: end" x="74.2" y="126.14681" transform="rotate(-0 74.2 126.14681)">800</text>
      </g>
     </g>
     <g id="ytick_6">
      <g id="line2d_14">
-      <path d="M 72.83 95.065805 
-L 628.56 95.065805 
-" clip-path="url(#p8451a58a3e)" style="fill: none; stroke: #b0b0b0; stroke-opacity: 0.25; stroke-width: 0.5; stroke-linecap: square"/>
+      <path d="M 81.2 67.161364 
+L 628.56 67.161364 
+" clip-path="url(#pb15fe85ad0)" style="fill: none; stroke: #b0b0b0; stroke-opacity: 0.25; stroke-width: 0.5; stroke-linecap: square"/>
      </g>
      <g id="line2d_15">
       <g>
-       <use xlink:href="#mf16c7b1191" x="72.83" y="95.065805" style="stroke: #000000; stroke-width: 0.8"/>
+       <use xlink:href="#mfa6c8dc667" x="81.2" y="67.161364" style="stroke: #000000; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_9">
-      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: end" x="65.83" y="101.347524" transform="rotate(-0 65.83 101.347524)">500</text>
+      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: end" x="74.2" y="73.443082" transform="rotate(-0 74.2 73.443082)">1000</text>
      </g>
     </g>
-    <g id="ytick_7">
-     <g id="line2d_16">
-      <path d="M 72.83 47.942966 
-L 628.56 47.942966 
-" clip-path="url(#p8451a58a3e)" style="fill: none; stroke: #b0b0b0; stroke-opacity: 0.25; stroke-width: 0.5; stroke-linecap: square"/>
-     </g>
-     <g id="line2d_17">
-      <g>
-       <use xlink:href="#mf16c7b1191" x="72.83" y="47.942966" style="stroke: #000000; stroke-width: 0.8"/>
-      </g>
-     </g>
-     <g id="text_10">
-      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: end" x="65.83" y="54.224685" transform="rotate(-0 65.83 54.224685)">600</text>
-     </g>
-    </g>
-    <g id="text_11">
+    <g id="text_10">
      <text style="font-size: 18px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="32.506875" y="175.316" transform="rotate(-90 32.506875 175.316)">ns / call</text>
     </g>
    </g>
    <g id="patch_3">
-    <path d="M 98.090455 330.68 
-L 134.176818 330.68 
-L 134.176818 321.255432 
-L 98.090455 321.255432 
+    <path d="M 106.08 330.68 
+L 141.622857 330.68 
+L 141.622857 318.821661 
+L 106.08 318.821661 
 z
-" clip-path="url(#p8451a58a3e)" style="fill: #e69f00"/>
+" clip-path="url(#pb15fe85ad0)" style="fill: #e69f00"/>
    </g>
    <g id="patch_4">
-    <path d="M 278.522273 330.68 
-L 314.608636 330.68 
-L 314.608636 318.89929 
-L 278.522273 318.89929 
+    <path d="M 283.794286 330.68 
+L 319.337143 330.68 
+L 319.337143 316.977031 
+L 283.794286 316.977031 
 z
-" clip-path="url(#p8451a58a3e)" style="fill: #e69f00"/>
+" clip-path="url(#pb15fe85ad0)" style="fill: #e69f00"/>
    </g>
    <g id="patch_5">
-    <path d="M 458.954091 330.68 
-L 495.040455 330.68 
-L 495.040455 320.784204 
-L 458.954091 320.784204 
+    <path d="M 461.508571 330.68 
+L 497.051429 330.68 
+L 497.051429 318.031105 
+L 461.508571 318.031105 
 z
-" clip-path="url(#p8451a58a3e)" style="fill: #e69f00"/>
+" clip-path="url(#pb15fe85ad0)" style="fill: #e69f00"/>
    </g>
    <g id="patch_6">
-    <path d="M 134.176818 330.68 
-L 170.263182 330.68 
-L 170.263182 319.370519 
-L 134.176818 319.370519 
+    <path d="M 141.622857 330.68 
+L 177.165714 330.68 
+L 177.165714 315.395919 
+L 141.622857 315.395919 
 z
-" clip-path="url(#p8451a58a3e)" style="fill: #009e73"/>
+" clip-path="url(#pb15fe85ad0)" style="fill: #009e73"/>
    </g>
    <g id="patch_7">
-    <path d="M 314.608636 330.68 
-L 350.695 330.68 
-L 350.695 317.485605 
-L 314.608636 317.485605 
+    <path d="M 319.337143 330.68 
+L 354.88 330.68 
+L 354.88 315.1324 
+L 319.337143 315.1324 
 z
-" clip-path="url(#p8451a58a3e)" style="fill: #009e73"/>
+" clip-path="url(#pb15fe85ad0)" style="fill: #009e73"/>
    </g>
    <g id="patch_8">
-    <path d="M 495.040455 330.68 
-L 531.126818 330.68 
-L 531.126818 305.233667 
-L 495.040455 305.233667 
+    <path d="M 497.051429 330.68 
+L 532.594286 330.68 
+L 532.594286 304.855174 
+L 497.051429 304.855174 
 z
-" clip-path="url(#p8451a58a3e)" style="fill: #009e73"/>
+" clip-path="url(#pb15fe85ad0)" style="fill: #009e73"/>
    </g>
    <g id="patch_9">
-    <path d="M 170.263182 330.68 
-L 206.349545 330.68 
-L 206.349545 307.589809 
-L 170.263182 307.589809 
+    <path d="M 177.165714 330.68 
+L 212.708571 330.68 
+L 212.708571 305.382211 
+L 177.165714 305.382211 
 z
-" clip-path="url(#p8451a58a3e)" style="fill: #0072b2"/>
+" clip-path="url(#pb15fe85ad0)" style="fill: #0072b2"/>
    </g>
    <g id="patch_10">
-    <path d="M 350.695 330.68 
-L 386.781364 330.68 
-L 386.781364 301.935068 
-L 350.695 301.935068 
+    <path d="M 354.88 330.68 
+L 390.422857 330.68 
+L 390.422857 301.69295 
+L 354.88 301.69295 
 z
-" clip-path="url(#p8451a58a3e)" style="fill: #0072b2"/>
+" clip-path="url(#pb15fe85ad0)" style="fill: #0072b2"/>
    </g>
    <g id="patch_11">
-    <path d="M 531.126818 330.68 
-L 567.213182 330.68 
-L 567.213182 304.762439 
-L 531.126818 304.762439 
+    <path d="M 532.594286 330.68 
+L 568.137143 330.68 
+L 568.137143 306.963323 
+L 532.594286 306.963323 
 z
-" clip-path="url(#p8451a58a3e)" style="fill: #0072b2"/>
+" clip-path="url(#pb15fe85ad0)" style="fill: #0072b2"/>
    </g>
    <g id="patch_12">
-    <path d="M 206.349545 330.68 
-L 242.435909 330.68 
-L 242.435909 252.456087 
-L 206.349545 252.456087 
+    <path d="M 212.708571 330.68 
+L 248.251429 330.68 
+L 248.251429 252.151446 
+L 212.708571 252.151446 
 z
-" clip-path="url(#p8451a58a3e)" style="fill: #d55e00"/>
+" clip-path="url(#pb15fe85ad0)" style="fill: #d55e00"/>
    </g>
    <g id="patch_13">
-    <path d="M 386.781364 330.68 
-L 422.867727 330.68 
-L 422.867727 34.748571 
-L 386.781364 34.748571 
+    <path d="M 390.422857 330.68 
+L 425.965714 330.68 
+L 425.965714 34.748571 
+L 390.422857 34.748571 
 z
-" clip-path="url(#p8451a58a3e)" style="fill: #d55e00"/>
+" clip-path="url(#pb15fe85ad0)" style="fill: #d55e00"/>
    </g>
    <g id="patch_14">
-    <path d="M 567.213182 330.68 
-L 603.299545 330.68 
-L 603.299545 204.390792 
-L 567.213182 204.390792 
+    <path d="M 568.137143 330.68 
+L 603.68 330.68 
+L 603.68 201.028831 
+L 568.137143 201.028831 
 z
-" clip-path="url(#p8451a58a3e)" style="fill: #d55e00"/>
+" clip-path="url(#pb15fe85ad0)" style="fill: #d55e00"/>
    </g>
    <g id="patch_15">
-    <path d="M 72.83 330.68 
-L 72.83 19.952 
+    <path d="M 81.2 330.68 
+L 81.2 19.952 
 " style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="patch_16">
-    <path d="M 72.83 330.68 
+    <path d="M 81.2 330.68 
 L 628.56 330.68 
 " style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
+   <g id="text_11">
+    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="123.851429" y="313.778849" transform="rotate(-0 123.851429 313.778849)">45</text>
+   </g>
    <g id="text_12">
-    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="116.133636" y="316.21262" transform="rotate(-0 116.133636 316.21262)">20</text>
+    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="301.565714" y="311.934218" transform="rotate(-0 301.565714 311.934218)">52</text>
    </g>
    <g id="text_13">
-    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="296.565455" y="313.856478" transform="rotate(-0 296.565455 313.856478)">25</text>
+    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="479.28" y="312.988293" transform="rotate(-0 479.28 312.988293)">48</text>
    </g>
    <g id="text_14">
-    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="476.997273" y="315.741391" transform="rotate(-0 476.997273 315.741391)">21</text>
+    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="159.394286" y="310.353107" transform="rotate(-0 159.394286 310.353107)">58</text>
    </g>
    <g id="text_15">
-    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="152.22" y="314.327706" transform="rotate(-0 152.22 314.327706)">24</text>
+    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="337.108571" y="310.089588" transform="rotate(-0 337.108571 310.089588)">59</text>
    </g>
    <g id="text_16">
-    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="332.651818" y="312.442793" transform="rotate(-0 332.651818 312.442793)">28</text>
+    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="514.822857" y="299.812361" transform="rotate(-0 514.822857 299.812361)">98</text>
    </g>
    <g id="text_17">
-    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="513.083636" y="300.190854" transform="rotate(-0 513.083636 300.190854)">54</text>
+    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="194.937143" y="300.339398" transform="rotate(-0 194.937143 300.339398)">96</text>
    </g>
    <g id="text_18">
-    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="188.306364" y="302.546996" transform="rotate(-0 188.306364 302.546996)">49</text>
+    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="372.651429" y="296.650138" transform="rotate(-0 372.651429 296.650138)">110</text>
    </g>
    <g id="text_19">
-    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="368.738182" y="296.892256" transform="rotate(-0 368.738182 296.892256)">61</text>
+    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="550.365714" y="301.92051" transform="rotate(-0 550.365714 301.92051)">90</text>
    </g>
    <g id="text_20">
-    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="549.17" y="299.719626" transform="rotate(-0 549.17 299.719626)">55</text>
+    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="230.48" y="247.108634" transform="rotate(-0 230.48 247.108634)">298</text>
    </g>
    <g id="text_21">
-    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="224.392727" y="247.413275" transform="rotate(-0 224.392727 247.413275)">166</text>
+    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="408.194286" y="29.705759" transform="rotate(-0 408.194286 29.705759)">1123</text>
    </g>
    <g id="text_22">
-    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="404.824545" y="29.705759" transform="rotate(-0 404.824545 29.705759)">628</text>
-   </g>
-   <g id="text_23">
-    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="585.256364" y="199.347979" transform="rotate(-0 585.256364 199.347979)">268</text>
+    <text style="font-size: 13px; font-family: 'Linux Libertine O', serif; text-anchor: middle" x="585.908571" y="195.986018" transform="rotate(-0 585.908571 195.986018)">492</text>
    </g>
    <g id="legend_1">
     <g id="patch_17">
-     <path d="M 88.13 47.152 
-L 122.13 47.152 
-L 122.13 35.252 
-L 88.13 35.252 
+     <path d="M 96.5 47.152 
+L 130.5 47.152 
+L 130.5 35.252 
+L 96.5 35.252 
 z
 " style="fill: #e69f00"/>
     </g>
-    <g id="text_24">
-     <text style="font-size: 17px; font-family: 'Linux Libertine O', serif; text-anchor: start" x="135.73" y="47.152" transform="rotate(-0 135.73 47.152)">C++</text>
+    <g id="text_23">
+     <text style="font-size: 17px; font-family: 'Linux Libertine O', serif; text-anchor: start" x="144.1" y="47.152" transform="rotate(-0 144.1 47.152)">C++</text>
     </g>
     <g id="patch_18">
-     <path d="M 88.13 71.531063 
-L 122.13 71.531063 
-L 122.13 59.631063 
-L 88.13 59.631063 
+     <path d="M 96.5 71.531063 
+L 130.5 71.531063 
+L 130.5 59.631063 
+L 96.5 59.631063 
 z
 " style="fill: #009e73"/>
     </g>
-    <g id="text_25">
-     <text style="font-size: 17px; font-family: 'Linux Libertine O', serif; text-anchor: start" x="135.73" y="71.531063" transform="rotate(-0 135.73 71.531063)">Java</text>
+    <g id="text_24">
+     <text style="font-size: 17px; font-family: 'Linux Libertine O', serif; text-anchor: start" x="144.1" y="71.531063" transform="rotate(-0 144.1 71.531063)">Java</text>
     </g>
     <g id="patch_19">
-     <path d="M 88.13 95.910125 
-L 122.13 95.910125 
-L 122.13 84.010125 
-L 88.13 84.010125 
+     <path d="M 96.5 95.910125 
+L 130.5 95.910125 
+L 130.5 84.010125 
+L 96.5 84.010125 
 z
 " style="fill: #0072b2"/>
     </g>
-    <g id="text_26">
-     <text style="font-size: 17px; font-family: 'Linux Libertine O', serif; text-anchor: start" x="135.73" y="95.910125" transform="rotate(-0 135.73 95.910125)">Lean (this work)</text>
+    <g id="text_25">
+     <text style="font-size: 17px; font-family: 'Linux Libertine O', serif; text-anchor: start" x="144.1" y="95.910125" transform="rotate(-0 144.1 95.910125)">Lean (this work)</text>
     </g>
     <g id="patch_20">
-     <path d="M 88.13 120.289188 
-L 122.13 120.289188 
-L 122.13 108.389188 
-L 88.13 108.389188 
+     <path d="M 96.5 120.289188 
+L 130.5 120.289188 
+L 130.5 108.389188 
+L 96.5 108.389188 
 z
 " style="fill: #d55e00"/>
     </g>
-    <g id="text_27">
-     <text style="font-size: 17px; font-family: 'Linux Libertine O', serif; text-anchor: start" x="135.73" y="120.289188" transform="rotate(-0 135.73 120.289188)">CPython</text>
+    <g id="text_26">
+     <text style="font-size: 17px; font-family: 'Linux Libertine O', serif; text-anchor: start" x="144.1" y="120.289188" transform="rotate(-0 144.1 120.289188)">CPython</text>
     </g>
    </g>
   </g>
  </g>
  <defs>
-  <clipPath id="p8451a58a3e">
-   <rect x="72.83" y="19.952" width="555.73" height="310.728"/>
+  <clipPath id="pb15fe85ad0">
+   <rect x="81.2" y="19.952" width="547.36" height="310.728"/>
   </clipPath>
  </defs>
 </svg>
