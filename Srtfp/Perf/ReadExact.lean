@@ -67,6 +67,35 @@ theorem roundEven_eq_natCast_of {x : Rat} {n : Nat}
   · rw [Rat.intCast_natCast]; intro h; have := h3 h; omega
   · rw [Rat.intCast_natCast]; intro h; have := h4 h; omega
 
+/-- Strictly inside `(n - 1/2, n + 1/2)`: no tie, so `roundEven` is `n`. -/
+theorem roundEven_eq_of_strict {y : Rat} {n : Nat}
+    (h1 : (n : Rat) - 1/2 < y) (h2 : y < n + 1/2) : roundEven y = n :=
+  roundEven_eq_natCast_of (Rat.le_of_lt h1) (Rat.le_of_lt h2)
+    (fun h => absurd h (Rat.ne_of_gt h1)) (fun h => absurd h (Rat.ne_of_lt h2))
+
+/-- `X / D` rounds to `n` when `(2n - 1) D < 2X < (2n + 1) D`. -/
+theorem roundEven_eq_of_between {X : Rat} {D n : Nat} (hD : 0 < D)
+    (hlo : ((2 * n : Nat) : Rat) * D < 2 * X + D) (hhi : 2 * X < ((2 * n + 1 : Nat) : Rat) * D) :
+    roundEven (X / D) = n := by
+  have hDR : (0 : Rat) < D := by exact_mod_cast hD
+  apply roundEven_eq_of_strict
+  · rw [Rat.lt_div_iff hDR]; push_cast at hlo ⊢; grind
+  · rw [Rat.div_lt_iff hDR]; push_cast at hhi ⊢; grind
+
+/-- A tie `Q + 1/2` rounds to the even neighbour. -/
+theorem roundEven_tie (Q : Nat) : roundEven ((Q : Rat) + 1/2) = ((Q + Q % 2 : Nat) : Int) := by
+  rcases Nat.mod_two_eq_zero_or_one Q with h | h <;> simp only [h, Nat.add_zero]
+  · exact roundEven_eq_natCast_of (by grind) (Rat.le_refl) (fun h' => by grind) (fun _ => h)
+  · exact roundEven_eq_natCast_of (by push_cast; grind) (by push_cast; grind) (fun _ => by omega)
+      (fun h' => by push_cast at h'; grind)
+
+/-- Above a natural bound `b`, the rounding stays at or above `b`. -/
+theorem roundEven_ge {y : Rat} {b : Nat} (hy : (b : Rat) ≤ y) : (b : Int) ≤ roundEven y := by
+  have h := (roundEven_spec y).2.1
+  have : ((b : Int) : Rat) < roundEven y + 1 := by push_cast; grind
+  have : (b : Int) < roundEven y + 1 := by exact_mod_cast this
+  omega
+
 /-- The three facts of `gridExp_spec` determine `gridExp x`. -/
 theorem gridExp_eq_of {x : Rat} (hx : 0 ≤ x) {k : Int} (h1 : -1074 ≤ k)
     (h2 : x < (2 : Rat) ^ (k + 53)) (h3 : k = -1074 ∨ (2 : Rat) ^ (k + 52) ≤ x) :
@@ -100,34 +129,6 @@ def roundEvenNat (p q : Nat) : Nat :=
   let n := (2 * p + q) / (2 * q)
   if (2 * p + q) % (2 * q) = 0 ∧ n % 2 = 1 then n - 1 else n
 
-theorem half_le_div {a b c : Nat} (hc : 0 < c) :
-    ((a : Rat) - 1/2 ≤ (b : Rat) / c) ↔ 2 * (a * c) ≤ 2 * b + c := by
-  have hcR : (0 : Rat) < c := by exact_mod_cast hc
-  rw [le_div_iff hcR, ← Rat.natCast_le_natCast]
-  push_cast
-  constructor <;> intro h <;> grind
-
-theorem div_le_half {a b c : Nat} (hc : 0 < c) :
-    ((b : Rat) / c ≤ (a : Rat) + 1/2) ↔ 2 * b ≤ 2 * (a * c) + c := by
-  have hcR : (0 : Rat) < c := by exact_mod_cast hc
-  rw [div_le_iff hcR, ← Rat.natCast_le_natCast]
-  push_cast
-  constructor <;> intro h <;> grind
-
-theorem div_eq_sub_half {a b c : Nat} (hc : 0 < c) :
-    ((b : Rat) / c = (a : Rat) - 1/2) ↔ 2 * b + c = 2 * (a * c) := by
-  have hcR : (0 : Rat) < c := by exact_mod_cast hc
-  rw [div_eq_iff hcR, ← Rat.natCast_inj]
-  push_cast
-  constructor <;> intro h <;> grind
-
-theorem div_eq_add_half {a b c : Nat} (hc : 0 < c) :
-    ((b : Rat) / c = (a : Rat) + 1/2) ↔ 2 * b = 2 * (a * c) + c := by
-  have hcR : (0 : Rat) < c := by exact_mod_cast hc
-  rw [div_eq_iff hcR, ← Rat.natCast_inj]
-  push_cast
-  constructor <;> intro h <;> grind
-
 theorem roundEven_div (p q : Nat) (hq : 0 < q) :
     roundEven ((p : Rat) / q) = roundEvenNat p q := by
   have hdm := Nat.div_add_mod (2 * p + q) (2 * q)
@@ -136,27 +137,22 @@ theorem roundEven_div (p q : Nat) (hq : 0 < q) :
   dsimp only
   generalize (2 * p + q) / (2 * q) = n0 at *
   generalize (2 * p + q) % (2 * q) = r at *
-  split
-  · rename_i h
-    obtain ⟨hr0, hodd⟩ := h
+  have hdmR : ((2 * q * n0 + r : Nat) : Rat) = 2 * p + q := by exact_mod_cast hdm
+  push_cast at hdmR
+  by_cases hr0 : r = 0
+  · -- a tie: `p / q = (n0 - 1) + 1/2`
     subst hr0
-    obtain ⟨n', rfl⟩ : ∃ n', n0 = n' + 1 := ⟨n0 - 1, by omega⟩
-    rw [Nat.add_sub_cancel]
-    apply roundEven_eq_natCast_of
-    · rw [half_le_div hq]; grind
-    · rw [div_le_half hq]; grind
-    · rw [div_eq_sub_half hq]; intro h; exfalso; grind
-    · intro _; omega
-  · rename_i h
-    apply roundEven_eq_natCast_of
-    · rw [half_le_div hq]; grind
-    · rw [div_le_half hq]; grind
-    · rw [div_eq_sub_half hq]; intro h'
-      have : r = 0 := by grind
-      subst this
-      have : ¬ n0 % 2 = 1 := fun ho => h ⟨rfl, ho⟩
-      omega
-    · rw [div_eq_add_half hq]; intro h'; exfalso; grind
+    cases n0 with
+    | zero => rw [Nat.mul_zero] at hdm; omega
+    | succ n =>
+      have hqR : (0 : Rat) < q := by exact_mod_cast hq
+      rw [show (p : Rat) / q = (n : Rat) + 1/2 by rw [div_eq_iff hqR]; push_cast at hdmR ⊢; grind,
+        roundEven_tie]
+      split <;> omega
+  · rw [if_neg (fun h => hr0 h.1)]
+    have h1 : (1 : Rat) ≤ r := by exact_mod_cast Nat.pos_of_ne_zero hr0
+    have h2 : (r : Rat) < 2 * q := by exact_mod_cast hr
+    apply roundEven_eq_of_between hq <;> push_cast <;> grind
 
 /-- `2^j · 2^1074` as a natural power, for `-1074 ≤ j`. -/
 theorem two_zpow_mul_two_pow (j : Int) (hj : -1074 ≤ j) :

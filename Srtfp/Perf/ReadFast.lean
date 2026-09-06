@@ -304,19 +304,6 @@ theorem shift_facts (pHi pMid pLo : UInt64) {sN : Nat} (h130 : 130 ≤ sN) (h192
 
 /-! ## Proof: two rounding facts -/
 
-/-- Strictly inside `(n - 1/2, n + 1/2)`: no tie, so `roundEven` is `n`. -/
-theorem roundEven_eq_of_strict {y : Rat} {n : Nat}
-    (h1 : (n : Rat) - 1/2 < y) (h2 : y < n + 1/2) : roundEven y = n :=
-  roundEven_eq_natCast_of (Rat.le_of_lt h1) (Rat.le_of_lt h2)
-    (fun h => absurd h (Rat.ne_of_gt h1)) (fun h => absurd h (Rat.ne_of_lt h2))
-
-/-- Above a natural bound `b`, the rounding stays at or above `b`. -/
-theorem roundEven_ge {y : Rat} {b : Nat} (hy : (b : Rat) ≤ y) : (b : Int) ≤ roundEven y := by
-  have h := (roundEven_spec y).2.1
-  have : ((b : Int) : Rat) < roundEven y + 1 := by push_cast; grind
-  have : (b : Int) < roundEven y + 1 := by exact_mod_cast this
-  omega
-
 /-! ## Proof: the rounding core -/
 
 /-- Rounding `X / 2^s` from the bits of `P`, for `X = P` (`exact`) or
@@ -334,117 +321,44 @@ theorem round_from_bits (Pn sN : Nat) (hs : 1 ≤ sN) (X : Rat) (mz : Nat) (exac
   simp only [Nat.add_sub_cancel] at hguard ⊢
   generalize hH : 2 ^ sN' = H at *
   have hH0 : 0 < H := by rw [← hH]; exact Nat.two_pow_pos _
-  have h2H : 2 ^ (sN' + 1) = 2 * H := by rw [Nat.pow_succ, ← hH, Nat.mul_comm]
-  have hT : (2 : Rat) ^ (sN' + 1) = ((2 * H : Nat) : Rat) := by rw [← h2H]; norm_cast
-  rw [hT, h2H]
-  have hb2 := Nat.mod_lt (Pn / H) (by decide : 0 < 2)
-  have hr2 := Nat.mod_lt Pn hH0
+  have h2H : 2 ^ (sN' + 1) = 2 * H := by rw [← hH, Nat.pow_succ, Nat.mul_comm]
+  rw [show (2 : Rat) ^ (sN' + 1) = ((2 * H : Nat) : Rat) by rw [← h2H]; norm_cast, h2H]
+  -- `P = 2QH + bH + r` with `b` the bit and `r < H` the rest
   have e1 := Nat.div_add_mod Pn H
   have e2 := Nat.div_add_mod (Pn / H) 2
+  have hb2 := Nat.mod_lt (Pn / H) (by decide : 0 < 2)
+  have hr2 := Nat.mod_lt Pn hH0
   rw [Nat.div_div_eq_div_mul, Nat.mul_comm H 2] at e2
-  generalize hQ : Pn / (2 * H) = Q at *
-  generalize hb : Pn / H % 2 = b at *
-  generalize hr : Pn % H = r at *
+  generalize Pn / (2 * H) = Q at *
+  generalize Pn / H % 2 = b at *
+  generalize Pn % H = r at *
   have hdec : Pn = 2 * (Q * H) + b * H + r := by grind
-  have h2H0 : 0 < 2 * H := by omega
-  have h2HR : (0 : Rat) < ((2 * H : Nat) : Rat) := by exact_mod_cast h2H0
-  have hQ2 : Q * (2 * H) = 2 * (Q * H) := Nat.mul_left_comm Q 2 H
-  have hQ2' : (Q + 1) * (2 * H) = 2 * (Q * H) + 2 * H := by rw [Nat.add_mul, Nat.one_mul, hQ2]
-  generalize hQH : Q * H = QH at *
-  -- `X / 2H ≤ P / 2H`, and the lower end in the inexact case
-  have hXs : X / ((2 * H : Nat) : Rat) ≤ (Pn : Rat) / ((2 * H : Nat) : Rat) := by
-    rw [Rat.div_def, Rat.div_def]
-    exact Rat.mul_le_mul_of_nonneg_right hXP (Rat.le_of_lt (Rat.inv_pos.mpr h2HR))
-  have hXlow : exact = false → ((Pn : Rat) - mz) / ((2 * H : Nat) : Rat) < X / ((2 * H : Nat) : Rat) := by
-    intro hex
-    rw [hex] at hPX
-    simp only [Bool.false_eq_true, if_false] at hPX
-    rw [Rat.div_def, Rat.div_def]
-    exact Rat.mul_lt_mul_of_pos_right hPX (Rat.inv_pos.mpr h2HR)
-  have hbH : b * H ≤ 1 * H := Nat.mul_le_mul_right H (by omega)
-  rw [Nat.one_mul] at hbH
-  have hylt : (Pn : Rat) / ((2 * H : Nat) : Rat) < (Q : Rat) + 1 := by
-    rw [Rat.div_lt_iff h2HR]
-    exact_mod_cast (show Pn < (Q + 1) * (2 * H) by omega)
-  rcases Nat.lt_or_ge b 1 with hb0 | hb1
-  · -- bit `s - 1` clear: round down
-    have hb0 : b = 0 := by omega
-    subst hb0
-    rw [if_pos rfl]
-    apply roundEven_eq_of_strict
-    · -- `Q - 1/2 < X / 2H`: `X` is at least `Q · 2H`
-      have hlo : (Q : Rat) ≤ X / ((2 * H : Nat) : Rat) := by
-        split at hPX
-        · rw [hPX, le_div_iff h2HR]
-          exact_mod_cast (show Q * (2 * H) ≤ Pn by omega)
-        · rename_i hex
-          have hg := hguard (by simpa using hex)
-          rw [le_div_iff h2HR]
-          have h1 : ((Q * (2 * H) + mz : Nat) : Rat) ≤ (Pn : Rat) := by
-            exact_mod_cast (show Q * (2 * H) + mz ≤ Pn by omega)
-          push_cast at h1 ⊢
-          grind
-      grind
-    · have hne : (Pn : Rat) / ((2 * H : Nat) : Rat) ≠ (Q : Rat) + 1/2 := by
-        rw [Ne, div_eq_add_half h2H0]; omega
-      have hle : (Pn : Rat) / ((2 * H : Nat) : Rat) ≤ (Q : Rat) + 1/2 :=
-        (div_le_half h2H0).mpr (by omega)
-      exact lt_of_le_of_lt hXs (Rat.lt_of_le_of_ne hle hne)
-  · -- bit `s - 1` set
-    have hb1 : b = 1 := by omega
-    subst hb1
-    rw [if_neg (by decide)]
-    have hyhalf : (Pn : Rat) / ((2 * H : Nat) : Rat) = (Q : Rat) + 1/2 ↔ r = 0 := by
-      rw [div_eq_add_half h2H0]; omega
-    have hQ1 : ((Q + 1 : Nat) : Rat) - 1/2 = (Q : Rat) + 1/2 := by push_cast; grind
-    split
-    · -- exact tie: the even neighbour
-      rename_i htie
-      obtain ⟨hex, hr0⟩ := htie
-      subst hex
-      simp only [if_true] at hPX
-      subst hr0
-      rw [hPX]
-      have hy := hyhalf.mpr rfl
-      rcases Nat.lt_or_ge (Q % 2) 1 with hq0 | hq1
-      · have hq0 : Q % 2 = 0 := by omega
-        rw [hq0, Nat.add_zero]
-        apply roundEven_eq_natCast_of
-        · rw [hy]; grind
-        · rw [hy]; exact Rat.le_refl
-        · rw [hy]; intro h; exfalso; grind
-        · intro _; exact hq0
-      · have hq1 : Q % 2 = 1 := by omega
-        rw [hq1]
-        apply roundEven_eq_natCast_of
-        · rw [hy]; push_cast; grind
-        · rw [hy]; push_cast; grind
-        · intro _; omega
-        · rw [hy]; push_cast; intro h; exfalso; grind
-    · -- no tie: round up
-      rename_i hntie
-      apply roundEven_eq_of_strict
-      · -- `Q + 1/2 < X / 2H`
-        rw [hQ1]
-        split at hPX
-        · rename_i hex
-          rw [hPX]
-          have hne : (Pn : Rat) / ((2 * H : Nat) : Rat) ≠ (Q : Rat) + 1/2 :=
-            fun h => hntie ⟨hex, hyhalf.mp h⟩
-          have hge : ((Q + 1 : Nat) : Rat) - 1/2 ≤ (Pn : Rat) / ((2 * H : Nat) : Rat) :=
-            (half_le_div h2H0).mpr (by omega)
-          rw [hQ1] at hge
-          exact Rat.lt_of_le_of_ne hge (Ne.symm hne)
-        · rename_i hex
-          have hg := hguard (by simpa using hex)
-          have h1 : ((Q * (2 * H) + H + mz : Nat) : Rat) ≤ (Pn : Rat) := by
-            exact_mod_cast (show Q * (2 * H) + H + mz ≤ Pn by omega)
-          have hmid : (Q : Rat) + 1/2 ≤ ((Pn : Rat) - mz) / ((2 * H : Nat) : Rat) := by
-            rw [le_div_iff h2HR]; push_cast at h1 ⊢; grind
-          exact lt_of_le_of_lt hmid (hXlow (by simpa using hex))
-      · have hlt2 : (Pn : Rat) / ((2 * H : Nat) : Rat) < ((Q + 1 : Nat) : Rat) + 1/2 :=
-          lt_of_lt_of_le hylt (by push_cast; grind)
-        exact lt_of_le_of_lt hXs hlt2
+  have hP : (Pn : Rat) = 2 * ((Q : Rat) * H) + b * H + r := by rw [hdec]; push_cast; rfl
+  have hr : (r : Rat) < H := by exact_mod_cast hr2
+  have h2HR : (0 : Rat) < ((2 * H : Nat) : Rat) := by exact_mod_cast Nat.mul_pos (by decide) hH0
+  rw [hP] at hXP
+  cases exact <;> simp only [Bool.false_eq_true, Bool.true_eq_false, false_and, true_and, if_false,
+    if_true, false_implies, forall_const] at hPX hguard ⊢
+  · -- inexact: `2QH + bH < X`
+    have hmz : (mz : Rat) ≤ r := by exact_mod_cast hguard
+    rw [hP] at hPX
+    rcases (show b = 0 ∨ b = 1 by omega) with rfl | rfl
+    · rw [if_pos rfl]; apply roundEven_eq_of_between (by omega : 0 < 2 * H) <;> push_cast <;> grind
+    · rw [if_neg (by decide)]; apply roundEven_eq_of_between (by omega : 0 < 2 * H) <;> push_cast <;> grind
+  · -- exact: `X = 2QH + bH + r`
+    subst hPX
+    rw [hP]
+    rcases (show b = 0 ∨ b = 1 by omega) with rfl | rfl
+    · rw [if_pos rfl]; apply roundEven_eq_of_between (by omega : 0 < 2 * H) <;> push_cast <;> grind
+    · rw [if_neg (by decide)]
+      by_cases hr0 : r = 0
+      · rw [if_pos hr0]; subst hr0
+        rw [show (2 * ((Q : Rat) * H) + ((1 : Nat) : Rat) * H + ((0 : Nat) : Rat))
+            / ((2 * H : Nat) : Rat) = (Q : Rat) + 1/2 by rw [div_eq_iff h2HR]; push_cast; grind]
+        exact roundEven_tie Q
+      · rw [if_neg hr0]
+        have hr1 : (1 : Rat) ≤ r := by exact_mod_cast Nat.pos_of_ne_zero hr0
+        apply roundEven_eq_of_between (by omega : 0 < 2 * H) <;> push_cast <;> grind
 
 theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exact : Bool)
     (X : Rat) (hX190 : (2 : Rat) ^ (190 : Nat) ≤ X) (hXP : X ≤ (val192 pHi pMid pLo : Rat))
@@ -522,18 +436,10 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
         rw [hc, show 190 + (topN : Int) - hz - 52 + 52 = 190 + (topN : Int) - hz by omega]
         exact hx.1
   have hthr : ¬ ((2 : Rat) ^ 1024 - 2 ^ 970 ≤ x) := by
-    intro hc
     have h1 : x < (2 : Rat) ^ (1023 : Int) :=
       lt_of_lt_of_le hx.2 (zpow_le_zpow_right₀ (by decide) (by omega))
-    have h2 : (2 : Rat) ^ (1023 : Int) ≤ (2 : Rat) ^ 1024 - 2 ^ 970 := by
-      have ha : (2 : Rat) ^ (970 : Int) ≤ (2 : Rat) ^ (1023 : Int) :=
-        zpow_le_zpow_right₀ (by decide) (by decide)
-      have hb : (2 : Rat) ^ (1024 : Nat) = (2 : Rat) ^ (1023 : Nat) * 2 := Rat.pow_succ 2 1023
-      have ha' : (2 : Rat) ^ (970 : Nat) ≤ (2 : Rat) ^ (1023 : Nat) := ha
-      show (2 : Rat) ^ (1023 : Nat) ≤ (2 : Rat) ^ (1024 : Nat) - 2 ^ (970 : Nat)
-      rw [hb]
-      grind
-    exact absurd hc (Rat.not_le.mpr (lt_of_lt_of_le h1 h2))
+    have h2 : (2 : Rat) ^ (1023 : Int) ≤ (2 : Rat) ^ 1024 - 2 ^ 970 := by decide +kernel
+    exact Rat.not_le.mpr (lt_of_lt_of_le h1 h2)
   -- the scaled value `x / 2^k = X / 2^s`
   have hsdef : x / (2 : Rat) ^ k = X / (2 : Rat) ^ sN := by
     rw [← hxdef, Rat.div_def, Rat.div_def, Rat.mul_assoc, ← Rat.inv_mul_rev,

@@ -45,17 +45,15 @@ theorem biased_toNat (qB D : UInt64) (hq : qB.toNat ≤ 2045) (hD1 : 523964 * 2 
 theorem floorLog10Pow2B_toNat (qB : UInt64) (hq : qB.toNat ≤ 2045) :
     ((floorLog10Pow2B qB).toNat : Int) = floorLog10Pow2 ((qB.toNat : Int) - 1074) + 324 := by
   unfold floorLog10Pow2B floorLog10Pow2 constC shiftQ
-  rw [biased_toNat _ _ hq (by decide) (by decide), Int.fdiv_eq_ediv_of_nonneg _ (by decide),
-    show ((1152210546720643834 : UInt64).toNat : Int) = 1152210546720643834 from rfl]
-  omega
+  rw [biased_toNat _ _ hq (by decide) (by decide), Int.fdiv_eq_ediv_of_nonneg _ (by decide)]
+  word
 
 theorem floorLog10ThreeQuartersPow2B_toNat (qB : UInt64) (hq : qB.toNat ≤ 2045) :
     ((floorLog10ThreeQuartersPow2B qB).toNat : Int)
       = floorLog10ThreeQuartersPow2 ((qB.toNat : Int) - 1074) + 324 := by
   unfold floorLog10ThreeQuartersPow2B floorLog10ThreeQuartersPow2 constC constA shiftQ
-  rw [biased_toNat _ _ hq (by decide) (by decide), Int.fdiv_eq_ediv_of_nonneg _ (by decide),
-    show ((1152210271977456513 : UInt64).toNat : Int) = 1152210271977456513 from rfl]
-  omega
+  rw [biased_toNat _ _ hq (by decide) (by decide), Int.fdiv_eq_ediv_of_nonneg _ (by decide)]
+  word
 
 theorem isIrregularB_eq (mU qB : UInt64) :
     isIrregularB mU qB = isIrregular mU.toNat ((qB.toNat : Int) - 1074) := by

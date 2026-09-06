@@ -24,6 +24,31 @@ theorem threshold_eq : (2 : Rat) ^ 1024 - 2 ^ 970 = (2 ^ 53 - 1/2) * (2 : Rat) ^
   have h2 : (2 : Rat) ^ 971 = 2 * 2 ^ 970 := by rw [Rat.pow_succ]; grind
   grind
 
+/-- `y · 2^k ∈ R_(n, k)` when `y` rounds to `n` (ties only for even `n`),
+    with `y` at least `n - 1/4` at the bottom of a binade. -/
+theorem InRv_of_round {y : Rat} {k : Int} {n : Nat}
+    (hlo : (n : Rat) - 1/2 ≤ y) (hhi : y ≤ n + 1/2)
+    (hlo' : y = n - 1/2 → n % 2 = 0) (hhi' : y = n + 1/2 → n % 2 = 0)
+    (hirr : n = 2 ^ 52 ∧ k > -1074 → (n : Rat) - 1/4 ≤ y) :
+    InRv n k (y * 2 ^ k) = true := by
+  have hP := Rat.le_of_lt (two_zpow_pos k)
+  unfold InRv vl vr
+  split
+  · -- even: closed endpoints
+    simp only [decide_eq_true_eq]
+    split
+    · exact ⟨Rat.mul_le_mul_of_nonneg_right (hirr (by assumption)) hP,
+        Rat.mul_le_mul_of_nonneg_right hhi hP⟩
+    · exact ⟨Rat.mul_le_mul_of_nonneg_right hlo hP, Rat.mul_le_mul_of_nonneg_right hhi hP⟩
+  · -- odd: no tie, so both bounds are strict
+    rename_i hodd
+    simp only [decide_eq_true_eq]
+    have hP' := two_zpow_pos k
+    have h1 : (n : Rat) - 1/2 < y := Rat.lt_of_le_of_ne hlo (fun h => hodd (hlo' h.symm))
+    have h2 : y < n + 1/2 := Rat.lt_of_le_of_ne hhi (fun h => hodd (hhi' h))
+    rw [if_neg (fun h => hodd (by rw [h.1]))]
+    exact ⟨Rat.mul_lt_mul_of_pos_right h1 hP', Rat.mul_lt_mul_of_pos_right h2 hP'⟩
+
 /-- What `read` returns, below and above the threshold. -/
 theorem read_spec (d : Decimal) :
     ((d.significand : Rat) * (10 : Rat) ^ d.exponent < 2 ^ 1024 - 2 ^ 970 →
@@ -38,166 +63,95 @@ theorem read_spec (d : Decimal) :
   have hx0 := mag_nonneg d
   have hc52 : ((2 ^ 52 : Nat) : Rat) = (2 : Rat) ^ 52 := by rw [← two_zpow_natCast, Rat.zpow_natCast]
   have hc53 : ((2 ^ 53 : Nat) : Rat) = (2 : Rat) ^ 53 := by rw [← two_zpow_natCast, Rat.zpow_natCast]
-  have h53pos : (0 : Rat) < 2 ^ 53 := Rat.pow_pos (by decide)
+  have h53 : (2 : Rat) ^ 53 = 2 ^ 52 * 2 := Rat.pow_succ 2 52
   generalize (d.significand : Rat) * (10 : Rat) ^ d.exponent = x at *
   split
   · rename_i hT
     exact ⟨fun h => absurd hT (Rat.not_le.mpr h), fun _ => rfl⟩
-  · rename_i hT
-    refine ⟨fun _ => ?_, fun h => absurd h hT⟩
-    have hT' : x < 2 ^ 1024 - 2 ^ 970 := Rat.not_le.mp hT
-    rw [threshold_eq] at hT'
-    -- the grid `2^k` and the rounding of `y = x / 2^k`
-    obtain ⟨hk0, hk1, hk2⟩ := gridExp_spec hx0
-    generalize gridExp x = k at *
-    have hP := two_zpow_pos k
-    have e53 : (2 : Rat) ^ (k + 53) = 2 ^ 53 * 2 ^ k := by
-      rw [Rat.zpow_add (by decide), Rat.mul_comm]; rfl
-    have e52 : (2 : Rat) ^ (k + 52) = 2 ^ 52 * 2 ^ k := by
-      rw [Rat.zpow_add (by decide), Rat.mul_comm]; rfl
-    rw [e53] at hk1
-    have hxy : x = x / 2 ^ k * 2 ^ k := (Rat.div_mul_cancel (Rat.ne_of_gt hP)).symm
-    have hy0 : 0 ≤ x / 2 ^ k := (le_div_iff hP).mpr (by rw [Rat.zero_mul]; exact hx0)
-    have hy53 : x / 2 ^ k < ((2 ^ 53 : Nat) : Rat) := by
-      rw [hc53]; exact (Rat.div_lt_iff hP).mpr hk1
-    have hr53 := roundEven_le hy53
-    obtain ⟨hlo, hhi, hlo', hhi'⟩ := roundEven_spec (x / 2 ^ k)
-    have hr0 := roundEven_nonneg hy0
-    generalize roundEven (x / 2 ^ k) = r at *
-    generalize x / 2 ^ k = y at *
-    subst hxy
-    rw [hc53] at hy53
-    have hy52 : k = -1074 ∨ (2 : Rat) ^ 52 ≤ y := by
-      rcases hk2 with h | h
-      · exact Or.inl h
-      · rw [e52] at h
-        exact Or.inr (Rat.le_of_mul_le_mul_right h hP)
-    have hrN : ((r.toNat : Nat) : Rat) = (r : Rat) := by
-      rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hr0]
-    -- membership in `R_v` for the returned `(n, k)`
-    have mem (n : Nat) (hn : (n : Rat) = r) (hn52 : k ≠ -1074 → 2 ^ 52 ≤ n) :
-        InRv n k (y * 2 ^ k) = true := by
-      have hnr : (n : Int) = r := by exact_mod_cast hn
-      rw [← hn] at hlo hhi hlo' hhi'
-      unfold InRv vl vr
-      have hvl : ((n : Rat) - 1/2) * 2 ^ k ≤ y * 2 ^ k :=
-        Rat.mul_le_mul_of_nonneg_right hlo (Rat.le_of_lt hP)
-      have hvr : y * 2 ^ k ≤ ((n : Rat) + 1/2) * 2 ^ k :=
-        Rat.mul_le_mul_of_nonneg_right hhi (Rat.le_of_lt hP)
-      have hirr : n = 2 ^ 52 ∧ k > -1074 → ((n : Rat) - 1/4) * 2 ^ k ≤ y * 2 ^ k := by
-        rintro ⟨hn2, hk⟩
-        rcases hy52 with h | h
-        · omega
-        · have : ((n : Rat) - 1/4) ≤ y := by rw [hn2, hc52]; grind
-          exact Rat.mul_le_mul_of_nonneg_right this (Rat.le_of_lt hP)
-      split
-      · rename_i heven
-        simp only [decide_eq_true_eq]
-        split
-        · exact ⟨hirr (by assumption), hvr⟩
-        · exact ⟨hvl, hvr⟩
-      · rename_i hodd
-        simp only [decide_eq_true_eq]
-        have hlt1 : ((n : Rat) - 1/2) < y := by
-          rcases Rat.eq_or_lt_of_le hlo with h | h
-          · exfalso; have := hlo' h.symm; omega
-          · exact h
-        have hlt2 : y < (n : Rat) + 1/2 := by
-          rcases Rat.eq_or_lt_of_le hhi with h | h
-          · exfalso; have := hhi' h; omega
-          · exact h
-        have hvl' := Rat.mul_lt_mul_of_pos_right hlt1 hP
-        have hvr' := Rat.mul_lt_mul_of_pos_right hlt2 hP
-        split
-        · rename_i hi
-          refine ⟨?_, hvr'⟩
-          rcases hy52 with h | h
-          · omega
-          · have : ((n : Rat) - 1/4) < y := by rw [hi.1, hc52]; grind
-            exact Rat.mul_lt_mul_of_pos_right this hP
-        · exact ⟨hvl', hvr'⟩
+  rename_i hT
+  refine ⟨fun _ => ?_, fun h => absurd h hT⟩
+  have hT' : x < (2 ^ 53 - 1/2) * (2 : Rat) ^ (971 : Int) := by
+    rw [← threshold_eq]; exact Rat.not_le.mp hT
+  -- the grid `2^k`, and `y = x / 2^k` rounded to `r`
+  obtain ⟨hk0, hk1, hk2⟩ := gridExp_spec hx0
+  generalize gridExp x = k at *
+  have hP := two_zpow_pos k
+  have e53 : (2 : Rat) ^ (k + 53) = 2 ^ 53 * 2 ^ k := by
+    rw [Rat.zpow_add (by decide), Rat.mul_comm]; rfl
+  have e52 : (2 : Rat) ^ (k + 52) = 2 ^ 52 * 2 ^ k := by
+    rw [Rat.zpow_add (by decide), Rat.mul_comm]; rfl
+  rw [e53] at hk1
+  rw [e52] at hk2
+  have hxy : x = x / 2 ^ k * 2 ^ k := (Rat.div_mul_cancel (Rat.ne_of_gt hP)).symm
+  have hy0 : 0 ≤ x / 2 ^ k := div_nonneg hx0 hP
+  have hy53 : x / 2 ^ k < ((2 ^ 53 : Nat) : Rat) := by rw [hc53]; exact (Rat.div_lt_iff hP).mpr hk1
+  have hr53 := roundEven_le hy53
+  obtain ⟨hlo, hhi, hlo', hhi'⟩ := roundEven_spec (x / 2 ^ k)
+  have hr0 := roundEven_nonneg hy0
+  generalize roundEven (x / 2 ^ k) = r at *
+  generalize x / 2 ^ k = y at *
+  subst hxy
+  have hy52 : k = -1074 ∨ (2 : Rat) ^ 52 ≤ y := by
+    rcases hk2 with h | h
+    · exact Or.inl h
+    · exact Or.inr (Rat.le_of_mul_le_mul_right h hP)
+  have hrN : ((r.toNat : Nat) : Rat) = (r : Rat) := by
+    rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hr0]
+  -- the threshold bounds `k`: `k ≤ 971`, and `k ≤ 970` once `y` reaches `2^53 - 1/2`
+  have hk971 : (2 : Rat) ^ 52 ≤ y → k ≤ 971 := fun h => by
+    have h1024 : (2 : Rat) ^ (1024 : Int) = 2 ^ 53 * 2 ^ (971 : Int) := by
+      rw [show (1024 : Int) = 53 + 971 by rfl, Rat.zpow_add (by decide)]; rfl
+    have := lt_of_zpow_lt (a := 2) (by decide) (x := k + 52) (y := 1024) (by
+      rw [e52, h1024]
+      exact lt_of_le_of_lt (Rat.mul_le_mul_of_nonneg_right h (Rat.le_of_lt hP))
+        (lt_of_lt_of_le hT' (Rat.mul_le_mul_of_nonneg_right (by grind)
+          (Rat.le_of_lt (two_zpow_pos _)))))
+    omega
+  have hk970 : (2 : Rat) ^ 53 - 1/2 ≤ y → k ≤ 970 := fun h => by
+    have h1 := lt_of_le_of_lt (Rat.mul_le_mul_of_nonneg_right h (Rat.le_of_lt hP)) hT'
+    rw [Rat.mul_comm, Rat.mul_comm _ ((2 : Rat) ^ (971 : Int))] at h1
+    have := lt_of_zpow_lt (a := 2) (by decide) (Rat.lt_of_mul_lt_mul_right h1 (by grind))
+    omega
+  split
+  · -- `r = 0`: `y ≤ 1/2`, on the bottom grid
+    rename_i h0
+    obtain rfl : r = 0 := by omega
+    push_cast at hhi
+    rcases hy52 with rfl | h
+    · refine ⟨rfl, rfl, legal_zero, InRv_of_round (n := 0) (by push_cast; grind) (by push_cast; grind)
+        (fun _ => rfl) (fun _ => rfl) (fun h => absurd h.1 (by decide))⟩
+    · exfalso; have := one_le_pow (a := (2 : Rat)) (by decide) 52; grind
+  · rename_i h0
     split
-    · -- zero: `y ≤ 1/2`, on the bottom grid
-      rename_i h0
-      have hr0' : r = 0 := by omega
-      have hk : k = -1074 := by
-        rcases hy52 with h | h
+    · -- `r = 2^53`: the carry, `2^52` on the next grid
+      rename_i h53'
+      have hr' : (r : Rat) = 2 ^ 53 := by rw [← hrN, h53', hc53]
+      rw [hr'] at hlo hhi
+      have hk := hk970 hlo
+      simp only [mq]
+      refine ⟨rfl, rfl, ⟨by omega, by omega, by omega, fun _ => Nat.le_refl _⟩, ?_⟩
+      rw [show y * 2 ^ k = y / 2 * 2 ^ (k + 1) by rw [Rat.zpow_add_one (by decide)]; grind]
+      exact InRv_of_round (n := 2 ^ 52) (by rw [hc52]; grind) (by rw [hc52]; grind)
+        (fun _ => by decide) (fun _ => by decide) (fun _ => by rw [hc52]; grind)
+    · -- the grid point `r · 2^k`
+      rename_i h53'
+      have hn52 : k ≠ -1074 → 2 ^ 52 ≤ r.toNat := fun hk => by
+        have h := hy52.resolve_left hk
+        have h1 : ((2 ^ 52 : Nat) : Rat) < ((r.toNat + 1 : Nat) : Rat) := by
+          rw [hc52]; push_cast; rw [hrN]; grind
+        have h2 : 2 ^ 52 < r.toNat + 1 := by exact_mod_cast h1
+        omega
+      simp only [mq]
+      refine ⟨rfl, rfl, ⟨by omega, hk0, ?_, hn52⟩, ?_⟩
+      · rcases Int.lt_or_le 971 k with h | h
+        · exact absurd (hk971 (hy52.resolve_left (by omega))) (by omega)
         · exact h
-        · exfalso; rw [hr0'] at hhi; push_cast at hhi
-          have : (1 : Rat) ≤ 2 ^ 52 := one_le_pow (by decide) 52
-          grind
-      subst hk
-      refine ⟨rfl, rfl, legal_zero, ?_⟩
-      exact mem 0 (by rw [hr0']; rfl) (fun h => absurd rfl h)
-    · rename_i h0
-      split
-      · -- carry: `y` rounds to `2^53`; the value is `2^52 · 2^(k+1)`
-        rename_i h53
-        have hr' : (r : Rat) = 2 ^ 53 := by rw [← hrN, h53, hc53]
-        have hk : k ≤ 970 := by
-          rcases Int.lt_or_le k 971 with h | h
-          · omega
-          · exfalso
-            rw [hr'] at hlo
-            have h1 : (2 : Rat) ^ (971 : Int) ≤ 2 ^ k := zpow_le_zpow_right₀ (by decide) h
-            have h2 : ((2 : Rat) ^ 53 - 1/2) * 2 ^ (971 : Int) ≤ (2 ^ 53 - 1/2) * 2 ^ k :=
-              Rat.mul_le_mul_of_nonneg_left h1 (by grind)
-            have h3 : ((2 : Rat) ^ 53 - 1/2) * 2 ^ k ≤ y * 2 ^ k :=
-              Rat.mul_le_mul_of_nonneg_right hlo (Rat.le_of_lt hP)
-            exact absurd hT' (Rat.not_lt.mpr (Rat.le_trans h2 h3))
-        refine ⟨rfl, rfl, ?_, ?_⟩
-        · show Legal (2 ^ 52) (k + 1)
-          exact ⟨by omega, by omega, by omega, fun _ => Nat.le_refl _⟩
-        show InRv (2 ^ 52) (k + 1) (y * 2 ^ k) = true
-        have h2 : (2 : Rat) ^ (k + 1) = 2 ^ k * 2 := Rat.zpow_add_one (by decide) k
-        unfold InRv vl vr
-        rw [if_pos (by decide), if_pos ⟨rfl, by omega⟩, h2, hc52]
-        simp only [decide_eq_true_eq]
-        rw [hr'] at hlo hhi
-        have h53 : (2 : Rat) ^ 53 = 2 ^ 52 * 2 := by rw [Rat.pow_succ]
-        constructor
-        · have : ((2 : Rat) ^ 52 - 1/4) * (2 ^ k * 2) = (2 ^ 53 - 1/2) * 2 ^ k := by
-            rw [h53]; grind
-          rw [this]; exact Rat.mul_le_mul_of_nonneg_right hlo (Rat.le_of_lt hP)
-        · have : ((2 : Rat) ^ 52 + 1/2) * (2 ^ k * 2) = (2 ^ 53 + 1) * 2 ^ k := by
-            rw [h53]; grind
-          rw [this]
-          exact Rat.mul_le_mul_of_nonneg_right (by grind) (Rat.le_of_lt hP)
-      · -- the grid point `r · 2^k`
-        rename_i h53
-        have hr' : (r.toNat : Rat) = r := hrN
-        have hn52 : k ≠ -1074 → 2 ^ 52 ≤ r.toNat := by
-          intro hk
-          rcases hy52 with h | h
-          · exact absurd h hk
-          · have h1 : (2 : Rat) ^ 52 - 1 < r.toNat := by rw [hr']; grind
-            have h2 : ((2 ^ 52 : Nat) : Rat) < ((r.toNat + 1 : Nat) : Rat) := by
-              rw [hc52]; push_cast; grind
-            have h3 : 2 ^ 52 < r.toNat + 1 := by exact_mod_cast h2
-            omega
-        have hk : k ≤ 971 := by
-          rcases Int.lt_or_le 971 k with h | h
-          · exfalso
-            have h52 := hn52 (by omega)
-            have h1 : (2 : Rat) ^ 52 ≤ y := by
-              rcases hy52 with h' | h'
-              · omega
-              · exact h'
-            have h2 : (2 : Rat) ^ (972 : Int) ≤ (2 : Rat) ^ k := zpow_le_zpow_right₀ (by decide) h
-            have h3 : (2 : Rat) ^ (972 : Int) = 2 * 2 ^ (971 : Int) := by
-              rw [show (972 : Int) = 971 + 1 by rfl, Rat.zpow_add_one (by decide)]; grind
-            have h4 := two_zpow_pos (971 : Int)
-            have h5 : (2 : Rat) ^ 52 * 2 ^ k ≤ y * 2 ^ k :=
-              Rat.mul_le_mul_of_nonneg_right h1 (Rat.le_of_lt hP)
-            have h6 : (2 : Rat) ^ 52 * 2 ^ (972 : Int) ≤ (2 : Rat) ^ 52 * 2 ^ k :=
-              Rat.mul_le_mul_of_nonneg_left h2 (Rat.le_of_lt (Rat.pow_pos (by decide)))
-            have h7 : (2 : Rat) ^ 53 = 2 ^ 52 * 2 := by rw [Rat.pow_succ]
-            grind
-          · exact h
-        refine ⟨rfl, rfl, ?_, ?_⟩
-        · show Legal r.toNat k
-          exact ⟨by omega, hk0, hk, hn52⟩
-        · show InRv r.toNat k (y * 2 ^ k) = true
-          exact mem r.toNat hr' hn52
+      · rw [← hrN] at hlo hhi hlo' hhi'
+        exact InRv_of_round hlo hhi (fun h => by have := hlo' h; omega)
+          (fun h => by have := hhi' h; omega)
+          (fun hi => by
+            rcases hy52 with h | h
+            · omega
+            · rw [hi.1, hc52]; grind)
 
 end Srtfp.Reader
