@@ -22,6 +22,7 @@ serialised as u64 bit patterns; every impl reconstructs the same floats.
 
 Run (from repo root):
     python3 benches/plot.py                 # all corpora, writes perf.png + results.csv
+    python3 benches/plot.py --runs 4        # best-of-4 medians per cell (recommended)
     python3 benches/plot.py --corpus uniform
     python3 benches/plot.py --snprintf      # also include libc snprintf
 
@@ -121,6 +122,9 @@ def main():
     ap.add_argument("--no-build", action="store_true")
     ap.add_argument("--replot", action="store_true",
                     help="redraw from existing results.csv (no build, no timing)")
+    ap.add_argument("--runs", type=int, default=1,
+                    help="timing rounds; each cell keeps its best median "
+                         "(filters the machine's clock-state noise)")
     args = ap.parse_args()
 
     if args.replot:
@@ -146,12 +150,15 @@ def main():
 
     # --- time ----------------------------------------------------------------
     print(f"== timing (median ns/call, pinned core {os.environ.get('BENCH_CORE', '0')}) ==", flush=True)
-    results = {}  # (impl, corpus) -> ns
-    for c in corpora:
-        for name, (mk_run, _, env) in impl.items():
-            ns = median_ns(sh(mk_run(c), env))
-            results[(name, c)] = ns
-            print(f"  {name:22s} {c:12s} {ns:8d} ns", flush=True)
+    results = {}  # (impl, corpus) -> best median ns over the rounds
+    for _ in range(args.runs):
+        for c in corpora:
+            for name, (mk_run, _, env) in impl.items():
+                ns = median_ns(sh(mk_run(c), env))
+                prev = results.get((name, c))
+                results[(name, c)] = ns if prev is None else min(prev, ns)
+                best = f"  (best {results[(name, c)]})" if args.runs > 1 else ""
+                print(f"  {name:22s} {c:12s} {ns:8d} ns{best}", flush=True)
 
     # --- CSV -----------------------------------------------------------------
     csv_path = os.path.join(HERE, "results.csv")

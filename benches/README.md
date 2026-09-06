@@ -35,7 +35,7 @@ comparison. (`plot.py` only; `run.sh` omits it.)
 
 | Corpus        | Size  | Description                                                   |
 |---------------|------:|---------------------------------------------------------------|
-| `adversarial` |  ~130 | Hand-picked + Ryu edge cases + ulp boundaries + 0.1+0.2 family |
+| `adversarial` |   225 | Hand-picked + Ryu edge cases + ulp boundaries + 0.1+0.2 family |
 | `nice`        |  1024 | Stratified JSON-style mix: ints, currency, lat/long, timestamps, constants |
 | `uniform`     |  1024 | Random finite binary64 (uniform sign / biased exp / mantissa) |
 

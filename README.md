@@ -122,12 +122,14 @@ python3 benches/difftest_ryu.py   # cross-check the printer vs C++ to_chars (Ryu
 printer against C++ std::to_chars, JDK Schubfach, and CPython repr,
 on three input distributions](benches/perf.svg)
 
-2–7× faster than CPython's `repr` (depending on the corpus) and within
-3× of C++'s `std::to_chars` and the JDK's Schubfach on non-adversarial
-inputs. The three corpora probe different regimes: *nice* mirrors a
-typical JSON payload, *uniform* draws random finite doubles, and
-*adversarial* is a stress set containing the finite values from Ryū's
-test suite.
+3–10× faster than CPython's `repr` (depending on the corpus), within
+2.5× of C++'s `std::to_chars` and the JDK's Schubfach on *nice* and
+*uniform* inputs, and level with the JDK on the *adversarial* corpus.
+The three corpora probe different regimes: *nice* mirrors a typical
+JSON payload, *uniform* draws random finite doubles, and *adversarial*
+is a stress set containing the finite values from Ryū's test suite.
+Each bar is the best of several runs' medians (`plot.py --runs 4`),
+which filters the machine's clock-state noise.
 
 The reader (`Decimal → Float`) runs an Eisel–Lemire kernel over the same
 128-bit table, with the exact big-integer reader as its fallback;
