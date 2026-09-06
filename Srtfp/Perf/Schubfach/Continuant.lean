@@ -402,15 +402,10 @@ theorem exists_bracket (u M d : Nat) (hM : 0 < M) (hco : Nat.Coprime u M)
     ∃ n, (∀ i, i ≤ n+1 → 0 < rem u M i)
       ∧ denI u M n ≤ (d : Int) ∧ (d : Int) < denI u M (n+1) := by
   have hM1 : 1 < M := by omega
-  have hrem1 : 0 < rem u M 1 := by
-    show 0 < u % M
-    rcases Nat.eq_zero_or_pos (u % M) with h | h
-    · exfalso
-      have hdvd : M ∣ u := Nat.dvd_of_mod_eq_zero h
-      have : Nat.gcd u M = M := Nat.gcd_eq_right hdvd
-      have hco' : Nat.gcd u M = 1 := hco
-      omega
-    · exact h
+  have hrem1 : 0 < rem u M 1 := Nat.pos_of_ne_zero fun h => by
+    have := Nat.gcd_eq_right (Nat.dvd_of_mod_eq_zero (h : u % M = 0))
+    have hco' : Nat.gcd u M = 1 := hco
+    omega
   suffices aux : ∀ fuel k, M ≤ k + fuel → (∀ i, i ≤ k+1 → 0 < rem u M i) →
       denI u M k ≤ (d : Int) →
       ∃ n, (∀ i, i ≤ n+1 → 0 < rem u M i)

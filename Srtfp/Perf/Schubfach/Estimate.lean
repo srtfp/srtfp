@@ -221,16 +221,12 @@ theorem rop_eq_ro (mb : Nat) (q k : Int) (g1 g0 cp : UInt64) (hh : Nat)
       exact_mod_cast hmb55
     have h2 : (2 : Rat) ^ q * 2 ^ (r k) ≤ 2 ^ (-122 : Int) := by
       rw [← Rat.zpow_add (by decide)]; exact zpow_le_zpow_right₀ (by decide) (by omega)
-    have hAR : (mb : Rat) / 4 * 2 ^ q * 2 ^ (r k) < (2 : Rat) ^ (-65 : Int) :=
-      calc (mb : Rat) / 4 * 2 ^ q * 2 ^ (r k) = (mb : Rat) / 4 * (2 ^ q * 2 ^ (r k)) :=
-            Rat.mul_assoc _ _ _
-        _ ≤ (mb : Rat) / 4 * 2 ^ (-122 : Int) := Rat.mul_le_mul_of_nonneg_left h2 hmb4
-        _ < 2 ^ (53 : Int) * 2 ^ (-122 : Int) :=
-            Rat.mul_lt_mul_of_pos_right h1 (Rat.zpow_pos (by decide))
-        _ = 2 ^ (-69 : Int) := by rw [← Rat.zpow_add (by decide)]; rfl
-        _ < 2 ^ (-65 : Int) := zpow_lt_zpow (by decide) (by decide)
-    calc (mb : Rat) / 4 * 2 ^ q * ((g k : Rat) * 2 ^ (r k) - 10 ^ (-k))
-          ≤ (mb : Rat) / 4 * 2 ^ q * 2 ^ (r k) := Rat.mul_le_mul_of_nonneg_left (by grind) hA
-      _ < 2 ^ (-65 : Int) := hAR
+    have h3 : (2 : Rat) ^ (53 : Int) * 2 ^ (-122 : Int) < 2 ^ (-65 : Int) := by
+      rw [← Rat.zpow_add (by decide)]; exact zpow_lt_zpow (by decide) (by decide)
+    have f1 := Rat.mul_le_mul_of_nonneg_left
+      (show (g k : Rat) * 2 ^ (r k) - 10 ^ (-k) ≤ 2 ^ (r k) by grind) hA
+    have f2 := Rat.mul_le_mul_of_nonneg_left h2 hmb4
+    have f3 := Rat.mul_lt_mul_of_pos_right h1 (Rat.zpow_pos (by decide) : (0 : Rat) < 2 ^ (-122 : Int))
+    grind
 
 end Srtfp.Schubfach

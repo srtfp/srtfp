@@ -137,47 +137,7 @@ theorem eq_of_nearestWord {d : Decimal} {w w' : UInt64} (h : Spec.NearestWord d 
     have he := htie hne heqd
     have he' := htie' (Ne.symm hne) heqd.symm
     obtain ⟨-, hnb⟩ := (nearest_of_InRv hleg' hleg hx).2 hv heq.symm
-    exfalso
-    have hp := two_zpow_pos qw'
-    have hm53 := hleg'.1
-    have hq0 := hleg'.2.1
-    have hq1 := hleg'.2.2.1
-    have hmin := hleg'.2.2.2
-    rcases hnb with hL | hR
-    · unfold gapL at hL
-      by_cases hirr : mw' = 2 ^ 52 ∧ qw' > -1074
-      · -- the value below the bottom of a binade is `(2^53 - 1) · 2^(q-1)`
-        rw [if_pos hirr, hirr.1] at hL
-        have hval : v mw qw = v (2 ^ 53 - 1) (qw' - 1) := by
-          rw [hL]; unfold v
-          have h2 : (2 : Rat) ^ qw' = 2 ^ (qw' - 1) * 2 := by
-            rw [← Rat.zpow_add_one (by decide), Int.sub_add_cancel]
-          rw [h2]; push_cast; grind
-        have hlegN : Legal (2 ^ 53 - 1) (qw' - 1) := by unfold Legal; omega
-        obtain ⟨rfl, -⟩ := v_inj hleg hlegN hval
-        omega
-      · rw [if_neg hirr] at hL
-        obtain ⟨k, rfl⟩ : ∃ k, mw' = k + 1 := by
-          refine ⟨mw' - 1, ?_⟩
-          rcases Nat.eq_zero_or_pos mw' with h0 | h0
-          · exfalso; subst h0
-            have := v_nonneg (m := mw) (q := qw)
-            rw [hL, v_zero_iff.mpr rfl] at this; grind
-          · omega
-        have hval : v mw qw = v k qw' := by rw [hL]; unfold v; push_cast; grind
-        have hlegN : Legal k qw' := by
-          unfold Legal
-          refine ⟨by omega, hq0, hq1, fun hq => ?_⟩
-          have := hmin hq
-          have : k + 1 ≠ 2 ^ 52 := fun h => hirr ⟨h, by omega⟩
-          omega
-        obtain ⟨rfl, -⟩ := v_inj hleg hlegN hval
-        omega
-    · have hval : v mw qw = v (mw' + 1) qw' := by rw [hR]; unfold v; push_cast; grind
-      have hlegN : Legal (mw' + 1) qw' := by
-        unfold Legal
-        refine ⟨by omega, hq0, hq1, fun hq => by have := hmin hq; omega⟩
-      obtain ⟨rfl, -⟩ := v_inj hleg hlegN hval
-      omega
+    have := neighbour_parity hleg' hleg he' (hnb.imp_right Eq.symm)
+    omega
 
 end Srtfp.Reader

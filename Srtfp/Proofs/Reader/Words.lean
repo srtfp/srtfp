@@ -229,4 +229,34 @@ theorem gap (h : Legal m q) (h' : Legal m' q') (hne : v m' q' ≠ v m q) :
       have := Rat.mul_le_mul_of_nonneg_right this (Rat.le_of_lt hp)
       grind
 
+/-- For even `m`, a legal value at a neighbour of `m · 2^q` (below by `gapL`,
+    above by `2^q`) has an odd significand. -/
+theorem neighbour_parity (h : Legal m q) (h' : Legal m' q') (hm : m % 2 = 0)
+    (hnb : v m' q' = v m q - gapL m q ∨ v m q + (2 : Rat) ^ q = v m' q') : m' % 2 = 1 := by
+  obtain ⟨hm53, hq0, hq1, hmin⟩ := h
+  have h2 : (2 : Rat) ^ q = 2 ^ (q - 1) * 2 := by
+    rw [← Rat.zpow_add_one (by decide), Int.sub_add_cancel]
+  rcases hnb with hL | hR
+  · unfold gapL at hL
+    split at hL
+    · -- below the bottom of a binade: `(2^53 - 1) · 2^(q-1)`
+      rename_i hirr
+      rw [hirr.1] at hL
+      obtain ⟨rfl, -⟩ := v_inj h' (show Legal (2 ^ 53 - 1) (q - 1) by unfold Legal; omega)
+        (by rw [hL]; unfold v; rw [h2]; push_cast; grind)
+      omega
+    · rename_i hirr
+      obtain ⟨k, rfl⟩ : ∃ k, m = k + 1 := ⟨m - 1, Nat.succ_pred_eq_of_pos (Nat.pos_of_ne_zero fun h0 => by
+        subst h0; have := v_nonneg (m := m') (q := q'); rw [hL, v_zero_iff.mpr rfl] at this
+        have := two_zpow_pos q; grind) |>.symm⟩
+      obtain ⟨rfl, -⟩ := v_inj h' (show Legal k q by
+          unfold Legal; refine ⟨by omega, hq0, hq1, fun hq => ?_⟩
+          have := hmin hq; have : k + 1 ≠ 2 ^ 52 := fun e => hirr ⟨e, by omega⟩; omega)
+        (by rw [hL]; unfold v; push_cast; grind)
+      omega
+  · obtain ⟨rfl, -⟩ := v_inj h' (show Legal (m + 1) q by
+        unfold Legal; exact ⟨by omega, hq0, hq1, fun hq => by have := hmin hq; omega⟩)
+      (by rw [← hR]; unfold v; push_cast; grind)
+    omega
+
 end Srtfp.Reader
