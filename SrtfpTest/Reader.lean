@@ -35,7 +35,7 @@ private def roundTripMismatches : Array (Float × Decimal) := Id.run do
     let bits := f.toBits
     let live := Reader.ofDecimalBits d
     let exact := (Float.Model.pack (readExact d)).toBits
-    let fast := (readFast d).getD exact
+    let fast := let w := readFast d; if w = declined then exact else w
     if live != bits || exact != bits || fast != bits then out := out.push (f, d)
   return out
 
@@ -88,9 +88,10 @@ private def sweep (ds : Array Decimal) : Nat × Nat := Id.run do
     let exact := (Float.Model.pack (readExact d)).toBits
     let live := Reader.ofDecimalBits d
     if exact != ref || live != ref then bad := bad + 1
-    match readFast d with
-    | some w => fast := fast + 1; if w != ref then bad := bad + 1
-    | none => pure ()
+    let w := readFast d
+    if w != declined then
+      fast := fast + 1
+      if w != ref then bad := bad + 1
   return (bad, fast)
 
 def runTests : TestSeq :=

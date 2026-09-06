@@ -18,7 +18,7 @@ def main (args : List String) : IO Unit := do
     | _ => Corpora.nice
   let decs : Array Decimal := corpus.filterMap fun f =>
     Printer.toDecimal f
-  let fastHits := decs.foldl (init := 0) fun a d => if (Reader.readFast d).isSome then a + 1 else a
+  let fastHits := decs.foldl (init := 0) fun a d => if Reader.readFast d != Reader.declined then a + 1 else a
   IO.println s!"# {label} corpus: {decs.size} decimals, {fastHits} on the fast path"
   let N : Nat := 300
   let M : Nat := 5

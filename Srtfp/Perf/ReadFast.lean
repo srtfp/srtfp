@@ -13,15 +13,15 @@ module
    off `P`: the binary exponent from its bit length, the significand as
    the half-even rounding of `X / 2^s`. Each decision is taken on `P` and
    is right for `X` whenever the interval `(P - mz, P]` contains no
-   boundary; otherwise the kernel answers `none` and the caller falls
-   back to `readExact`. Three regimes reach the core:
+   boundary; otherwise the kernel answers `declined` and the caller
+   falls back to `readExact`. Three regimes reach the core:
 
    * `0 ≤ e ≤ 54`: the entry is exact (`g = 10^e · 2^h`), so `X = P`;
    * `e < 0` with `5^{-e} ∣ m`: `x = (m / 5^{-e}) · 2^e` is a binary
      scaling, run through the core with `g = 2^127`, `h = 127 - e`;
    * otherwise the margin test above.
 
-   `readFast_some` (below) shows every `some` answer is
+   `readFast_some` (below) shows every answer other than `declined` is
    `Reader.ofDecimalBits d`. -/
 
 public import Srtfp.Perf.ReadExact
@@ -65,20 +65,41 @@ def packFinite (sign : Sign) (n : UInt64) (k : Int) : UInt64 :=
   else if n = 9007199254740992 then Word.pack sign (k + 1076).toNat 0
   else Word.pack sign (k + 1075).toNat (n - 4503599627370496).toNat
 
+/-- `63 - log2 m` for `m ∈ [1, 2^64)`: six compare-and-shift steps on
+    the leading zeros. -/
+@[inline]
+def lzShift (m : UInt64) : UInt64 :=
+  let z1 : UInt64 := if m < 4294967296 then 32 else 0
+  let m1 := m <<< z1
+  let z2 : UInt64 := if m1 < 281474976710656 then 16 else 0
+  let m2 := m1 <<< z2
+  let z3 : UInt64 := if m2 < 72057594037927936 then 8 else 0
+  let m3 := m2 <<< z3
+  let z4 : UInt64 := if m3 < 1152921504606846976 then 4 else 0
+  let m4 := m3 <<< z4
+  let z5 : UInt64 := if m4 < 4611686018427387904 then 2 else 0
+  let m5 := m4 <<< z5
+  let z6 : UInt64 := if m5 < 9223372036854775808 then 1 else 0
+  z1 + z2 + z3 + z4 + z5 + z6
+
+/-- The word the kernel answers when it declines: a NaN pattern, never a
+    reader result, so the caller tests it and falls back to `readExact`. -/
+def declined : UInt64 := 18446744073709551615
+
 /-- Round `X / 2^s` half-even from `P = (pHi, pMid, pLo)`, where `X` is
     `P` itself (`exact`) or lies in `(P - mz, P]`, and `s = hz + k`. -/
 @[inline]
-def roundCore (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exact : Bool) : Option UInt64 :=
+def roundCore (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exact : Bool) : UInt64 :=
   let top : UInt64 := pHi >>> 63
   -- bit length of `X`: that of `P`, unless `P` just crossed `2^191`
-  if !exact && top = 1 && pHi = 9223372036854775808 && pMid = 0 && pLo < mz then none
+  if !exact && top = 1 && pHi = 9223372036854775808 && pMid = 0 && pLo < mz then declined
   else
     let t : Int := 190 + (top.toNat : Int) - hz
-    if 1023 ≤ t then none
+    if 1023 ≤ t then declined
     else
       let k : Int := max (t - 52) (-1074)
       let s : Int := hz + k
-      if s < 130 ∨ 192 < s then none
+      if s < 130 ∨ 192 < s then declined
       else
         let sN : Nat := s.toNat
         -- `q = P >>> s`, `b` = bit `s - 1`, `rest` = the bits below it
@@ -89,48 +110,48 @@ def roundCore (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exact : Bool)
         let restSmall : Bool := restHi = 0 && pMid = 0 && pLo < mz
         if exact then
           let n : UInt64 := if b = 0 then q else if restZero then q + (q &&& 1) else q + 1
-          some (if n = 0 then Word.pack sign 0 0 else packFinite sign n k)
+          if n = 0 then Word.pack sign 0 0 else packFinite sign n k
         else
-          if restSmall then none
+          if restSmall then declined
           else
             let n : UInt64 := if b = 0 then q else q + 1
-            some (if n = 0 then Word.pack sign 0 0 else packFinite sign n k)
+            if n = 0 then Word.pack sign 0 0 else packFinite sign n k
 
 /-! ## The kernel -/
 
-/-- Fast `Decimal → binary64 word`; `none` defers to `readExact`. -/
-def readFast (d : Decimal) : Option UInt64 :=
+/-- Fast `Decimal → binary64 word`; `declined` defers to `readExact`. -/
+def readFast (d : Decimal) : UInt64 :=
   let m := d.significand
   let e := d.exponent
-  if m = 0 then some (Word.pack d.sign 0 0)
-  else if 18446744073709551616 ≤ m then none
-  else if 308 < e then some (Word.pack d.sign 2047 0)
-  else if e < -324 then none
+  if m = 0 then Word.pack d.sign 0 0
+  else if 18446744073709551616 ≤ m then declined
+  else if 308 < e then Word.pack d.sign 2047 0
+  else if e < -324 then declined
   else
-    let z : Nat := 63 - m.log2
-    let mz : UInt64 := UInt64.ofNat m <<< UInt64.ofNat z
+    let mU : UInt64 := UInt64.ofNat m
+    let z : UInt64 := lzShift mU
+    let mz : UInt64 := mU <<< z
     if 0 ≤ e then
       let (gHi, gLo, h) := pow10Lookup128 e
       let (pHi, pMid, pLo) := mul64x128 mz gHi gLo
-      roundCore d.sign mz pHi pMid pLo (h + z) (decide (e ≤ 54))
+      roundCore d.sign mz pHi pMid pLo (h + (z.toNat : Int)) (decide (e ≤ 54))
     else
       let ne : Nat := (-e).toNat
       if ne ≤ 27 ∧ m % 5 ^ ne = 0 then
-        let m' := m / 5 ^ ne
-        let z' : Nat := 63 - m'.log2
-        let mz' : UInt64 := UInt64.ofNat m' <<< UInt64.ofNat z'
+        let mU' : UInt64 := UInt64.ofNat (m / 5 ^ ne)
+        let z' : UInt64 := lzShift mU'
+        let mz' : UInt64 := mU' <<< z'
         let (pHi, pMid, pLo) := mul64x128 mz' 9223372036854775808 0
-        roundCore d.sign mz' pHi pMid pLo (127 - e + z') true
+        roundCore d.sign mz' pHi pMid pLo (127 - e + (z'.toNat : Int)) true
       else
         let (gHi, gLo, h) := pow10Lookup128 e
         let (pHi, pMid, pLo) := mul64x128 mz gHi gLo
-        roundCore d.sign mz pHi pMid pLo (h + z) false
+        roundCore d.sign mz pHi pMid pLo (h + (z.toNat : Int)) false
 
 /-- The live reader: the fast kernel, `readExact` when it declines. -/
 def ofDecimalBits_fast (d : Decimal) : UInt64 :=
-  match readFast d with
-  | some w => w
-  | none => (Float.Model.pack (readExact d)).toBits
+  let w := readFast d
+  if w = declined then (Float.Model.pack (readExact d)).toBits else w
 
 /-! ## Proof: the 192-bit product -/
 
@@ -454,7 +475,7 @@ theorem round_from_bits (Pn sN : Nat) (hs : 1 ≤ sN) (X : Rat) (mz : Nat) (exac
 theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exact : Bool)
     (X : Rat) (hX190 : (2 : Rat) ^ (190 : Nat) ≤ X) (hXP : X ≤ (val192 pHi pMid pLo : Rat))
     (hPX : if exact then X = (val192 pHi pMid pLo : Rat) else (val192 pHi pMid pLo : Rat) - mz.toNat < X)
-    {w : UInt64} (h : roundCore sign mz pHi pMid pLo hz exact = some w) :
+    {w : UInt64} (h : roundCore sign mz pHi pMid pLo hz exact = w) (hw : w ≠ declined) :
     w = (Float.Model.pack (readMag sign (X / (2 : Rat) ^ hz))).toBits := by
   have htop : (pHi >>> 63).toNat = pHi.toNat / 2 ^ 63 := by
     rw [UInt64.toNat_shiftRight, Nat.shiftRight_eq_div_pow]; rfl
@@ -467,13 +488,13 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
   unfold roundCore at h
   dsimp only at h
   split at h
-  · cases h
+  · exact absurd h.symm hw
   rename_i hmargin
   split at h
-  · cases h
+  · exact absurd h.symm hw
   rename_i ht
   split at h
-  · cases h
+  · exact absurd h.symm hw
   rename_i hs
   generalize htN : (pHi >>> 63).toNat = topN at *
   generalize hk : max (190 + (topN : Int) - hz - 52) (-1074) = k at *
@@ -611,7 +632,7 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
       ∧ w = (if nU = 0 then Word.pack sign 0 0 else packFinite sign nU k) := by
     split at h
     · rename_i hex
-      refine ⟨_, ?_, fun hc => absurd hex (by simp [hc]), (Option.some.inj h).symm⟩
+      refine ⟨_, ?_, fun hc => absurd hex (by simp [hc]), h.symm⟩
       rw [← hnN]
       split
       · rename_i hb0; rw [if_pos (hbU0.mp hb0)]; exact hq
@@ -623,10 +644,10 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
     · rename_i hex
       have hex' : exact = false := by simpa using hex
       split at h
-      · cases h
+      · exact absurd h.symm hw
       rename_i hsmall
       refine ⟨_, ?_, fun _ => Nat.le_of_not_lt (fun hc => hsmall (hrestS.mpr hc)),
-        (Option.some.inj h).symm⟩
+        h.symm⟩
       rw [← hnN]
       split
       · rename_i hb0; rw [if_pos (hbU0.mp hb0)]; exact hq
@@ -824,6 +845,94 @@ theorem table_bounds (e : Int) (hLo : -324 ≤ e) (hHi : e ≤ 324) :
 
 /-! ## Proof: the normalised significand -/
 
+/-- One step: with `2^(64 - 2w) ≤ x`, shifting by `w` exactly when
+    `x < 2^(64 - w)` keeps `x` below `2^64` and lifts it to `2^(64 - w)`. -/
+theorem lz_step (x bound w : UInt64) (wN : Nat) (hw : wN ≤ 32)
+    (hb : bound.toNat = 2 ^ (64 - wN)) (hwN : w.toNat = wN)
+    (hx : 2 ^ (64 - 2 * wN) ≤ x.toNat) :
+    let z : UInt64 := if x < bound then w else 0
+    (x <<< z).toNat = x.toNat * 2 ^ z.toNat ∧ 2 ^ (64 - wN) ≤ (x <<< z).toNat ∧ z.toNat ≤ wN := by
+  intro z
+  have hxlt := x.toNat_lt
+  by_cases hc : x < bound
+  · have hz : z = w := if_pos hc
+    rw [UInt64.lt_iff_toNat_lt, hb] at hc
+    have hprod : x.toNat * 2 ^ wN < 2 ^ 64 := by
+      calc x.toNat * 2 ^ wN < 2 ^ (64 - wN) * 2 ^ wN :=
+            Nat.mul_lt_mul_of_pos_right hc (Nat.two_pow_pos _)
+        _ = 2 ^ 64 := by rw [← Nat.pow_add, show 64 - wN + wN = 64 by omega]
+    have hsh : (x <<< w).toNat = x.toNat * 2 ^ wN := by
+      rw [UInt64.toNat_shiftLeft, hwN, Nat.mod_eq_of_lt (show wN < 64 by omega), Nat.shiftLeft_eq,
+        Nat.mod_eq_of_lt hprod]
+    rw [hz, hsh, hwN]
+    refine ⟨rfl, ?_, Nat.le_refl _⟩
+    calc 2 ^ (64 - wN) = 2 ^ (64 - 2 * wN) * 2 ^ wN := by
+          rw [← Nat.pow_add, show 64 - 2 * wN + wN = 64 - wN by omega]
+      _ ≤ x.toNat * 2 ^ wN := Nat.mul_le_mul_right _ hx
+  · have hz : z = 0 := if_neg hc
+    rw [UInt64.lt_iff_toNat_lt, hb] at hc
+    have h0 : (x <<< 0).toNat = x.toNat := by rw [UInt64.toNat_shiftLeft]; simp
+    rw [hz, h0]
+    exact ⟨by simp, by omega, by simp⟩
+
+theorem lzShift_spec {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64) :
+    (lzShift (UInt64.ofNat m)).toNat = 63 - m.log2 := by
+  have hmN : (UInt64.ofNat m).toNat = m := by rw [UInt64.toNat_ofNat', Nat.mod_eq_of_lt hm]
+  unfold lzShift
+  dsimp only
+  obtain ⟨e1, l1, b1⟩ := lz_step (UInt64.ofNat m) 4294967296 32 32 (by decide) (by decide) (by decide)
+    (by rw [hmN]; show 2 ^ 0 ≤ m; omega)
+  generalize hz1 : (if UInt64.ofNat m < 4294967296 then (32 : UInt64) else 0) = z1 at *
+  generalize hm1 : UInt64.ofNat m <<< z1 = m1 at *
+  obtain ⟨e2, l2, b2⟩ := lz_step m1 281474976710656 16 16 (by decide) (by decide) (by decide) l1
+  generalize hz2 : (if m1 < 281474976710656 then (16 : UInt64) else 0) = z2 at *
+  generalize hm2 : m1 <<< z2 = m2 at *
+  obtain ⟨e3, l3, b3⟩ := lz_step m2 72057594037927936 8 8 (by decide) (by decide) (by decide) l2
+  generalize hz3 : (if m2 < 72057594037927936 then (8 : UInt64) else 0) = z3 at *
+  generalize hm3 : m2 <<< z3 = m3 at *
+  obtain ⟨e4, l4, b4⟩ := lz_step m3 1152921504606846976 4 4 (by decide) (by decide) (by decide) l3
+  generalize hz4 : (if m3 < 1152921504606846976 then (4 : UInt64) else 0) = z4 at *
+  generalize hm4 : m3 <<< z4 = m4 at *
+  obtain ⟨e5, l5, b5⟩ := lz_step m4 4611686018427387904 2 2 (by decide) (by decide) (by decide) l4
+  generalize hz5 : (if m4 < 4611686018427387904 then (2 : UInt64) else 0) = z5 at *
+  generalize hm5 : m4 <<< z5 = m5 at *
+  obtain ⟨e6, l6, b6⟩ := lz_step m5 9223372036854775808 1 1 (by decide) (by decide) (by decide) l5
+  generalize hz6 : (if m5 < 9223372036854775808 then (1 : UInt64) else 0) = z6 at *
+  generalize hm6 : m5 <<< z6 = m6 at *
+  have h6lt := m6.toNat_lt
+  -- the shift as a natural
+  generalize hZ : z1.toNat + z2.toNat + z3.toNat + z4.toNat + z5.toNat + z6.toNat = Z at *
+  have hsum : (z1 + z2 + z3 + z4 + z5 + z6).toNat = Z := by
+    rw [UInt64.toNat_add, UInt64.toNat_add, UInt64.toNat_add, UInt64.toNat_add, UInt64.toNat_add]
+    repeat rw [Nat.mod_eq_of_lt (by omega)]
+    exact hZ
+  -- the normalised value
+  have hval : m6.toNat = m * 2 ^ Z := by
+    rw [e6, e5, e4, e3, e2, e1, hmN, ← hZ]
+    simp only [Nat.mul_assoc, ← Nat.pow_add]
+  rw [hsum]
+  -- `2^63 ≤ m · 2^Z < 2^64` pins `log2 m = 63 - Z`
+  have hZ63 : Z ≤ 63 := by omega
+  have hlo : 2 ^ (63 - Z) ≤ m := by
+    have : 2 ^ (63 - Z) * 2 ^ Z ≤ m * 2 ^ Z := by
+      rw [← Nat.pow_add, show 63 - Z + Z = 63 by omega, ← hval]; exact l6
+    exact Nat.le_of_mul_le_mul_right this (Nat.two_pow_pos _)
+  have hhi : m < 2 ^ (64 - Z) := by
+    have : m * 2 ^ Z < 2 ^ (64 - Z) * 2 ^ Z := by
+      rw [← Nat.pow_add, show 64 - Z + Z = 64 by omega, ← hval]; exact h6lt
+    exact Nat.lt_of_mul_lt_mul_right this
+  have h1 : m.log2 < 64 - Z := (Nat.log2_lt hm0).mpr hhi
+  have h2 : 63 - Z < m.log2 + 1 := by
+    have := Nat.lt_of_le_of_lt hlo (Nat.lt_log2_self (n := m))
+    exact (Nat.pow_lt_pow_iff_right (by decide)).mp this
+  omega
+
+theorem lzShift_eq {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64) :
+    lzShift (UInt64.ofNat m) = UInt64.ofNat (63 - m.log2) := by
+  apply UInt64.toNat_inj.mp
+  rw [lzShift_spec hm0 hm, UInt64.toNat_ofNat', Nat.mod_eq_of_lt (by omega)]
+
+
 theorem mz_facts {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64) :
     (UInt64.ofNat m <<< UInt64.ofNat (63 - m.log2)).toNat = m * 2 ^ (63 - m.log2)
     ∧ 2 ^ 63 ≤ m * 2 ^ (63 - m.log2) ∧ m * 2 ^ (63 - m.log2) < 2 ^ 64 := by
@@ -850,11 +959,13 @@ theorem roundCore_table (sign : Sign) {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64
     (hLo : -324 ≤ e) (hHi : e ≤ 324) (exact : Bool) (hex : exact = true → 0 ≤ e ∧ e ≤ 54)
     {gHi gLo : UInt64} {hh : Int} (hg : pow10Lookup128 e = (gHi, gLo, hh))
     {pHi pMid pLo : UInt64}
-    (hp : mul64x128 (UInt64.ofNat m <<< UInt64.ofNat (63 - m.log2)) gHi gLo = (pHi, pMid, pLo))
+    (hp : mul64x128 (UInt64.ofNat m <<< lzShift (UInt64.ofNat m)) gHi gLo = (pHi, pMid, pLo))
     {w : UInt64}
-    (h : roundCore sign (UInt64.ofNat m <<< UInt64.ofNat (63 - m.log2)) pHi pMid pLo
-      (hh + ((63 - m.log2 : Nat) : Int)) exact = some w) :
+    (h : roundCore sign (UInt64.ofNat m <<< lzShift (UInt64.ofNat m)) pHi pMid pLo
+      (hh + ((lzShift (UInt64.ofNat m)).toNat : Int)) exact = w) (hw : w ≠ declined) :
     w = (Float.Model.pack (readMag sign ((m : Rat) * (10 : Rat) ^ e))).toBits := by
+  rw [lzShift_eq hm0 hm] at hp
+  rw [lzShift_spec hm0 hm, lzShift_eq hm0 hm] at h
   obtain ⟨hmzN, hmzlo, hmzhi⟩ := mz_facts hm0 hm
   generalize hz : 63 - m.log2 = z at *
   generalize hmz : UInt64.ofNat m <<< UInt64.ofNat z = mz at *
@@ -877,7 +988,7 @@ theorem roundCore_table (sign : Sign) {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64
     rw [show (m : Rat) * 2 ^ z * ((10 : Rat) ^ e * 2 ^ hh) = (m : Rat) * 10 ^ e * (2 ^ hh * 2 ^ z) by grind,
       Rat.mul_div_cancel (Rat.ne_of_gt hzpos)]
   have key := roundCore_spec sign mz pHi pMid pLo (hh + (z : Int)) exact
-    ((mz.toNat : Rat) * ((10 : Rat) ^ e * (2 : Rat) ^ hh)) ?_ ?_ ?_ h
+    ((mz.toNat : Rat) * ((10 : Rat) ^ e * (2 : Rat) ^ hh)) ?_ ?_ ?_ h hw
   · rw [hxeq] at key; exact key
   · calc (2 : Rat) ^ (190 : Nat) = 2 ^ (63 : Nat) * 2 ^ (127 : Nat) := by rw [← Rat.pow_add]
       _ ≤ (mz.toNat : Rat) * 2 ^ (127 : Nat) :=
@@ -898,11 +1009,12 @@ theorem roundCore_binary (sign : Sign) {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 6
     (he : e < 0) (hdiv : m % 5 ^ (-e).toNat = 0)
     {pHi pMid pLo : UInt64}
     (hp : mul64x128 (UInt64.ofNat (m / 5 ^ (-e).toNat)
-      <<< UInt64.ofNat (63 - (m / 5 ^ (-e).toNat).log2)) 9223372036854775808 0 = (pHi, pMid, pLo))
+      <<< lzShift (UInt64.ofNat (m / 5 ^ (-e).toNat))) 9223372036854775808 0 = (pHi, pMid, pLo))
     {w : UInt64}
     (h : roundCore sign (UInt64.ofNat (m / 5 ^ (-e).toNat)
-      <<< UInt64.ofNat (63 - (m / 5 ^ (-e).toNat).log2)) pHi pMid pLo
-      (127 - e + ((63 - (m / 5 ^ (-e).toNat).log2 : Nat) : Int)) true = some w) :
+      <<< lzShift (UInt64.ofNat (m / 5 ^ (-e).toNat))) pHi pMid pLo
+      (127 - e + ((lzShift (UInt64.ofNat (m / 5 ^ (-e).toNat))).toNat : Int)) true = w)
+    (hw : w ≠ declined) :
     w = (Float.Model.pack (readMag sign ((m : Rat) * (10 : Rat) ^ e))).toBits := by
   generalize hne : (-e).toNat = ne at *
   generalize hm' : m / 5 ^ ne = m' at *
@@ -912,6 +1024,8 @@ theorem roundCore_binary (sign : Sign) {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 6
   have hm'0 : m' ≠ 0 := by intro hc; rw [hc, Nat.zero_mul] at hmm; exact hm0 hmm
   have hm'lt : m' < 2 ^ 64 := by
     rw [hmm] at hm; exact Nat.lt_of_le_of_lt (Nat.le_mul_of_pos_right _ h5pos) hm
+  rw [lzShift_eq hm'0 hm'lt] at hp
+  rw [lzShift_spec hm'0 hm'lt, lzShift_eq hm'0 hm'lt] at h
   obtain ⟨hmzN, hmzlo, hmzhi⟩ := mz_facts hm'0 hm'lt
   generalize hz : 63 - m'.log2 = z at *
   generalize hmz : UInt64.ofNat m' <<< UInt64.ofNat z = mz at *
@@ -938,7 +1052,7 @@ theorem roundCore_binary (sign : Sign) {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 6
     have hinv : (10 : Rat) ^ ne * ((10 : Rat) ^ ne)⁻¹ = 1 := Rat.mul_inv_cancel _ (Rat.ne_of_gt h10)
     grind
   have key := roundCore_spec sign mz pHi pMid pLo (127 - e + (z : Int)) true
-    ((mz.toNat : Rat) * (2 : Rat) ^ (127 : Nat)) ?_ ?_ ?_ h
+    ((mz.toNat : Rat) * (2 : Rat) ^ (127 : Nat)) ?_ ?_ ?_ h hw
   · rw [hxeq] at key; exact key
   · calc (2 : Rat) ^ (190 : Nat) = 2 ^ (63 : Nat) * 2 ^ (127 : Nat) := by rw [← Rat.pow_add]
       _ ≤ (mz.toNat : Rat) * 2 ^ (127 : Nat) :=
@@ -990,26 +1104,27 @@ theorem overflow_of_big {m : Nat} (hm : m ≠ 0) {e : Int} (he : 308 < e) :
   have h5' : (0 : Rat) < (2 : Rat) ^ (970 : Nat) := h5
   grind
 
-theorem readFast_some (d : Decimal) {w : UInt64} (h : readFast d = some w) : w = ofDecimalBits d := by
+theorem readFast_some (d : Decimal) {w : UInt64} (h : readFast d = w) (hw : w ≠ declined) :
+    w = ofDecimalBits d := by
   unfold readFast at h
   dsimp only at h
   unfold ofDecimalBits
   rw [read_eq_readMag, abs_toRat]
   split at h
   · rename_i hm0
-    rw [← Option.some.inj h, hm0]
+    rw [← h, hm0]
     push_cast
     rw [Rat.zero_mul, readMag_zero, toBits_pack_zero]
   rename_i hm0
   split at h
-  · cases h
+  · exact absurd h.symm hw
   rename_i hm
   split at h
   · rename_i hbig
-    rw [← Option.some.inj h, readMag_infinity _ (overflow_of_big hm0 hbig), toBits_pack_infinity]
+    rw [← h, readMag_infinity _ (overflow_of_big hm0 hbig), toBits_pack_infinity]
   rename_i hbig
   split at h
-  · cases h
+  · exact absurd h.symm hw
   rename_i hsmall
   have hm' : d.significand < 2 ^ 64 := by omega
   split at h
@@ -1017,39 +1132,40 @@ theorem readFast_some (d : Decimal) {w : UInt64} (h : readFast d = some w) : w =
     rcases hg : pow10Lookup128 d.exponent with ⟨gHi, gLo, hh⟩
     rw [hg] at h
     dsimp only at h
-    rcases hp : mul64x128 (UInt64.ofNat d.significand <<< UInt64.ofNat (63 - d.significand.log2)) gHi gLo
+    rcases hp : mul64x128 (UInt64.ofNat d.significand <<< lzShift (UInt64.ofNat d.significand)) gHi gLo
       with ⟨pHi, pMid, pLo⟩
     rw [hp] at h
     dsimp only at h
     exact roundCore_table d.sign hm0 hm' (by omega) (by omega) _
-      (fun hx => ⟨he, of_decide_eq_true hx⟩) hg hp h
+      (fun hx => ⟨he, of_decide_eq_true hx⟩) hg hp h hw
   · rename_i he
     split at h
     · rename_i hb
       obtain ⟨-, hdiv⟩ := hb
       rcases hp : mul64x128 (UInt64.ofNat (d.significand / 5 ^ (-d.exponent).toNat)
-          <<< UInt64.ofNat (63 - (d.significand / 5 ^ (-d.exponent).toNat).log2)) 9223372036854775808 0
+          <<< lzShift (UInt64.ofNat (d.significand / 5 ^ (-d.exponent).toNat))) 9223372036854775808 0
         with ⟨pHi, pMid, pLo⟩
       rw [hp] at h
       dsimp only at h
-      exact roundCore_binary d.sign hm0 hm' (by omega) hdiv hp h
+      exact roundCore_binary d.sign hm0 hm' (by omega) hdiv hp h hw
     · rcases hg : pow10Lookup128 d.exponent with ⟨gHi, gLo, hh⟩
       rw [hg] at h
       dsimp only at h
-      rcases hp : mul64x128 (UInt64.ofNat d.significand <<< UInt64.ofNat (63 - d.significand.log2)) gHi gLo
+      rcases hp : mul64x128 (UInt64.ofNat d.significand <<< lzShift (UInt64.ofNat d.significand)) gHi gLo
         with ⟨pHi, pMid, pLo⟩
       rw [hp] at h
       dsimp only at h
       exact roundCore_table d.sign hm0 hm' (by omega) (by omega) false
-        (fun hx => absurd hx (by decide)) hg hp h
+        (fun hx => absurd hx (by decide)) hg hp h hw
 
 /-! ## Registration -/
 
 theorem ofDecimalBits_fast_eq (d : Decimal) : ofDecimalBits_fast d = ofDecimalBits d := by
   unfold ofDecimalBits_fast
-  split
-  · rename_i w hw; exact readFast_some d hw
-  · rw [readExact_eq]; rfl
+  dsimp only
+  by_cases hd : readFast d = declined
+  · rw [if_pos hd, readExact_eq]; rfl
+  · rw [if_neg hd]; exact readFast_some d rfl hd
 
 @[csimp]
 theorem ofDecimalBits_eq_fast : @ofDecimalBits = @ofDecimalBits_fast :=

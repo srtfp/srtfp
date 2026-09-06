@@ -113,3 +113,7 @@ lean_exe diffDump where
 lean_exe benchFallback where
   srcDir := "benches/profiling"
   root := `BenchFallback
+
+lean_exe benchReadCG where
+  srcDir := "benches/profiling"
+  root := `BenchReadCG
