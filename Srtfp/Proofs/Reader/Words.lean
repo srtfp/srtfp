@@ -127,16 +127,9 @@ theorem v_nonneg : 0 ≤ v m q :=
 
 theorem v_zero_iff : v m q = 0 ↔ m = 0 := by
   unfold v
-  have := two_zpow_pos q
-  constructor
-  · intro h
-    rcases Nat.eq_zero_or_pos m with hm | hm
-    · exact hm
-    · exfalso
-      have : (0 : Rat) < m := by exact_mod_cast hm
-      have := Rat.mul_pos this (two_zpow_pos q)
-      grind
-  · intro h; subst h; simp
+  refine ⟨fun h => Nat.eq_zero_of_not_pos fun hm => ?_, fun h => by subst h; simp⟩
+  have : (0 : Rat) < m := by exact_mod_cast hm
+  have := Rat.mul_pos this (two_zpow_pos q); grind
 
 /-- `m · 2^q` on the grid `2^q₀`, for `q₀ ≤ q`. -/
 theorem v_eq_mul (h : q' ≤ q) :
@@ -156,13 +149,10 @@ theorem v_inj (h : Legal m q) (h' : Legal m' q') (hv : v m q = v m' q') : m = m'
     rw [v_eq_mul (Int.le_of_lt hlt)] at hv
     unfold v at hv
     have hp := two_zpow_pos b
-    have h1 : (a : Rat) = ((a' * 2 ^ (b' - b).toNat : Nat) : Rat) := (mul_left_inj' (by grind)).mp hv
-    have h2 : a = a' * 2 ^ (b' - b).toNat := by exact_mod_cast h1
-    have h3 : 2 ≤ 2 ^ (b' - b).toNat := by
-      calc 2 = 2 ^ 1 := rfl
-        _ ≤ 2 ^ (b' - b).toNat := Nat.pow_le_pow_right (by decide) (by omega)
+    have h2 : a = a' * 2 ^ (b' - b).toNat := by exact_mod_cast (mul_left_inj' (by grind)).mp hv
+    have h3 : 2 ^ 1 ≤ 2 ^ (b' - b).toNat := Nat.pow_le_pow_right (by decide) (by omega)
     have := ha.1
-    have : a' * 2 ≤ a' * 2 ^ (b' - b).toNat := Nat.mul_le_mul_left _ h3
+    have := Nat.mul_le_mul_left a' h3
     omega
   have hq : q = q' := by
     rcases Int.lt_trichotomy q q' with hlt | heq | hgt

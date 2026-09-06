@@ -22,27 +22,21 @@ theorem onGrid_of_le (hj : i ≤ j) (h : OnGrid j x) : OnGrid i x := by
   grind
 
 theorem onGrid_succ_of_ten_dvd (h : n % 10 = 0) :
-    OnGrid (i + 1) ((n : Rat) * (10 : Rat) ^ i) := by
-  refine ⟨n / 10, ?_⟩
-  have hn : n = n / 10 * 10 := (Nat.div_mul_cancel (Nat.dvd_of_mod_eq_zero h)).symm
-  rw [Rat.zpow_add_one (by decide)]
-  rw [show (n : Rat) = ((n / 10 * 10 : Nat) : Rat) by exact_mod_cast hn]
-  push_cast
-  grind
+    OnGrid (i + 1) ((n : Rat) * (10 : Rat) ^ i) :=
+  ⟨n / 10, by
+    rw [Rat.zpow_add_one (by decide), show (n : Rat) = ((n / 10 * 10 : Nat) : Rat) by
+      exact_mod_cast (Nat.div_mul_cancel (Nat.dvd_of_mod_eq_zero h)).symm]
+    push_cast; grind⟩
 
 theorem not_onGrid_of_finer (hj : j < i) (hf : f % 10 ≠ 0) :
     ¬ OnGrid i ((f : Rat) * (10 : Rat) ^ j) := by
   rintro ⟨k, hk⟩
   rw [zpow_split (b := 10) (by decide) (Int.le_of_lt hj)] at hk
-  have h10 := ten_zpow_pos j
-  have hk' : (f : Rat) = ((k * 10 ^ (i - j).toNat : Nat) : Rat) := by
-    push_cast
-    exact (mul_left_inj' (Rat.ne_of_gt h10)).mp
-      (show (f : Rat) * 10 ^ j = (k * 10 ^ (i - j).toNat) * 10 ^ j by grind)
-  have hfk : f = k * 10 ^ (i - j).toNat := by exact_mod_cast hk'
-  have hδ : 1 ≤ (i - j).toNat := by omega
-  obtain ⟨δ, hδ'⟩ : ∃ δ, (i - j).toNat = δ + 1 := ⟨(i - j).toNat - 1, by omega⟩
-  rw [hδ', Nat.pow_succ, ← Nat.mul_assoc] at hfk
+  have hfk : f = k * 10 ^ (i - j).toNat := by
+    exact_mod_cast (mul_left_inj' (Rat.ne_of_gt (ten_zpow_pos j))).mp
+      (show (f : Rat) * 10 ^ j = ((k * 10 ^ (i - j).toNat : Nat) : Rat) * 10 ^ j by push_cast; grind)
+  obtain ⟨δ, hδ⟩ : ∃ δ, (i - j).toNat = δ + 1 := ⟨(i - j).toNat - 1, by omega⟩
+  rw [hδ, Nat.pow_succ, ← Nat.mul_assoc] at hfk
   exact hf (by rw [hfk]; simp)
 
 /-- R7 core: consecutive grid points, none of which lies on the coarser
@@ -58,21 +52,11 @@ theorem same_digits_on_grid (ha : 1 ≤ a) (hab : a ≤ b)
 theorem finer_is_longer (hj : j < i) (hd : 1 ≤ d)
     (hlo : (d : Rat) * (10 : Rat) ^ i < (f : Rat) * (10 : Rat) ^ j) :
     digits d < digits f := by
-  have h10 := ten_zpow_pos j
-  rw [zpow_split (b := 10) (by decide) (Int.le_of_lt hj)] at hlo
-  have hδ1 : 1 ≤ (i - j).toNat := by omega
-  generalize hδ : (i - j).toNat = δ at hlo hδ1
-  -- cancel `10^j`
-  have hlo' : (d : Rat) * 10 ^ δ < f :=
-    Rat.lt_of_mul_lt_mul_right (a := (d : Rat) * 10 ^ δ) (b := f) (c := 10 ^ j)
-      (by grind) (Rat.le_of_lt h10)
-  have hloN : d * 10 ^ δ < f := by exact_mod_cast hlo'
-  -- `10^(digits d - 1 + δ) ≤ d · 10^δ < f`
-  have hpow : 10 ^ (digits d - 1 + δ) ≤ f := by
-    rw [Nat.pow_add]
-    have := Nat.mul_le_mul_right (10 ^ δ) (pow_digits_le hd)
-    omega
+  rw [zpow_split (b := 10) (by decide) (Int.le_of_lt hj), Rat.mul_comm ((10 : Rat) ^ j),
+    ← Rat.mul_assoc, Rat.mul_lt_mul_right (ten_zpow_pos j)] at hlo
+  have hloN : d * 10 ^ (i - j).toNat < f := by exact_mod_cast hlo
+  have := Nat.mul_le_mul_right (10 ^ (i - j).toNat) (pow_digits_le hd)
   have := digits_pos d
-  exact digits_lt_of_pow_le hpow (by omega)
+  exact digits_lt_of_pow_le (k := digits d - 1 + (i - j).toNat) (by rw [Nat.pow_add]; omega) (by omega)
 
 end Srtfp.Printer

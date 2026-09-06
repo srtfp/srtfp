@@ -64,13 +64,28 @@ theorem div_nonneg {a b : Rat} (ha : 0 ≤ a) (hb : 0 < b) : 0 ≤ a / b :=
 theorem div_pos {a b : Rat} (ha : 0 < a) (hb : 0 < b) : 0 < a / b :=
   (Rat.lt_div_iff hb).mpr (by grind)
 
-theorem inv_lt_inv {a b : Rat} (ha : 0 < a) (h : a < b) : b⁻¹ < a⁻¹ := by
-  have hb : 0 < b := by grind
-  rw [← Rat.mul_lt_mul_right (Rat.mul_pos ha hb),
-    show b⁻¹ * (a * b) = a by
-      rw [Rat.mul_comm a, ← Rat.mul_assoc, Rat.inv_mul_cancel _ (Rat.ne_of_gt hb), Rat.one_mul],
-    show a⁻¹ * (a * b) = b by rw [← Rat.mul_assoc, Rat.inv_mul_cancel _ (Rat.ne_of_gt ha), Rat.one_mul]]
+/-- `p / A < r / B` from `p · B < r · A`, for positive `A`, `B`. -/
+theorem mul_inv_lt_mul_inv {A B p r : Rat} (hA : 0 < A) (hB : 0 < B) (h : p * B < r * A) :
+    p * A⁻¹ < r * B⁻¹ := by
+  have hA' := Rat.mul_inv_cancel A (Rat.ne_of_gt hA)
+  have hB' := Rat.mul_inv_cancel B (Rat.ne_of_gt hB)
+  rw [← Rat.mul_lt_mul_right (Rat.mul_pos hA hB),
+    show p * A⁻¹ * (A * B) = p * B by grind, show r * B⁻¹ * (A * B) = r * A by grind]
   exact h
+
+theorem mul_inv_le_mul_inv {A B p r : Rat} (hA : 0 < A) (hB : 0 < B) (h : p * B ≤ r * A) :
+    p * A⁻¹ ≤ r * B⁻¹ := by
+  have hA' := Rat.mul_inv_cancel A (Rat.ne_of_gt hA)
+  have hB' := Rat.mul_inv_cancel B (Rat.ne_of_gt hB)
+  refine Rat.le_of_mul_le_mul_right ?_ (Rat.mul_pos hA hB)
+  rw [show p * A⁻¹ * (A * B) = p * B by grind, show r * B⁻¹ * (A * B) = r * A by grind]
+  exact h
+
+theorem inv_lt_inv {a b : Rat} (ha : 0 < a) (h : a < b) : b⁻¹ < a⁻¹ := by
+  have := mul_inv_lt_mul_inv (p := 1) (r := 1) (by grind : 0 < b) ha (by grind); grind
+
+theorem inv_le_inv {a b : Rat} (ha : 0 < a) (h : a ≤ b) : b⁻¹ ≤ a⁻¹ := by
+  have := mul_inv_le_mul_inv (p := 1) (r := 1) (by grind : 0 < b) ha (by grind); grind
 
 /-! ## Powers -/
 
@@ -172,6 +187,8 @@ theorem le_of_zpow_le {a : Rat} (ha : 1 < a) {x y : Int} (h : a ^ x ≤ a ^ y) :
   · exact h'
 
 /-! ## Floors -/
+
+theorem floor_nonneg {x : Rat} (hx : 0 ≤ x) : 0 ≤ x.floor := Rat.le_floor_iff.mpr (by exact_mod_cast hx)
 
 /-- The floor is the integer `h` with `h ≤ y < h + 1`. -/
 theorem floor_eq_of {y : Rat} {h : Int} (h1 : (h : Rat) ≤ y) (h2 : y < h + 1) : y.floor = h := by

@@ -25,76 +25,27 @@ def w (m : Nat) (q i : Int) : Rat := ((s m q i : Rat) + 1) * (10 : Rat) ^ i
 def OnGrid (i : Int) (x : Rat) : Prop := ∃ n : Nat, x = (n : Rat) * (10 : Rat) ^ i
 
 theorem v_pos (hm : 1 ≤ m) : 0 < v m q := by
-  unfold v
-  have hm' : (1 : Rat) ≤ m := by exact_mod_cast hm
-  have := two_zpow_pos q
-  grind
+  unfold v; have : (1 : Rat) ≤ m := by exact_mod_cast hm
+  have := two_zpow_pos q; grind
 
-/-- The scaled value `V = v / 10^i` and its floor, with the floor read in `Rat`. -/
+/-- `V = v / 10^i` is positive, so `s = ⌊V⌋` read in `Rat` is the floor itself. -/
 theorem s_cast (hm : 1 ≤ m) :
     ((s m q i : Nat) : Rat) = (((v m q) / (10 : Rat) ^ i).floor : Rat) := by
   unfold s
-  have hV : 0 < v m q / (10 : Rat) ^ i := by
-    have hv := v_pos (q := q) hm
-    have h10 := ten_zpow_pos i
-    exact (Rat.lt_div_iff h10).mpr (by simpa using hv)
-  have hfl : 0 ≤ (v m q / (10 : Rat) ^ i).floor := by
-    rcases Int.lt_or_le (v m q / (10 : Rat) ^ i).floor 0 with h | h
-    · exfalso
-      have := Rat.floor_lt_iff.mp h
-      simp at this
-      grind
-    · exact h
-  rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hfl]
+  rw [← Rat.intCast_natCast, Int.toNat_of_nonneg (floor_nonneg (Rat.le_of_lt (div_pos (v_pos hm) (ten_zpow_pos i))))]
 
 theorem u_le_v (hm : 1 ≤ m) : u m q i ≤ v m q := by
-  unfold u
-  rw [s_cast hm]
-  have h10 := ten_zpow_pos i
-  have hfl := Rat.floor_le (v m q / (10 : Rat) ^ i)
-  have := Rat.mul_le_mul_of_nonneg_right hfl (Rat.le_of_lt h10)
-  rwa [Rat.div_mul_cancel (Rat.ne_of_gt h10)] at this
+  unfold u; rw [s_cast hm, ← le_div_iff (ten_zpow_pos i)]; exact Rat.floor_le _
 
 theorem v_lt_w (hm : 1 ≤ m) : v m q < w m q i := by
-  unfold w
-  rw [s_cast hm]
-  have h10 := ten_zpow_pos i
-  have hfl : v m q / (10 : Rat) ^ i < (((v m q / (10 : Rat) ^ i).floor : Rat) + 1) := by
-    have h := Rat.floor_lt_iff (a := v m q / (10 : Rat) ^ i)
-      (x := (v m q / (10 : Rat) ^ i).floor + 1) |>.mp (by omega)
-    simpa using h
-  have := Rat.mul_lt_mul_of_pos_right hfl h10
-  rwa [Rat.div_mul_cancel (Rat.ne_of_gt h10)] at this
+  unfold w; rw [s_cast hm, ← Rat.div_lt_iff (ten_zpow_pos i)]
+  exact_mod_cast Rat.lt_floor_add_one _
 
-theorem s_pos_iff (hm : 1 ≤ m) : 1 ≤ s m q i ↔ (10 : Rat) ^ i ≤ v m q := by
-  have h10 := ten_zpow_pos i
-  have hcast := s_cast (q := q) (i := i) hm
-  constructor
-  · intro hs
-    have : (1 : Rat) ≤ s m q i := by exact_mod_cast hs
-    have hu := u_le_v (q := q) (i := i) hm
-    unfold u at hu
-    have := Rat.mul_le_mul_of_nonneg_right this (Rat.le_of_lt h10)
-    grind
-  · intro hv
-    have hV : (1 : Rat) ≤ v m q / (10 : Rat) ^ i := by
-      have hnot : ¬ (v m q / (10 : Rat) ^ i < 1) := fun h => by
-        have := (Rat.div_lt_iff h10).mp h
-        simp at this
-        grind
-      exact Rat.not_lt.mp hnot
-    rcases Nat.lt_or_ge (s m q i) 1 with hs | hs
-    · exfalso
-      have hs0 : s m q i = 0 := by omega
-      have : ((s m q i : Nat) : Rat) = 0 := by rw [hs0]; rfl
-      rw [hcast] at this
-      have hfl : (v m q / (10 : Rat) ^ i).floor < 1 := by
-        have : (v m q / (10 : Rat) ^ i).floor = 0 := by exact_mod_cast this
-        omega
-      have := Rat.floor_lt_iff.mp hfl
-      simp at this
-      grind
-    · exact hs
+theorem s_pos_iff : 1 ≤ s m q i ↔ (10 : Rat) ^ i ≤ v m q := by
+  unfold s
+  rw [show 1 ≤ (v m q / (10 : Rat) ^ i).floor.toNat ↔ 1 ≤ (v m q / (10 : Rat) ^ i).floor by omega,
+    Rat.le_floor_iff, le_div_iff (ten_zpow_pos i)]
+  simp
 
 theorem onGrid_u : OnGrid i (u m q i) := ⟨s m q i, rfl⟩
 
@@ -147,14 +98,10 @@ theorem candidate_none_iff (hm : 1 ≤ m) :
   cases hu : InRv m q (u m q i) <;> cases hw : InRv m q (w m q i) <;> simp [*]
 
 /-- `u` is in `R_v` only above the leading digit: `u = 0` is not. -/
-theorem s_pos_of_InRv_u (hm : 1 ≤ m) (hu : InRv m q (u m q i) = true) : 1 ≤ s m q i := by
-  rcases Nat.eq_zero_or_pos (s m q i) with h0 | h0
-  · exfalso
-    have h1 := (le_of_InRv hu).1
-    have h2 := vl_pos (q := q) hm
-    unfold u at h1; rw [h0] at h1; simp at h1
-    grind
-  · exact h0
+theorem s_pos_of_InRv_u (hm : 1 ≤ m) (hu : InRv m q (u m q i) = true) : 1 ≤ s m q i :=
+  Nat.pos_of_ne_zero fun h0 => by
+    have h1 := (le_of_InRv hu).1; have h2 := vl_pos (q := q) hm
+    unfold u at h1; rw [h0] at h1; simp at h1; grind
 
 /-- A grid point in `R_v` at or below `u` is no closer than `u`; one at or
     above `w` is in `R_v` only if `w` is. -/

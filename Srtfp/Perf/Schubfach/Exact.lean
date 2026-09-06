@@ -462,7 +462,7 @@ theorem shortest_spec (h : InRange m q) :
     -- then the scan says `1 · 10^(k+1)`, and Schubfach `10 · 10^k`.
     have hs0 : Printer.s m q (k + 1) = 0 := by rw [s_succ hm]; omega
     have hv10 : v m q < (10 : Rat) ^ (k + 1) :=
-      Rat.not_le.mp fun hle => by have := (s_pos_iff hm).mpr hle; omega
+      Rat.not_le.mp fun hle => by have := s_pos_iff.mpr hle; omega
     have hu0 : u m q (k + 1) = 0 := by unfold u; rw [hs0]; simp
     have hw1 : w m q (k + 1) = (10 : Rat) ^ (k + 1) := by unfold w; rw [hs0]; grind
     have hvl := vl_pos (q := q) hm
