@@ -3,6 +3,8 @@ module
    split into 32-bit halves (Knuth's Algorithm M). Used by the printer's F8
    (`Perf/Schubfach/Product.lean`) and the reader's Eisel–Lemire kernel. -/
 
+public import Srtfp.Perf.Word
+
 @[expose] public section
 
 namespace Srtfp.Schubfach

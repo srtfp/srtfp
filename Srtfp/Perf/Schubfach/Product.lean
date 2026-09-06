@@ -19,14 +19,8 @@ namespace Srtfp.Schubfach
 theorem eps_eq : eps = (((2 ^ 64 : Nat) : Rat))⁻¹ := two_zpow_neg_toNat (Int.natCast_nonneg _)
 
 theorem two_eps_le_one : 2 * eps ≤ 1 := by
-  rw [eps_eq]
-  have h : (0 : Rat) < ((2 ^ 64 : Nat) : Rat) := by exact_mod_cast Nat.two_pow_pos 64
-  have e := Rat.inv_mul_cancel _ (Rat.ne_of_gt h)
-  refine Rat.le_of_mul_le_mul_right (c := ((2 ^ 64 : Nat) : Rat)) ?_ h
-  rw [Rat.mul_assoc, e, Rat.mul_one, Rat.one_mul]
-  exact_mod_cast (by decide : 2 ≤ 2 ^ 64)
-
-/-! ## Floors of quotients -/
+  have := zpow_le_zpow_right₀ (a := (2 : Rat)) (by decide) (show -((64 : Nat) : Int) + 1 ≤ 0 by omega)
+  rwa [Rat.zpow_add_one (by decide), Rat.zpow_zero, Rat.mul_comm] at this
 
 /-! ## The algorithm -/
 
@@ -100,24 +94,14 @@ theorem ro'_natDiv (N : Nat) :
   have h127 : (0 : Rat) < ((2 ^ 127 : Nat) : Rat) := by exact_mod_cast Nat.two_pow_pos 127
   have h128 : (0 : Rat) < ((2 ^ 128 : Nat) : Rat) := by exact_mod_cast Nat.two_pow_pos 128
   have hx2 : (N : Rat) / ((2 ^ 127 : Nat) : Rat) / 2 = (N : Rat) / ((2 ^ 128 : Nat) : Rat) := by
-    rw [div_eq_iff (by decide : (0 : Rat) < 2), div_eq_iff h127]
-    have hB : ((2 ^ 128 : Nat) : Rat) = ((2 ^ 127 : Nat) : Rat) * 2 := by
-      rw [show (2 ^ 128 : Nat) = 2 ^ 127 * 2 from Nat.pow_succ 2 127]; norm_cast
-    have e := Rat.div_mul_cancel (a := (N : Rat)) (Rat.ne_of_gt h128)
-    rw [hB] at e
-    grind
+    rw [← div_div, show ((2 ^ 127 : Nat) : Rat) * 2 = ((2 ^ 128 : Nat) : Rat) by
+      exact_mod_cast (Nat.pow_succ 2 127).symm]
   rw [hx2, floor_natDiv N (2 ^ 128) (Nat.two_pow_pos _), floor_natDiv N (2 ^ 127) (Nat.two_pow_pos _),
     Rat.intCast_natCast, frac_natDiv N (2 ^ 128) (Nat.two_pow_pos _)]
   have hcond : ((N % 2 ^ 128 : Nat) : Rat) / ((2 ^ 128 : Nat) : Rat) < eps ↔ N % 2 ^ 128 < 2 ^ 64 := by
-    rw [eps_eq, Rat.div_lt_iff h128]
-    have e : (((2 ^ 64 : Nat) : Rat))⁻¹ * ((2 ^ 128 : Nat) : Rat) = ((2 ^ 64 : Nat) : Rat) := by
-      have h64 : (0 : Rat) < ((2 ^ 64 : Nat) : Rat) := by exact_mod_cast Nat.two_pow_pos 64
-      have e1 := Rat.inv_mul_cancel _ (Rat.ne_of_gt h64)
-      have : ((2 ^ 128 : Nat) : Rat) = ((2 ^ 64 : Nat) : Rat) * ((2 ^ 64 : Nat) : Rat) := by
-        rw [show (2 ^ 128 : Nat) = 2 ^ 64 * 2 ^ 64 from (Nat.pow_add 2 64 64).symm]; norm_cast
-      rw [this, ← Rat.mul_assoc, e1, Rat.one_mul]
-    rw [e]
-    exact ⟨fun h => by exact_mod_cast h, fun h => by exact_mod_cast h⟩
+    rw [eps_eq, show (((2 ^ 64 : Nat) : Rat))⁻¹ = 1 / ((2 ^ 64 : Nat) : Rat) by
+      rw [Rat.div_def, Rat.one_mul], div_lt_div_iff h128 (by exact_mod_cast Nat.two_pow_pos 64)]
+    norm_cast; omega
   by_cases hc : N % 2 ^ 128 < 2 ^ 64
   · rw [if_pos (hcond.mpr hc), if_pos hc]
   · rw [if_neg (fun h => hc (hcond.mp h)), if_neg hc]

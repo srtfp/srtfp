@@ -72,53 +72,18 @@ theorem flog2pow10Exact_spec (e : Int) :
     rw [Nat.pow_succ] at h2
     exact_mod_cast h2
   · rw [if_neg he]
-    obtain ⟨n, hn⟩ : ∃ n : Nat, e = -(n : Int) :=
-      ⟨(-e).toNat, by have := Int.toNat_of_nonneg (show 0 ≤ -e by omega); omega⟩
-    subst hn
+    obtain ⟨n, rfl⟩ : ∃ n : Nat, e = -(n : Int) := ⟨(-e).toNat, by omega⟩
     simp only [Int.neg_neg, Int.toNat_natCast]
-    have hn1 : 1 ≤ n := by omega
     obtain ⟨h1, h2⟩ := log2_bounds (Nat.pow_pos (by decide) : 0 < 10 ^ n)
-    -- strict on the left: `10^n` is no power of two
+    -- strict on the left: `10^n` is no power of two; then invert
     have h1s : 2 ^ (10 ^ n).log2 < 10 ^ n :=
-      Nat.lt_of_le_of_ne h1 (fun h => ten_pow_ne_two_pow _ hn1 _ h.symm)
-    generalize hL : (10 ^ n).log2 = L at h1s h2 ⊢
-    have h1' : (2 : Rat) ^ (L : Int) < (10 : Rat) ^ (n : Int) := by
-      rw [Rat.zpow_natCast, Rat.zpow_natCast]; exact_mod_cast h1s
-    have h2' : (10 : Rat) ^ (n : Int) ≤ (2 : Rat) ^ ((L : Int) + 1) := by
-      rw [show (L : Int) + 1 = ((L + 1 : Nat) : Int) by push_cast; rfl, Rat.zpow_natCast,
-        Rat.zpow_natCast]
-      exact_mod_cast Nat.le_of_lt h2
-    rw [show -((L : Int) + 1) + 1 = -(L : Int) by omega]
-    -- invert: `10^{-n} = (10^n)⁻¹`
-    have hpos10 := ten_zpow_pos (n : Int)
-    have hinv : (10 : Rat) ^ (-(n : Int)) * (10 : Rat) ^ (n : Int) = 1 := by
-      rw [← Rat.zpow_add (by decide), show -(n : Int) + n = 0 by omega, Rat.zpow_zero]
-    have hA : (2 : Rat) ^ (-((L : Int) + 1)) * (2 : Rat) ^ ((L : Int) + 1) = 1 := by
-      rw [← Rat.zpow_add (by decide), show -((L : Int) + 1) + ((L : Int) + 1) = 0 by omega,
-        Rat.zpow_zero]
-    have hB : (2 : Rat) ^ (-(L : Int)) * (2 : Rat) ^ (L : Int) = 1 := by
-      rw [← Rat.zpow_add (by decide), show -(L : Int) + L = 0 by omega, Rat.zpow_zero]
-    have hp1 := two_zpow_pos ((L : Int) + 1)
-    have hpL := two_zpow_pos (L : Int)
-    constructor
-    · refine Rat.le_of_mul_le_mul_right (c := (10 : Rat) ^ (n : Int) * (2 : Rat) ^ ((L : Int) + 1)) ?_
-        (Rat.mul_pos hpos10 hp1)
-      rw [show (2 : Rat) ^ (-((L : Int) + 1)) * ((10 : Rat) ^ (n : Int) * 2 ^ ((L : Int) + 1))
-            = 10 ^ (n : Int) * (2 ^ (-((L : Int) + 1)) * 2 ^ ((L : Int) + 1)) by grind,
-        hA, Rat.mul_one,
-        show (10 : Rat) ^ (-(n : Int)) * ((10 : Rat) ^ (n : Int) * 2 ^ ((L : Int) + 1))
-            = (10 ^ (-(n : Int)) * 10 ^ (n : Int)) * 2 ^ ((L : Int) + 1) by grind,
-        hinv, Rat.one_mul]
-      exact h2'
-    · refine Rat.lt_of_mul_lt_mul_right (c := (10 : Rat) ^ (n : Int) * (2 : Rat) ^ (L : Int)) ?_
-        (Rat.le_of_lt (Rat.mul_pos hpos10 hpL))
-      rw [show (10 : Rat) ^ (-(n : Int)) * ((10 : Rat) ^ (n : Int) * 2 ^ (L : Int))
-            = (10 ^ (-(n : Int)) * 10 ^ (n : Int)) * 2 ^ (L : Int) by grind,
-        hinv, Rat.one_mul,
-        show (2 : Rat) ^ (-(L : Int)) * ((10 : Rat) ^ (n : Int) * 2 ^ (L : Int))
-            = 10 ^ (n : Int) * (2 ^ (-(L : Int)) * 2 ^ (L : Int)) by grind,
-        hB, Rat.mul_one]
-      exact h1'
+      Nat.lt_of_le_of_ne h1 (fun h => ten_pow_ne_two_pow _ (by omega) _ h.symm)
+    generalize (10 ^ n).log2 = L at h1s h2 ⊢
+    rw [show -((L : Int) + 1) + 1 = -(L : Int) by omega,
+      show -((L : Int) + 1) = -((L + 1 : Nat) : Int) by push_cast; rfl, zpow_neg_natCast,
+      zpow_neg_natCast, zpow_neg_natCast]
+    exact ⟨inv_le_inv (Rat.pow_pos (by decide)) (by rw [Rat.pow_succ]; exact_mod_cast Nat.le_of_lt h2),
+      inv_lt_inv (Rat.pow_pos (by decide)) (by exact_mod_cast h1s)⟩
 
 /-! ## `r`: `2^{r+125} ≤ 10^{-k} < 2^{r+126}` -/
 
@@ -162,13 +127,8 @@ theorem flog2pow10_eq_exact (e : Int) (hlo : -292 ≤ e) (hhi : e ≤ 324) :
     Rat.lt_of_mul_lt_mul_right (c := D10 * D2') (by grind) (by grind)
   -- both `a` and the exact value are the floor of `log₂ 10^e`
   obtain ⟨hC, hD⟩ := flog2pow10Exact_spec e
-  generalize flog2pow10Exact e = b at hC hD ⊢
-  have lt_of_zpow_lt {x y : Int} (h : (2 : Rat) ^ x < (2 : Rat) ^ y) : x < y := by
-    rcases Int.lt_or_le x y with hxy | hxy
-    · exact hxy
-    · exact absurd h (Rat.not_lt.mpr (zpow_le_zpow_right₀ (by decide) hxy))
-  have h1 := lt_of_zpow_lt (lt_of_le_of_lt hA hD)
-  have h2 := lt_of_zpow_lt (lt_of_le_of_lt hC hB)
+  have h1 := lt_of_zpow_lt (by decide) (lt_of_le_of_lt hA hD)
+  have h2 := lt_of_zpow_lt (by decide) (lt_of_le_of_lt hC hB)
   omega
 
 /-! ## `g`: `(g − 1) · 2^r ≤ 10^{-k} < g · 2^r`, `2^125 < g ≤ 2^126` -/
@@ -277,29 +237,22 @@ def g1Table : Array UInt64 :=
 def g0Table : Array UInt64 :=
   (Array.range 617).map fun (i : Nat) => UInt64.ofNat (g ((i : Int) + kMin) % 2 ^ 63)
 
-theorem g1Table_size : g1Table.size = 617 := by simp [g1Table]
-theorem g0Table_size : g0Table.size = 617 := by simp [g0Table]
+/-- Reading a table built from `f` at the index of `k`. -/
+theorem table_getD (f : Int → Nat) (k : Int) (hlo : kMin ≤ k) (hhi : k ≤ kMax) (hf : f k < 2 ^ 64) :
+    (((Array.range 617).map fun (i : Nat) => UInt64.ofNat (f ((i : Int) + kMin))).getD
+      (k - kMin).toNat 0).toNat = f k := by
+  have hi : (k - kMin).toNat < ((Array.range 617).map fun (i : Nat) =>
+      UInt64.ofNat (f ((i : Int) + kMin))).size := by simp; unfold kMin kMax at *; omega
+  rw [(Array.getElem_eq_getD 0 (h := hi)).symm, Array.getElem_map, Array.getElem_range,
+    show (((k - kMin).toNat : Nat) : Int) + kMin = k by rw [Int.toNat_of_nonneg (by omega)]; omega,
+    UInt64.toNat_ofNat', Nat.mod_eq_of_lt hf]
 
 theorem g1Table_getD (k : Int) (hlo : kMin ≤ k) (hhi : k ≤ kMax) :
-    (g1Table.getD (k - kMin).toNat 0).toNat = g k / 2 ^ 63 := by
-  have hi : (k - kMin).toNat < g1Table.size := by rw [g1Table_size]; unfold kMin kMax at *; omega
-  rw [(Array.getElem_eq_getD 0 (h := hi)).symm]
-  unfold g1Table at hi ⊢
-  rw [Array.getElem_map, Array.getElem_range]
-  rw [show (((k - kMin).toNat : Nat) : Int) + kMin = k by rw [Int.toNat_of_nonneg (by omega)]; omega]
-  rw [UInt64.toNat_ofNat', Nat.mod_eq_of_lt]
-  have := g_lt_two_pow_126 k hlo hhi
-  omega
+    (g1Table.getD (k - kMin).toNat 0).toNat = g k / 2 ^ 63 :=
+  table_getD (fun k => g k / 2 ^ 63) k hlo hhi (by have := g_lt_two_pow_126 k hlo hhi; omega)
 
 theorem g0Table_getD (k : Int) (hlo : kMin ≤ k) (hhi : k ≤ kMax) :
-    (g0Table.getD (k - kMin).toNat 0).toNat = g k % 2 ^ 63 := by
-  have hi : (k - kMin).toNat < g0Table.size := by rw [g0Table_size]; unfold kMin kMax at *; omega
-  rw [(Array.getElem_eq_getD 0 (h := hi)).symm]
-  unfold g0Table at hi ⊢
-  rw [Array.getElem_map, Array.getElem_range]
-  rw [show (((k - kMin).toNat : Nat) : Int) + kMin = k by rw [Int.toNat_of_nonneg (by omega)]; omega]
-  rw [UInt64.toNat_ofNat', Nat.mod_eq_of_lt]
-  have := Nat.mod_lt (g k) (by decide : 0 < 2 ^ 63)
-  omega
+    (g0Table.getD (k - kMin).toNat 0).toNat = g k % 2 ^ 63 :=
+  table_getD (fun k => g k % 2 ^ 63) k hlo hhi (by have := Nat.mod_lt (g k) (by decide : 0 < 2 ^ 63); omega)
 
 end Srtfp.Schubfach

@@ -38,75 +38,35 @@ theorem gaps_of_small (N M a : Nat) (hM : 0 < M) (hMa : M ≤ 2 ^ a) : Gaps N M 
   unfold Gaps
   by_cases h0 : N % M = 0
   · exact Or.inl h0
-  · right
-    have h1 : 1 ≤ N % M := Nat.pos_of_ne_zero h0
-    have h2 : N % M < M := Nat.mod_lt N hM
-    constructor
-    · calc M ≤ 2 ^ a := hMa
-        _ = 1 * 2 ^ a := (Nat.one_mul _).symm
-        _ ≤ (N % M) * 2 ^ a := Nat.mul_le_mul_right _ h1
-    · calc M ≤ 2 ^ a := hMa
-        _ = 1 * 2 ^ a := (Nat.one_mul _).symm
-        _ ≤ (M - N % M) * 2 ^ a := Nat.mul_le_mul_right _ (by omega)
+  · have := Nat.mod_lt N hM
+    exact Or.inr ⟨Nat.le_trans hMa (by simpa using Nat.mul_le_mul_right (2 ^ a) (Nat.pos_of_ne_zero h0)),
+      Nat.le_trans hMa (by simpa using Nat.mul_le_mul_right (2 ^ a) (show 1 ≤ M - N % M by omega))⟩
 
 /-- `Separated (2^{-a}) (N / M)` from the gaps. -/
 theorem separated_of_gaps (N M a : Nat) (hM : 0 < M) (h : Gaps N M a) :
     Separated ((2 : Rat) ^ (-(a : Int))) ((N : Rat) / (M : Rat)) := by
   have hMq : (0 : Rat) < M := by exact_mod_cast hM
-  have hfl : ((N : Rat) / M).floor = ((N / M : Nat) : Int) := by
-    obtain ⟨h1, h2⟩ := natDiv_bounds N M hM
-    exact floor_eq_of (by exact_mod_cast h1) (by exact_mod_cast h2)
-  have hdm := Nat.div_add_mod N M
-  have hmod := Nat.mod_lt N hM
-  have hε : (2 : Rat) ^ (-(a : Int)) = (((2 ^ a : Nat) : Rat))⁻¹ := two_zpow_neg_toNat (Int.natCast_nonneg _)
-  have h2a : (0 : Rat) < ((2 ^ a : Nat) : Rat) := by exact_mod_cast Nat.two_pow_pos a
+  have h2a : (0 : Rat) < 2 ^ a := Rat.pow_pos (by decide)
+  have hfrac := frac_natDiv N M hM
   unfold Separated
-  rw [hfl]
-  -- `N / M − ⌊N / M⌋ = (N mod M) / M`
-  have hfrac : (N : Rat) / M - ((N / M : Nat) : Int) = ((N % M : Nat) : Rat) / M := by
-    rw [Rat.intCast_natCast, eq_comm, div_eq_iff hMq]
-    have e := Rat.div_mul_cancel (a := (N : Rat)) (Rat.ne_of_gt hMq)
-    have hN : (N : Rat) = ((M * (N / M) + N % M : Nat) : Rat) := by rw [hdm]
-    push_cast at hN
-    grind
+  rw [floor_natDiv N M hM, Rat.intCast_natCast, zpow_neg_natCast]
   rcases h with h0 | ⟨hlo, hhi⟩
-  · left
-    have : ((N % M : Nat) : Rat) = 0 := by rw [h0]; rfl
-    grind
+  · left; rw [h0] at hfrac; push_cast at hfrac; grind
   · right
-    have hlo' : (M : Rat) ≤ ((N % M : Nat) : Rat) * (2 : Rat) ^ a := by exact_mod_cast hlo
-    have hhi' : (M : Rat) ≤ ((M - N % M : Nat) : Rat) * (2 : Rat) ^ a := by exact_mod_cast hhi
+    have hmod := Nat.mod_lt N hM
+    have hlo' : (M : Rat) ≤ ((N % M : Nat) : Rat) * 2 ^ a := by exact_mod_cast hlo
+    have hhi' : (M : Rat) ≤ ((M - N % M : Nat) : Rat) * 2 ^ a := by exact_mod_cast hhi
     have hsub : ((M - N % M : Nat) : Rat) = (M : Rat) - ((N % M : Nat) : Rat) := by
-      have := Nat.sub_add_cancel (Nat.le_of_lt hmod)
-      have h' : (((M - N % M) + N % M : Nat) : Rat) = (M : Rat) := by rw [this]
-      push_cast at h'
-      grind
+      have h' : (((M - N % M) + N % M : Nat) : Rat) = (M : Rat) := by
+        rw [Nat.sub_add_cancel (Nat.le_of_lt hmod)]
+      push_cast at h'; grind
     rw [hsub] at hhi'
-    have h2a' : (0 : Rat) < (2 : Rat) ^ a := Rat.pow_pos (by decide)
-    have hε' : (2 : Rat) ^ (-(a : Int)) = ((2 : Rat) ^ a)⁻¹ := by rw [hε]; push_cast; rfl
-    rw [hε']
-    have e1 : ((2 : Rat) ^ a)⁻¹ * (2 : Rat) ^ a = 1 := Rat.inv_mul_cancel _ (Rat.ne_of_gt h2a')
-    generalize hy : ((2 : Rat) ^ a)⁻¹ = y at e1 ⊢
-    generalize hX : (2 : Rat) ^ a = X at e1 hlo' hhi' h2a' ⊢
-    have hyM : y * (M : Rat) * X = M := by
-      rw [Rat.mul_assoc, Rat.mul_comm (M : Rat) X, ← Rat.mul_assoc, e1, Rat.one_mul]
-    constructor
-    · -- `⌊x⌋ + ε ≤ x`: `M ≤ r · 2^a`
-      have : y ≤ ((N % M : Nat) : Rat) / M := by
-        rw [le_div_iff hMq]
-        refine Rat.le_of_mul_le_mul_right (c := X) ?_ h2a'
-        rw [hyM]; exact hlo'
-      grind
-    · -- `x ≤ ⌊x⌋ + 1 − ε`: `M ≤ (M − r) · 2^a`
-      have : ((N % M : Nat) : Rat) / M ≤ 1 - y := by
-        rw [div_le_iff hMq]
-        refine Rat.le_of_mul_le_mul_right (c := X) ?_ h2a'
-        have : (1 - y) * (M : Rat) * X = M * X - M := by
-          have h := hyM
-          grind
-        rw [this]
-        grind
-      grind
+    -- `ε ≤ r/M` and `r/M ≤ 1 − ε` by cross-multiplication
+    have e1 := mul_inv_le_mul_inv (p := 1) (r := ((N % M : Nat) : Rat)) h2a hMq (by grind)
+    have e2 := mul_inv_le_mul_inv (p := ((N % M : Nat) : Rat)) (r := 2 ^ a - 1) hMq h2a (by grind)
+    have e3 := Rat.mul_inv_cancel _ (Rat.ne_of_gt h2a)
+    rw [Rat.div_def] at hfrac
+    grind
 
 /-! ## Both gaps from two one-sided sweeps -/
 
@@ -114,51 +74,26 @@ theorem separated_of_gaps (N M a : Nat) (hM : 0 < M) (h : Gaps N M a) :
 theorem mod_complement (M u m : Nat) (hM : 0 < M) :
     (m * (M - u % M)) % M = (M - (m * u) % M) % M := by
   have hu := Nat.mod_lt u hM
-  have hmm : m * (u % M) % M = (m * u) % M := by
-    rw [Nat.mul_mod, Nat.mod_mod, ← Nat.mul_mod]
-  have hdm := Nat.div_add_mod (m * (u % M)) M
-  generalize ha : m * (u % M) / M = a at hdm
-  generalize hb : m * (u % M) % M = b at hdm hmm
-  -- `m(M − r) + m r = mM`
-  have hP : m * (M - u % M) + m * (u % M) = m * M := by
-    rw [← Nat.mul_add, Nat.sub_add_cancel (Nat.le_of_lt hu)]
-  rw [← hmm]
+  rw [show (m * u) % M = (m * (u % M)) % M by rw [Nat.mul_mod, Nat.mul_mod m (u % M), Nat.mod_mod]]
+  generalize u % M = r at *
+  -- `m(M − r) = Mm − (Ma + b)` with `Ma + b = mr`
+  have hdm := Nat.div_add_mod (m * r) M
+  have hb := Nat.mod_lt (m * r) hM
+  have hP : m * (M - r) + m * r = M * m := by
+    rw [← Nat.mul_add, Nat.sub_add_cancel (Nat.le_of_lt hu), Nat.mul_comm]
+  have hmr : m * r ≤ M * m := by rw [Nat.mul_comm M]; exact Nat.mul_le_mul_left m (Nat.le_of_lt hu)
+  generalize m * r / M = a at *
+  generalize m * r % M = b at *
+  have ha : a ≤ m := Nat.le_of_mul_le_mul_left (by omega : M * a ≤ M * m) hM
   by_cases hb0 : b = 0
-  · -- `m(u mod M) = Ma`, so `m(M − r) = M(m − a)`
-    rw [hb0, Nat.sub_zero, Nat.mod_self]
-    have hX : m * (M - u % M) = M * (m - a) := by
-      have h1 : M * (m - a) + M * a = M * m := by
-        rw [← Nat.mul_add]; congr 1
-        have : a ≤ m := by
-          by_contra hc
-          push_neg at hc
-          have : M * m < M * a := Nat.mul_lt_mul_of_pos_left hc hM
-          have : M * a ≤ m * (u % M) := by omega
-          have : m * (u % M) ≤ m * M := Nat.mul_le_mul_left _ (Nat.le_of_lt hu)
-          rw [Nat.mul_comm m M] at this
-          omega
-        omega
-      have h2 : m * M = M * m := Nat.mul_comm _ _
-      omega
-    rw [hX, Nat.mul_mod_right]
-  · have hb1 : 1 ≤ b := Nat.pos_of_ne_zero hb0
-    have hbM : b < M := by rw [← hb]; exact Nat.mod_lt _ hM
-    have ham : a < m := by
-      by_contra hc
-      push_neg at hc
-      have h1 : M * m ≤ M * a := Nat.mul_le_mul_left _ hc
-      have h2 : m * (u % M) < m * M := by
-        rcases Nat.eq_zero_or_pos m with hm0 | hm0
-        · subst hm0; simp at hb; omega
-        · exact Nat.mul_lt_mul_of_pos_left hu hm0
-      have h3 : m * M = M * m := Nat.mul_comm _ _
-      omega
-    have hX : m * (M - u % M) = M * (m - a - 1) + (M - b) := by
-      have h1 : M * (m - a - 1) + M * a + M = M * m := by
-        rw [← Nat.mul_add, ← Nat.mul_succ]; congr 1; omega
-      have h2 : m * M = M * m := Nat.mul_comm _ _
-      omega
-    rw [hX, Nat.mul_add_mod, Nat.mod_eq_of_lt (by omega)]
+  · subst hb0
+    rw [show m * (M - r) = M * (m - a) by rw [Nat.mul_sub, Nat.mul_sub, Nat.mul_comm m M]; omega,
+      Nat.mul_mod_right, Nat.sub_zero, Nat.mod_self]
+  · have ha' : a < m := Nat.lt_of_mul_lt_mul_left (by omega : M * a < M * m)
+    have hMa : M * a + M ≤ M * m := by have := Nat.mul_le_mul_left M ha'; rwa [Nat.mul_succ] at this
+    rw [show m * (M - r) = M * (m - a - 1) + (M - b) by
+        rw [Nat.mul_sub, Nat.mul_sub, Nat.mul_sub, Nat.mul_one, Nat.mul_comm m M]; omega,
+      Nat.mul_add_mod, Nat.mod_eq_of_lt (by omega)]
 
 theorem gaps_of_far (M u m a : Nat) (hM : 0 < M)
     (hup : farFromMultipleBelow M u m a) (hdown : farFromMultipleBelow M (M - u % M) m a) :

@@ -122,7 +122,7 @@ theorem toDecimalBits_eq (w : UInt64) : toDecimalBits w = Printer.toDecimalBits 
     by_cases hm : Word.mantissa w = 0
     · rw [if_pos hm] at hu; rw [printer_inf hu]
     · rw [if_neg hm] at hu; rw [printer_nan hu]
-  · have hE : E ≠ 2047 := fun hc => h7 (UInt64.toNat_inj.mp (by rw [hexp, hc]; rfl))
+  · have hE : E ≠ 2047 := by word_simp at h7 ⊢; omega
     rw [if_neg h7]
     rw [if_neg hE] at hu
     by_cases h0 : expBits = 0
@@ -135,22 +135,18 @@ theorem toDecimalBits_eq (w : UInt64) : toDecimalBits w = Printer.toDecimalBits 
         rw [printer_zero hu]
         unfold decimalTail
         rw [if_pos hm]
-      · have hM0 : Word.mantissa w ≠ 0 := fun hc => hm (UInt64.toNat_inj.mp (by rw [hmant, hc]; rfl))
+      · have hM0 : Word.mantissa w ≠ 0 := by word_simp at hm ⊢; omega
         rw [dif_neg hM0] at hu
         rw [printer_finite hu, decimalTail_eq (Word.signBit w) mantBits 0 (m := Word.mantissa w)
           (q := -1074) ⟨Nat.pos_of_ne_zero hM0, by omega, by omega, by omega, fun h => absurd rfl h⟩
           hmant rfl]
-    · have hE0 : E ≠ 0 := fun hc => h0 (UInt64.toNat_inj.mp (by rw [hexp, hc]; rfl))
+    · have hE0 : E ≠ 0 := by word_simp at h0 ⊢; omega
       rw [if_neg h0, if_neg h0]
       rw [if_neg hE0] at hu
-      have h1 : (1 : UInt64) ≤ expBits :=
-        UInt64.le_iff_toNat_le.mpr (by simp only [show (1 : UInt64).toNat = 1 from rfl, hexp]; omega)
       rw [printer_finite hu, decimalTail_eq (Word.signBit w) (mantBits + 4503599627370496) (expBits - 1)
         (m := Word.mantissa w + 2 ^ 52) (q := (E : Int) - 1075)
         ⟨by omega, by omega, by omega, by omega, fun _ => by omega⟩
-        (by simp only [UInt64.toNat_add, hmant, show (4503599627370496 : UInt64).toNat = 2 ^ 52 from rfl]
-            exact Nat.mod_eq_of_lt (by omega))
-        (by simp only [UInt64.toNat_sub_of_le _ _ h1, show (1 : UInt64).toNat = 1 from rfl, hexp]; omega)]
+        (by word) (by word)]
 
 theorem toDecimal_eq (f : _root_.Float) : toDecimal f = Printer.toDecimal f := toDecimalBits_eq f.toBits
 

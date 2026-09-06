@@ -18,6 +18,7 @@ module
 
 public import Srtfp.Decimal
 public import Srtfp.Proofs.Decimal.Canonical
+public import Srtfp.Perf.Word
 
 @[expose] public section
 
@@ -69,24 +70,16 @@ theorem stripS_ne_zero (p s : UInt64) (hs : s.toNat ≠ 0) : (stripS p s).toNat 
   unfold stripS
   split
   · rename_i h
-    rw [UInt64.toNat_div]
+    word_simp at h ⊢
     intro hc
-    have hm : s.toNat % p.toNat = 0 := by
-      have := congrArg UInt64.toNat h
-      rw [UInt64.toNat_mod] at this
-      exact this
     have := Nat.div_add_mod s.toNat p.toNat
-    rw [hc, hm] at this
+    rw [hc, h, Nat.mul_zero] at this
     omega
   · exact hs
 
 theorem stripC_le (p j s c : UInt64) (B : Nat) (hc : c.toNat ≤ B) (hj : j.toNat ≤ 8)
     (hB : B + 8 < 2 ^ 64) : (stripC p j s c).toNat ≤ B + 8 := by
-  unfold stripC
-  split
-  · rw [UInt64.toNat_add, Nat.mod_eq_of_lt (by omega)]
-    omega
-  · omega
+  unfold stripC; split <;> word
 
 /-- One chunk preserves `canonicaliseAux`, with the exponent carried as
     `e + count`. -/

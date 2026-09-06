@@ -40,62 +40,40 @@ theorem width_eq_two_zpow (hirr : isIrregular m q = false) :
 /-- Regular spacing, `q < 0`: `k < 0`. -/
 theorem band_reg_neg (h : InRange m q) (hirr : isIrregular m q = false) (hq : q < 0) :
     kOfMQ m q < 0 := by
-  obtain ⟨h1, _⟩ := k_spec h
-  rw [width_eq_two_zpow hirr] at h1
-  generalize kOfMQ m q = k at *
-  have hq1 : (2 : Rat) ^ q < 2 ^ (0 : Int) := zpow_lt_zpow (by decide) hq
-  rw [Rat.zpow_zero] at hq1
-  have : (10 : Rat) ^ k < 10 ^ (0 : Int) := by rw [Rat.zpow_zero]; exact lt_of_le_of_lt h1 hq1
-  exact lt_of_zpow_lt (by decide) this
+  have h1 := (k_spec h).1; rw [width_eq_two_zpow hirr] at h1
+  have hq1 := zpow_lt_zpow (a := (2 : Rat)) (by decide) hq; rw [Rat.zpow_zero] at hq1
+  exact lt_of_zpow_lt (a := 10) (by decide) (by rw [Rat.zpow_zero]; grind)
 
 /-- Regular spacing, `q ≥ 0`: `0 ≤ k ≤ q`. -/
 theorem band_reg_nonneg (h : InRange m q) (hirr : isIrregular m q = false) (hq : 0 ≤ q) :
     0 ≤ kOfMQ m q ∧ kOfMQ m q ≤ q := by
-  obtain ⟨h1, h2⟩ := k_spec h
-  rw [width_eq_two_zpow hirr] at h1 h2
-  generalize kOfMQ m q = k at *
-  have hq1 : (2 : Rat) ^ (0 : Int) ≤ 2 ^ q := zpow_le_zpow_right₀ (by decide) hq
-  rw [Rat.zpow_zero] at hq1
-  have hk : 0 ≤ k := by
-    have : (10 : Rat) ^ (0 : Int) < 10 ^ (k + 1) := by rw [Rat.zpow_zero]; exact lt_of_le_of_lt hq1 h2
-    have := lt_of_zpow_lt (by decide) this
+  obtain ⟨h1, h2⟩ := k_spec h; rw [width_eq_two_zpow hirr] at h1 h2
+  have hq1 := zpow_le_zpow_right₀ (a := (2 : Rat)) (by decide) hq; rw [Rat.zpow_zero] at hq1
+  have hk : 0 ≤ kOfMQ m q := by
+    have := lt_of_zpow_lt (a := 10) (by decide) (by rw [Rat.zpow_zero]; grind : (10 : Rat) ^ (0 : Int) < 10 ^ (kOfMQ m q + 1))
     omega
-  refine ⟨hk, ?_⟩
-  have : (2 : Rat) ^ k ≤ (2 : Rat) ^ q := Rat.le_trans (two_zpow_le_ten_zpow hk) h1
-  exact le_of_zpow_le (by decide) this
+  exact ⟨hk, le_of_zpow_le (a := (2 : Rat)) (by decide) (Rat.le_trans (two_zpow_le_ten_zpow hk) h1)⟩
 
 /-- Irregular spacing, `q ≤ 0`: `k < 0`. -/
 theorem band_irr_nonpos (h : InRange m q) (hirr : isIrregular m q = true) (hq : q ≤ 0) :
     kOfMQ m q < 0 := by
-  obtain ⟨h1, _⟩ := k_spec h
-  rw [width_lt_two_zpow hirr] at h1
-  generalize kOfMQ m q = k at *
-  have hq1 : (2 : Rat) ^ q ≤ 2 ^ (0 : Int) := zpow_le_zpow_right₀ (by decide) hq
-  rw [Rat.zpow_zero] at hq1
-  have : (10 : Rat) ^ k < 10 ^ (0 : Int) := by rw [Rat.zpow_zero]; grind
-  exact lt_of_zpow_lt (by decide) this
+  have h1 := (k_spec h).1; rw [width_lt_two_zpow hirr] at h1
+  have hq1 := zpow_le_zpow_right₀ (a := (2 : Rat)) (by decide) hq; rw [Rat.zpow_zero] at hq1
+  exact lt_of_zpow_lt (a := 10) (by decide) (by rw [Rat.zpow_zero]; grind)
 
 /-- Irregular spacing, `q ≥ 1`: `0 ≤ k ≤ q − 1`. -/
 theorem band_irr_pos (h : InRange m q) (hirr : isIrregular m q = true) (hq : 1 ≤ q) :
     0 ≤ kOfMQ m q ∧ kOfMQ m q ≤ q - 1 := by
-  obtain ⟨h1, h2⟩ := k_spec h
-  rw [width_lt_two_zpow hirr] at h1 h2
-  generalize kOfMQ m q = k at *
-  have hq1 : (2 : Rat) ^ (1 : Int) ≤ 2 ^ q := zpow_le_zpow_right₀ (by decide) hq
-  have h21 : (2 : Rat) ^ (1 : Int) = 2 := by
-    rw [show (1 : Int) = ((1 : Nat) : Int) from rfl, Rat.zpow_natCast]; simp
-  rw [h21] at hq1
-  have hk : 0 ≤ k := by
-    have : (10 : Rat) ^ (0 : Int) < 10 ^ (k + 1) := by rw [Rat.zpow_zero]; grind
-    have := lt_of_zpow_lt (by decide) this
+  obtain ⟨h1, h2⟩ := k_spec h; rw [width_lt_two_zpow hirr] at h1 h2
+  have hq1 := zpow_le_zpow_right₀ (a := (2 : Rat)) (by decide) hq
+  rw [show (2 : Rat) ^ (1 : Int) = 2 from rfl] at hq1
+  have hk : 0 ≤ kOfMQ m q := by
+    have := lt_of_zpow_lt (a := 10) (by decide) (by rw [Rat.zpow_zero]; grind : (10 : Rat) ^ (0 : Int) < 10 ^ (kOfMQ m q + 1))
     omega
-  refine ⟨hk, ?_⟩
-  have h2q : (0 : Rat) < 2 ^ q := Rat.zpow_pos (by decide)
-  have : (2 : Rat) ^ k < (2 : Rat) ^ q := by
-    have := two_zpow_le_ten_zpow hk
-    grind
-  have := lt_of_zpow_lt (by decide) this
-  omega
+  have h2q := two_zpow_pos q
+  have := two_zpow_le_ten_zpow hk
+  have := lt_of_zpow_lt (a := (2 : Rat)) (by decide) (by grind : (2 : Rat) ^ kOfMQ m q < 2 ^ q)
+  exact ⟨hk, by omega⟩
 
 /-! ## The quantities as fractions -/
 
@@ -166,11 +144,8 @@ theorem int_val' (m' : Nat) {q' k : Int} (hk : k < 0) (hkq : k < q') :
   grind
 
 /-- An integer is separated. -/
-theorem separated_natCast (ε : Rat) (n : Nat) : Separated ε (n : Rat) := by
-  left
-  rw [show ((n : Rat)).floor = (n : Int) from
-    floor_eq_of (by rw [Rat.intCast_natCast]; exact Rat.le_refl) (by rw [Rat.intCast_natCast]; grind)]
-  rfl
+theorem separated_natCast (ε : Rat) (n : Nat) : Separated ε (n : Rat) :=
+  Or.inl (by rw [← Rat.intCast_natCast, Rat.floor_intCast])
 
 /-- The check at `(q', k)` separates `m'·2^{q'}·10^{-k}` for `m' < 2^54`, given
     the band facts from R10. -/
@@ -218,24 +193,15 @@ theorem twoVl_eq_reg (h : InRange m q) (hirr : isIrregular m q = false) (k : Int
   have hm := h.1
   unfold Vl vl
   rw [if_neg (fun hc => by rw [isIrregular_iff.mpr hc] at hirr; cases hirr), Rat.div_def, ← Rat.zpow_neg]
-  have : ((2 * m - 1 : Nat) : Rat) = 2 * (m : Rat) - 1 := by
-    have h1 : 2 * m - 1 + 1 = 2 * m := by omega
-    have h2 : ((2 * m - 1 + 1 : Nat) : Rat) = ((2 * m : Nat) : Rat) := by rw [h1]
-    push_cast at h2; grind
-  rw [this]
-  grind
+  rw [← Rat.intCast_natCast (2 * m - 1), Int.ofNat_sub (by omega)]; push_cast; grind
 
 theorem twoVl_eq_irr (h : InRange m q) (hirr : isIrregular m q = true) (k : Int) :
     2 * Vl m q k = ((4 * m - 1 : Nat) : Rat) * (2 : Rat) ^ (q - 1) * (10 : Rat) ^ (-k) := by
   have hm := h.1
   unfold Vl vl
   rw [if_pos (isIrregular_iff.mp hirr), Rat.div_def, ← Rat.zpow_neg]
-  have : ((4 * m - 1 : Nat) : Rat) = 4 * (m : Rat) - 1 := by
-    have h1 : 4 * m - 1 + 1 = 4 * m := by omega
-    have h2 : ((4 * m - 1 + 1 : Nat) : Rat) = ((4 * m : Nat) : Rat) := by rw [h1]
-    push_cast at h2; grind
-  rw [this, Rat.zpow_sub_one (by decide)]
-  grind
+  rw [← Rat.intCast_natCast (4 * m - 1), Int.ofNat_sub (by omega), Rat.zpow_sub_one (by decide)]
+  push_cast; grind
 
 /-- **Result 20** for the exponent `q`, given its check. -/
 theorem R20_of_checkQ (h : InRange m q) (hcheck : checkQ q = true) :

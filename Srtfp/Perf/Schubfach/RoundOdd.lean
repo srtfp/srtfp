@@ -32,74 +32,32 @@ namespace Srtfp.Schubfach
 def ro (x : Rat) : Int :=
   if ((x / 2).floor : Rat) = x / 2 then 2 * (x / 2).floor else 2 * (x / 2).floor + 1
 
-theorem half_floor_le (x : Rat) : ((x / 2).floor : Rat) ≤ x / 2 := Rat.floor_le _
-
-theorem half_lt_floor_add_one (x : Rat) : x / 2 < ((x / 2).floor : Rat) + 1 := by
-  have := Rat.lt_floor_add_one (x / 2); push_cast at this; exact this
-
 /-- The comparison property of §9.3: `x ⋚ 2h ⟺ r_o x ⋚ 2h`. -/
 theorem ro_lt_iff (x : Rat) (h : Int) : x < 2 * h ↔ ro x < 2 * h := by
-  unfold ro
-  have hfl := half_floor_le x
-  have hlt := half_lt_floor_add_one x
-  have hx : x = 2 * (x / 2) := by grind
-  by_cases heq : ((x / 2).floor : Rat) = x / 2
-  · rw [if_pos heq]
-    constructor
-    · intro hlt'
-      have : (x / 2).floor < h := Rat.floor_lt_iff.mpr (by rw [hx] at hlt'; push_cast; grind)
-      omega
-    · intro hlt'
-      have : ((x / 2).floor : Rat) < h := by exact_mod_cast (by omega : (x / 2).floor < h)
-      grind
-  · rw [if_neg heq]
-    constructor
-    · intro hlt'
-      have : (x / 2).floor < h := Rat.floor_lt_iff.mpr (by rw [hx] at hlt'; push_cast; grind)
-      omega
-    · intro hlt'
-      have h1 : (x / 2).floor + 1 ≤ h := by omega
-      have : ((x / 2).floor : Rat) + 1 ≤ h := by exact_mod_cast h1
-      grind
+  have hfl := Rat.floor_le (x / 2)
+  have hlt := Rat.lt_floor_add_one (x / 2); push_cast at hlt
+  have hup : ∀ z : Int, z < h → (z : Rat) + 1 ≤ h := fun z hz => by exact_mod_cast hz
+  unfold ro; split <;> constructor <;> intro hx
+  · have := Rat.floor_lt_iff.mpr (show x / 2 < (h : Rat) by grind); omega
+  · have := hup (x / 2).floor (by omega); grind
+  · have := Rat.floor_lt_iff.mpr (show x / 2 < (h : Rat) by grind); omega
+  · have := hup (x / 2).floor (by omega); grind
 
 theorem ro_eq_iff (x : Rat) (h : Int) : x = 2 * h ↔ ro x = 2 * h := by
-  unfold ro
-  have hfl := half_floor_le x
-  have hlt := half_lt_floor_add_one x
-  by_cases heq : ((x / 2).floor : Rat) = x / 2
-  · rw [if_pos heq]
-    constructor
-    · intro hx
-      have : x / 2 = h := by grind
-      have : (x / 2).floor = h := floor_eq_of (by grind) (by grind)
-      omega
-    · intro hx
-      have : (x / 2).floor = h := by omega
-      have : ((x / 2).floor : Rat) = h := by exact_mod_cast this
-      grind
-  · rw [if_neg heq]
-    constructor
-    · intro hx
-      exfalso
-      have : x / 2 = h := by grind
-      have : (x / 2).floor = h := floor_eq_of (by grind) (by grind)
-      exact heq (by rw [this]; grind)
-    · intro hx; omega
+  have hfl := Rat.floor_le (x / 2)
+  have hlt := Rat.lt_floor_add_one (x / 2); push_cast at hlt
+  have hif : x = 2 * h → (x / 2).floor = h := fun hx => floor_eq_of (by grind) (by grind)
+  unfold ro; split <;> constructor <;> intro hx
+  · have := hif hx; omega
+  · have : ((x / 2).floor : Rat) = h := by exact_mod_cast (by omega : (x / 2).floor = h)
+    grind
+  · rename_i hne; exact absurd (by rw [hif hx]; grind) hne
+  · omega
 
 theorem ro_gt_iff (x : Rat) (h : Int) : 2 * h < x ↔ 2 * h < ro x := by
-  have h1 := ro_lt_iff x h
-  have h2 := ro_eq_iff x h
-  constructor
-  · intro hlt
-    rcases Int.lt_trichotomy (2 * h) (ro x) with hl | he | hg
-    · exact hl
-    · exact absurd (h2.mpr he.symm) (by grind)
-    · exact absurd (h1.mpr hg) (by grind)
-  · intro hlt
-    rcases Rat.lt_trichotomy (2 * h) x with hl | he | hg
-    · exact hl
-    · have := h2.mp he.symm; omega
-    · have := h1.mp hg; omega
+  have := ro_lt_iff x h; have := ro_eq_iff x h
+  have := Rat.lt_trichotomy (2 * h) x; have := Int.lt_trichotomy (2 * h) (ro x)
+  grind
 
 theorem ro_le_iff (x : Rat) (h : Int) : x ≤ 2 * h ↔ ro x ≤ 2 * h := by
   rw [← Rat.not_lt, ro_gt_iff, Int.not_lt]
@@ -156,21 +114,7 @@ theorem R18_mid_gt (x : Rat) (n : Int) : (n : Rat) < 2 * x ↔ 2 * n < ro (4 * x
 
 /-- `⌊y⌋ / 2 = ⌊y / 2⌋` (R28 for `n = 2`). -/
 theorem floor_ediv_two (y : Rat) : y.floor / 2 = (y / 2).floor := by
-  have hfl := Rat.floor_le y
-  have hlt : y < (y.floor : Rat) + 1 := by
-    have := Rat.lt_floor_add_one y; push_cast at this; exact this
-  have h1 : ((y.floor / 2 : Int) : Rat) ≤ y / 2 := by
-    rw [le_div_iff (by decide)]
-    have : ((y.floor / 2 : Int) : Rat) * 2 ≤ y.floor := by
-      exact_mod_cast Int.ediv_mul_le y.floor (by decide : (2 : Int) ≠ 0)
-    grind
-  have h2 : y / 2 < ((y.floor / 2 : Int) : Rat) + 1 := by
-    rw [Rat.div_lt_iff (by decide)]
-    have : (y.floor : Int) + 1 ≤ (y.floor / 2 + 1) * 2 := by omega
-    have : (y.floor : Rat) + 1 ≤ ((y.floor / 2 + 1 : Int) : Rat) * 2 := by exact_mod_cast this
-    push_cast at this
-    grind
-  exact (floor_eq_of h1 h2).symm
+  have := floor_div_natCast y (n := 2) (by decide); push_cast at this; exact this.symm
 
 theorem R19 (x : Rat) : ro (4 * x) / 4 = x.floor := by
   have h2 : (4 * x / 2 : Rat) = 2 * x := by grind

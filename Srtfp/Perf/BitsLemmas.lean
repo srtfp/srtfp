@@ -5,6 +5,7 @@ module
    bridge. -/
 
 public import Srtfp.Perf.Bits
+public import Srtfp.Perf.Word
 
 @[expose] public section
 
@@ -38,52 +39,23 @@ theorem pack_toNat (sign : Sign) (biasedExp mantissa : Nat)
     (Word.pack sign biasedExp mantissa).toNat
       = 2 ^ 63 * (match sign with | .negative => 1 | .positive => 0) + biasedExp * 2 ^ 52 + mantissa := by
   unfold Word.pack
-  have h_be_tn : (UInt64.ofNat biasedExp).toNat = biasedExp :=
-    Nat.mod_eq_of_lt (by omega)
-  have h_m_tn : (UInt64.ofNat mantissa).toNat = mantissa :=
-    Nat.mod_eq_of_lt (by omega)
-  have h2 : ((UInt64.ofNat biasedExp &&& 2047) <<< 52).toNat = biasedExp * 2 ^ 52 := by
-    rw [UInt64.toNat_shiftLeft, UInt64.toNat_and, h_be_tn]
-    rw [show ((2047 : UInt64)).toNat = 2 ^ 11 - 1 by decide]
-    rw [Nat.and_two_pow_sub_one_of_lt_two_pow (by omega)]
-    rw [show ((52 : UInt64)).toNat % 64 = 52 by decide]
-    rw [Nat.shiftLeft_eq]
-    exact Nat.mod_eq_of_lt (by omega)
-  have h3 : (UInt64.ofNat mantissa &&& 4503599627370495).toNat = mantissa := by
-    rw [UInt64.toNat_and, h_m_tn]
-    rw [show ((4503599627370495 : UInt64)).toNat = 2 ^ 52 - 1 by decide]
-    exact Nat.and_two_pow_sub_one_of_lt_two_pow (by omega)
-  rw [UInt64.toNat_or, UInt64.toNat_or, h2, h3]
+  word_simp
+  rw [Nat.mod_eq_of_lt (by omega : biasedExp < 2 ^ (64 : Nat)),
+    Nat.mod_eq_of_lt (by omega : mantissa < 2 ^ (64 : Nat)), Nat.mod_eq_of_lt h_be,
+    Nat.mod_eq_of_lt h_m, Nat.mod_eq_of_lt (by omega : biasedExp * 2 ^ (52 : Nat) < 2 ^ (64 : Nat))]
   cases sign
-  · show ((1 : UInt64) <<< 63).toNat ||| biasedExp * 2 ^ 52 ||| mantissa
-      = 2 ^ 63 * 1 + biasedExp * 2 ^ 52 + mantissa
-    rw [show ((1 : UInt64) <<< 63).toNat = 2 ^ 63 * 1 by decide]
-    exact or_or_eq_add (by omega) h_be (by omega)
-  · show ((0 : UInt64)).toNat ||| biasedExp * 2 ^ 52 ||| mantissa
-      = 2 ^ 63 * 0 + biasedExp * 2 ^ 52 + mantissa
-    rw [show ((0 : UInt64)).toNat = 2 ^ 63 * 0 by decide]
-    exact or_or_eq_add (by omega) h_be (by omega)
+  · exact or_or_eq_add (s' := 1) (by omega) h_be h_m
+  · exact or_or_eq_add (s' := 0) (by omega) h_be h_m
 
 /-- `Word.biasedExp` is always in range `[0, 2048)`: it is an 11-bit field
 mask, bounded regardless of the word. -/
 theorem word_biasedExp_lt (w : UInt64) : Word.biasedExp w < 2048 := by
-  unfold Word.biasedExp
-  rw [UInt64.toNat_and]
-  have hmask : ((0x7FF : UInt64).toNat) = 2047 := by decide
-  rw [hmask]
-  have := @Nat.and_le_right (w >>> 52).toNat 2047
-  omega
+  unfold Word.biasedExp; word
 
 /-- `Word.mantissa` is always in range `[0, 2^52)`: it is a 52-bit field
 mask, bounded regardless of the word. -/
 theorem word_mantissa_lt (w : UInt64) : Word.mantissa w < 2 ^ 52 := by
-  unfold Word.mantissa
-  rw [UInt64.toNat_and]
-  have hmask : ((0x000F_FFFF_FFFF_FFFF : UInt64).toNat) = 4503599627370495 := by decide
-  rw [hmask]
-  have hle : w.toNat &&& 4503599627370495 ≤ 4503599627370495 := Nat.and_le_right
-  have hpow : (2 : Nat) ^ 52 = 4503599627370496 := by decide
-  omega
+  unfold Word.mantissa; word
 
 /-! ## Decoding
 

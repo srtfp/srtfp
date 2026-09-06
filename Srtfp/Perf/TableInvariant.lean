@@ -8,6 +8,7 @@ module
    reader's proof (`Srtfp/Perf/ReadFast.lean`) takes it for the specific
    `pow10Lookup128 k` it needs. -/
 public import Srtfp.Perf.Pow10Table128
+public import Srtfp.Perf.Word
 
 @[expose] public section
 
@@ -108,11 +109,7 @@ theorem pow10Ceil_lt (k : Int) (hLo : pow10Table128_kMin ≤ k) (hHi : k ≤ pow
 
 /-- The 128-bit word `(gHi, gLo)` of `g < 2^128`, read back. -/
 theorem word_of_lt {g : Nat} (hg : g < 2 ^ 128) :
-    (UInt64.ofNat (g >>> 64)).toNat * 2 ^ 64 + (UInt64.ofNat g).toNat = g := by
-  rw [UInt64.toNat_ofNat', UInt64.toNat_ofNat', Nat.shiftRight_eq_div_pow]
-  have : g / 2 ^ 64 < 2 ^ 64 := by omega
-  rw [Nat.mod_eq_of_lt this]
-  omega
+    (UInt64.ofNat (g >>> 64)).toNat * 2 ^ 64 + (UInt64.ofNat g).toNat = g := by word
 
 theorem pow10Entry_invariant (k : Int)
     (hLo : pow10Table128_kMin ≤ k) (hHi : k ≤ pow10Table128_kMax) :

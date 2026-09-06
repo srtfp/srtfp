@@ -58,6 +58,23 @@ theorem div_eq_iff {a b c : Rat} (hc : 0 < c) : a / c = b ↔ a = b * c :=
 theorem eq_div_iff {a b c : Rat} (hc : 0 < c) : a = b / c ↔ a * c = b := by
   rw [eq_comm, div_eq_iff hc, eq_comm]
 
+theorem div_div (a b c : Rat) : a / (b * c) = a / b / c := by
+  rw [Rat.div_def, Rat.div_def, Rat.div_def, Rat.inv_mul_rev, Rat.mul_comm c⁻¹, Rat.mul_assoc]
+
+theorem div_mul_mul {a b d : Rat} (hb : b ≠ 0) : a / b * (b * d) = a * d := by
+  rw [← Rat.mul_assoc, Rat.div_mul_cancel hb]
+
+theorem div_le_div_iff {a b c d : Rat} (hb : 0 < b) (hd : 0 < d) :
+    a / b ≤ c / d ↔ a * d ≤ c * b := by
+  rw [← div_mul_mul (Rat.ne_of_gt hb) (d := d), ← div_mul_mul (Rat.ne_of_gt hd) (d := b), Rat.mul_comm d b]
+  exact ⟨fun h => Rat.mul_le_mul_of_nonneg_right h (Rat.le_of_lt (Rat.mul_pos hb hd)),
+    fun h => Rat.le_of_mul_le_mul_right h (Rat.mul_pos hb hd)⟩
+
+theorem div_lt_div_iff {a b c d : Rat} (hb : 0 < b) (hd : 0 < d) :
+    a / b < c / d ↔ a * d < c * b := by
+  rw [← div_mul_mul (Rat.ne_of_gt hb) (d := d), ← div_mul_mul (Rat.ne_of_gt hd) (d := b), Rat.mul_comm d b,
+    Rat.mul_lt_mul_right (Rat.mul_pos hb hd)]
+
 theorem div_nonneg {a b : Rat} (ha : 0 ≤ a) (hb : 0 < b) : 0 ≤ a / b :=
   (le_div_iff hb).mpr (by grind)
 
@@ -203,6 +220,15 @@ theorem natDiv_bounds (N D : Nat) (hD : 0 < D) :
   have hlt : N < (N / D + 1) * D := by rw [Nat.mul_comm]; exact Nat.lt_mul_div_succ N hD
   exact ⟨(le_div_iff hDq).mpr (by exact_mod_cast Nat.div_mul_le_self N D),
     (Rat.div_lt_iff hDq).mpr (by exact_mod_cast hlt)⟩
+
+/-- `⌊x / n⌋ = ⌊x⌋ / n` for a positive natural `n`. -/
+theorem floor_div_natCast (x : Rat) {n : Nat} (hn : 0 < n) : (x / n).floor = x.floor / n := by
+  have hnq : (0 : Rat) < n := by exact_mod_cast hn
+  have hnz : (n : Int) ≠ 0 := by omega
+  refine floor_eq_of ((le_div_iff hnq).mpr ?_) ((Rat.div_lt_iff hnq).mpr ?_)
+  · exact Rat.le_trans (by exact_mod_cast Int.ediv_mul_le x.floor hnz) (Rat.floor_le x)
+  · exact lt_of_lt_of_le (Rat.lt_floor_add_one x)
+      (by exact_mod_cast Int.lt_ediv_add_one_mul_self x.floor (by omega : (0 : Int) < n))
 
 theorem floor_natDiv (N D : Nat) (hD : 0 < D) : ((N : Rat) / D).floor = ((N / D : Nat) : Int) :=
   floor_eq_of (by exact_mod_cast (natDiv_bounds N D hD).1) (by exact_mod_cast (natDiv_bounds N D hD).2)

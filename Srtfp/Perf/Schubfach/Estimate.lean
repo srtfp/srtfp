@@ -206,17 +206,15 @@ theorem rop_eq_ro (mb : Nat) (q k : Int) (g1 g0 cp : UInt64) (hh : Nat)
   rw [hx'4]
   have h2q : (0 : Rat) < 2 ^ q := Rat.zpow_pos (by decide)
   have hR : (0 : Rat) < 2 ^ (r k) := Rat.zpow_pos (by decide)
-  have hmb4 : (0 : Rat) ≤ (mb : Rat) / 4 := by
-    rw [le_div_iff (by decide)]; rw [Rat.zero_mul]; exact_mod_cast Nat.zero_le mb
+  have hmb4 : (0 : Rat) ≤ (mb : Rat) / 4 := div_nonneg (by exact_mod_cast Nat.zero_le mb) (by decide)
   have hA : (0 : Rat) ≤ (mb : Rat) / 4 * 2 ^ q := Rat.mul_nonneg hmb4 (Rat.le_of_lt h2q)
   -- `10^{-k} < g·2^r` and `g·2^r − 2^r ≤ 10^{-k}` (R24)
   have hRinv : (2 : Rat) ^ (-(r k)) * 2 ^ (r k) = 1 := by
-    rw [← Rat.zpow_add (by decide), show -(r k) + r k = 0 by omega, Rat.zpow_zero]
+    rw [Rat.mul_comm]; exact zpow_mul_neg (by decide) (r k)
   obtain ⟨hg1s, hg2s⟩ := g_spec k
-  have hgpos : 1 ≤ g k := by have := two_pow_125_lt_g k; omega
   have hgc : ((g k - 1 : Nat) : Rat) = (g k : Rat) - 1 := by
-    have h' : ((g k - 1 + 1 : Nat) : Rat) = (g k : Rat) := by rw [Nat.sub_add_cancel hgpos]
-    push_cast at h'; grind
+    have := two_pow_125_lt_g k
+    rw [← Rat.intCast_natCast (g k - 1), Int.ofNat_sub (by omega)]; push_cast; rfl
   have hT1 : (10 : Rat) ^ (-k) < (g k : Rat) * 2 ^ (r k) := by
     have := Rat.mul_lt_mul_of_pos_right hg2s hR
     rwa [Rat.mul_comm ((2 : Rat) ^ (-(r k))), Rat.mul_assoc, hRinv, Rat.mul_one] at this
@@ -227,7 +225,6 @@ theorem rop_eq_ro (mb : Nat) (q k : Int) (g1 g0 cp : UInt64) (hh : Nat)
   have hdiff : x' - x = ((mb : Rat) / 4 * 2 ^ q) * ((g k : Rat) * 2 ^ (r k) - 10 ^ (-k)) := by
     rw [hx, hx']; grind
   have hε1 : eps ≤ 1 := by
-    unfold eps
     have := zpow_le_zpow_right₀ (a := (2 : Rat)) (by decide) (show -((64 : Nat) : Int) ≤ 0 by omega)
     rwa [Rat.zpow_zero] at this
   refine R22 hε1 hsep ?_ ?_
@@ -235,10 +232,7 @@ theorem rop_eq_ro (mb : Nat) (q k : Int) (g1 g0 cp : UInt64) (hh : Nat)
   · rw [hdiff, eps_half]
     -- `A·(g·2^r − 10^{-k}) ≤ A·2^r = (mb/4)·2^{q+r} < 2^53·2^{-122} = 2^{-69} < 2^{-65}`
     have h1 : (mb : Rat) / 4 < 2 ^ (53 : Int) := by
-      rw [Rat.div_lt_iff (by decide),
-        show (2 : Rat) ^ (53 : Int) * 4 = 2 ^ (55 : Int) by
-          rw [show (55 : Int) = 53 + 2 by rfl, Rat.zpow_add (by decide)]; rfl,
-        show (55 : Int) = ((55 : Nat) : Int) from rfl, Rat.zpow_natCast]
+      rw [Rat.div_lt_iff (by decide), show (2 : Rat) ^ (53 : Int) * 4 = 2 ^ (55 : Nat) by decide +kernel]
       exact_mod_cast hmb55
     have h2 : (2 : Rat) ^ q * 2 ^ (r k) ≤ 2 ^ (-122 : Int) := by
       rw [← Rat.zpow_add (by decide)]; exact zpow_le_zpow_right₀ (by decide) (by omega)

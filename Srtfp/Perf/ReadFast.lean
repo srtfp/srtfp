@@ -29,6 +29,7 @@ public import Srtfp.Proofs.Reader.Spec
 public import Srtfp.Perf.TableInvariant
 public import Srtfp.Perf.MulHigh128
 public import Srtfp.Perf.Unpack
+public import Srtfp.Perf.Word
 
 @[expose] public section
 
@@ -167,35 +168,15 @@ theorem mul64x128_val (a gHi gLo : UInt64) :
       = a.toNat * (gHi.toNat * 2 ^ 64 + gLo.toNat) := by
   unfold mul64x128 val192
   simp only []
-  have ha := a.toNat_lt
-  have hHi := gHi.toNat_lt
-  have hLo := gLo.toNat_lt
-  have h1 := mulHi64_toNat_eq a gLo
-  have h2 := mulHi64_toNat_eq a gHi
-  have d1 := Nat.div_add_mod (a.toNat * gLo.toNat) (2 ^ 64)
-  have d2 := Nat.div_add_mod (a.toNat * gHi.toNat) (2 ^ 64)
-  have hB : a.toNat * gHi.toNat ≤ (2 ^ 64 - 1) * (2 ^ 64 - 1) :=
-    Nat.mul_le_mul (by omega) (by omega)
-  have hA : a.toNat * gLo.toNat ≤ (2 ^ 64 - 1) * (2 ^ 64 - 1) :=
-    Nat.mul_le_mul (by omega) (by omega)
+  have hA := Nat.mul_le_mul (Nat.le_sub_one_of_lt a.toNat_lt) (Nat.le_sub_one_of_lt gLo.toNat_lt)
+  have hB := Nat.mul_le_mul (Nat.le_sub_one_of_lt a.toNat_lt) (Nat.le_sub_one_of_lt gHi.toNat_lt)
   rw [Nat.mul_add, ← Nat.mul_assoc]
   split
-  · rename_i hc
-    rw [UInt64.lt_iff_toNat_lt, UInt64.toNat_add, UInt64.toNat_mul, h1] at hc
-    simp only [UInt64.toNat_add, UInt64.toNat_mul, h1, h2, UInt64.toNat_ofNat]
+  all_goals
+    word_simp at *
+    simp only [mulHi64_toNat_eq] at *
     generalize a.toNat * gLo.toNat = A at *
     generalize a.toNat * gHi.toNat = B at *
-    have hg : B / 2 ^ 64 + 1 < 2 ^ 64 := by omega
-    have hsum : B % 2 ^ 64 + A / 2 ^ 64 = (B % 2 ^ 64 + A / 2 ^ 64) % 2 ^ 64 + 2 ^ 64 := by omega
-    rw [show (1 : Nat) % 2 ^ 64 = 1 from rfl, Nat.mod_eq_of_lt hg]
-    omega
-  · rename_i hc
-    rw [UInt64.lt_iff_toNat_lt, UInt64.toNat_add, UInt64.toNat_mul, h1] at hc
-    simp only [UInt64.toNat_add, UInt64.toNat_mul, h1, h2, UInt64.toNat_ofNat]
-    generalize a.toNat * gLo.toNat = A at *
-    generalize a.toNat * gHi.toNat = B at *
-    have hsum : B % 2 ^ 64 + A / 2 ^ 64 = (B % 2 ^ 64 + A / 2 ^ 64) % 2 ^ 64 := by omega
-    rw [show (0 : Nat) % 2 ^ 64 = 0 from rfl, Nat.add_zero, Nat.mod_eq_of_lt (by omega : B / 2 ^ 64 < 2 ^ 64)]
     omega
 
 /-! ## Proof: the packed word -/
@@ -317,9 +298,8 @@ theorem shift_facts (pHi pMid pLo : UInt64) {sN : Nat} (h130 : 130 ≤ sN) (h192
     · rename_i h; subst h
       rw [UInt64.toNat_ofNat, Nat.div_eq_of_lt (val192_lt _ _ _)]
     · rw [toNat_shiftRight_lt (by omega), hdiv sN (by omega)]
-  · rw [UInt64.toNat_and, toNat_shiftRight_lt (by omega), UInt64.toNat_ofNat,
-      show (1 : Nat) % 2 ^ 64 = 1 from rfl, Nat.and_one_is_mod, hdiv (sN - 1) (by omega),
-      show sN - 1 - 128 = sN - 129 by omega]
+  · rw [UInt64.toNat_and, toNat_shiftRight_lt (by omega), hdiv (sN - 1) (by omega),
+      show sN - 1 - 128 = sN - 129 by omega]; word
   · rw [toNat_and_mask (by omega), hmod (sN - 1) (by omega), show sN - 1 - 128 = sN - 129 by omega]
 
 /-! ## Proof: two rounding facts -/
@@ -471,8 +451,7 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
     (hPX : if exact then X = (val192 pHi pMid pLo : Rat) else (val192 pHi pMid pLo : Rat) - mz.toNat < X)
     {w : UInt64} (h : roundCore sign mz pHi pMid pLo hz exact = w) (hw : w ≠ declined) :
     w = (Float.Model.pack (readMag sign (X / (2 : Rat) ^ hz))).toBits := by
-  have htop : (pHi >>> 63).toNat = pHi.toNat / 2 ^ 63 := by
-    rw [UInt64.toNat_shiftRight, Nat.shiftRight_eq_div_pow]; rfl
+  have htop : (pHi >>> 63).toNat = pHi.toNat / 2 ^ 63 := by word
   have hHi := pHi.toNat_lt
   have hMid := pMid.toNat_lt
   have hLo := pLo.toNat_lt
@@ -501,17 +480,8 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
   have hbits : (2 : Rat) ^ (190 + topN : Nat) ≤ X ∧ X < (2 : Rat) ^ (191 + topN : Nat) := by
     have hPnat : Pn < 2 ^ (191 + topN) ∧ (topN = 1 → 2 ^ 191 ≤ Pn) := by
       rw [hPval] at hPlt
-      constructor
-      · have : topN = 0 ∨ topN = 1 := by omega
-        rcases this with h0 | h1
-        · subst h0; omega
-        · subst h1; omega
-      · intro h1; subst h1; omega
-    have hPR : (Pn : Rat) < (2 : Rat) ^ (191 + topN : Nat) := by
-      have := hPnat.1
-      rw [← Rat.natCast_lt_natCast] at this
-      push_cast at this
-      exact this
+      rcases (show topN = 0 ∨ topN = 1 by omega) with rfl | rfl <;> omega
+    have hPR : (Pn : Rat) < (2 : Rat) ^ (191 + topN : Nat) := by exact_mod_cast hPnat.1
     refine ⟨?_, lt_of_le_of_lt hXP hPR⟩
     have : topN = 0 ∨ topN = 1 := by omega
     rcases this with h0 | h1
@@ -519,33 +489,14 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
     · subst h1
       have hP191 : 2 ^ 191 ≤ Pn := hPnat.2 rfl
       split at hPX
-      · rw [hPX]
-        have := hP191
-        rw [← Rat.natCast_le_natCast] at this
-        push_cast at this
-        exact this
+      · rw [hPX]; exact_mod_cast hP191
       · -- not exact: `P` is at least `2^191 + mz`
         rename_i hex
         have hmarg : 2 ^ 191 + mz.toNat ≤ Pn := by
-          simp only [hex, Bool.not_false, Bool.true_and, Bool.and_eq_true, decide_eq_true_eq] at hmargin
-          rw [hPval]
-          have h63 : 2 ^ 63 ≤ pHi.toNat := by omega
-          rcases Nat.lt_or_ge (2 ^ 63) pHi.toNat with hgt | hge
-          · omega
-          · have hpHi : pHi = 9223372036854775808 := by
-              apply UInt64.toNat_inj.mp
-              rw [show (9223372036854775808 : UInt64).toNat = 2 ^ 63 by decide]; omega
-            have htop1 : pHi >>> 63 = 1 := UInt64.toNat_inj.mp (by rw [htN]; rfl)
-            by_cases hm0 : pMid = 0
-            · have hlt : ¬ pLo < mz := fun hc => hmargin ⟨⟨⟨htop1, hpHi⟩, hm0⟩, hc⟩
-              rw [UInt64.lt_iff_toNat_lt] at hlt
-              subst hm0
-              rw [UInt64.toNat_ofNat]
-              omega
-            · have : pMid.toNat ≠ 0 := fun hc => hm0 (UInt64.toNat_inj.mp (by rw [hc]; rfl))
-              omega
-        have := hmarg
-        rw [← Rat.natCast_le_natCast] at this
+          simp only [hex, Bool.not_false, Bool.true_and, Bool.and_eq_true, decide_eq_true_eq]
+            at hmargin
+          rw [hPval]; word_simp at hmargin htN ⊢; omega
+        have : ((2 ^ 191 + mz.toNat : Nat) : Rat) ≤ Pn := by exact_mod_cast hmarg
         push_cast at this
         exact Rat.le_of_lt (lt_of_le_of_lt (by grind) hPX)
   -- `x = X / 2^hz` lies in the binade `[2^t, 2^(t+1))`, `t = 190 + topN - hz`
@@ -599,24 +550,13 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
     calc Pn < 2 ^ 192 := hPlt
       _ = 2 ^ 130 * 2 ^ 62 := by rw [← Nat.pow_add]
       _ ≤ 2 ^ sN * 2 ^ 62 := Nat.mul_le_mul_right _ (Nat.pow_le_pow_right (by decide) hs130)
-  have hqU1 : (qU + 1).toNat = Pn / 2 ^ sN + 1 := by
-    rw [UInt64.toNat_add, hq, UInt64.toNat_ofNat, show (1 : Nat) % 2 ^ 64 = 1 from rfl]
-    exact Nat.mod_eq_of_lt (by omega)
-  have hqUodd : (qU + (qU &&& 1)).toNat = Pn / 2 ^ sN + Pn / 2 ^ sN % 2 := by
-    rw [UInt64.toNat_add, UInt64.toNat_and, hq, UInt64.toNat_ofNat,
-      show (1 : Nat) % 2 ^ 64 = 1 from rfl, Nat.and_one_is_mod]
-    exact Nat.mod_eq_of_lt (by omega)
-  have hbU0 : (bU = 0) ↔ Pn / 2 ^ (sN - 1) % 2 = 0 := by
-    rw [← UInt64.toNat_inj, hb]; rfl
+  have hqU1 : (qU + 1).toNat = Pn / 2 ^ sN + 1 := by word
+  have hqUodd : (qU + (qU &&& 1)).toNat = Pn / 2 ^ sN + Pn / 2 ^ sN % 2 := by word
+  have hbU0 : (bU = 0) ↔ Pn / 2 ^ (sN - 1) % 2 = 0 := by word
   have hrestZ : ((rU = 0 && pMid = 0 && pLo = 0) = true) ↔ Pn % 2 ^ (sN - 1) = 0 := by
-    simp only [Bool.and_eq_true, decide_eq_true_eq, ← UInt64.toNat_inj, UInt64.toNat_ofNat]
-    rw [hrest]
-    omega
+    simp only [Bool.and_eq_true, decide_eq_true_eq]; word
   have hrestS : ((rU = 0 && pMid = 0 && pLo < mz) = true) ↔ Pn % 2 ^ (sN - 1) < mz.toNat := by
-    simp only [Bool.and_eq_true, decide_eq_true_eq, ← UInt64.toNat_inj, UInt64.toNat_ofNat,
-      UInt64.lt_iff_toNat_lt]
-    rw [hrest]
-    omega
+    simp only [Bool.and_eq_true, decide_eq_true_eq]; word
   -- the significand, as a natural
   generalize hnN : (if Pn / 2 ^ (sN - 1) % 2 = 0 then Pn / 2 ^ sN
       else if exact ∧ Pn % 2 ^ (sN - 1) = 0 then Pn / 2 ^ sN + Pn / 2 ^ sN % 2
@@ -678,28 +618,26 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
   dsimp only
   rw [hk', hn', Int.toNat_natCast]
   by_cases hn0 : nN = 0
-  · have hnU0 : nU = 0 := UInt64.toNat_inj.mp (by rw [hnU, hn0]; rfl)
+  · have hnU0 : nU = 0 := by word
     rw [if_pos hnU0, dif_pos hn0, toBits_pack_zero]
-  · have hnU0 : nU ≠ 0 := fun hc => hn0 (by rw [← hnU, hc]; rfl)
+  · have hnU0 : nU ≠ 0 := by word
     rw [if_neg hnU0, dif_neg hn0]
     unfold packFinite
-    have h52 : (4503599627370496 : UInt64).toNat = 2 ^ 52 := by decide
-    have h53 : (9007199254740992 : UInt64).toNat = 2 ^ 53 := by decide
     by_cases hc53 : nN = 2 ^ 53
-    · have hnU53 : nU = 9007199254740992 := UInt64.toNat_inj.mp (by rw [hnU, hc53, h53])
-      rw [if_pos hc53, if_neg (by rw [UInt64.lt_iff_toNat_lt, hnU, hc53, h52]; decide), if_pos hnU53,
+    · have h1 : ¬ nU < 4503599627370496 := by word
+      have h2 : nU = 9007199254740992 := by word
+      rw [if_pos hc53, if_neg h1, if_pos h2,
         toBits_pack_finite sign (by decide) ⟨by decide, by omega, by omega, fun _ => Nat.le_refl _⟩,
         if_neg (Nat.lt_irrefl _), Nat.mod_self, show k + 1 + 1075 = k + 1076 by omega]
-    · rw [if_neg hc53]
-      have hleg : Srtfp.Model.Legal nN k := ⟨by omega, by omega, by omega, hn52⟩
-      rw [toBits_pack_finite sign (Nat.pos_of_ne_zero hn0) hleg]
+    · rw [if_neg hc53,
+        toBits_pack_finite sign (Nat.pos_of_ne_zero hn0) ⟨by omega, by omega, by omega, hn52⟩]
       by_cases hlt : nN < 2 ^ 52
-      · rw [if_pos (by rw [UInt64.lt_iff_toNat_lt, hnU, h52]; exact hlt), if_pos hlt,
-          Nat.mod_eq_of_lt hlt, hnU]
-      · rw [if_neg (by rw [UInt64.lt_iff_toNat_lt, hnU, h52]; exact hlt),
-          if_neg (fun hc => hc53 (by rw [← hnU, hc, h53])), if_neg hlt,
-          UInt64.toNat_sub_of_le _ _ (by rw [UInt64.le_iff_toNat_le, hnU, h52]; omega), hnU, h52,
-          show nN % 2 ^ 52 = nN - 2 ^ 52 by omega]
+      · have h1 : nU < 4503599627370496 := by word
+        rw [if_pos h1, if_pos hlt, Nat.mod_eq_of_lt hlt, hnU]
+      · have h1 : ¬ nU < 4503599627370496 := by word
+        have h2 : nU ≠ 9007199254740992 := by word
+        rw [if_neg h1, if_neg h2, if_neg hlt,
+          show (nU - 4503599627370496).toNat = nN % 2 ^ 52 by word]
 
 /-! ## Proof: the table entry against `10^e` -/
 
@@ -838,26 +776,21 @@ theorem lz_step (x bound w : UInt64) (wN : Nat) (hw : wN ≤ 32)
     (x <<< z).toNat = x.toNat * 2 ^ z.toNat ∧ 2 ^ (64 - wN) ≤ (x <<< z).toNat ∧ z.toNat ≤ wN := by
   intro z
   have hxlt := x.toNat_lt
+  have hp := Nat.two_pow_pos wN
   by_cases hc : x < bound
-  · have hz : z = w := if_pos hc
+  · rw [show z = w from if_pos hc, UInt64.toNat_shiftLeft, hwN, Nat.mod_eq_of_lt (by omega : wN < 64),
+      Nat.shiftLeft_eq]
     rw [UInt64.lt_iff_toNat_lt, hb] at hc
     have hprod : x.toNat * 2 ^ wN < 2 ^ 64 := by
-      calc x.toNat * 2 ^ wN < 2 ^ (64 - wN) * 2 ^ wN :=
-            Nat.mul_lt_mul_of_pos_right hc (Nat.two_pow_pos _)
-        _ = 2 ^ 64 := by rw [← Nat.pow_add, show 64 - wN + wN = 64 by omega]
-    have hsh : (x <<< w).toNat = x.toNat * 2 ^ wN := by
-      rw [UInt64.toNat_shiftLeft, hwN, Nat.mod_eq_of_lt (show wN < 64 by omega), Nat.shiftLeft_eq,
-        Nat.mod_eq_of_lt hprod]
-    rw [hz, hsh, hwN]
-    refine ⟨rfl, ?_, Nat.le_refl _⟩
-    calc 2 ^ (64 - wN) = 2 ^ (64 - 2 * wN) * 2 ^ wN := by
-          rw [← Nat.pow_add, show 64 - 2 * wN + wN = 64 - wN by omega]
-      _ ≤ x.toNat * 2 ^ wN := Nat.mul_le_mul_right _ hx
-  · have hz : z = 0 := if_neg hc
+      have := Nat.mul_lt_mul_of_pos_right hc hp
+      rwa [← Nat.pow_add, Nat.sub_add_cancel (by omega)] at this
+    have hlo : 2 ^ (64 - wN) ≤ x.toNat * 2 ^ wN := by
+      have := Nat.mul_le_mul_right (2 ^ wN) hx
+      rwa [← Nat.pow_add, show 64 - 2 * wN + wN = 64 - wN by omega] at this
+    exact ⟨Nat.mod_eq_of_lt hprod, by rw [Nat.mod_eq_of_lt hprod]; exact hlo, Nat.le_refl _⟩
+  · rw [show z = 0 from if_neg hc]
     rw [UInt64.lt_iff_toNat_lt, hb] at hc
-    have h0 : (x <<< 0).toNat = x.toNat := by rw [UInt64.toNat_shiftLeft]; simp
-    rw [hz, h0]
-    exact ⟨by simp, by omega, by simp⟩
+    exact ⟨by word, by word, by word⟩
 
 theorem lzShift_spec {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64) :
     (lzShift (UInt64.ofNat m)).toNat = 63 - m.log2 := by
@@ -886,10 +819,7 @@ theorem lzShift_spec {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64) :
   have h6lt := m6.toNat_lt
   -- the shift as a natural
   generalize hZ : z1.toNat + z2.toNat + z3.toNat + z4.toNat + z5.toNat + z6.toNat = Z at *
-  have hsum : (z1 + z2 + z3 + z4 + z5 + z6).toNat = Z := by
-    rw [UInt64.toNat_add, UInt64.toNat_add, UInt64.toNat_add, UInt64.toNat_add, UInt64.toNat_add]
-    repeat rw [Nat.mod_eq_of_lt (by omega)]
-    exact hZ
+  have hsum : (z1 + z2 + z3 + z4 + z5 + z6).toNat = Z := by word
   -- the normalised value
   have hval : m6.toNat = m * 2 ^ Z := by
     rw [e6, e5, e4, e3, e2, e1, hmN, ← hZ]
@@ -925,16 +855,15 @@ theorem mz_facts {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 64) :
   have hL64 : m.log2 < 64 := (Nat.log2_lt hm0).mpr hm
   generalize hL : m.log2 = L at *
   have hlo : 2 ^ 63 ≤ m * 2 ^ (63 - L) := by
-    calc 2 ^ 63 = 2 ^ L * 2 ^ (63 - L) := by rw [← Nat.pow_add, Nat.add_sub_cancel' (by omega)]
-      _ ≤ m * 2 ^ (63 - L) := Nat.mul_le_mul_right _ hL1
+    have := Nat.mul_le_mul_right (2 ^ (63 - L)) hL1
+    rwa [← Nat.pow_add, Nat.add_sub_cancel' (by omega)] at this
   have hhi : m * 2 ^ (63 - L) < 2 ^ 64 := by
-    calc m * 2 ^ (63 - L) < 2 ^ (L + 1) * 2 ^ (63 - L) :=
-          Nat.mul_lt_mul_of_pos_right hL2 (Nat.two_pow_pos _)
-      _ = 2 ^ 64 := by rw [← Nat.pow_add, show L + 1 + (63 - L) = 64 by omega]
+    have := Nat.mul_lt_mul_of_pos_right hL2 (Nat.two_pow_pos (63 - L))
+    rwa [← Nat.pow_add, show L + 1 + (63 - L) = 64 by omega] at this
   refine ⟨?_, hlo, hhi⟩
-  rw [UInt64.toNat_shiftLeft, UInt64.toNat_ofNat', UInt64.toNat_ofNat', Nat.mod_eq_of_lt hm,
-    Nat.mod_eq_of_lt (show 63 - L < 2 ^ 64 by omega), Nat.mod_eq_of_lt (show 63 - L < 64 by omega),
-    Nat.shiftLeft_eq, Nat.mod_eq_of_lt hhi]
+  word_simp
+  rw [Nat.mod_eq_of_lt hm, Nat.mod_eq_of_lt (by omega : 63 - L < 2 ^ 64),
+    Nat.mod_eq_of_lt (by omega : 63 - L < 64), Nat.mod_eq_of_lt hhi]
 
 /-! ## Proof: the regimes -/
 
