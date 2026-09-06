@@ -37,13 +37,6 @@ theorem half_floor_le (x : Rat) : ((x / 2).floor : Rat) ≤ x / 2 := Rat.floor_l
 theorem half_lt_floor_add_one (x : Rat) : x / 2 < ((x / 2).floor : Rat) + 1 := by
   have := Rat.lt_floor_add_one (x / 2); push_cast at this; exact this
 
-/-- The floor is the integer `h` with `h ≤ y < h + 1`. -/
-theorem floor_eq_of {y : Rat} {h : Int} (h1 : (h : Rat) ≤ y) (h2 : y < (h : Rat) + 1) :
-    y.floor = h := by
-  have := Rat.le_floor_iff.mpr h1
-  have := Rat.floor_lt_iff.mpr (by push_cast; exact h2 : y < ((h + 1 : Int) : Rat))
-  omega
-
 /-- The comparison property of §9.3: `x ⋚ 2h ⟺ r_o x ⋚ 2h`. -/
 theorem ro_lt_iff (x : Rat) (h : Int) : x < 2 * h ↔ ro x < 2 * h := by
   unfold ro
@@ -167,12 +160,12 @@ theorem floor_ediv_two (y : Rat) : y.floor / 2 = (y / 2).floor := by
   have hlt : y < (y.floor : Rat) + 1 := by
     have := Rat.lt_floor_add_one y; push_cast at this; exact this
   have h1 : ((y.floor / 2 : Int) : Rat) ≤ y / 2 := by
-    rw [Exact.le_div_iff' (by decide)]
+    rw [le_div_iff (by decide)]
     have : ((y.floor / 2 : Int) : Rat) * 2 ≤ y.floor := by
       exact_mod_cast Int.ediv_mul_le y.floor (by decide : (2 : Int) ≠ 0)
     grind
   have h2 : y / 2 < ((y.floor / 2 : Int) : Rat) + 1 := by
-    rw [Exact.div_lt_iff' (by decide)]
+    rw [Rat.div_lt_iff (by decide)]
     have : (y.floor : Int) + 1 ≤ (y.floor / 2 + 1) * 2 := by omega
     have : (y.floor : Rat) + 1 ≤ ((y.floor / 2 + 1 : Int) : Rat) * 2 := by exact_mod_cast this
     push_cast at this

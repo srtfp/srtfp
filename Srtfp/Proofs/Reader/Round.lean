@@ -12,15 +12,6 @@ open Srtfp.Compat
 
 namespace Srtfp.Reader
 
-open Srtfp.Printer (two_zpow_pos two_zpow_natCast)
-
-theorem le_div_iff {a b c : Rat} (hc : 0 < c) : a ≤ b / c ↔ a * c ≤ b := by
-  rw [← Rat.not_lt, ← Rat.not_lt, Rat.div_lt_iff hc]
-
-theorem div_eq_iff {a b c : Rat} (hc : 0 < c) : a / c = b ↔ a = b * c := by
-  constructor
-  · intro h; rw [← h, Rat.div_mul_cancel (by grind)]
-  · intro h; rw [h, Rat.mul_div_cancel (by grind)]
 
 /-! ## `roundEven` -/
 

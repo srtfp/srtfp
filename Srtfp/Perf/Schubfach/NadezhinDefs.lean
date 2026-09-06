@@ -64,7 +64,7 @@ theorem separated_of_gaps (N M a : Nat) (hM : 0 < M) (h : Gaps N M a) :
   rw [hfl]
   -- `N / M − ⌊N / M⌋ = (N mod M) / M`
   have hfrac : (N : Rat) / M - ((N / M : Nat) : Int) = ((N % M : Nat) : Rat) / M := by
-    rw [Rat.intCast_natCast, eq_comm, Reader.div_eq_iff hMq]
+    rw [Rat.intCast_natCast, eq_comm, div_eq_iff hMq]
     have e := Rat.div_mul_cancel (a := (N : Rat)) (Rat.ne_of_gt hMq)
     have hN : (N : Rat) = ((M * (N / M) + N % M : Nat) : Rat) := by rw [hdm]
     push_cast at hN
@@ -93,13 +93,13 @@ theorem separated_of_gaps (N M a : Nat) (hM : 0 < M) (h : Gaps N M a) :
     constructor
     · -- `⌊x⌋ + ε ≤ x`: `M ≤ r · 2^a`
       have : y ≤ ((N % M : Nat) : Rat) / M := by
-        rw [Exact.le_div_iff' hMq]
+        rw [le_div_iff hMq]
         refine Rat.le_of_mul_le_mul_right (c := X) ?_ h2a'
         rw [hyM]; exact hlo'
       grind
     · -- `x ≤ ⌊x⌋ + 1 − ε`: `M ≤ (M − r) · 2^a`
       have : ((N % M : Nat) : Rat) / M ≤ 1 - y := by
-        rw [Exact.div_le_iff' hMq]
+        rw [div_le_iff hMq]
         refine Rat.le_of_mul_le_mul_right (c := X) ?_ h2a'
         have : (1 - y) * (M : Rat) * X = M * X - M := by
           have h := hyM

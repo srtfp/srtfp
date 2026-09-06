@@ -64,12 +64,12 @@ theorem ro_bounds (h : InRange m q) (mb : Nat) (hmb : mb < 2 ^ 55) :
   set x : Rat := (mb : Rat) / 4 * (2 : Rat) ^ q * (10 : Rat) ^ (-k) with hx
   have hx0 : 0 ≤ x := by
     rw [hx, Rat.mul_assoc]
-    exact Rat.mul_nonneg (by rw [Exact.le_div_iff' (by decide), Rat.zero_mul]; exact hmb0)
+    exact Rat.mul_nonneg (by rw [le_div_iff (by decide), Rat.zero_mul]; exact hmb0)
       (Rat.le_of_lt hT)
   have hx1 : x ≤ (mb : Rat) * 4 := by
     rw [hx, Rat.mul_assoc]
     have hmb4 : (0 : Rat) ≤ (mb : Rat) / 4 := by
-      rw [Exact.le_div_iff' (by decide), Rat.zero_mul]; exact hmb0
+      rw [le_div_iff (by decide), Rat.zero_mul]; exact hmb0
     have := Rat.mul_le_mul_of_nonneg_left (Rat.le_of_lt hhi) hmb4
     have e : (mb : Rat) / 4 * 16 = (mb : Rat) * 4 := by
       rw [Rat.div_def, Rat.mul_assoc]; congr 1; decide +kernel

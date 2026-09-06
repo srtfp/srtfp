@@ -31,8 +31,6 @@ theorem two_pow_1074_le : (2 : Nat) ^ 1074 ≤ 10 ^ 324 := by decide
 set_option exponentiation.threshold 1100 in
 theorem four_two_pow_1074_lt : 4 * (2 : Nat) ^ 1074 < 3 * 10 ^ 324 := by decide
 
-theorem zpow_natCast_lit (b : Rat) (n : Nat) : b ^ (n : Int) = b ^ n := rfl
-
 /-! ## T1: no grid above `10^308` meets `R_v` -/
 
 theorem vr_lt_two_pow_1024 (h : InRange m q) : vr m q < (2 : Rat) ^ (1024 : Nat) := by
@@ -177,12 +175,6 @@ theorem mul_inv_lt_mul_inv {A B p r : Rat} (hA : 0 < A) (hB : 0 < B) (h : p * B 
     _ < r * A := h
     _ = r * B⁻¹ * (A * B) := by grind
 
-theorem two_zpow_neg_eq (a : Nat) : (2 : Rat) ^ (-(a : Int)) = ((2 : Rat) ^ a)⁻¹ := by
-  rw [Rat.zpow_neg]; rfl
-
-theorem ten_zpow_neg_eq (a : Nat) : (10 : Rat) ^ (-(a : Int)) = ((10 : Rat) ^ a)⁻¹ := by
-  rw [Rat.zpow_neg]; rfl
-
 /-- If `10^i` and `9 · 10^(i-1)` both lie in `R_v`, then `v` is nearer to
     `10^i`. Only a subnormal `v` with `m ≤ 9` has an interval that wide,
     and then `i = -323` and `m ≥ 2`. -/
@@ -218,14 +210,14 @@ theorem ten_pow_closer (h : InRange m q) (hw : InRv m q ((10 : Rat) ^ i) = true)
   have hmP := Rat.mul_le_mul_of_nonneg_right hm' (Rat.le_of_lt hP)
   have hmP1 := Rat.mul_le_mul_of_nonneg_right hm1' (Rat.le_of_lt hP)
   have hP2 : (0 : Rat) < 2 ^ 1074 := Rat.pow_pos (by decide)
-  rw [show (-1074 : Int) = -((1074 : Nat) : Int) by rfl, two_zpow_neg_eq] at hPq
+  rw [show (-1074 : Int) = -((1074 : Nat) : Int) by rfl, zpow_neg_natCast] at hPq
   -- `i = -323`
   have hi1 : i ≤ -323 := by
     rcases Int.lt_or_le (-323) i with hi | hi
     · exfalso
       have hT1 : (10 : Rat) ^ (-((323 : Nat) : Int)) ≤ T := by
         rw [← hTi']; exact zpow_le_zpow_right₀ (by decide) (by omega)
-      rw [ten_zpow_neg_eq] at hT1
+      rw [zpow_neg_natCast] at hT1
       have hF := mul_inv_lt_mul_inv hP2 (Rat.pow_pos (by decide)) nineteen_ten_pow_323_lt
       rw [hPq] at hF
       grind
@@ -235,7 +227,7 @@ theorem ten_pow_closer (h : InRange m q) (hw : InRv m q ((10 : Rat) ^ i) = true)
     · exfalso
       have hT1 : T ≤ (10 : Rat) ^ (-((325 : Nat) : Int)) := by
         rw [← hTi']; exact zpow_le_zpow_right₀ (by decide) (by omega)
-      rw [ten_zpow_neg_eq] at hT1
+      rw [zpow_neg_natCast] at hT1
       have hF := mul_inv_lt_mul_inv (Rat.pow_pos (by decide)) hP2 eighteen_two_pow_1074_lt
       rw [hPq] at hF
       grind
@@ -243,7 +235,7 @@ theorem ten_pow_closer (h : InRange m q) (hw : InRv m q ((10 : Rat) ^ i) = true)
   have hi : i = -323 := by omega
   subst hi
   have hT' : T = ((10 : Rat) ^ (324 : Nat))⁻¹ := by
-    rw [← hTi', ← ten_zpow_neg_eq]; rfl
+    rw [← hTi', ← zpow_neg_natCast]; rfl
   subst hT'
   have hT2 : (0 : Rat) < 10 ^ 324 := Rat.pow_pos (by decide)
   -- `m ≥ 2`

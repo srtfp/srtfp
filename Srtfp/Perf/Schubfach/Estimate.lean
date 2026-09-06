@@ -19,22 +19,6 @@ variable {m : Nat} {q : Int}
 
 /-! ## The range of `k` -/
 
-theorem inv_lt_inv_of_lt {A B : Nat} (hA : 0 < A) (h : A < B) :
-    ((B : Nat) : Rat)⁻¹ < ((A : Nat) : Rat)⁻¹ := by
-  have hAq : (0 : Rat) < A := by exact_mod_cast hA
-  have hBq : (0 : Rat) < B := by exact_mod_cast (Nat.lt_trans hA h)
-  have hlt : (A : Rat) < B := by exact_mod_cast h
-  have eA := Rat.inv_mul_cancel _ (Rat.ne_of_gt hAq)
-  have eB := Rat.inv_mul_cancel _ (Rat.ne_of_gt hBq)
-  refine Rat.lt_of_mul_lt_mul_right (c := (A : Rat) * B) ?_ (Rat.le_of_lt (Rat.mul_pos hAq hBq))
-  generalize (A : Rat) = a at *
-  generalize (B : Rat) = b at *
-  generalize (a : Rat)⁻¹ = a' at *
-  generalize (b : Rat)⁻¹ = b' at *
-  have l1 : b' * (a * b) = a := by rw [Rat.mul_comm a b, ← Rat.mul_assoc, eB, Rat.one_mul]
-  have l2 : a' * (a * b) = b := by rw [← Rat.mul_assoc, eA, Rat.one_mul]
-  rw [l1, l2]; exact hlt
-
 /-- `K_min ≤ k ≤ K_max` (the table covers every binary64). -/
 theorem k_range (h : InRange m q) : kMin ≤ kOfMQ m q ∧ kOfMQ m q ≤ kMax := by
   obtain ⟨h1, h2⟩ := k_spec h
@@ -58,9 +42,9 @@ theorem k_range (h : InRange m q) : kMin ≤ kOfMQ m q ∧ kOfMQ m q ≤ kMax :=
     have hnum : (10 : Rat) ^ (-324 : Int) < (2 : Rat) ^ (-1076 : Int) := by
       rw [show (-324 : Int) = -((324 : Nat) : Int) from rfl,
         show (-1076 : Int) = -((1076 : Nat) : Int) from rfl,
-        ten_zpow_neg_toNat (Int.natCast_nonneg _), two_zpow_neg_toNat (Int.natCast_nonneg _),
-        Int.toNat_natCast, Int.toNat_natCast]
-      exact inv_lt_inv_of_lt (Nat.two_pow_pos _) (by decide +kernel)
+        zpow_neg_natCast, zpow_neg_natCast]
+      exact inv_lt_inv (Rat.pow_pos (by decide))
+        (by exact_mod_cast (by decide +kernel : (2 : Nat) ^ 1076 < 10 ^ 324))
     have : (10 : Rat) ^ (-324 : Int) < 10 ^ (k + 1) := by grind
     have := lt_of_zpow_lt (by decide) this
     omega
@@ -173,7 +157,7 @@ theorem h_eq (h : InRange m q) :
 theorem ro_nonneg {x : Rat} (hx : 0 ≤ x) : 0 ≤ ro x := by
   unfold ro
   have : (0 : Int) ≤ (x / 2).floor := by
-    rw [Rat.le_floor_iff]; rw [Exact.le_div_iff' (by decide)]; grind
+    rw [Rat.le_floor_iff]; rw [le_div_iff (by decide)]; grind
   split <;> omega
 
 theorem ro_le (x : Rat) : (ro x : Rat) ≤ x + 1 := by
@@ -210,7 +194,7 @@ theorem rop_eq_ro (mb : Nat) (q k : Int) (g1 g0 cp : UInt64) (hh : Nat)
   set x : Rat := (mb : Rat) / 4 * (2 : Rat) ^ q * (10 : Rat) ^ (-k) with hx
   set x' : Rat := (mb : Rat) / 4 * (2 : Rat) ^ q * ((g k : Rat) * (2 : Rat) ^ (r k)) with hx'
   have hx'4 : (((mb * 2 ^ hh * g k : Nat) : Rat) / ((2 ^ 127 : Nat) : Rat)) = 4 * x' := by
-    rw [hx', Reader.div_eq_iff (by exact_mod_cast Nat.two_pow_pos 127)]
+    rw [hx', div_eq_iff (by exact_mod_cast Nat.two_pow_pos 127)]
     push_cast
     have e : (2 : Rat) ^ hh = 2 ^ q * 2 ^ (r k) * (2 : Rat) ^ (127 : Nat) := by
       rw [← Rat.zpow_natCast, ← Rat.zpow_natCast, ← Rat.zpow_add (by decide),
@@ -223,7 +207,7 @@ theorem rop_eq_ro (mb : Nat) (q k : Int) (g1 g0 cp : UInt64) (hh : Nat)
   have h2q : (0 : Rat) < 2 ^ q := Rat.zpow_pos (by decide)
   have hR : (0 : Rat) < 2 ^ (r k) := Rat.zpow_pos (by decide)
   have hmb4 : (0 : Rat) ≤ (mb : Rat) / 4 := by
-    rw [Exact.le_div_iff' (by decide)]; rw [Rat.zero_mul]; exact_mod_cast Nat.zero_le mb
+    rw [le_div_iff (by decide)]; rw [Rat.zero_mul]; exact_mod_cast Nat.zero_le mb
   have hA : (0 : Rat) ≤ (mb : Rat) / 4 * 2 ^ q := Rat.mul_nonneg hmb4 (Rat.le_of_lt h2q)
   -- `10^{-k} < g·2^r` and `g·2^r − 2^r ≤ 10^{-k}` (R24)
   have hRinv : (2 : Rat) ^ (-(r k)) * 2 ^ (r k) = 1 := by
@@ -251,7 +235,7 @@ theorem rop_eq_ro (mb : Nat) (q k : Int) (g1 g0 cp : UInt64) (hh : Nat)
   · rw [hdiff, eps_half]
     -- `A·(g·2^r − 10^{-k}) ≤ A·2^r = (mb/4)·2^{q+r} < 2^53·2^{-122} = 2^{-69} < 2^{-65}`
     have h1 : (mb : Rat) / 4 < 2 ^ (53 : Int) := by
-      rw [Exact.div_lt_iff' (by decide),
+      rw [Rat.div_lt_iff (by decide),
         show (2 : Rat) ^ (53 : Int) * 4 = 2 ^ (55 : Int) by
           rw [show (55 : Int) = 53 + 2 by rfl, Rat.zpow_add (by decide)]; rfl,
         show (55 : Int) = ((55 : Nat) : Int) from rfl, Rat.zpow_natCast]
@@ -265,7 +249,7 @@ theorem rop_eq_ro (mb : Nat) (q k : Int) (g1 g0 cp : UInt64) (hh : Nat)
         _ < 2 ^ (53 : Int) * 2 ^ (-122 : Int) :=
             Rat.mul_lt_mul_of_pos_right h1 (Rat.zpow_pos (by decide))
         _ = 2 ^ (-69 : Int) := by rw [← Rat.zpow_add (by decide)]; rfl
-        _ < 2 ^ (-65 : Int) := zpow_lt_of_lt (by decide) (by decide)
+        _ < 2 ^ (-65 : Int) := zpow_lt_zpow (by decide) (by decide)
     calc (mb : Rat) / 4 * 2 ^ q * ((g k : Rat) * 2 ^ (r k) - 10 ^ (-k))
           ≤ (mb : Rat) / 4 * 2 ^ q * 2 ^ (r k) := Rat.mul_le_mul_of_nonneg_left (by grind) hA
       _ < 2 ^ (-65 : Int) := hAR

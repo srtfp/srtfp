@@ -23,15 +23,8 @@ open Srtfp.Compat
 
 namespace Srtfp.Reader
 
-open Srtfp.Printer (two_zpow_pos two_zpow_natCast)
 open Float.Model (UnpackedFloat)
 open Float.Model.UnpackedFloat (Sign)
-
-theorem div_le_iff {a b c : Rat} (hc : 0 < c) : a / c ≤ b ↔ a ≤ b * c := by
-  rw [← Rat.not_lt, ← Rat.not_lt, Rat.lt_div_iff hc]
-
-theorem div_nonneg {a b : Rat} (ha : 0 ≤ a) (hb : 0 < b) : 0 ≤ a / b := by
-  rw [Rat.div_def]; exact Rat.mul_nonneg ha (Rat.le_of_lt (Rat.inv_pos.mpr hb))
 
 /-! ## The characterisations pin the values -/
 

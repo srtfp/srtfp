@@ -21,32 +21,6 @@ variable {m : Nat} {q : Int}
 
 /-! ## Powers -/
 
-theorem lt_of_zpow_lt {a : Rat} (ha : 1 ≤ a) {x y : Int} (h : a ^ x < a ^ y) : x < y := by
-  rcases Int.lt_or_le x y with hxy | hxy
-  · exact hxy
-  · exact absurd h (Rat.not_lt.mpr (zpow_le_zpow_right₀ ha hxy))
-
-theorem zpow_lt_succ {a : Rat} (ha : 1 < a) (x : Int) : a ^ x < a ^ (x + 1) := by
-  rw [Rat.zpow_add_one (by grind)]
-  have hp := Rat.zpow_pos (n := x) (by grind : (0 : Rat) < a)
-  calc a ^ x = a ^ x * 1 := (Rat.mul_one _).symm
-    _ < a ^ x * a := Rat.mul_lt_mul_of_pos_left ha hp
-
-theorem le_of_zpow_le {a : Rat} (ha : 1 < a) {x y : Int} (h : a ^ x ≤ a ^ y) : x ≤ y := by
-  rcases Int.lt_or_le y x with hxy | hxy
-  · have h1 : a ^ (y + 1) ≤ a ^ x := zpow_le_zpow_right₀ (Rat.le_of_lt ha) (by omega)
-    have h2 := zpow_lt_succ ha y
-    exact (Rat.lt_irrefl (lt_of_lt_of_le h2 (Rat.le_trans h1 h))).elim
-  · exact hxy
-
-theorem zpow_lt_of_lt {a : Rat} (ha : 1 < a) {x y : Int} (h : x < y) : a ^ x < a ^ y :=
-  lt_of_lt_of_le (zpow_lt_succ ha x) (zpow_le_zpow_right₀ (Rat.le_of_lt ha) (by omega))
-
-theorem ten_pow_split (n : Nat) : (10 : Rat) ^ n = (2 : Rat) ^ n * (5 : Rat) ^ n := by
-  have : ((10 ^ n : Nat) : Rat) = ((2 ^ n * 5 ^ n : Nat) : Rat) := by rw [← Nat.mul_pow]
-  push_cast at this
-  exact this
-
 /-- `2^j ≤ 10^j` for `j ≥ 0`. -/
 theorem two_zpow_le_ten_zpow {j : Int} (hj : 0 ≤ j) : (2 : Rat) ^ j ≤ (10 : Rat) ^ j := by
   obtain ⟨n, rfl⟩ : ∃ n : Nat, j = n := ⟨j.toNat, by omega⟩
@@ -69,7 +43,7 @@ theorem band_reg_neg (h : InRange m q) (hirr : isIrregular m q = false) (hq : q 
   obtain ⟨h1, _⟩ := k_spec h
   rw [width_eq_two_zpow hirr] at h1
   generalize kOfMQ m q = k at *
-  have hq1 : (2 : Rat) ^ q < 2 ^ (0 : Int) := zpow_lt_of_lt (by decide) hq
+  have hq1 : (2 : Rat) ^ q < 2 ^ (0 : Int) := zpow_lt_zpow (by decide) hq
   rw [Rat.zpow_zero] at hq1
   have : (10 : Rat) ^ k < 10 ^ (0 : Int) := by rw [Rat.zpow_zero]; exact lt_of_le_of_lt h1 hq1
   exact lt_of_zpow_lt (by decide) this
@@ -130,7 +104,7 @@ theorem band2_val (m' : Nat) {q' k : Int} (hk : 0 ≤ k) (hkq : k ≤ q') :
     (m' : Rat) * (2 : Rat) ^ q' * (10 : Rat) ^ (-k)
       = ((m' * 2 ^ (q' - k).toNat : Nat) : Rat) / ((5 ^ k.toNat : Nat) : Rat) := by
   have h5 : (0 : Rat) < ((5 ^ k.toNat : Nat) : Rat) := by exact_mod_cast Nat.pow_pos (by decide)
-  rw [eq_comm, Reader.div_eq_iff h5]
+  rw [eq_comm, div_eq_iff h5]
   have e1 : (10 : Rat) ^ (-k) * (10 : Rat) ^ k = 1 := by
     rw [← Rat.zpow_add (by decide), show -k + k = 0 by omega, Rat.zpow_zero]
   have e2 : (10 : Rat) ^ k = ((2 ^ k.toNat : Nat) : Rat) * ((5 ^ k.toNat : Nat) : Rat) := by
@@ -151,7 +125,7 @@ theorem band1_val (m' : Nat) {q' k : Int} (hk : k < 0) (hqk : q' ≤ k) :
     (m' : Rat) * (2 : Rat) ^ q' * (10 : Rat) ^ (-k)
       = ((m' * 5 ^ (-k).toNat : Nat) : Rat) / ((2 ^ (-q' + k).toNat : Nat) : Rat) := by
   have h2 : (0 : Rat) < ((2 ^ (-q' + k).toNat : Nat) : Rat) := by exact_mod_cast Nat.pow_pos (by decide)
-  rw [eq_comm, Reader.div_eq_iff h2]
+  rw [eq_comm, div_eq_iff h2]
   have e1 : (2 : Rat) ^ q' * (2 : Rat) ^ (-q') = 1 := by
     rw [← Rat.zpow_add (by decide), show q' + -q' = 0 by omega, Rat.zpow_zero]
   have e2 : (10 : Rat) ^ (-k) = ((2 ^ (-k).toNat : Nat) : Rat) * ((5 ^ (-k).toNat : Nat) : Rat) := by

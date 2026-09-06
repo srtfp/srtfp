@@ -90,7 +90,7 @@ theorem flog2pow10Exact_spec (e : Int) :
       exact_mod_cast Nat.le_of_lt h2
     rw [show -((L : Int) + 1) + 1 = -(L : Int) by omega]
     -- invert: `10^{-n} = (10^n)⁻¹`
-    have hpos10 := Printer.ten_zpow_pos (n : Int)
+    have hpos10 := ten_zpow_pos (n : Int)
     have hinv : (10 : Rat) ^ (-(n : Int)) * (10 : Rat) ^ (n : Int) = 1 := by
       rw [← Rat.zpow_add (by decide), show -(n : Int) + n = 0 by omega, Rat.zpow_zero]
     have hA : (2 : Rat) ^ (-((L : Int) + 1)) * (2 : Rat) ^ ((L : Int) + 1) = 1 := by
@@ -98,8 +98,8 @@ theorem flog2pow10Exact_spec (e : Int) :
         Rat.zpow_zero]
     have hB : (2 : Rat) ^ (-(L : Int)) * (2 : Rat) ^ (L : Int) = 1 := by
       rw [← Rat.zpow_add (by decide), show -(L : Int) + L = 0 by omega, Rat.zpow_zero]
-    have hp1 := Printer.two_zpow_pos ((L : Int) + 1)
-    have hpL := Printer.two_zpow_pos (L : Int)
+    have hp1 := two_zpow_pos ((L : Int) + 1)
+    have hpL := two_zpow_pos (L : Int)
     constructor
     · refine Rat.le_of_mul_le_mul_right (c := (10 : Rat) ^ (n : Int) * (2 : Rat) ^ ((L : Int) + 1)) ?_
         (Rat.mul_pos hpos10 hp1)
@@ -173,37 +173,6 @@ theorem flog2pow10_eq_exact (e : Int) (hlo : -292 ≤ e) (hhi : e ≤ 324) :
 
 /-! ## `g`: `(g − 1) · 2^r ≤ 10^{-k} < g · 2^r`, `2^125 < g ≤ 2^126` -/
 
-/-- Integer division brackets the rational quotient. -/
-theorem natDiv_bounds (N D : Nat) (hD : 0 < D) :
-    ((N / D : Nat) : Rat) ≤ (N : Rat) / D ∧ (N : Rat) / D < ((N / D : Nat) : Rat) + 1 := by
-  have hDq : (0 : Rat) < D := by exact_mod_cast hD
-  constructor
-  · rw [Exact.le_div_iff' hDq]; exact_mod_cast Nat.div_mul_le_self N D
-  · rw [Exact.div_lt_iff' hDq]
-    have hdm := Nat.div_add_mod N D
-    have hmod := Nat.mod_lt N hD
-    have : N < (N / D + 1) * D := by
-      calc N = D * (N / D) + N % D := hdm.symm
-        _ < D * (N / D) + D := Nat.add_lt_add_left hmod _
-        _ = (N / D + 1) * D := by rw [Nat.add_mul, Nat.one_mul, Nat.mul_comm]
-    exact_mod_cast this
-
-/-- `10^e` as a `Nat` power, for `e ≥ 0`. -/
-theorem ten_zpow_toNat {e : Int} (he : 0 ≤ e) : (10 : Rat) ^ e = ((10 ^ e.toNat : Nat) : Rat) := by
-  push_cast; rw [← Printer.zpow_natCast_lit, Int.toNat_of_nonneg he]
-
-theorem two_zpow_toNat' {e : Int} (he : 0 ≤ e) : (2 : Rat) ^ e = ((2 ^ e.toNat : Nat) : Rat) := by
-  push_cast; rw [← Printer.zpow_natCast_lit, Int.toNat_of_nonneg he]
-
-/-- `2^{-e}` as the inverse of a `Nat` power, for `e ≥ 0`. -/
-theorem two_zpow_neg_toNat {e : Int} (he : 0 ≤ e) :
-    (2 : Rat) ^ (-e) = (((2 ^ e.toNat : Nat) : Rat))⁻¹ := by
-  rw [← Int.toNat_of_nonneg he, Printer.two_zpow_neg_eq, Int.toNat_natCast]; push_cast; rfl
-
-theorem ten_zpow_neg_toNat {e : Int} (he : 0 ≤ e) :
-    (10 : Rat) ^ (-e) = (((10 ^ e.toNat : Nat) : Rat))⁻¹ := by
-  rw [← Int.toNat_of_nonneg he, Printer.ten_zpow_neg_eq, Int.toNat_natCast]; push_cast; rfl
-
 /-- The numerator and denominator `g` is computed from: `2^{-r} · 10^{-k} = gNum / gDen`. -/
 def gNum (k : Int) : Nat :=
   if 0 ≤ -k then (if 0 ≤ r k then 10 ^ (-k).toNat else 10 ^ (-k).toNat * 2 ^ (-(r k)).toNat)
@@ -238,7 +207,7 @@ theorem r_neg_of_k_pos (k : Int) (hk : 0 < k) : r k < 0 := by
 
 theorem gNum_div_gDen (k : Int) :
     (gNum k : Rat) / gDen k = (2 : Rat) ^ (-(r k)) * (10 : Rat) ^ (-k) := by
-  rw [Reader.div_eq_iff (by exact_mod_cast gDen_pos k)]
+  rw [div_eq_iff (by exact_mod_cast gDen_pos k)]
   unfold gNum gDen
   by_cases he : 0 ≤ -k
   · rw [if_pos he, if_pos he, ten_zpow_toNat he]
@@ -246,9 +215,9 @@ theorem gNum_div_gDen (k : Int) :
     · rw [if_pos hr, if_pos hr]
       have hA : (2 : Rat) ^ (-(r k)) * (2 : Rat) ^ (r k) = 1 := by
         rw [← Rat.zpow_add (by decide), show -(r k) + r k = 0 by omega, Rat.zpow_zero]
-      rw [two_zpow_toNat' hr] at hA
+      rw [two_zpow_toNat hr] at hA
       grind
-    · rw [if_neg hr, if_neg hr, two_zpow_toNat' (by omega : 0 ≤ -(r k))]
+    · rw [if_neg hr, if_neg hr, two_zpow_toNat (by omega : 0 ≤ -(r k))]
       push_cast
       grind
   · rw [if_neg he, if_neg he]
@@ -256,7 +225,7 @@ theorem gNum_div_gDen (k : Int) :
     have hA : (10 : Rat) ^ (-k) * (10 : Rat) ^ k = 1 := by
       rw [← Rat.zpow_add (by decide), show -k + k = 0 by omega, Rat.zpow_zero]
     rw [ten_zpow_toNat (by omega : 0 ≤ k)] at hA
-    rw [two_zpow_toNat' (by omega : 0 ≤ -(r k))]
+    rw [two_zpow_toNat (by omega : 0 ≤ -(r k))]
     grind
 
 /-- R24: `(g − 1) ≤ 2^{-r} 10^{-k} < g`. -/
@@ -268,19 +237,15 @@ theorem g_spec (k : Int) :
   push_cast
   exact this
 
-/-- `2^n` as an integer power and as a `Nat`. -/
-theorem two_zpow_lit (n : Nat) : (2 : Rat) ^ (n : Int) = ((2 ^ n : Nat) : Rat) := by
-  rw [Printer.zpow_natCast_lit]; push_cast; rfl
-
 theorem two_pow_125_lt_g (k : Int) : 2 ^ 125 < g k := by
   obtain ⟨hr, -⟩ := r_spec k
   obtain ⟨-, hg⟩ := g_spec k
-  have hp := Printer.two_zpow_pos (-(r k))
+  have hp := two_zpow_pos (-(r k))
   -- `2^125 = 2^{-r} · 2^{r+125} ≤ 2^{-r} · 10^{-k} < g`
   have h1 : ((2 ^ 125 : Nat) : Rat) ≤ (2 : Rat) ^ (-(r k)) * (10 : Rat) ^ (-k) := by
     calc ((2 ^ 125 : Nat) : Rat) = (2 : Rat) ^ (-(r k)) * (2 : Rat) ^ (r k + 125) := by
           rw [← Rat.zpow_add (by decide), show -(r k) + (r k + 125) = ((125 : Nat) : Int) by omega,
-            two_zpow_lit]
+            two_zpow_natCast]
       _ ≤ (2 : Rat) ^ (-(r k)) * (10 : Rat) ^ (-k) :=
           Rat.mul_le_mul_of_nonneg_left hr (Rat.le_of_lt hp)
   have h2 : ((2 ^ 125 : Nat) : Rat) < (g k : Rat) := lt_of_le_of_lt h1 hg

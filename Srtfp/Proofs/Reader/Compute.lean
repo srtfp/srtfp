@@ -24,9 +24,6 @@ theorem threshold_eq : (2 : Rat) ^ 1024 - 2 ^ 970 = (2 ^ 53 - 1/2) * (2 : Rat) ^
   have h2 : (2 : Rat) ^ 971 = 2 * 2 ^ 970 := by rw [Rat.pow_succ]; grind
   grind
 
-theorem natCast_two_pow (n : Nat) : ((2 ^ n : Nat) : Rat) = (2 : Rat) ^ n := by
-  rw [← two_zpow_natCast]; rfl
-
 /-- What `read` returns, below and above the threshold. -/
 theorem read_spec (d : Decimal) :
     ((d.significand : Rat) * (10 : Rat) ^ d.exponent < 2 ^ 1024 - 2 ^ 970 →
@@ -39,8 +36,8 @@ theorem read_spec (d : Decimal) :
   dsimp only
   rw [abs_toRat]
   have hx0 := mag_nonneg d
-  have hc52 := natCast_two_pow 52
-  have hc53 := natCast_two_pow 53
+  have hc52 : ((2 ^ 52 : Nat) : Rat) = (2 : Rat) ^ 52 := by rw [← two_zpow_natCast, Rat.zpow_natCast]
+  have hc53 : ((2 ^ 53 : Nat) : Rat) = (2 : Rat) ^ 53 := by rw [← two_zpow_natCast, Rat.zpow_natCast]
   have h53pos : (0 : Rat) < 2 ^ 53 := Rat.pow_pos (by decide)
   generalize (d.significand : Rat) * (10 : Rat) ^ d.exponent = x at *
   split
@@ -127,7 +124,7 @@ theorem read_spec (d : Decimal) :
         rcases hy52 with h | h
         · exact h
         · exfalso; rw [hr0'] at hhi; push_cast at hhi
-          have : (1 : Rat) ≤ 2 ^ 52 := one_le_pow_rat (by decide) 52
+          have : (1 : Rat) ≤ 2 ^ 52 := one_le_pow (by decide) 52
           grind
       subst hk
       refine ⟨rfl, rfl, legal_zero, ?_⟩

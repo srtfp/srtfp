@@ -14,16 +14,10 @@ namespace Srtfp.Printer
 
 variable {i j : Int} {x : Rat} {n f d a b c : Nat}
 
-/-- `10^i = 10^b · 10^(i - b)` for `b ≤ i`, the exponent difference as a `Nat`. -/
-theorem ten_zpow_split (hj : j ≤ i) :
-    (10 : Rat) ^ i = (10 : Rat) ^ j * (10 : Rat) ^ ((i - j).toNat) := by
-  have h1 : (10 : Rat) ^ i = (10 : Rat) ^ (j + (i - j)) := by congr 1; omega
-  rw [h1, Rat.zpow_add (by decide), ← Rat.zpow_natCast, Int.toNat_of_nonneg (by omega)]
-
 theorem onGrid_of_le (hj : i ≤ j) (h : OnGrid j x) : OnGrid i x := by
   obtain ⟨n, rfl⟩ := h
   refine ⟨n * 10 ^ (j - i).toNat, ?_⟩
-  rw [ten_zpow_split hj]
+  rw [zpow_split (b := 10) (by decide) hj]
   push_cast
   grind
 
@@ -39,7 +33,7 @@ theorem onGrid_succ_of_ten_dvd (h : n % 10 = 0) :
 theorem not_onGrid_of_finer (hj : j < i) (hf : f % 10 ≠ 0) :
     ¬ OnGrid i ((f : Rat) * (10 : Rat) ^ j) := by
   rintro ⟨k, hk⟩
-  rw [ten_zpow_split (Int.le_of_lt hj)] at hk
+  rw [zpow_split (b := 10) (by decide) (Int.le_of_lt hj)] at hk
   have h10 := ten_zpow_pos j
   have hk' : (f : Rat) = ((k * 10 ^ (i - j).toNat : Nat) : Rat) := by
     push_cast
@@ -65,7 +59,7 @@ theorem finer_is_longer (hj : j < i) (hd : 1 ≤ d)
     (hlo : (d : Rat) * (10 : Rat) ^ i < (f : Rat) * (10 : Rat) ^ j) :
     digits d < digits f := by
   have h10 := ten_zpow_pos j
-  rw [ten_zpow_split (Int.le_of_lt hj)] at hlo
+  rw [zpow_split (b := 10) (by decide) (Int.le_of_lt hj)] at hlo
   have hδ1 : 1 ≤ (i - j).toNat := by omega
   generalize hδ : (i - j).toNat = δ at hlo hδ1
   -- cancel `10^j`

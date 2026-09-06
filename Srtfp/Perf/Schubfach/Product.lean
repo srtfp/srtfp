@@ -12,6 +12,8 @@ public import Srtfp.Perf.Schubfach.Table
 
 @[expose] public section
 
+open Srtfp.Compat
+
 namespace Srtfp.Schubfach
 
 theorem eps_eq : eps = (((2 ^ 64 : Nat) : Rat))⁻¹ := two_zpow_neg_toNat (Int.natCast_nonneg _)
@@ -25,20 +27,6 @@ theorem two_eps_le_one : 2 * eps ≤ 1 := by
   exact_mod_cast (by decide : 2 ≤ 2 ^ 64)
 
 /-! ## Floors of quotients -/
-
-theorem floor_natDiv (N M : Nat) (hM : 0 < M) :
-    ((N : Rat) / (M : Rat)).floor = ((N / M : Nat) : Int) := by
-  obtain ⟨h1, h2⟩ := natDiv_bounds N M hM
-  exact floor_eq_of (by exact_mod_cast h1) (by exact_mod_cast h2)
-
-theorem frac_natDiv (N M : Nat) (hM : 0 < M) :
-    (N : Rat) / (M : Rat) - ((N / M : Nat) : Rat) = ((N % M : Nat) : Rat) / (M : Rat) := by
-  have hMq : (0 : Rat) < M := by exact_mod_cast hM
-  rw [eq_comm, Reader.div_eq_iff hMq]
-  have e := Rat.div_mul_cancel (a := (N : Rat)) (Rat.ne_of_gt hMq)
-  have hN : (N : Rat) = ((M * (N / M) + N % M : Nat) : Rat) := by rw [Nat.div_add_mod]
-  push_cast at hN
-  grind
 
 /-! ## The algorithm -/
 
@@ -112,7 +100,7 @@ theorem ro'_natDiv (N : Nat) :
   have h127 : (0 : Rat) < ((2 ^ 127 : Nat) : Rat) := by exact_mod_cast Nat.two_pow_pos 127
   have h128 : (0 : Rat) < ((2 ^ 128 : Nat) : Rat) := by exact_mod_cast Nat.two_pow_pos 128
   have hx2 : (N : Rat) / ((2 ^ 127 : Nat) : Rat) / 2 = (N : Rat) / ((2 ^ 128 : Nat) : Rat) := by
-    rw [Reader.div_eq_iff (by decide : (0 : Rat) < 2), Reader.div_eq_iff h127]
+    rw [div_eq_iff (by decide : (0 : Rat) < 2), div_eq_iff h127]
     have hB : ((2 ^ 128 : Nat) : Rat) = ((2 ^ 127 : Nat) : Rat) * 2 := by
       rw [show (2 ^ 128 : Nat) = 2 ^ 127 * 2 from Nat.pow_succ 2 127]; norm_cast
     have e := Rat.div_mul_cancel (a := (N : Rat)) (Rat.ne_of_gt h128)
@@ -121,7 +109,7 @@ theorem ro'_natDiv (N : Nat) :
   rw [hx2, floor_natDiv N (2 ^ 128) (Nat.two_pow_pos _), floor_natDiv N (2 ^ 127) (Nat.two_pow_pos _),
     Rat.intCast_natCast, frac_natDiv N (2 ^ 128) (Nat.two_pow_pos _)]
   have hcond : ((N % 2 ^ 128 : Nat) : Rat) / ((2 ^ 128 : Nat) : Rat) < eps ↔ N % 2 ^ 128 < 2 ^ 64 := by
-    rw [eps_eq, Exact.div_lt_iff' h128]
+    rw [eps_eq, Rat.div_lt_iff h128]
     have e : (((2 ^ 64 : Nat) : Rat))⁻¹ * ((2 ^ 128 : Nat) : Rat) = ((2 ^ 64 : Nat) : Rat) := by
       have h64 : (0 : Rat) < ((2 ^ 64 : Nat) : Rat) := by exact_mod_cast Nat.two_pow_pos 64
       have e1 := Rat.inv_mul_cancel _ (Rat.ne_of_gt h64)

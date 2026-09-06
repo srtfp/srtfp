@@ -58,16 +58,6 @@ def leL (m : Nat) (a x : Rat) : Bool :=
 def leR (m : Nat) (x a : Rat) : Bool :=
   if m % 2 = 0 then decide (x ≤ a) else decide (x < a)
 
-theorem div_le_iff' {a b c : Rat} (hc : 0 < c) : a / c ≤ b ↔ a ≤ b * c := by
-  rw [← Rat.not_lt, Rat.lt_div_iff hc, Rat.not_lt]
-
-theorem div_lt_iff' {a b c : Rat} (hc : 0 < c) : a / c < b ↔ a < b * c := Rat.div_lt_iff hc
-
-theorem lt_div_iff' {a b c : Rat} (hc : 0 < c) : a < b / c ↔ a * c < b := Rat.lt_div_iff hc
-
-theorem le_div_iff' {a b c : Rat} (hc : 0 < c) : a ≤ b / c ↔ a * c ≤ b := by
-  rw [← Rat.not_lt, div_lt_iff' hc, Rat.not_lt]
-
 /-- A grid point at or below `v` is in `R_v` iff `v_l ⪯_l` it. -/
 theorem InRv_of_le_v {x : Rat} (hx : x ≤ v m q) :
     InRv m q x = (if m % 2 = 0 then decide (vl m q ≤ x) else decide (vl m q < x)) := by
@@ -92,8 +82,8 @@ theorem u_mem (hm : 1 ≤ m) : leL m (Vl m q k) (s m q k) = InRv m q (u m q k) :
   rw [InRv_of_le_v (u_le_v hm)]
   unfold leL Vl u
   by_cases hev : m % 2 = 0
-  · rw [if_pos hev, if_pos hev, decide_eq_decide]; exact div_le_iff' h10
-  · rw [if_neg hev, if_neg hev, decide_eq_decide]; exact div_lt_iff' h10
+  · rw [if_pos hev, if_pos hev, decide_eq_decide]; exact div_le_iff h10
+  · rw [if_neg hev, if_neg hev, decide_eq_decide]; exact Rat.div_lt_iff h10
 
 /-- `w ∈ R_v ⟺ t ⪯_r V_r`. -/
 theorem w_mem (hm : 1 ≤ m) :
@@ -103,14 +93,14 @@ theorem w_mem (hm : 1 ≤ m) :
     show w m q k = ((s m q k + 1 : Nat) : Rat) * (10 : Rat) ^ k by unfold w; push_cast; rfl]
   unfold leR Vr
   by_cases hev : m % 2 = 0
-  · rw [if_pos hev, if_pos hev, decide_eq_decide]; exact le_div_iff' h10
-  · rw [if_neg hev, if_neg hev, decide_eq_decide]; exact lt_div_iff' h10
+  · rw [if_pos hev, if_pos hev, decide_eq_decide]; exact le_div_iff h10
+  · rw [if_neg hev, if_neg hev, decide_eq_decide]; exact Rat.lt_div_iff h10
 
 /-- R4 on the next grid: the scan's `s` there is `s / 10`. -/
 theorem s_succ (hm : 1 ≤ m) (k : Int) : Printer.s m q (k + 1) = Printer.s m q k / 10 := by
   have h10 := ten_zpow_pos k
   have hx : v m q / (10 : Rat) ^ (k + 1) = v m q / (10 : Rat) ^ k / 10 := by
-    rw [Rat.zpow_add_one (by decide), Reader.div_eq_iff (Rat.mul_pos h10 (by decide)),
+    rw [Rat.zpow_add_one (by decide), div_eq_iff (Rat.mul_pos h10 (by decide)),
       Rat.mul_comm ((10 : Rat) ^ k), ← Rat.mul_assoc, Rat.div_mul_cancel (by grind),
       Rat.div_mul_cancel (Rat.ne_of_gt h10)]
   have hcast := s_cast (q := q) (i := k) hm
@@ -125,7 +115,7 @@ theorem s_succ (hm : 1 ≤ m) (k : Int) : Printer.s m q (k + 1) = Printer.s m q 
   have hdm := Nat.div_add_mod n 10
   have hmod := Nat.mod_lt n (by decide : 0 < 10)
   have h1 : ((n / 10 : Nat) : Rat) ≤ x / 10 := by
-    rw [Reader.le_div_iff (by decide)]
+    rw [le_div_iff (by decide)]
     have : ((n / 10 : Nat) : Rat) * 10 ≤ n := by exact_mod_cast (Nat.div_mul_le_self n 10)
     grind
   have h2 : x / 10 < ((n / 10 : Nat) : Rat) + 1 := by
@@ -161,8 +151,8 @@ theorem u'_mem (hm : 1 ≤ m) :
   rw [InRv_of_le_v (u_le_v hm), u_succ hm]
   unfold leL Vl
   by_cases hev : m % 2 = 0
-  · rw [if_pos hev, if_pos hev, decide_eq_decide]; exact div_le_iff' h10
-  · rw [if_neg hev, if_neg hev, decide_eq_decide]; exact div_lt_iff' h10
+  · rw [if_pos hev, if_pos hev, decide_eq_decide]; exact div_le_iff h10
+  · rw [if_neg hev, if_neg hev, decide_eq_decide]; exact Rat.div_lt_iff h10
 
 /-- `w' ∈ R_v ⟺ 10 t' ⪯_r V_r`. -/
 theorem w'_mem (hm : 1 ≤ m) :
@@ -171,8 +161,8 @@ theorem w'_mem (hm : 1 ≤ m) :
   rw [InRv_of_v_lt hm (v_lt_w hm), w_succ hm]
   unfold leR Vr
   by_cases hev : m % 2 = 0
-  · rw [if_pos hev, if_pos hev, decide_eq_decide]; exact le_div_iff' h10
-  · rw [if_neg hev, if_neg hev, decide_eq_decide]; exact lt_div_iff' h10
+  · rw [if_pos hev, if_pos hev, decide_eq_decide]; exact le_div_iff h10
+  · rw [if_neg hev, if_neg hev, decide_eq_decide]; exact Rat.lt_div_iff h10
 
 /-- `v − u ⋚ w − v ⟺ 2V ⋚ s + t`. -/
 theorem twoV_lt_iff (hm : 1 ≤ m) :
@@ -182,7 +172,7 @@ theorem twoV_lt_iff (hm : 1 ≤ m) :
   have _ := hm
   unfold V u w
   push_cast
-  rw [show (2 : Rat) * (v m q / 10 ^ k) = (2 * v m q) / 10 ^ k by grind, div_lt_iff' h10]
+  rw [show (2 : Rat) * (v m q / 10 ^ k) = (2 * v m q) / 10 ^ k by grind, Rat.div_lt_iff h10]
   constructor <;> intro h <;> grind
 
 theorem twoV_gt_iff (hm : 1 ≤ m) :
@@ -192,7 +182,7 @@ theorem twoV_gt_iff (hm : 1 ≤ m) :
   have _ := hm
   unfold V u w
   push_cast
-  rw [show (2 : Rat) * (v m q / 10 ^ k) = (2 * v m q) / 10 ^ k by grind, lt_div_iff' h10]
+  rw [show (2 : Rat) * (v m q / 10 ^ k) = (2 * v m q) / 10 ^ k by grind, Rat.lt_div_iff h10]
   constructor <;> intro h <;> grind
 
 /-! ## F7 with `M = 1` -/
@@ -531,7 +521,7 @@ theorem shortest_spec (h : InRange m q) :
       -- so `s = 9`, and the pick is `10`
       have hs9 : Printer.s m q k = 9 := by
         have hfl : (9 : Int) ≤ (v m q / (10 : Rat) ^ k).floor :=
-          Rat.le_floor_iff.mpr (by rw [Reader.le_div_iff h10k]; push_cast; exact Rat.le_of_lt hT3.1)
+          Rat.le_floor_iff.mpr (by rw [le_div_iff h10k]; push_cast; exact Rat.le_of_lt hT3.1)
         have hsc : ((Printer.s m q k : Nat) : Int) = (v m q / (10 : Rat) ^ k).floor := by
           exact_mod_cast s_cast (q := q) (i := k) hm
         omega

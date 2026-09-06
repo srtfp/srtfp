@@ -37,7 +37,6 @@ open Srtfp.Compat
 namespace Srtfp.Reader
 
 open Srtfp.Schubfach (pow10Lookup128 mulHi64 mulHi64_toNat_eq)
-open Srtfp.Printer (two_zpow_pos two_zpow_natCast)
 open Srtfp.Float
 open Float.Model (UnpackedFloat)
 open Float.Model.UnpackedFloat (Sign)
@@ -340,11 +339,6 @@ theorem roundEven_ge {y : Rat} {b : Nat} (hy : (b : Rat) ≤ y) : (b : Int) ≤ 
 
 /-! ## Proof: the rounding core -/
 
-/-- `(2 : Rat)^a / 2^j = 2^(a - j)` for a natural `a`. -/
-theorem two_pow_div_zpow (a : Nat) (j : Int) :
-    (2 : Rat) ^ a / (2 : Rat) ^ j = (2 : Rat) ^ ((a : Int) - j) := by
-  rw [Int.sub_eq_add_neg, Rat.zpow_add (by decide), Rat.zpow_neg, Rat.zpow_natCast, Rat.div_def]
-
 /-- Rounding `X / 2^s` from the bits of `P`, for `X = P` (`exact`) or
     `P - mz < X ≤ P` with `mz` at most the bits of `P` below bit `s - 1`:
     the choice among `q`, `q + 1` and the even neighbour on a tie is
@@ -560,10 +554,10 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
       ∧ X / (2 : Rat) ^ hz < (2 : Rat) ^ (190 + (topN : Int) - hz + 1) := by
     constructor
     · rw [show 190 + (topN : Int) - hz = ((190 + topN : Nat) : Int) - hz by omega,
-        ← two_pow_div_zpow, le_div_iff hzpos, Rat.div_mul_cancel (Rat.ne_of_gt hzpos)]
+        zpow_sub (b := 2) (by decide), Rat.zpow_natCast, le_div_iff hzpos, Rat.div_mul_cancel (Rat.ne_of_gt hzpos)]
       exact hbits.1
     · rw [show 190 + (topN : Int) - hz + 1 = ((191 + topN : Nat) : Int) - hz by omega,
-        ← two_pow_div_zpow, Rat.div_lt_iff hzpos, Rat.div_mul_cancel (Rat.ne_of_gt hzpos)]
+        zpow_sub (b := 2) (by decide), Rat.zpow_natCast, Rat.div_lt_iff hzpos, Rat.div_mul_cancel (Rat.ne_of_gt hzpos)]
       exact hbits.2
   generalize hxdef : X / (2 : Rat) ^ hz = x at *
   have hxpos : (0 : Rat) < x := lt_of_lt_of_le (two_zpow_pos _) hx.1
@@ -708,16 +702,6 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
           show nN % 2 ^ 52 = nN - 2 ^ 52 by omega]
 
 /-! ## Proof: the table entry against `10^e` -/
-
-/-- `b^e` as a quotient of natural powers. -/
-theorem zpow_eq_div (b : Rat) (e : Int) : b ^ e = b ^ e.toNat / b ^ (-e).toNat := by
-  by_cases he : 0 ≤ e
-  · generalize hn : e.toNat = n
-    rw [show (-e).toNat = 0 by omega, Rat.pow_zero, show e = (n : Int) by omega, Rat.zpow_natCast,
-      Rat.div_def, Rat.inv_eq_of_mul_eq_one (Rat.mul_one 1), Rat.mul_one]
-  · generalize hn : (-e).toNat = n
-    rw [show e.toNat = 0 by omega, Rat.pow_zero, show e = -(n : Int) by omega, Rat.zpow_neg,
-      Rat.zpow_natCast, Rat.div_def, Rat.one_mul]
 
 open Srtfp.Schubfach in
 /-- `10^k · 2^h ≥ 2^127` for the table's shift. -/

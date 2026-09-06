@@ -1,13 +1,15 @@
 module
-/- What core's `Init.Data.Rat` lacks and the proofs use: the `|·|` bars
-   for `Rat.abs`, monotonicity of `zpow`, cancellation, the `Trans`
-   instances behind `calc`, and a few order facts. Everything lives in
-   the `Srtfp.Compat` namespace with scoped notation; proof files start
-   with `open Srtfp.Compat`. -/
+/- What core's `Init.Data.Rat` lacks and the proofs use: the `|·|` bars for
+   `Rat.abs`, order facts and the `Trans` instances behind `calc`, division
+   and cancellation, integer powers and their monotonicity, floors of
+   quotients. Everything lives in the `Srtfp.Compat` namespace with scoped
+   notation; proof files start with `open Srtfp.Compat`. -/
 
 @[expose] public section
 
 namespace Srtfp.Compat
+
+/-! ## Notation and order -/
 
 /-- `|a|` is core's `Rat.abs`. -/
 scoped macro:max atomic("|" noWs) a:term noWs "|" : term => `(Rat.abs $a)
@@ -16,88 +18,185 @@ theorem abs_def (q : Rat) : |q| = if 0 ≤ q then q else -q := rfl
 
 theorem eq_or_lt_of_le {a b : Int} (h : a ≤ b) : a = b ∨ a < b := by omega
 
-theorem mul_left_inj' {a b c : Rat} (hc : c ≠ 0) : a * c = b * c ↔ a = b := by
-  constructor
-  · intro h
-    have hsub : (a - b) * c = 0 := by grind
-    rcases Rat.mul_eq_zero.mp hsub with h0 | h0
-    · grind
-    · exact absurd h0 hc
-  · intro h; rw [h]
-
 theorem lt_of_le_of_lt {a b c : Rat} (h1 : a ≤ b) (h2 : b < c) : a < c := by grind
+theorem lt_of_lt_of_le {a b c : Rat} (h1 : a < b) (h2 : b ≤ c) : a < c := by grind
 
-theorem one_le_pow_rat {a : Rat} (ha : 1 ≤ a) : ∀ m : Nat, 1 ≤ a ^ m
-  | 0 => by rw [Rat.pow_zero]; exact Rat.le_refl
-  | (m+1) => by
-    rw [Rat.pow_succ]
-    have ih := one_le_pow_rat ha m
-    have h0 : (0 : Rat) ≤ a ^ m := by grind
-    have := Rat.mul_le_mul_of_nonneg_left ha h0
-    grind
+instance : Trans (α := Rat) (· < ·) (· ≤ ·) (· < ·) := ⟨lt_of_lt_of_le⟩
+instance : Trans (α := Rat) (· ≤ ·) (· < ·) (· < ·) := ⟨lt_of_le_of_lt⟩
+instance : Trans (α := Rat) (· ≤ ·) (· ≤ ·) (· ≤ ·) := ⟨Rat.le_trans⟩
+instance : Trans (α := Rat) (· < ·) (· < ·) (· < ·) := ⟨fun h1 h2 => lt_of_lt_of_le h1 (Rat.le_of_lt h2)⟩
 
-theorem one_le_zpow_of_nonneg {a : Rat} (ha : 1 ≤ a) {n : Int} (hn : 0 ≤ n) : 1 ≤ a ^ n := by
-  have h := Rat.zpow_natCast a n.toNat
-  rw [Int.toNat_of_nonneg hn] at h
-  rw [h]
-  exact one_le_pow_rat ha n.toNat
+theorem lt_or_ge (a b : Rat) : a < b ∨ a ≥ b := by grind
+protected theorem Rat.lt_trichotomy (a b : Rat) : a < b ∨ a = b ∨ b < a := by grind
+protected theorem Rat.eq_or_lt_of_le {a b : Rat} (h : a ≤ b) : a = b ∨ a < b := by grind
+theorem sub_zero (a : Rat) : a - 0 = a := by grind
 
-theorem zpow_le_zpow_right₀ {a : Rat} (ha : 1 ≤ a) {m n : Int} (h : m ≤ n) : a ^ m ≤ a ^ n := by
-  have hne : a ≠ 0 := by grind
-  have hsplit : a ^ n = a ^ m * a ^ (n - m) := by
-    rw [← Rat.zpow_add hne]
-    congr 1
-    omega
-  have h1 : 1 ≤ a ^ (n - m) := one_le_zpow_of_nonneg ha (by omega)
-  have h0 : 0 < a ^ m := Rat.zpow_pos (by grind)
-  calc a ^ m = a ^ m * 1 := by grind
-    _ ≤ a ^ m * a ^ (n - m) := Rat.mul_le_mul_of_nonneg_left h1 (Rat.le_of_lt h0)
-    _ = a ^ n := hsplit.symm
-
-/-! ### grind hints: Rat order/monotonicity facts the proof stack leans on -/
+/-! ### grind hints: the monotonicity facts the proofs lean on -/
 
 attribute [grind .] Rat.mul_le_mul_of_nonneg_left Rat.mul_le_mul_of_nonneg_right
   Rat.mul_lt_mul_of_pos_left Rat.mul_lt_mul_of_pos_right
   Rat.mul_pos Rat.mul_nonneg Rat.natCast_nonneg
 
-theorem sub_zero (a : Rat) : a - 0 = a := by grind
+/-! ## Multiplication and division -/
 
-theorem lt_of_lt_of_le {a b c : Rat} (h1 : a < b) (h2 : b ≤ c) : a < c := by grind
+theorem mul_left_inj' {a b c : Rat} (hc : c ≠ 0) : a * c = b * c ↔ a = b :=
+  ⟨fun h => by rw [← Rat.mul_div_cancel hc (a := a), h, Rat.mul_div_cancel hc], fun h => by rw [h]⟩
+
+theorem mul_left_cancel₀ {a b c : Rat} (ha : a ≠ 0) (h : a * b = a * c) : b = c :=
+  (mul_left_inj' ha).mp (by rw [Rat.mul_comm b, Rat.mul_comm c, h])
+
+theorem div_le_iff {a b c : Rat} (hc : 0 < c) : a / c ≤ b ↔ a ≤ b * c := by
+  rw [← Rat.not_lt, ← Rat.not_lt, Rat.lt_div_iff hc]
+
+theorem le_div_iff {a b c : Rat} (hc : 0 < c) : a ≤ b / c ↔ a * c ≤ b := by
+  rw [← Rat.not_lt, ← Rat.not_lt, Rat.div_lt_iff hc]
+
+theorem div_eq_iff {a b c : Rat} (hc : 0 < c) : a / c = b ↔ a = b * c :=
+  ⟨fun h => by rw [← h, Rat.div_mul_cancel (Rat.ne_of_gt hc)],
+   fun h => by rw [h, Rat.mul_div_cancel (Rat.ne_of_gt hc)]⟩
+
+theorem eq_div_iff {a b c : Rat} (hc : 0 < c) : a = b / c ↔ a * c = b := by
+  rw [eq_comm, div_eq_iff hc, eq_comm]
+
+theorem div_nonneg {a b : Rat} (ha : 0 ≤ a) (hb : 0 < b) : 0 ≤ a / b :=
+  (le_div_iff hb).mpr (by grind)
+
+theorem div_pos {a b : Rat} (ha : 0 < a) (hb : 0 < b) : 0 < a / b :=
+  (Rat.lt_div_iff hb).mpr (by grind)
+
+theorem inv_lt_inv {a b : Rat} (ha : 0 < a) (h : a < b) : b⁻¹ < a⁻¹ := by
+  have hb : 0 < b := by grind
+  rw [← Rat.mul_lt_mul_right (Rat.mul_pos ha hb),
+    show b⁻¹ * (a * b) = a by
+      rw [Rat.mul_comm a, ← Rat.mul_assoc, Rat.inv_mul_cancel _ (Rat.ne_of_gt hb), Rat.one_mul],
+    show a⁻¹ * (a * b) = b by rw [← Rat.mul_assoc, Rat.inv_mul_cancel _ (Rat.ne_of_gt ha), Rat.one_mul]]
+  exact h
+
+/-! ## Powers -/
 
 protected theorem Rat.pow_add (a : Rat) (m n : Nat) : a ^ (m + n) = a ^ m * a ^ n := by
   induction n with
-  | zero => rw [Nat.add_zero, Rat.pow_zero]; grind
-  | succ n ih =>
-    rw [show m + (n+1) = (m+n) + 1 from by omega, Rat.pow_succ, ih, Rat.pow_succ]
-    grind
+  | zero => rw [Nat.add_zero, Rat.pow_zero, Rat.mul_one]
+  | succ n ih => rw [← Nat.add_assoc, Rat.pow_succ, ih, Rat.pow_succ, Rat.mul_assoc]
 
-instance : Trans (α := Rat) (· < ·) (· ≤ ·) (· < ·) := ⟨fun h1 h2 => lt_of_lt_of_le h1 h2⟩
-instance : Trans (α := Rat) (· ≤ ·) (· < ·) (· < ·) := ⟨fun h1 h2 => lt_of_le_of_lt h1 h2⟩
-instance : Trans (α := Rat) (· ≤ ·) (· ≤ ·) (· ≤ ·) := ⟨fun h1 h2 => Rat.le_trans h1 h2⟩
-instance : Trans (α := Rat) (· < ·) (· < ·) (· < ·) :=
-  ⟨fun h1 h2 => lt_of_lt_of_le h1 (Rat.le_of_lt h2)⟩
+theorem one_le_pow {a : Rat} (ha : 1 ≤ a) (n : Nat) : 1 ≤ a ^ n := by
+  induction n with
+  | zero => rw [Rat.pow_zero]; exact Rat.le_refl
+  | succ n ih => rw [Rat.pow_succ]; have := Rat.mul_le_mul_of_nonneg_left ha (by grind : (0 : Rat) ≤ a ^ n); grind
 
-protected theorem Rat.lt_trichotomy (a b : Rat) : a < b ∨ a = b ∨ b < a := by
-  rcases Rat.le_total (a := a) (b := b) with h | h
-  · by_cases he : a = b
-    · exact Or.inr (Or.inl he)
-    · exact Or.inl (Rat.lt_of_le_of_ne h he)
-  · by_cases he : b = a
-    · exact Or.inr (Or.inl he.symm)
-    · exact Or.inr (Or.inr (Rat.lt_of_le_of_ne h he))
+theorem ten_pow_split (n : Nat) : (10 : Rat) ^ n = 2 ^ n * 5 ^ n := by
+  have : ((10 ^ n : Nat) : Rat) = ((2 ^ n * 5 ^ n : Nat) : Rat) := by rw [← Nat.mul_pow]
+  exact_mod_cast this
 
-theorem lt_or_ge (a b : Rat) : a < b ∨ a ≥ b := by
-  by_cases h : a < b
-  · exact Or.inl h
-  · exact Or.inr (Rat.not_lt.mp h)
+/-! ## Integer powers -/
 
-protected theorem Rat.eq_or_lt_of_le {a b : Rat} (h : a ≤ b) : a = b ∨ a < b := by
-  by_cases he : a = b
-  · exact Or.inl he
-  · exact Or.inr (Rat.lt_of_le_of_ne h he)
+theorem two_zpow_pos (q : Int) : (0 : Rat) < 2 ^ q := Rat.zpow_pos (by decide)
+theorem ten_zpow_pos (q : Int) : (0 : Rat) < 10 ^ q := Rat.zpow_pos (by decide)
 
-theorem mul_left_cancel₀ {a b c : Rat} (ha : a ≠ 0) (h : a * b = a * c) : b = c := by
-  have h' : b * a = c * a := by grind
-  exact (mul_left_inj' ha).mp h'
+theorem zpow_mul_neg {b : Rat} (hb : b ≠ 0) (e : Int) : b ^ e * b ^ (-e) = 1 := by
+  rw [← Rat.zpow_add hb, show e + -e = 0 by omega, Rat.zpow_zero]
+
+/-- A nonnegative integer exponent is a natural one. -/
+theorem zpow_toNat {b : Rat} {e : Int} (he : 0 ≤ e) : b ^ e = b ^ e.toNat := by
+  rw [← Rat.zpow_natCast, Int.toNat_of_nonneg he]
+
+theorem zpow_neg_toNat {b : Rat} {e : Int} (he : 0 ≤ e) : b ^ (-e) = (b ^ e.toNat)⁻¹ := by
+  rw [Rat.zpow_neg, zpow_toNat he]
+
+theorem zpow_neg_natCast (b : Rat) (n : Nat) : b ^ (-(n : Int)) = (b ^ n)⁻¹ := by
+  rw [Rat.zpow_neg, Rat.zpow_natCast]
+
+theorem two_zpow_natCast (n : Nat) : (2 : Rat) ^ (n : Int) = ((2 ^ n : Nat) : Rat) := by
+  rw [Rat.zpow_natCast]; push_cast; rfl
+theorem ten_zpow_natCast (n : Nat) : (10 : Rat) ^ (n : Int) = ((10 ^ n : Nat) : Rat) := by
+  rw [Rat.zpow_natCast]; push_cast; rfl
+theorem two_zpow_toNat {e : Int} (he : 0 ≤ e) : (2 : Rat) ^ e = ((2 ^ e.toNat : Nat) : Rat) := by
+  rw [← two_zpow_natCast, Int.toNat_of_nonneg he]
+theorem ten_zpow_toNat {e : Int} (he : 0 ≤ e) : (10 : Rat) ^ e = ((10 ^ e.toNat : Nat) : Rat) := by
+  rw [← ten_zpow_natCast, Int.toNat_of_nonneg he]
+theorem two_zpow_neg_toNat {e : Int} (he : 0 ≤ e) : (2 : Rat) ^ (-e) = (((2 ^ e.toNat : Nat) : Rat))⁻¹ := by
+  rw [Rat.zpow_neg, two_zpow_toNat he]
+theorem ten_zpow_neg_toNat {e : Int} (he : 0 ≤ e) : (10 : Rat) ^ (-e) = (((10 ^ e.toNat : Nat) : Rat))⁻¹ := by
+  rw [Rat.zpow_neg, ten_zpow_toNat he]
+
+/-- `b^i = b^j · b^(i-j)` for `j ≤ i`, the difference a natural. -/
+theorem zpow_split {b : Rat} (hb : b ≠ 0) {i j : Int} (hj : j ≤ i) :
+    b ^ i = b ^ j * b ^ (i - j).toNat := by
+  rw [← zpow_toNat (by omega), ← Rat.zpow_add hb, show j + (i - j) = i by omega]
+
+/-- `b^i / b^j = b^(i-j)`. -/
+theorem zpow_sub {b : Rat} (hb : b ≠ 0) (i j : Int) : b ^ (i - j) = b ^ i / b ^ j := by
+  rw [Int.sub_eq_add_neg, Rat.zpow_add hb, Rat.zpow_neg, Rat.div_def]
+
+/-- `b^e` as a quotient of natural powers. -/
+theorem zpow_eq_div (b : Rat) (e : Int) : b ^ e = b ^ e.toNat / b ^ (-e).toNat := by
+  rcases Int.le_total 0 e with he | he
+  · rw [zpow_toNat he, show (-e).toNat = 0 by omega, Rat.pow_zero, Rat.div_def,
+      Rat.inv_eq_of_mul_eq_one (Rat.mul_one 1), Rat.mul_one]
+  · rw [show e = -(-e) by omega, zpow_neg_toNat (by omega), Int.neg_neg, show e.toNat = 0 by omega,
+      Rat.pow_zero, Rat.div_def, Rat.one_mul]
+
+/-- `b^q · b^{max(-q,0)} = b^{max(q,0)}`. -/
+theorem zpow_split_gen (b : Rat) (hb : b ≠ 0) (q : Int) :
+    b ^ q * b ^ (if q < 0 then (-q).toNat else 0) = b ^ (if q ≥ 0 then q.toNat else 0) := by
+  split
+  · rw [if_neg (by omega), ← zpow_toNat (b := b) (by omega), zpow_mul_neg hb, Rat.pow_zero]
+  · rw [if_pos (by omega), Rat.pow_zero, Rat.mul_one, zpow_toNat (by omega)]
+
+theorem one_le_zpow_of_nonneg {a : Rat} (ha : 1 ≤ a) {n : Int} (hn : 0 ≤ n) : 1 ≤ a ^ n := by
+  rw [zpow_toNat hn]; exact one_le_pow ha _
+
+theorem zpow_le_zpow_right₀ {a : Rat} (ha : 1 ≤ a) {m n : Int} (h : m ≤ n) : a ^ m ≤ a ^ n := by
+  rw [zpow_split (by grind) h]
+  have := Rat.mul_le_mul_of_nonneg_left (one_le_pow ha (n - m).toNat)
+    (Rat.le_of_lt (Rat.zpow_pos (n := m) (by grind : (0 : Rat) < a)))
+  grind
+
+theorem zpow_lt_zpow {a : Rat} (ha : 1 < a) {x y : Int} (h : x < y) : a ^ x < a ^ y := by
+  rw [zpow_split (by grind) (Int.le_of_lt h), show (y - x).toNat = (y - x - 1).toNat + 1 by omega,
+    Rat.pow_succ]
+  have h1 := Rat.mul_le_mul_of_nonneg_right (one_le_pow (Rat.le_of_lt ha) (y - x - 1).toNat)
+    (by grind : (0 : Rat) ≤ a)
+  have h2 := Rat.zpow_pos (n := x) (by grind : (0 : Rat) < a)
+  have := Rat.mul_lt_mul_of_pos_left (show 1 < a ^ (y - x - 1).toNat * a by grind) h2
+  grind
+
+theorem lt_of_zpow_lt {a : Rat} (ha : 1 ≤ a) {x y : Int} (h : a ^ x < a ^ y) : x < y := by
+  rcases Int.lt_or_le x y with h' | h'
+  · exact h'
+  · exact absurd h (Rat.not_lt.mpr (zpow_le_zpow_right₀ ha h'))
+
+theorem le_of_zpow_le {a : Rat} (ha : 1 < a) {x y : Int} (h : a ^ x ≤ a ^ y) : x ≤ y := by
+  rcases Int.lt_or_le y x with h' | h'
+  · exact absurd (zpow_lt_zpow ha h') (Rat.not_lt.mpr h)
+  · exact h'
+
+/-! ## Floors -/
+
+/-- The floor is the integer `h` with `h ≤ y < h + 1`. -/
+theorem floor_eq_of {y : Rat} {h : Int} (h1 : (h : Rat) ≤ y) (h2 : y < h + 1) : y.floor = h := by
+  have := Rat.le_floor_iff.mpr h1
+  have := Rat.floor_lt_iff.mpr (show y < ((h + 1 : Int) : Rat) by push_cast; exact h2)
+  omega
+
+/-- Integer division brackets the rational quotient. -/
+theorem natDiv_bounds (N D : Nat) (hD : 0 < D) :
+    ((N / D : Nat) : Rat) ≤ N / D ∧ (N : Rat) / D < (N / D : Nat) + 1 := by
+  have hDq : (0 : Rat) < D := by exact_mod_cast hD
+  have hlt : N < (N / D + 1) * D := by rw [Nat.mul_comm]; exact Nat.lt_mul_div_succ N hD
+  exact ⟨(le_div_iff hDq).mpr (by exact_mod_cast Nat.div_mul_le_self N D),
+    (Rat.div_lt_iff hDq).mpr (by exact_mod_cast hlt)⟩
+
+theorem floor_natDiv (N D : Nat) (hD : 0 < D) : ((N : Rat) / D).floor = ((N / D : Nat) : Int) :=
+  floor_eq_of (by exact_mod_cast (natDiv_bounds N D hD).1) (by exact_mod_cast (natDiv_bounds N D hD).2)
+
+theorem frac_natDiv (N D : Nat) (hD : 0 < D) :
+    (N : Rat) / D - ((N / D : Nat) : Rat) = ((N % D : Nat) : Rat) / D := by
+  have hDq : (0 : Rat) < D := by exact_mod_cast hD
+  rw [eq_comm, div_eq_iff hDq]
+  have := Rat.div_mul_cancel (a := (N : Rat)) (Rat.ne_of_gt hDq)
+  have : (N : Rat) = ((D * (N / D) + N % D : Nat) : Rat) := by rw [Nat.div_add_mod]
+  push_cast at this
+  grind
 
 end Srtfp.Compat

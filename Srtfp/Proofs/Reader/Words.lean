@@ -143,7 +143,7 @@ theorem v_eq_mul (h : q' ≤ q) :
     v m q = ((m * 2 ^ (q - q').toNat : Nat) : Rat) * (2 : Rat) ^ q' := by
   unfold v
   push_cast
-  rw [← two_zpow_toNat (by omega), Rat.mul_assoc, ← Rat.zpow_add (by decide),
+  rw [← zpow_toNat (by omega), Rat.mul_assoc, ← Rat.zpow_add (by decide),
     Int.sub_add_cancel]
 
 /-- Legal pairs are determined by their value. -/
