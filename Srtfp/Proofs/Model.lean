@@ -95,7 +95,6 @@ theorem packComponents_unpack (b : BitVec 64) :
 /-! ## `unpack` of a packed word -/
 
 theorem exponentBias_eq : Format.binary64.exponentBias = 1023 := rfl
-theorem mantissaBits_eq : Format.binary64.mantissaBits = 53 := rfl
 
 /-- `unpack` of `packComponents`, by cases on the fields. -/
 theorem unpack_packComponents (s : Sign) (e : BitVec 11) (m : BitVec 52) :

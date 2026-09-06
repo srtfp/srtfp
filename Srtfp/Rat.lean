@@ -67,12 +67,6 @@ theorem div_mul_mul {a b d : Rat} (hb : b ≠ 0) : a / b * (b * d) = a * d := by
 theorem div_mul_div_comm (a b c d : Rat) : a / b * (c / d) = a * c / (b * d) := by
   rw [Rat.div_def, Rat.div_def, Rat.div_def, Rat.inv_mul_rev]; grind
 
-theorem div_le_div_iff {a b c d : Rat} (hb : 0 < b) (hd : 0 < d) :
-    a / b ≤ c / d ↔ a * d ≤ c * b := by
-  rw [← div_mul_mul (Rat.ne_of_gt hb) (d := d), ← div_mul_mul (Rat.ne_of_gt hd) (d := b), Rat.mul_comm d b]
-  exact ⟨fun h => Rat.mul_le_mul_of_nonneg_right h (Rat.le_of_lt (Rat.mul_pos hb hd)),
-    fun h => Rat.le_of_mul_le_mul_right h (Rat.mul_pos hb hd)⟩
-
 theorem div_lt_div_iff {a b c d : Rat} (hb : 0 < b) (hd : 0 < d) :
     a / b < c / d ↔ a * d < c * b := by
   rw [← div_mul_mul (Rat.ne_of_gt hb) (d := d), ← div_mul_mul (Rat.ne_of_gt hd) (d := b), Rat.mul_comm d b,
@@ -151,17 +145,11 @@ theorem ten_zpow_toNat {e : Int} (he : 0 ≤ e) : (10 : Rat) ^ e = ((10 ^ e.toNa
   rw [← ten_zpow_natCast, Int.toNat_of_nonneg he]
 theorem two_zpow_neg_toNat {e : Int} (he : 0 ≤ e) : (2 : Rat) ^ (-e) = (((2 ^ e.toNat : Nat) : Rat))⁻¹ := by
   rw [Rat.zpow_neg, two_zpow_toNat he]
-theorem ten_zpow_neg_toNat {e : Int} (he : 0 ≤ e) : (10 : Rat) ^ (-e) = (((10 ^ e.toNat : Nat) : Rat))⁻¹ := by
-  rw [Rat.zpow_neg, ten_zpow_toNat he]
 
 /-- `b^i = b^j · b^(i-j)` for `j ≤ i`, the difference a natural. -/
 theorem zpow_split {b : Rat} (hb : b ≠ 0) {i j : Int} (hj : j ≤ i) :
     b ^ i = b ^ j * b ^ (i - j).toNat := by
   rw [← zpow_toNat (by omega), ← Rat.zpow_add hb, show j + (i - j) = i by omega]
-
-/-- `b^i / b^j = b^(i-j)`. -/
-theorem zpow_sub {b : Rat} (hb : b ≠ 0) (i j : Int) : b ^ (i - j) = b ^ i / b ^ j := by
-  rw [Int.sub_eq_add_neg, Rat.zpow_add hb, Rat.zpow_neg, Rat.div_def]
 
 /-- `b^e` as a quotient of natural powers. -/
 theorem zpow_eq_div (b : Rat) (e : Int) : b ^ e = b ^ e.toNat / b ^ (-e).toNat := by
@@ -170,16 +158,6 @@ theorem zpow_eq_div (b : Rat) (e : Int) : b ^ e = b ^ e.toNat / b ^ (-e).toNat :
       Rat.inv_eq_of_mul_eq_one (Rat.mul_one 1), Rat.mul_one]
   · rw [show e = -(-e) by omega, zpow_neg_toNat (by omega), Int.neg_neg, show e.toNat = 0 by omega,
       Rat.pow_zero, Rat.div_def, Rat.one_mul]
-
-/-- `b^q · b^{max(-q,0)} = b^{max(q,0)}`. -/
-theorem zpow_split_gen (b : Rat) (hb : b ≠ 0) (q : Int) :
-    b ^ q * b ^ (if q < 0 then (-q).toNat else 0) = b ^ (if q ≥ 0 then q.toNat else 0) := by
-  split
-  · rw [if_neg (by omega), ← zpow_toNat (b := b) (by omega), zpow_mul_neg hb, Rat.pow_zero]
-  · rw [if_pos (by omega), Rat.pow_zero, Rat.mul_one, zpow_toNat (by omega)]
-
-theorem one_le_zpow_of_nonneg {a : Rat} (ha : 1 ≤ a) {n : Int} (hn : 0 ≤ n) : 1 ≤ a ^ n := by
-  rw [zpow_toNat hn]; exact one_le_pow ha _
 
 theorem zpow_le_zpow_right₀ {a : Rat} (ha : 1 ≤ a) {m n : Int} (h : m ≤ n) : a ^ m ≤ a ^ n := by
   rw [zpow_split (by grind) h]

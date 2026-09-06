@@ -19,6 +19,9 @@ public import Srtfp.Proofs.Reader.Compute
 
 @[expose] public section
 
+-- `2^1074` and `2^1024` are handled symbolically; the elaborator need not evaluate them.
+set_option exponentiation.threshold 1100
+
 open Srtfp.Compat
 
 namespace Srtfp.Reader
@@ -164,43 +167,19 @@ theorem two_zpow_mul_two_pow (j : Int) (hj : -1074 ≤ j) :
 /-- `2^j` against a quotient, scaled to naturals by `2^1074`. -/
 theorem div_lt_two_zpow_iff {N D : Nat} (hD : 0 < D) {j : Int} (hj : -1074 ≤ j) :
     ((N : Rat) / D < (2 : Rat) ^ j) ↔ N * 2 ^ 1074 < 2 ^ (j + 1074).toNat * D := by
-  have hDR : (0 : Rat) < D := by exact_mod_cast hD
-  have hP : (0 : Rat) < (2 : Rat) ^ (1074 : Nat) := Rat.pow_pos (by decide)
-  have h2j := two_zpow_mul_two_pow j hj
-  have hcast := @Rat.natCast_lt_natCast (N * 2 ^ 1074) (2 ^ (j + 1074).toNat * D)
-  push_cast at hcast
-  rw [← hcast, Rat.div_lt_iff hDR]
-  constructor
-  · intro h
-    have h1 := Rat.mul_lt_mul_of_pos_right h hP
-    rw [show (2 : Rat) ^ j * D * 2 ^ (1074 : Nat) = 2 ^ j * 2 ^ (1074 : Nat) * D by grind, h2j] at h1
-    exact h1
-  · intro h
-    rcases lt_or_ge (N : Rat) (2 ^ j * D) with h' | h'
-    · exact h'
-    have hc' := Rat.mul_le_mul_of_nonneg_right h' (Rat.le_of_lt hP)
-    rw [show (2 : Rat) ^ j * D * 2 ^ (1074 : Nat) = 2 ^ j * 2 ^ (1074 : Nat) * D by grind, h2j] at hc'
-    exact absurd h (Rat.not_lt.mpr hc')
+  rw [← Rat.natCast_lt_natCast, Rat.natCast_mul, Rat.natCast_mul, Rat.natCast_pow, Rat.natCast_pow,
+    Rat.natCast_ofNat, ← two_zpow_mul_two_pow j hj, Rat.div_lt_iff (by exact_mod_cast hD),
+    show (2 : Rat) ^ j * 2 ^ (1074 : Nat) * D = 2 ^ j * D * 2 ^ (1074 : Nat) by grind,
+    Rat.mul_lt_mul_right (Rat.pow_pos (by decide))]
 
 theorem two_zpow_le_div_iff {N D : Nat} (hD : 0 < D) {j : Int} (hj : -1074 ≤ j) :
     ((2 : Rat) ^ j ≤ (N : Rat) / D) ↔ 2 ^ (j + 1074).toNat * D ≤ N * 2 ^ 1074 := by
-  have hDR : (0 : Rat) < D := by exact_mod_cast hD
   have hP : (0 : Rat) < (2 : Rat) ^ (1074 : Nat) := Rat.pow_pos (by decide)
-  have h2j := two_zpow_mul_two_pow j hj
-  have hcast := @Rat.natCast_le_natCast (2 ^ (j + 1074).toNat * D) (N * 2 ^ 1074)
-  push_cast at hcast
-  rw [← hcast, le_div_iff hDR]
-  constructor
-  · intro h
-    have h1 := Rat.mul_le_mul_of_nonneg_right h (Rat.le_of_lt hP)
-    rw [show (2 : Rat) ^ j * D * 2 ^ (1074 : Nat) = 2 ^ j * 2 ^ (1074 : Nat) * D by grind, h2j] at h1
-    exact h1
-  · intro h
-    rcases lt_or_ge (N : Rat) (2 ^ j * D) with h' | h'
-    · have hc' := Rat.mul_lt_mul_of_pos_right h' hP
-      rw [show (2 : Rat) ^ j * D * 2 ^ (1074 : Nat) = 2 ^ j * 2 ^ (1074 : Nat) * D by grind, h2j] at hc'
-      exact absurd hc' (Rat.not_lt.mpr h)
-    · exact h'
+  rw [← Rat.natCast_le_natCast, Rat.natCast_mul, Rat.natCast_mul, Rat.natCast_pow, Rat.natCast_pow,
+    Rat.natCast_ofNat, ← two_zpow_mul_two_pow j hj, le_div_iff (by exact_mod_cast hD),
+    show (2 : Rat) ^ j * 2 ^ (1074 : Nat) * D = 2 ^ j * D * 2 ^ (1074 : Nat) by grind]
+  exact ⟨fun h => Rat.mul_le_mul_of_nonneg_right h (Rat.le_of_lt hP),
+    fun h => Rat.le_of_mul_le_mul_right h hP⟩
 
 /-! ## The reader -/
 
@@ -256,8 +235,8 @@ theorem readExact_eq (d : Decimal) : readExact d = read d := by
   have hDR : (0 : Rat) < D := by exact_mod_cast hD0
   -- the overflow threshold
   have hthr : ((2 : Rat) ^ 1024 - 2 ^ 970 ≤ (N : Rat) / D) ↔ 2 ^ 1024 * D ≤ N + 2 ^ 970 * D := by
-    rw [le_div_iff hDR, ← Rat.natCast_le_natCast]
-    push_cast
+    rw [le_div_iff hDR, ← Rat.natCast_le_natCast, Rat.natCast_add, Rat.natCast_mul, Rat.natCast_mul,
+      Rat.natCast_pow, Rat.natCast_pow, Rat.natCast_ofNat]
     generalize (2 : Rat) ^ 1024 = A
     generalize (2 : Rat) ^ 970 = B
     constructor <;> intro h <;> grind

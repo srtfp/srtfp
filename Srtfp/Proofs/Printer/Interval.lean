@@ -56,11 +56,6 @@ theorem width_eq :
   unfold vr vl
   split <;> grind
 
-theorem width_le_two_zpow : vr m q - vl m q ≤ (2 : Rat) ^ q := by
-  rw [width_eq]
-  have h2 := two_zpow_pos q
-  split <;> grind
-
 theorem width_ge : 3/4 * (2 : Rat) ^ q ≤ vr m q - vl m q := by
   rw [width_eq]
   have h2 := two_zpow_pos q

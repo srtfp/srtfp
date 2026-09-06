@@ -284,11 +284,8 @@ theorem shortest_spec (h : InRange m q) :
   -- no hit on any grid above `k` forces `i = k` and `n` the pick
   have finish (hnohit : ∀ j, k < j → candidate m q j = none) :
       n = pick m q k (Printer.s m q k) ∧ i = k := by
-    have hik' : i = k := by
-      rcases Int.lt_or_eq_of_le hik with hlt | heq
-      · exact absurd hc (by rw [hnohit i hlt]; simp)
-      · exact heq.symm
-    subst hik'
+    obtain rfl : i = k :=
+      Int.le_antisymm (Int.not_lt.mp fun hlt => by rw [hnohit i hlt] at hc; cases hc) hik
     rw [hpick] at hc
     exact ⟨(Option.some.inj hc).symm, rfl⟩
   unfold shortest
@@ -331,10 +328,7 @@ theorem shortest_spec (h : InRange m q) :
     have hw1 : w m q (k + 1) = (10 : Rat) ^ (k + 1) := by unfold w; rw [hs0]; grind
     have hvl := vl_pos (q := q) hm
     have hU0 : InRv m q (u m q (k + 1)) = false := by
-      rw [hu0]
-      cases hx : InRv m q 0
-      · rfl
-      · exfalso; have := (le_of_InRv hx).1; grind
+      rw [hu0]; exact Bool.eq_false_iff.mpr fun hx => by have := (le_of_InRv hx).1; grind
     have hT := ten_zpow_pos (k + 1)
     -- nothing of `R_v` on any grid above `k + 1`
     have hnone_above : ∀ j, k + 1 < j → candidate m q j = none := by
@@ -342,10 +336,7 @@ theorem shortest_spec (h : InRange m q) :
       rw [candidate_none_iff hm]
       rintro ⟨x, ⟨c, rfl⟩, hxR⟩
       obtain ⟨hl, hr⟩ := le_of_InRv hxR
-      have hc : 1 ≤ c := by
-        rcases Nat.eq_zero_or_pos c with h0 | h0
-        · exfalso; subst h0; simp at hl; grind
-        · exact h0
+      have hc : 1 ≤ c := Nat.pos_of_ne_zero fun h0 => by subst h0; simp at hl; grind
       have h1 : (10 : Rat) ^ (k + 2) ≤ (10 : Rat) ^ j := zpow_le_zpow_right₀ (by decide) (by omega)
       have h2 : (10 : Rat) ^ (k + 2) = 10 ^ (k + 1) * 10 := by
         rw [show k + 2 = (k + 1) + 1 by omega, Rat.zpow_add_one (by decide)]
@@ -357,12 +348,9 @@ theorem shortest_spec (h : InRange m q) :
     · -- the scan hits at `k + 1` with `1`
       have hc1 : candidate m q (k + 1) = some 1 := by
         rw [candidate_def, hU0, hw1, hW, hs0]
-      have hi : i = k + 1 := by
-        rcases Int.lt_trichotomy i (k + 1) with hlt | heq | hgt
-        · exfalso; have := hnone (k + 1) hlt; rw [hc1] at this; cases this
-        · exact heq
-        · exfalso; have := hnone_above i hgt; rw [this] at hc; cases hc
-      subst hi
+      obtain rfl : i = k + 1 := Int.le_antisymm
+        (Int.not_lt.mp fun h => by rw [hnone_above i h] at hc; cases hc)
+        (Int.not_lt.mp fun h => by rw [hnone (k + 1) h] at hc1; cases hc1)
       rw [hc1] at hc
       obtain rfl := Option.some.inj hc
       -- `v` is above `9 · 10^k`: if `9 · 10^k ∈ R_v` by T3, else by convexity

@@ -225,8 +225,7 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
     · rcases Nat.eq_zero_or_pos dy with hdy0 | hdy1
       · -- below every grid point of `R_v`: `10^i ∈ R_v`, so `n` has one digit
         subst hdy0
-        have h01 : (((0 : Nat) : Rat) + 1) = ((1 : Nat) : Rat) := by grind
-        rw [h01] at hhi
+        rw [show (((0 : Nat) : Rat) + 1) = ((1 : Nat) : Rat) by grind] at hhi
         have h1R : InRv m q ((1 : Nat) * (10 : Rat) ^ i) = true :=
           InRv_convex hyR hmem (Rat.le_of_lt hhi) (grid_mono hn)
         have hdig : digits n = 1 := by
@@ -237,19 +236,12 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
           refine ⟨by omega, Or.inl ?_⟩
           -- a one-digit competitor: `f ≤ 9`, so `f · 10^b ≤ 9 · 10^(i-1)`
           have hf9 : f ≤ 9 := by
-            have h1 := lt_pow_digits f
-            have h2 : digits f = 1 := by omega
-            rw [h2] at h1; omega
+            have := lt_pow_digits f; rw [show digits f = 1 by omega] at this; omega
           have hT := ten_zpow_pos (i - 1)
-          have h9 : (f : Rat) * (10 : Rat) ^ b ≤ 9 * (10 : Rat) ^ (i - 1) := by
-            have hb' : (10 : Rat) ^ b ≤ (10 : Rat) ^ (i - 1) :=
-              zpow_le_zpow_right₀ (by decide) (by omega)
-            have hf9' : (f : Rat) ≤ 9 := by exact_mod_cast hf9
-            have h1 : (f : Rat) * (10 : Rat) ^ b ≤ (f : Rat) * (10 : Rat) ^ (i - 1) :=
-              Rat.mul_le_mul_of_nonneg_left hb' (by exact_mod_cast Nat.zero_le f)
-            have h2 : (f : Rat) * (10 : Rat) ^ (i - 1) ≤ 9 * (10 : Rat) ^ (i - 1) :=
-              Rat.mul_le_mul_of_nonneg_right hf9' (Rat.le_of_lt hT)
-            exact Rat.le_trans h1 h2
+          have h9 : (f : Rat) * (10 : Rat) ^ b ≤ 9 * (10 : Rat) ^ (i - 1) :=
+            Rat.le_trans
+              (Rat.mul_le_mul_of_nonneg_left (zpow_le_zpow_right₀ (by decide) (by omega)) Rat.natCast_nonneg)
+              (Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast hf9) (Rat.le_of_lt hT))
           rcases Nat.eq_zero_or_pos (s m q i) with hs0 | hs1
           · -- `s = 0`: the output is `10^i` and `v < 10^i`; T3 decides
             have hn1 : n = 1 := by omega
