@@ -5,7 +5,7 @@ module
 
 public import Srtfp.Perf.Schubfach.Kernel
 public import Srtfp.Perf.StringFast
-public import Srtfp.Perf.CanonFast
+public import Srtfp.Perf.DecimalFast
 public import Srtfp.Perf.Unpack
 
 @[expose] public section

@@ -5,7 +5,7 @@ module
    printer (`Perf/Schubfach/`, the paper's algorithm on 64-bit words with
    its proof, results R1–R25), the reader's fixed-width fast path
    (`Perf/ReadFast.lean`), the string emitter (`Perf/StringFast.lean`),
-   the `Decimal` helpers (`Perf/DecimalFast.lean`, `Perf/CanonFast.lean`),
+   the `Decimal` helpers (`Perf/DecimalFast.lean`),
    the bit-field view of a word the kernels work on (`Perf/Bits.lean`,
    related to the model's `unpack` in `Perf/Unpack.lean`), and the proofs
    that each one is pointwise equal to the function it replaces. Importing
@@ -39,7 +39,6 @@ public import Srtfp.Perf.Schubfach.Index
 public import Srtfp.Perf.Schubfach.Kernel
 public import Srtfp.Perf.Schubfach.Entry
 public import Srtfp.Perf.DecimalFast
-public import Srtfp.Perf.CanonFast
 public import Srtfp.Perf.MulHigh128
 public import Srtfp.Perf.Pow10Table128
 public import Srtfp.Perf.TableInvariant
