@@ -117,3 +117,11 @@ lean_exe benchFallback where
 lean_exe benchReadCG where
   srcDir := "benches/profiling"
   root := `BenchReadCG
+
+lean_lib EmitProto where
+  srcDir := "benches/profiling"
+  roots := #[`EmitProto]
+
+lean_exe benchEmitCG where
+  srcDir := "benches/profiling"
+  root := `BenchEmitCG

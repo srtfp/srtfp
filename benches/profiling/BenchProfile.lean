@@ -4,6 +4,7 @@
    Run: lake exe benchProfile [adversarial|nice|uniform]   (default uniform) -/
 import Srtfp.Perf
 import Corpora
+import EmitProto
 open Srtfp Srtfp.Schubfach Srtfp.Float
 
 -- `main` inlines five copies of the (large) kernels; the LCNF compiler
@@ -59,6 +60,7 @@ def emitPush (sign : Float.Model.UnpackedFloat.Sign) (sig : Nat) (exp : Int) : S
   let core := if exp < 0 then (core.push '-') ++ toString (-exp).toNat else core ++ toString exp.toNat
   match sign with | .negative => "-" ++ core | .positive => core
 
+
 def main (args : List String) : IO Unit := do
   let label := args.headD "uniform"
   let corpus := match label with
@@ -95,4 +97,6 @@ def main (args : List String) : IO Unit := do
       a ^^^ (emitBA t.1 (UInt64.ofNat t.2.1) t.2.2).length))
   timeIt "6d emit: String.push (unverified)" N decs.size (fun _ => decs.foldl (init := 0) (fun a t =>
       a ^^^ (emitPush t.1 t.2.1 t.2.2).length))
+  timeIt "6e emit: pre-sized buffer + set! pairs (unverified)" N decs.size (fun _ => decs.foldl (init := 0) (fun a t =>
+      a ^^^ (emitSet t.1 (UInt64.ofNat t.2.1) t.2.2).length))
   timeIt "7 FULL floatToStrRef (live: toStringFast10/v14)" N sz (fun _ => corpus.foldl (init := 0) (fun a f => a ^^^ (floatToStrRef f).length))
