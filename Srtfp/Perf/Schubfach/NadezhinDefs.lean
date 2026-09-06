@@ -267,16 +267,34 @@ def checkQ (q : Int) : Bool :=
   checkAt q (floorLog10Pow2 q) && checkAt (q - 1) (floorLog10Pow2 q)
     && checkAt q (floorLog10ThreeQuartersPow2 q) && checkAt (q - 1) (floorLog10ThreeQuartersPow2 q)
 
-/-- `checkQ` on `q = lo + i − 1074` for `i < len`. -/
-def rangeCheck (lo len : Nat) : Prop :=
-  (List.range len).all (fun i => checkQ (((lo + i : Nat) : Int) - 1074)) = true
+/-- `checkQ` for the biased exponents `lo, …, lo + len − 1` (`q = i − 1074`),
+    as a recursion the kernel unfolds one exponent at a time. -/
+def rangeCheck : Nat → Nat → Bool
+  | _, 0 => true
+  | lo, len + 1 => checkQ ((lo : Int) - 1074) && rangeCheck (lo + 1) len
 
-theorem rangeCheck_sound (lo len : Nat) (h : rangeCheck lo len) :
+theorem rangeCheck_sound (lo len : Nat) (h : rangeCheck lo len = true) :
     ∀ i, lo ≤ i → i < lo + len → checkQ ((i : Int) - 1074) = true := by
-  unfold rangeCheck at h
-  rw [List.all_eq_true] at h
-  intro i hlo hhi
-  have := h (i - lo) (List.mem_range.mpr (by omega))
-  rwa [show lo + (i - lo) = i from by omega] at this
+  induction len generalizing lo with
+  | zero => intro i h1 h2; omega
+  | succ n ih =>
+    intro i h1 h2
+    unfold rangeCheck at h
+    rw [Bool.and_eq_true] at h
+    rcases Nat.eq_or_lt_of_le h1 with rfl | hlt
+    · exact h.1
+    · exact ih (lo + 1) h.2 i (by omega) (by omega)
+
+theorem rangeCheck_append (lo a b : Nat) (h1 : rangeCheck lo a = true)
+    (h2 : rangeCheck (lo + a) b = true) : rangeCheck lo (a + b) = true := by
+  induction a generalizing lo with
+  | zero => simpa using h2
+  | succ n ih =>
+    unfold rangeCheck at h1
+    rw [Bool.and_eq_true] at h1
+    rw [show n + 1 + b = (n + b) + 1 by omega]
+    unfold rangeCheck
+    rw [Bool.and_eq_true]
+    exact ⟨h1.1, ih (lo + 1) h1.2 (by rwa [show lo + 1 + n = lo + (n + 1) by omega])⟩
 
 end Srtfp.Schubfach.R20

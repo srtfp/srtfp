@@ -15,7 +15,7 @@ module
    `r_o(4V)` (R22). R23 is the form the kernel computes.
 
    Everything here is generic over `Rat`; Result 20 enters as the
-   hypothesis `Sep ε (2V)`. -/
+   hypothesis `Separated ε (2V)`. -/
 
 public import Srtfp.Perf.Schubfach.Exact
 
@@ -189,12 +189,15 @@ theorem R19 (x : Rat) : ro (4 * x) / 4 = x.floor := by
 
 /-! ## R20 as a hypothesis, R21 -/
 
+/-- The paper's `ε = 2^-64` (Result 20). -/
+def eps : Rat := (2 : Rat) ^ (-(64 : Nat) : Int)
+
 /-- `x` is an integer, or at distance at least `ε` from the integers on
     both sides (the shape of Result 20). -/
-def Sep (ε x : Rat) : Prop := x = x.floor ∨ (x.floor + ε ≤ x ∧ x ≤ x.floor + 1 - ε)
+def Separated (ε x : Rat) : Prop := x = x.floor ∨ (x.floor + ε ≤ x ∧ x ≤ x.floor + 1 - ε)
 
 /-- R21: a good overestimate has the same floor (`ε ≤ 1`). -/
-theorem R21 {ε x x' : Rat} (hε1 : ε ≤ 1) (hsep : Sep ε (2 * x)) (hlo : 0 ≤ x' - x)
+theorem R21 {ε x x' : Rat} (hε1 : ε ≤ 1) (hsep : Separated ε (2 * x)) (hlo : 0 ≤ x' - x)
     (hhi : x' - x < ε / 2) : (2 * x').floor = (2 * x).floor := by
   have hfl := Rat.floor_le (2 * x)
   refine floor_eq_of (by grind) ?_
@@ -210,7 +213,7 @@ def ro' (ε x : Rat) : Int :=
   if x / 2 - (x / 2).floor < ε then 2 * (x / 2).floor else 2 * (x / 2).floor + 1
 
 /-- R22: on a good overestimate, `r'_o` computes `r_o` of the exact value. -/
-theorem R22 {ε x x' : Rat} (hε1 : ε ≤ 1) (hsep : Sep ε (2 * x)) (hlo : 0 ≤ x' - x)
+theorem R22 {ε x x' : Rat} (hε1 : ε ≤ 1) (hsep : Separated ε (2 * x)) (hlo : 0 ≤ x' - x)
     (hhi : x' - x < ε / 2) : ro' ε (4 * x') = ro (4 * x) := by
   unfold ro' ro
   have h4 : (4 * x' / 2 : Rat) = 2 * x' := by grind

@@ -17,6 +17,8 @@ namespace Srtfp.Schubfach.R20
 
 open Srtfp Srtfp.Printer Srtfp.Schubfach.Exact
 
+variable {m : Nat} {q : Int}
+
 /-! ## Powers -/
 
 theorem lt_of_zpow_lt {a : Rat} (ha : 1 ≤ a) {x y : Int} (h : a ^ x < a ^ y) : x < y := by
@@ -223,7 +225,7 @@ theorem separated_natCast (ε : Rat) (n : Nat) : Separated ε (n : Rat) := by
 theorem separated_of_checkAt (m' : Nat) (q' k : Int) (hm : 0 < m') (hm54 : m' < 2 ^ 54)
     (hcheck : checkAt q' k = true)
     (hb2 : 0 ≤ q' → 0 ≤ k → k ≤ q') (hb1 : q' < 0 → k < 0) :
-    Separated ((2 : Rat) ^ (-(64 : Nat) : Int)) ((m' : Rat) * (2 : Rat) ^ q' * (10 : Rat) ^ (-k)) := by
+    Separated eps ((m' : Rat) * (2 : Rat) ^ q' * (10 : Rat) ^ (-k)) := by
   unfold checkAt at hcheck
   by_cases hq' : 0 ≤ q'
   · by_cases hk : 0 ≤ k
@@ -285,9 +287,9 @@ theorem twoVl_eq_irr (h : InRange m q) (hirr : isIrregular m q = true) (k : Int)
 
 /-- **Result 20** for the exponent `q`, given its check. -/
 theorem R20_of_checkQ (h : InRange m q) (hcheck : checkQ q = true) :
-    Separated ((2 : Rat) ^ (-(64 : Nat) : Int)) (2 * V m q (kOfMQ m q))
-    ∧ Separated ((2 : Rat) ^ (-(64 : Nat) : Int)) (2 * Vl m q (kOfMQ m q))
-    ∧ Separated ((2 : Rat) ^ (-(64 : Nat) : Int)) (2 * Vr m q (kOfMQ m q)) := by
+    Separated eps (2 * V m q (kOfMQ m q))
+    ∧ Separated eps (2 * Vl m q (kOfMQ m q))
+    ∧ Separated eps (2 * Vr m q (kOfMQ m q)) := by
   have hm := h.1
   have hm53 : m < 2 ^ 53 := h.2.1
   unfold checkQ at hcheck
