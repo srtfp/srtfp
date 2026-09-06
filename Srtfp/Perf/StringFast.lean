@@ -4,7 +4,7 @@ module
    `Decimal.mk'`-to-string identity every emitter proof ends in. -/
 
 public import Srtfp.Printer
-public import Srtfp.Perf.Schubfach
+public import Srtfp.Perf.Bits
 
 @[expose] public section
 
@@ -25,6 +25,11 @@ def intToStrRef (e : Int) : String :=
   match e with
   | .ofNat m => toString m
   | .negSucc m => "-" ++ toString (m + 1)
+
+/-- `s` with the sign in front: `"-" ++ s` for a negative sign. -/
+@[inline]
+def withSign (sign : Sign) (s : String) : String :=
+  match sign with | .negative => "-" ++ s | .positive => s
 
 /-- Reference Decimal → String emit (shape from `BenchFloatToString.lean`). -/
 def decimalToStrRef (d : _root_.Srtfp.Decimal) : String :=

@@ -2,7 +2,7 @@ module
 /- F9: the Schubfach kernel on 64-bit words, and its correctness against
    `Exact.shortest` (F7) through the integer form `shortestI`. -/
 
-public import Srtfp.Perf.BiasedIndex
+public import Srtfp.Perf.Schubfach.Index
 public import Srtfp.Perf.Schubfach.Estimate
 public import Srtfp.Perf.Schubfach.Tests
 public import Srtfp.Perf.Schubfach.Nadezhin
@@ -261,9 +261,7 @@ theorem kernel_eq (h : InRange m q) (mU qB : UInt64) (hm : mU.toNat = m)
   unfold kMax at hkr2
   -- `kB`
   have hkB : ((kBOfMQ mU qB).toNat : Int) = kOfMQ m q + 324 := by
-    obtain ⟨h1, h2⟩ := kBOfMQ_eq mU qB hq2
-    rw [kOfMQ_fast_eq, hm, show (qB.toNat : Int) - 1074 = q by omega] at h1 h2
-    omega
+    rw [kBOfMQ_toNat mU qB hq2, hm, show (qB.toNat : Int) - 1074 = q by omega]
   obtain ⟨⟨e1, e2, e3⟩, b1, b2, b3⟩ := vbars_eq h mU qB (kBOfMQ mU qB) hm hq hkB
   have ho : ((mU &&& 1).toNat : Int) = out m := by
     rw [UInt64.toNat_and, show (1 : UInt64).toNat = 1 from rfl, Nat.and_one_is_mod, hm]

@@ -3,10 +3,9 @@
    Reads decimal `UInt64` bit patterns (one per line) from stdin; for each,
    reconstructs the binary64 via `Float.ofBits` and prints
    "<bits> <floatToStrRef output>".  `floatToStrRef` is the live verified
-   Schubfach string printer (the `@[csimp]` chain selects the v13 kernel via
-   `KernelV13`).  Paired with `benches/difftest_ryu.cpp` by
+   Schubfach string printer (`Perf/Schubfach/Entry.lean`).  Paired with `benches/difftest_ryu.cpp` by
    `benches/difftest_ryu.py`. -/
-import Srtfp.Perf.KernelV13  -- live floatToStrRef @[csimp] (v13)
+import Srtfp.Perf  -- live floatToStrRef @[csimp] (the Schubfach kernel)
 
 open Srtfp.Schubfach (floatToStrRef)
 

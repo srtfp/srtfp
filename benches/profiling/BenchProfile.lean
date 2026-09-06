@@ -1,6 +1,6 @@
 /- Stage-breakdown profiler for the Schubfach Float→String pipeline.
-   Isolates: decode | kernel (v13, v14 live) | toDecimal | int→string
-   | emit variants | full (v14 live, v13 previous).
+   Isolates: decode | kernel (F9, live) | toDecimal | int→string
+   | emit variants | full (the live string printer).
    Run: lake exe benchProfile [adversarial|nice|uniform]   (default uniform) -/
 import Srtfp.Perf
 import Corpora
@@ -78,13 +78,13 @@ def main (args : List String) : IO Unit := do
   timeIt "1c two allocs/frees per call (Except.ok pair)" N sz (fun _ => (corpus.foldl (init := (0 : UInt64)) (fun a f =>
       a ^^^ (match mkExceptPair f.toBits with | .ok p => p.1 | .error _ => 0))).toNat)
   timeIt "2 decode (Float→m,q)"      N sz (fun _ => corpus.foldl (init := 0) (fun a f => a ^^^ (decode f).m))
-  timeIt "3 kernel v14 (live, unboxed)" N sz (fun _ => (corpus.foldl (init := (0 : UInt64)) (fun a f =>
+  timeIt "3 kernel (F9, live)" N sz (fun _ => (corpus.foldl (init := (0 : UInt64)) (fun a f =>
       let bits : UInt64 := f.toBits
       let expBits : UInt64 := (bits >>> 52) &&& 0x7FF
       let mantBits : UInt64 := bits &&& 0x000F_FFFF_FFFF_FFFF
       let mU := if expBits = 0 then mantBits else mantBits + 4503599627370496
       let qB := if expBits = 0 then 0 else expBits - 1
-      a ^^^ (match shortestUnsigned_u64_opt_v14 mU qB with | some p => p.1 | none => 0))).toNat)
+      a ^^^ (kernel mU qB).1)).toNat)
   timeIt "4 toDecimal (Printer.toDecimal, live)" N sz (fun _ => (corpus.foldl (init := (0 : UInt64)) (fun a f =>
       a ^^^ (match Printer.toDecimal f with | some d => UInt64.ofNat d.significand | _ => 0))).toNat)
   timeIt "5 int→string (toString sig)" N decs.size (fun _ => sigs.foldl (init := 0) (fun a s => a ^^^ (toString s).length))
@@ -99,4 +99,4 @@ def main (args : List String) : IO Unit := do
       a ^^^ (emitPush t.1 t.2.1 t.2.2).length))
   timeIt "6e emit: pre-sized buffer + set! pairs (unverified)" N decs.size (fun _ => decs.foldl (init := 0) (fun a t =>
       a ^^^ (emitSet t.1 (UInt64.ofNat t.2.1) t.2.2).length))
-  timeIt "7 FULL floatToStrRef (live: toStringFast10/v14)" N sz (fun _ => corpus.foldl (init := 0) (fun a f => a ^^^ (floatToStrRef f).length))
+  timeIt "7 FULL floatToStrRef (live: floatToString)" N sz (fun _ => corpus.foldl (init := 0) (fun a f => a ^^^ (floatToStrRef f).length))

@@ -11,11 +11,11 @@ package srtfp where
   -- Per-process build memory guard (`lean -M`, in MB). This counts Lean's
   -- allocator accounting, which runs above resident RSS. Elaboration memory
   -- accumulates across a module's declarations on ≥4.32 toolchains, so the
-  -- heavy proofs are split one-per-module (KernelV13{Resid,Flip3*},
-  -- R20Band*Sweep*): the worst single process is KernelV13Flip3LegPick
-  -- at ~4.1 GB cgroup peak and everything else ≤ ~2.5 GB. 8 GB covers the worst with allocator
-  -- headroom yet aborts a runaway proof with `memory_exception` instead of
-  -- OOM-ing the machine; the library parallel-builds comfortably in 16 GB.
+  -- heavy proofs are split one-per-module (the Result 20 kernel sweeps,
+  -- `Perf/Schubfach/NadezhinSweep*`, at ~2.5 GB each and everything else
+  -- below that). 8 GB covers the worst with allocator headroom yet aborts a
+  -- runaway proof with `memory_exception` instead of OOM-ing the machine;
+  -- the library parallel-builds comfortably in 16 GB.
   -- `weakLeanArgs` so the limit applies on every build but never enters the
   -- trace hash.
   weakLeanArgs := #["-M", "8192"]
@@ -81,9 +81,6 @@ lean_exe benchFloatToString where
   root := `BenchFloatToString
 
 -- Functional sanity check: fast2 paths agree with reference.
-lean_exe benchVerify where
-  srcDir := "benches"
-  root := `BenchVerify
 
 -- Profiling tools (out-of-the-way; see benches/profiling/).
 -- Stage-breakdown profiler (decode|kernel|canon|int→string|emit|full).
@@ -110,9 +107,6 @@ lean_exe diffDump where
   srcDir := "benches/profiling"
   root := `DiffDump
 
-lean_exe benchFallback where
-  srcDir := "benches/profiling"
-  root := `BenchFallback
 
 lean_exe benchReadCG where
   srcDir := "benches/profiling"

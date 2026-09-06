@@ -1,4 +1,4 @@
-/- Profiler driver (callgrind / perf): the live `toStringFast10` over the
+/- Profiler driver (callgrind / perf): the live `floatToString` over the
    uniform corpus, `N` passes (default 1000; pass a number to run longer,
    e.g. 20000 for a perf record with enough samples). No timing, no
    warm-up: just the work. -/
@@ -11,5 +11,5 @@ def main (args : List String) : IO Unit := do
   let c := Corpora.uniform
   let mut sink : Nat := 0
   for _ in [0:n] do
-    for f in c do sink := sink ^^^ (toStringFast10 f).length
+    for f in c do sink := sink ^^^ (floatToString f).length
   IO.println s!"{sink}"
