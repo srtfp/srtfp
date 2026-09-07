@@ -435,14 +435,8 @@ theorem exists_bracket (u M d : Nat) (hM : 0 < M) (hco : Nat.Coprime u M)
         have hMeq := denI_eq_M_of_terminated u M hM hco k hreg hz
         rw [hMeq] at hbr
         omega
-      · have hreg' : ∀ i, i ≤ (k+1)+1 → 0 < rem u M i := by
-          intro i hi
-          rcases Nat.lt_or_ge i (k+2) with h | h
-          · exact hreg i (by omega)
-          · have : i = k+2 := by omega
-            subst this
-            exact Nat.pos_of_ne_zero hz
-        exact IH (k+1) (by omega) hreg' hbr
+      · exact IH (k+1) (by omega) (fun i hi => (Nat.lt_or_eq_of_le hi).elim (fun h => hreg i (by omega))
+          (fun h => by subst h; exact Nat.pos_of_ne_zero hz)) hbr
 
 /-- **Rational Legendre, scaled integer form.**  A coprime fraction `p/d`
 with `1 ≤ d < M` approximating `u/M` to quality `|u·d − M·p| · 2d < M`
@@ -513,36 +507,26 @@ theorem fib_le_denI (u M : Nat) (hM : 0 < M) :
     multipliers are below `2^54`. -/
 theorem two_pow_54_lt_fib_80 : 2 ^ 54 < fib 80 := by decide
 
+theorem fib_le_fib {a b : Nat} (h : a ≤ b) : fib (a + 1) ≤ fib (b + 1) := by
+  induction b with
+  | zero =>
+    obtain rfl : a = 0 := by omega
+    exact Nat.le_refl _
+  | succ b ih =>
+    rcases Nat.lt_or_eq_of_le h with h | rfl
+    · exact Nat.le_trans (ih (by omega)) (by rw [fib_add_two]; omega)
+    · exact Nat.le_refl _
+
 /-- Index bound: a bracketing index for `d < 2^54` is `< 79`. -/
 theorem bracket_index_lt_79 (u M d n : Nat) (hM : 0 < M)
     (hreg : ∀ i, i ≤ n+1 → 0 < rem u M i)
     (hden : denN u M n = d) (hd54 : d < 2 ^ 54) : n < 79 := by
-  by_contra hge
-  push_neg at hge
+  refine Nat.lt_of_not_le fun hge => ?_
   have hfib := fib_le_denI u M hM n (fun i hi => hreg i (by omega))
   have hD : 0 < denI u M n := denI_pos u M hM n (fun i hi => hreg i (by omega))
-  have hdenIval : denI u M n = (d : Int) := by unfold denN at hden; omega
-  have hfib79 : fib 80 ≤ fib (n+1) := by
-    clear hfib hdenIval hden hd54 hD hreg
-    have hmono : ∀ a b, a ≤ b → fib (a+2) ≤ fib (b+2) := by
-      intro a b hab
-      induction b with
-      | zero => have : a = 0 := by omega
-                subst this; exact Nat.le_refl _
-      | succ b IHb =>
-        rcases Nat.lt_or_ge a (b+1) with h | h
-        · have step : fib (b+2) ≤ fib (b+3) := by
-            have h := fib_add_two (b+1)
-            simp only [show b+1+2 = b+3 from rfl, show b+1+1 = b+2 from rfl] at h
-            omega
-          exact Nat.le_trans (IHb (by omega)) step
-        · have : a = b+1 := by omega
-          subst this; exact Nat.le_refl _
-    have := hmono 78 (n-1) (by omega)
-    have hn1 : n - 1 + 2 = n + 1 := by omega
-    rw [hn1] at this
-    exact this
+  have h80 : fib 80 ≤ fib (n + 1) := fib_le_fib hge
   have := two_pow_54_lt_fib_80
+  unfold denN at hden
   omega
 
 end Srtfp.Schubfach.R20

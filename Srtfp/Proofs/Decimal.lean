@@ -26,26 +26,14 @@ private theorem canonicaliseAux_value_gen (s : Nat) (hs0 : s ≠ 0) :
     simp only [hs0, ↓reduceDIte] at heq
     by_cases hmod : s % 10 = 0
     · rw [if_pos hmod] at heq
-      have hslt : s / 10 < s := Nat.div_lt_self (Nat.pos_of_ne_zero hs0) (by decide)
-      have hsd : s / 10 ≠ 0 := by
-        have hpos : s > 0 := Nat.pos_of_ne_zero hs0; omega
-      obtain ⟨hval, hexp, hsne, hcanon⟩ := ih (s / 10) hslt hsd (e + 1) s' e' heq
+      obtain ⟨hval, hexp, hsne, hcanon⟩ :=
+        ih (s / 10) (Nat.div_lt_self (Nat.pos_of_ne_zero hs0) (by decide)) (by omega) (e + 1) s' e' heq
       refine ⟨?_, by omega, hsne, hcanon⟩
-      have hdiff : (e' - e).toNat = (e' - (e + 1)).toNat + 1 := by
-        have h1 : 0 ≤ e' - (e + 1) := by omega
-        have h2 : 0 ≤ e' - e := by omega
-        omega
-      rw [hdiff, Nat.pow_succ]
-      have hediv : (s / 10) * 10 = s := by omega
-      have hrearr : s' * (10 ^ (e' - (e + 1)).toNat * 10)
-          = (s' * 10 ^ (e' - (e + 1)).toNat) * 10 := by
-        rw [← Nat.mul_assoc]
-      rw [hrearr, hval, hediv]
+      rw [show (e' - e).toNat = (e' - (e + 1)).toNat + 1 by omega, Nat.pow_succ, ← Nat.mul_assoc, hval]
+      omega
     · rw [if_neg hmod] at heq
       obtain ⟨rfl, rfl⟩ := Prod.mk.inj heq
-      have hee : (e - e).toNat = 0 := by simp
-      refine ⟨?_, Int.le_refl _, hs0, hmod⟩
-      rw [hee]; simp
+      exact ⟨by simp, Int.le_refl _, hs0, hmod⟩
 
 /-- `Decimal.mk' sign sig exp` with `sig ≠ 0`: produces a canonical Decimal
     with the same sign, a (possibly smaller) significand without trailing

@@ -117,59 +117,56 @@ theorem grid_point_side' (hm : 1 ≤ m) (hx : OnGrid i x) (hxR : InRv m q x = tr
   · exact Or.inr ⟨h, InRv_convex hxR (InRv_v hm) h (u_le_v hm)⟩
   · exact Or.inl h
 
-private theorem close_u (hm : 1 ≤ m)
-    (hle : InRv m q (w m q i) = true → v m q - u m q i ≤ w m q i - v m q)
-    (hx : OnGrid i x) (hxR : InRv m q x = true) :
-    |v m q - u m q i| ≤ |v m q - x| := by
-  have huv := u_le_v (q := q) (i := i) hm
-  have hvw := v_lt_w (q := q) (i := i) hm
-  rw [Rat.abs_of_nonneg (by grind)]
-  rcases grid_point_side hm hx hxR with h | ⟨h, hw⟩
-  · rw [Rat.abs_of_nonneg (by grind)]; grind
-  · rw [Rat.abs_of_nonpos (by grind)]; have := hle hw; grind
-
-private theorem close_w (hm : 1 ≤ m)
-    (hle : InRv m q (u m q i) = true → w m q i - v m q ≤ v m q - u m q i)
-    (hx : OnGrid i x) (hxR : InRv m q x = true) :
-    |v m q - w m q i| ≤ |v m q - x| := by
-  have huv := u_le_v (q := q) (i := i) hm
-  have hvw := v_lt_w (q := q) (i := i) hm
-  rw [Rat.abs_of_nonpos (by grind)]
-  rcases grid_point_side' hm hx hxR with h | ⟨h, hu⟩
-  · rw [Rat.abs_of_nonpos (by grind)]; grind
-  · rw [Rat.abs_of_nonneg (by grind)]; have := hle hu; grind
-
-private theorem tie_u (hm : 1 ≤ m)
+/-- The candidate's bundle for `n = s`: `u ∈ R_v`, and `u` is no farther
+    from `v` than `w` (strictly, or a tie with `s` even) when `w ∈ R_v`. -/
+private theorem u_case (hm : 1 ≤ m) (hu : InRv m q (u m q i) = true)
     (hc : InRv m q (w m q i) = true →
-      v m q - u m q i < w m q i - v m q ∨ (v m q - u m q i = w m q i - v m q ∧ s m q i % 2 = 0))
-    (hx : OnGrid i x) (hxR : InRv m q x = true) (hne : x ≠ u m q i)
-    (heq : |v m q - u m q i| = |v m q - x|) : s m q i % 2 = 0 := by
+      v m q - u m q i < w m q i - v m q ∨ (v m q - u m q i = w m q i - v m q ∧ s m q i % 2 = 0)) :
+    1 ≤ s m q i ∧ (s m q i = s m q i ∨ s m q i = s m q i + 1)
+    ∧ InRv m q (u m q i) = true
+    ∧ (∀ x, OnGrid i x → InRv m q x = true → |v m q - u m q i| ≤ |v m q - x|)
+    ∧ (∀ x, OnGrid i x → InRv m q x = true → x ≠ u m q i →
+         |v m q - u m q i| = |v m q - x| → s m q i % 2 = 0) := by
   have huv := u_le_v (q := q) (i := i) hm
   have hvw := v_lt_w (q := q) (i := i) hm
-  rw [Rat.abs_of_nonneg (by grind)] at heq
-  rcases grid_point_side hm hx hxR with h | ⟨h, hw⟩
-  · rw [Rat.abs_of_nonneg (by grind)] at heq; exact absurd (by grind) hne
-  · rw [Rat.abs_of_nonpos (by grind)] at heq
-    rcases hc hw with hlt | ⟨_, he⟩
-    · exfalso; grind
-    · exact he
-
-private theorem tie_w (hm : 1 ≤ m)
-    (hc : InRv m q (u m q i) = true →
-      ¬ (v m q - u m q i < w m q i - v m q ∨ (v m q - u m q i = w m q i - v m q ∧ s m q i % 2 = 0)))
-    (hx : OnGrid i x) (hxR : InRv m q x = true) (hne : x ≠ w m q i)
-    (heq : |v m q - w m q i| = |v m q - x|) : (s m q i + 1) % 2 = 0 := by
-  have huv := u_le_v (q := q) (i := i) hm
-  have hvw := v_lt_w (q := q) (i := i) hm
-  rw [Rat.abs_of_nonpos (by grind)] at heq
-  rcases grid_point_side' hm hx hxR with h | ⟨h, hu⟩
-  · rw [Rat.abs_of_nonpos (by grind)] at heq; exact absurd (by grind) hne
+  refine ⟨s_pos_of_InRv_u hm hu, Or.inl rfl, hu, fun x hx hxR => ?_, fun x hx hxR hne heq => ?_⟩
+  · rw [Rat.abs_of_nonneg (by grind)]
+    rcases grid_point_side hm hx hxR with h | ⟨h, hw⟩
+    · rw [Rat.abs_of_nonneg (by grind)]; grind
+    · rw [Rat.abs_of_nonpos (by grind)]; have := hc hw; grind
   · rw [Rat.abs_of_nonneg (by grind)] at heq
-    have hc' := hc hu
-    have hge : w m q i - v m q ≤ v m q - u m q i := by grind
-    have heqd : v m q - u m q i = w m q i - v m q := by grind
-    have hodd : s m q i % 2 ≠ 0 := fun he => hc' (Or.inr ⟨heqd, he⟩)
-    omega
+    rcases grid_point_side hm hx hxR with h | ⟨h, hw⟩
+    · rw [Rat.abs_of_nonneg (by grind)] at heq; exact absurd (by grind) hne
+    · rw [Rat.abs_of_nonpos (by grind)] at heq
+      rcases hc hw with hlt | ⟨_, he⟩
+      · exfalso; grind
+      · exact he
+
+/-- The candidate's bundle for `n = s + 1`: `w ∈ R_v`, and `u` is not the
+    choice when `u ∈ R_v`. -/
+private theorem w_case (hm : 1 ≤ m) (hw : InRv m q (w m q i) = true)
+    (hc : InRv m q (u m q i) = true →
+      ¬ (v m q - u m q i < w m q i - v m q ∨ (v m q - u m q i = w m q i - v m q ∧ s m q i % 2 = 0))) :
+    1 ≤ s m q i + 1 ∧ (s m q i + 1 = s m q i ∨ s m q i + 1 = s m q i + 1)
+    ∧ InRv m q (((s m q i + 1 : Nat) : Rat) * (10 : Rat) ^ i) = true
+    ∧ (∀ x, OnGrid i x → InRv m q x = true →
+        |v m q - ((s m q i + 1 : Nat) : Rat) * (10 : Rat) ^ i| ≤ |v m q - x|)
+    ∧ (∀ x, OnGrid i x → InRv m q x = true → x ≠ ((s m q i + 1 : Nat) : Rat) * (10 : Rat) ^ i →
+         |v m q - ((s m q i + 1 : Nat) : Rat) * (10 : Rat) ^ i| = |v m q - x| → (s m q i + 1) % 2 = 0) := by
+  have huv := u_le_v (q := q) (i := i) hm
+  have hvw := v_lt_w (q := q) (i := i) hm
+  rw [show ((s m q i + 1 : Nat) : Rat) * (10 : Rat) ^ i = w m q i by unfold w; push_cast; rfl]
+  refine ⟨by omega, Or.inr rfl, hw, fun x hx hxR => ?_, fun x hx hxR hne heq => ?_⟩
+  · rw [Rat.abs_of_nonpos (by grind)]
+    rcases grid_point_side' hm hx hxR with h | ⟨h, hu⟩
+    · rw [Rat.abs_of_nonpos (by grind)]; grind
+    · rw [Rat.abs_of_nonneg (by grind)]; have := hc hu; grind
+  · rw [Rat.abs_of_nonpos (by grind)] at heq
+    rcases grid_point_side' hm hx hxR with h | ⟨h, hu⟩
+    · rw [Rat.abs_of_nonpos (by grind)] at heq; exact absurd (by grind) hne
+    · rw [Rat.abs_of_nonneg (by grind)] at heq
+      have hodd : s m q i % 2 ≠ 0 := fun he => hc hu (Or.inr ⟨by grind, he⟩)
+      omega
 
 /-- What a hit returns: a positive neighbour in `R_v`, no farther from `v`
     than any grid point in `R_v`, and even on an exact tie. -/
@@ -180,40 +177,11 @@ theorem candidate_some (hm : 1 ≤ m) (h : candidate m q i = some n) :
     ∧ (∀ x, OnGrid i x → InRv m q x = true → x ≠ n * (10 : Rat) ^ i →
          |v m q - n * (10 : Rat) ^ i| = |v m q - x| → n % 2 = 0) := by
   rw [candidate_def] at h
-  have hu_def : u m q i = (s m q i : Rat) * (10 : Rat) ^ i := rfl
-  have hw_def : w m q i = ((s m q i : Rat) + 1) * (10 : Rat) ^ i := rfl
-  have hw_cast : ((s m q i + 1 : Nat) : Rat) * (10 : Rat) ^ i = w m q i := by
-    rw [hw_def]; push_cast; rfl
   cases hu : InRv m q (u m q i) <;> cases hw : InRv m q (w m q i) <;> rw [hu, hw] at h <;> simp at h
-  · -- only `w`
-    subst h
-    refine ⟨by omega, Or.inr rfl, by rw [hw_cast]; exact hw, ?_, ?_⟩
-    · intro x hx hxR; rw [hw_cast]
-      exact close_w hm (fun h' => by rw [hu] at h'; cases h') hx hxR
-    · intro x hx hxR hne heq; rw [hw_cast] at hne heq
-      exact tie_w hm (fun h' => by rw [hu] at h'; cases h') hx hxR hne heq
-  · -- only `u`
-    subst h
-    refine ⟨s_pos_of_InRv_u hm hu, Or.inl rfl, hu, ?_, ?_⟩
-    · intro x hx hxR
-      exact close_u hm (fun h' => by rw [hw] at h'; cases h') hx hxR
-    · intro x hx hxR hne heq
-      exact tie_u hm (fun h' => by rw [hw] at h'; cases h') hx hxR hne heq
-  · -- both: the nearer, ties to even
-    split at h
-    · rename_i hc
-      subst h
-      refine ⟨s_pos_of_InRv_u hm hu, Or.inl rfl, hu, ?_, ?_⟩
-      · intro x hx hxR
-        exact close_u hm (fun _ => by rcases hc with h1 | ⟨h1, _⟩ <;> grind) hx hxR
-      · intro x hx hxR hne heq
-        exact tie_u hm (fun _ => hc) hx hxR hne heq
-    · rename_i hc
-      subst h
-      refine ⟨by omega, Or.inr rfl, by rw [hw_cast]; exact hw, ?_, ?_⟩
-      · intro x hx hxR; rw [hw_cast]
-        exact close_w hm (fun _ => by grind) hx hxR
-      · intro x hx hxR hne heq; rw [hw_cast] at hne heq
-        exact tie_w hm (fun _ => hc) hx hxR hne heq
+  · subst h; exact w_case hm hw (fun h' => by rw [hu] at h'; cases h')
+  · subst h; exact u_case hm hu (fun h' => by rw [hw] at h'; cases h')
+  · split at h <;> subst h
+    · exact u_case hm hu (fun _ => ‹_›)
+    · exact w_case hm hw (fun _ => ‹_›)
 
 end Srtfp.Printer
