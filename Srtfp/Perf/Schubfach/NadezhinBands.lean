@@ -229,7 +229,7 @@ theorem R20_of_checkQ (h : InRange m q) (hcheck : checkQ q = true) :
     · rw [twoV_eq]; exact separated_of_checkAt _ _ _ (by omega) (by omega) c14 hb2 hb1
     · rw [twoVl_eq_irr h hirr]; exact separated_of_checkAt _ _ _ (by omega) (by omega) c14' hb2' hb1'
     · rw [twoVr_eq]; exact separated_of_checkAt _ _ _ (by omega) (by omega) c14 hb2 hb1
-  · have hirr' : isIrregular m q = false := by cases hb : isIrregular m q <;> simp_all
+  · have hirr' : isIrregular m q = false := Bool.eq_false_iff.mpr hirr
     have hk : kOfMQ m q = floorLog10Pow2 q := by unfold kOfMQ; rw [if_neg hirr]
     rw [← hk] at c15
     have hb2 : 0 ≤ q → 0 ≤ kOfMQ m q → kOfMQ m q ≤ q := fun hq _ => (band_reg_nonneg h hirr' hq).2

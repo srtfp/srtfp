@@ -287,7 +287,7 @@ theorem bracket_eq_denI (u M p d n : Nat) (hM : 0 < M)
   obtain ⟨Δ, hΔ⟩ : ∃ Δ : Int, numI u M (n+1) * denI u M n - numI u M n * denI u M (n+1) = Δ :=
     ⟨_, rfl⟩
   have hΔ1 : Δ = 1 ∨ Δ = -1 := by
-    have := det_eq u M n; rw [hΔ] at this; split at this <;> simp_all
+    have := det_eq u M n; rw [hΔ] at this; split at this <;> first | exact Or.inl this | exact Or.inr this
   have hΔsq : Δ * Δ = 1 := by rcases hΔ1 with rfl | rfl <;> decide
   have hΔabs : Δ.natAbs = 1 := by rcases hΔ1 with rfl | rfl <;> rfl
   obtain ⟨α, hα⟩ : ∃ α : Int,
