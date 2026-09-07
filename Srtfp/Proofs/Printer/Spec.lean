@@ -247,18 +247,17 @@ theorem competitor {f : Nat} {b : Int} (hf1 : 1 ≤ f) (hf10 : f % 10 ≠ 0)
             have hn1 : n = 1 := by omega
             have hTi : (10 : Rat) ^ i = 10 ^ (i - 1) * 10 := by
               rw [← Rat.zpow_add_one (by decide), Int.sub_add_cancel]
-            have hw10 : w m q i = (10 : Rat) ^ i := by
-              unfold w; rw [hs0, show ((0 : Nat) : Rat) = 0 by simp, Rat.zero_add, Rat.one_mul]
+            have hv10 : v m q < (10 : Rat) ^ i :=
+              Rat.not_le.mp fun hle => by have := s_pos_iff.mpr hle; omega
             have hmem1 : InRv m q ((10 : Rat) ^ i) = true := by
               rw [hn1] at hmem; simpa using hmem
             have h9R : InRv m q (9 * (10 : Rat) ^ (i - 1)) = true := by
               apply InRv_convex hyR hmem1 h9
               rw [hTi]; grind
             have hT3 := ten_pow_closer h hmem1 h9R
-            rw [hw10] at hvw
             rw [hn1]
             push_cast
-            rw [hTi] at hT3 hvw ⊢
+            rw [hTi] at hT3 hv10 ⊢
             have hvpos : 9 * (10 : Rat) ^ (i - 1) < v m q := by grind
             rw [Rat.abs_of_nonpos (by grind), Rat.abs_of_nonneg (by grind)]
             grind
@@ -337,7 +336,7 @@ theorem nonzero_output {s : Sign} {hm : 0 < m} (hu : Spec.unpack wd = .finite s 
     have hf1 : 1 ≤ d'.significand := by
       rcases Nat.eq_zero_or_pos d'.significand with h0 | h0
       · exfalso
-        rw [h0, show ((0 : Nat) : Rat) = 0 by simp, Rat.zero_mul] at hmem'
+        rw [h0, Rat.natCast_ofNat, Rat.zero_mul] at hmem'
         have := (le_of_InRv hmem').1
         have := vl_pos (q := q) hm
         grind
@@ -370,7 +369,7 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
   rw [hmq, hus] at hri
   have hP := two_zpow_pos (-1074 : Int)
   have hv0 : v 0 (-1074) = 0 := by
-    unfold v; rw [show ((0 : Nat) : Rat) = 0 by simp, Rat.zero_mul]
+    unfold v; rw [Rat.natCast_ofNat, Rat.zero_mul]
   refine ⟨⟨s, 0, 0⟩, ?_, Or.inl ⟨rfl, rfl⟩, ?_, ?_⟩
   · unfold toDecimalBits; rw [hu]
   · rw [hri]
@@ -379,9 +378,9 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
         * (10 : Rat) ^ (⟨s, 0, 0⟩ : Decimal).exponent = 0 := by simp
     rw [h0]
     apply InRv_of_strict
-    · unfold vl; rw [if_neg (by decide), show ((0 : Nat) : Rat) = 0 by simp]
+    · unfold vl; rw [if_neg (by decide), Rat.natCast_ofNat]
       generalize (2 : Rat) ^ (-1074 : Int) = P at hP ⊢; grind
-    · unfold vr; rw [show ((0 : Nat) : Rat) = 0 by simp]
+    · unfold vr; rw [Rat.natCast_ofNat]
       generalize (2 : Rat) ^ (-1074 : Int) = P at hP ⊢; grind
   · intro d' hne hc' hrt'
     obtain ⟨hsign', hmem'⟩ := (hri d').mp hrt'
@@ -391,7 +390,7 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
       · exact Nat.pos_of_ne_zero hne0
     have hneg : ∀ a b : Rat, a * 0 - b = -b := fun a b => by grind
     have hd₀ : Spec.dist ⟨s, 0, 0⟩ wd = 0 := by
-      rw [Reader.dist_eq _ hfin, hmq, hus, hv0, Rat.mul_zero, show ((0 : Nat) : Rat) = 0 by simp,
+      rw [Reader.dist_eq _ hfin, hmq, hus, hv0, Rat.mul_zero, Rat.natCast_ofNat,
         Rat.zero_mul, Rat.mul_zero, sub_zero]
       exact Rat.abs_zero
     have hd' : 0 < Spec.dist d' wd := by

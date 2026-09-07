@@ -47,7 +47,7 @@ theorem wordVal_eq {w : UInt64} (hw : (Spec.unpack w).isFinite = true) :
   | notANumber => simp [UnpackedFloat.isFinite] at hw
   | zero s =>
     show (0 : Rat) = _ * (((0 : Nat) : Rat) * _)
-    rw [show ((0 : Nat) : Rat) = 0 by simp, Rat.zero_mul, Rat.mul_zero]
+    rw [Rat.natCast_ofNat, Rat.zero_mul, Rat.mul_zero]
   | finite s n k hn => rfl
 
 theorem wordSign_eq (w : UInt64) : Spec.wordSign w = usign (Spec.unpack w) := by

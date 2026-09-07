@@ -98,14 +98,14 @@ theorem read_spec (d : Decimal) :
   have hrN : ((r.toNat : Nat) : Rat) = (r : Rat) := by
     rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hr0]
   -- the threshold bounds `k`: `k ≤ 971`, and `k ≤ 970` once `y` reaches `2^53 - 1/2`
-  have hk971 : (2 : Rat) ^ 52 ≤ y → k ≤ 971 := fun h => by
-    have h1024 : (2 : Rat) ^ (1024 : Int) = 2 ^ 53 * 2 ^ (971 : Int) := by
-      rw [show (1024 : Int) = 53 + 971 by rfl, Rat.zpow_add (by decide)]; rfl
+  have hk971 : k ≤ 971 := by
+    rcases hy52 with rfl | h
+    · decide
     have := lt_of_zpow_lt (a := 2) (by decide) (x := k + 52) (y := 1024) (by
-      rw [e52, h1024]
-      exact lt_of_le_of_lt (Rat.mul_le_mul_of_nonneg_right h (Rat.le_of_lt hP))
-        (lt_of_lt_of_le hT' (Rat.mul_le_mul_of_nonneg_right (by grind)
-          (Rat.le_of_lt (two_zpow_pos _)))))
+      rw [e52, show (2 : Rat) ^ (1024 : Int) = 2 ^ (1024 : Nat) from rfl]
+      have := Rat.mul_le_mul_of_nonneg_right h (Rat.le_of_lt hP)
+      have : (0 : Rat) < 2 ^ 970 := Rat.pow_pos (by decide)
+      grind)
     omega
   have hk970 : (2 : Rat) ^ 53 - 1/2 ≤ y → k ≤ 970 := fun h => by
     have h1 := lt_of_le_of_lt (Rat.mul_le_mul_of_nonneg_right h (Rat.le_of_lt hP)) hT'
@@ -142,16 +142,13 @@ theorem read_spec (d : Decimal) :
         have h2 : 2 ^ 52 < r.toNat + 1 := by exact_mod_cast h1
         omega
       simp only [mq]
-      refine ⟨rfl, rfl, ⟨by omega, hk0, ?_, hn52⟩, ?_⟩
-      · rcases Int.lt_or_le 971 k with h | h
-        · exact absurd (hk971 (hy52.resolve_left (by omega))) (by omega)
-        · exact h
-      · rw [← hrN] at hlo hhi hlo' hhi'
-        exact InRv_of_round hlo hhi (fun h => by have := hlo' h; omega)
-          (fun h => by have := hhi' h; omega)
-          (fun hi => by
-            rcases hy52 with h | h
-            · omega
-            · rw [hi.1, hc52]; grind)
+      refine ⟨rfl, rfl, ⟨by omega, hk0, hk971, hn52⟩, ?_⟩
+      rw [← hrN] at hlo hhi hlo' hhi'
+      exact InRv_of_round hlo hhi (fun h => by have := hlo' h; omega)
+        (fun h => by have := hhi' h; omega)
+        (fun hi => by
+          rcases hy52 with h | h
+          · omega
+          · rw [hi.1, hc52]; grind)
 
 end Srtfp.Reader

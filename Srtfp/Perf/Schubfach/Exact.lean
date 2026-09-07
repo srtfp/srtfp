@@ -193,14 +193,12 @@ theorem k_spec (h : InRange m q) :
   by_cases hirr : isIrregular m q = true
   · rw [if_pos hirr, if_pos (isIrregular_iff.mp hirr)]
     have hR := R14HoldsAt_in_binary64_range q hq1 hq2
-    dsimp only [R14HoldsAt] at hR
     have e1 := le_of_ratio hR.1
     have e2 := lt_of_ratio hR.2
     push_cast at e1 e2
     constructor <;> grind
   · rw [if_neg hirr, if_neg (fun h => hirr (isIrregular_iff.mpr h))]
     have hR := R15HoldsAt_in_binary64_range q hq1 hq2
-    dsimp only [R15HoldsAt] at hR
     have e1 := le_of_ratio (a := 1) (c := 1) (by rw [Nat.one_mul, Nat.one_mul]; exact hR.1)
     have e2 := lt_of_ratio (a := 1) (c := 1) (by rw [Nat.one_mul, Nat.one_mul]; exact hR.2)
     push_cast at e1 e2
@@ -353,42 +351,23 @@ theorem shortest_spec (h : InRange m q) :
         (Int.not_lt.mp fun h => by rw [hnone (k + 1) h] at hc1; cases hc1)
       rw [hc1] at hc
       obtain rfl := Option.some.inj hc
-      -- `v` is above `9 · 10^k`: if `9 · 10^k ∈ R_v` by T3, else by convexity
+      -- the pick is `10`: a pick `p ≤ 9` puts `9 · 10^k` in `R_v`, and then T3 makes
+      -- `10^(k+1)` closer to `v` than `9 · 10^k`, hence than `p · 10^k`
       have h10k := ten_zpow_pos k
       have hTi : (10 : Rat) ^ (k + 1) = 10 ^ k * 10 := Rat.zpow_add_one (by decide) k
-      have hT3 : 9 * (10 : Rat) ^ k < v m q ∧
-          (InRv m q (9 * (10 : Rat) ^ k) = true → (10 : Rat) ^ (k + 1) - v m q < v m q - 9 * 10 ^ k) := by
-        have key (h9R : InRv m q (9 * (10 : Rat) ^ k) = true) :
-            (10 : Rat) ^ (k + 1) - v m q < v m q - 9 * 10 ^ k := by
-          have := ten_pow_closer h hW (by rw [show k + 1 - 1 = k by omega]; exact h9R)
-          rwa [show k + 1 - 1 = k by omega] at this
-        refine ⟨?_, key⟩
-        rcases lt_or_ge (9 * (10 : Rat) ^ k) (v m q) with hlt | hge
-        · exact hlt
-        · have h9R : InRv m q (9 * (10 : Rat) ^ k) = true :=
-            InRv_convex (InRv_v hm) hW hge (by rw [hTi]; grind)
-          have := key h9R
-          rw [hTi] at this
-          grind
-      -- so `s = 9`, and the pick is `10`
-      have hs9 : Printer.s m q k = 9 := by
-        have hfl : (9 : Int) ≤ (v m q / (10 : Rat) ^ k).floor :=
-          Rat.le_floor_iff.mpr (by rw [le_div_iff h10k]; push_cast; exact Rat.le_of_lt hT3.1)
-        have hsc : ((Printer.s m q k : Nat) : Int) = (v m q / (10 : Rat) ^ k).floor := by
-          exact_mod_cast s_cast (q := q) (i := k) hm
-        omega
       obtain ⟨-, hcase, hmemp, hclose, -⟩ := candidate_some hm hpick
       have hp10 : pick m q k (Printer.s m q k) = 10 := by
-        rcases hcase with e | e
-        · exfalso
-          rw [e, hs9] at hmemp hclose
-          have h1 := hclose _ ⟨10, rfl⟩ (by rw [hTi] at hW; push_cast; rw [Rat.mul_comm]; exact hW)
-          have h2 := hT3.2 (by push_cast at hmemp; exact hmemp)
-          push_cast at h1
-          rw [hTi] at h2
-          rw [Rat.abs_of_nonneg (by grind), Rat.abs_of_nonpos (by grind)] at h1
-          grind
-        · omega
+        refine Classical.byContradiction fun hne => ?_
+        have hp9 : (pick m q k (Printer.s m q k) : Rat) * 10 ^ k ≤ 9 * 10 ^ k :=
+          Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast (by omega : pick m q k (Printer.s m q k) ≤ 9))
+            (Rat.le_of_lt h10k)
+        have h9R : InRv m q (9 * (10 : Rat) ^ k) = true := InRv_convex hmemp hW hp9 (by rw [hTi]; grind)
+        have hT3 := ten_pow_closer h hW (by rw [show k + 1 - 1 = k by omega]; exact h9R)
+        have h1 := hclose _ ⟨10, rfl⟩ (by rw [hTi] at hW; push_cast; rw [Rat.mul_comm]; exact hW)
+        rw [show k + 1 - 1 = k by omega] at hT3
+        push_cast at h1
+        rw [Rat.abs_of_nonneg (by grind), Rat.abs_of_nonpos (by grind)] at h1
+        grind
       rw [hp10]
       refine ⟨by omega, ?_⟩
       push_cast

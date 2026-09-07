@@ -44,9 +44,8 @@ theorem candidate_none_above (h : InRange m q) (hi : 308 < i) : candidate m q i 
   rcases Nat.eq_zero_or_pos k with hk | hk
   · subst hk; have := vl_pos (q := q) h.1; simp at hl; grind
   · have h1 := vr_lt_two_pow_1024 h
-    have h2 : (2 : Rat) ^ (1024 : Nat) < (10 : Rat) ^ (309 : Int) := by
-      show (2 : Rat) ^ (1024 : Nat) < (10 : Rat) ^ (309 : Nat)
-      exact_mod_cast (by decide +kernel : (2 : Nat) ^ 1024 < 10 ^ 309)
+    have h2 : (2 : Rat) ^ (1024 : Nat) < (10 : Rat) ^ (309 : Int) :=
+      two_zpow_lt_ten_zpow (x := 309) (y := 1024) (by decide +kernel)
     have h3 : (10 : Rat) ^ (309 : Int) ≤ (10 : Rat) ^ i := zpow_le_zpow_right₀ (by decide) (by omega)
     have h4 : (1 : Rat) ≤ k := by exact_mod_cast hk
     have := Rat.mul_le_mul_of_nonneg_right h4 (Rat.le_of_lt h10)
@@ -57,15 +56,10 @@ theorem candidate_none_above (h : InRange m q) (hi : 308 < i) : candidate m q i 
 theorem two_zpow_neg_1074_le (h : InRange m q) : (2 : Rat) ^ (-1074 : Int) ≤ (2 : Rat) ^ q :=
   zpow_le_zpow_right₀ (by decide) h.2.2.1
 
-set_option exponentiation.threshold 1100 in
 /-- `10^{-324} < 3/4 · 2^{-1074}`, i.e. `4 · 2^1074 < 3 · 10^324`. -/
 theorem ten_zpow_neg_324_lt_width : (10 : Rat) ^ (-324 : Int) < 3/4 * (2 : Rat) ^ (-1074 : Int) := by
-  rw [show (-324 : Int) = -((324 : Nat) : Int) from rfl, show (-1074 : Int) = -((1074 : Nat) : Int) from rfl,
-    zpow_neg_natCast, zpow_neg_natCast, ← Rat.one_mul ((10 : Rat) ^ 324)⁻¹]
-  refine mul_inv_lt_mul_inv (Rat.pow_pos (by decide)) (Rat.pow_pos (by decide)) ?_
-  have := (by decide +kernel : 4 * (2 : Nat) ^ 1074 < 3 * 10 ^ 324)
-  have : 4 * (2 : Rat) ^ 1074 < 3 * 10 ^ 324 := by exact_mod_cast this
-  grind
+  have := lt_of_ratio' (a := 4) (c := 3) (x := -324) (y := -1074) (by decide +kernel)
+  simp only [Rat.natCast_ofNat] at this; grind
 
 theorem hit_at_bottom (h : InRange m q) : candidate m q (-324) ≠ none := by
   intro hnone
