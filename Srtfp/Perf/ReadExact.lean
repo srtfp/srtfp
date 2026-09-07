@@ -35,12 +35,8 @@ theorem roundEven_eq_of {x : Rat} {n : Int}
     roundEven x = n := by
   obtain ⟨r1, r2, r3, r4⟩ := roundEven_spec x
   generalize roundEven x = r at *
-  have hle1 : r ≤ n + 1 := by
-    have h : (r : Rat) ≤ ((n + 1 : Int) : Rat) := by push_cast; grind
-    exact_mod_cast h
-  have hle2 : n ≤ r + 1 := by
-    have h : (n : Rat) ≤ ((r + 1 : Int) : Rat) := by push_cast; grind
-    exact_mod_cast h
+  have hle1 : r ≤ n + 1 := by exact_mod_cast (show (r : Rat) ≤ ((n + 1 : Int) : Rat) by push_cast; grind)
+  have hle2 : n ≤ r + 1 := by exact_mod_cast (show (n : Rat) ≤ ((r + 1 : Int) : Rat) by push_cast; grind)
   rcases Int.lt_trichotomy r n with hlt | heq | hgt
   · exfalso
     have hr : ((r : Int) : Rat) = (n : Rat) - 1 := by exact_mod_cast (show r = n - 1 by omega)

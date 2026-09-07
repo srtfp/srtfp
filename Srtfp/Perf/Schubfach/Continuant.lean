@@ -240,18 +240,14 @@ theorem gcd_rem_invariant (u M : Nat) :
 
 /-- Termination detection: if `rem (n+2) = 0` inside the regime and `u, M`
 are coprime, then `rem (n+1) = 1` and hence `denI (n+1) = M`. -/
-theorem denI_eq_M_of_terminated (u M : Nat) (_hM : 0 < M) (hco : Nat.Coprime u M)    (n : Nat) (_hpos : ∀ i, i ≤ n+1 → 0 < rem u M i) (hz : rem u M (n+2) = 0) :
+theorem denI_eq_M_of_terminated (u M : Nat) (_hM : 0 < M) (hco : Nat.Coprime u M) (n : Nat)
+    (_hpos : ∀ i, i ≤ n+1 → 0 < rem u M i) (hz : rem u M (n+2) = 0) :
     denI u M (n+1) = (M : Int) := by
   have hgcd := gcd_rem_invariant u M (n+1)
   simp only [show n+1+1 = n+2 from rfl] at hgcd
   have hco' : Nat.gcd (rem u M 1) (rem u M 0) = 1 := by
-    show Nat.gcd (u % M) M = 1
-    have hco'' : Nat.gcd u M = 1 := hco
-    rw [← Nat.gcd_rec M u, Nat.gcd_comm]
-    exact hco''
-  have hone : rem u M (n+1) = 1 := by
-    rw [hco', hz, Nat.gcd_zero_left] at hgcd
-    exact hgcd
+    show Nat.gcd (u % M) M = 1; rw [← Nat.gcd_rec M u, Nat.gcd_comm]; exact hco
+  have hone : rem u M (n+1) = 1 := by rwa [hco', hz, Nat.gcd_zero_left] at hgcd
   have hid := rem_denI_identity u M n
   rw [show ((rem u M (n+2) : Nat) : Int) = 0 by exact_mod_cast hz, hone] at hid
   simpa using hid

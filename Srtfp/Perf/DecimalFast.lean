@@ -42,18 +42,11 @@ theorem canonicaliseAux_div_pow (s : Nat) (e : Int) (j : Nat) (hs : s ≠ 0)
   induction j generalizing s e with
   | zero => simp
   | succ j ih =>
-    have h10 : s % 10 = 0 := by
-      have h10p : 10 ∣ 10 ^ (j + 1) := ⟨10 ^ j, by rw [Nat.pow_succ, Nat.mul_comm]⟩
-      have : 10 ∣ s := Nat.dvd_trans h10p (Nat.dvd_of_mod_eq_zero hd)
-      exact Nat.mod_eq_zero_of_dvd this
-    rw [canonicaliseAux_div s e hs h10]
-    have hs' : s / 10 ≠ 0 := div_ten_nonzero hs h10
-    have hd' : (s / 10) % 10 ^ j = 0 := by
-      obtain ⟨t, ht⟩ := Nat.dvd_of_mod_eq_zero hd
-      rw [ht, Nat.pow_succ, Nat.mul_comm (10 ^ j) 10, Nat.mul_assoc,
-          Nat.mul_div_cancel_left _ (by decide : 0 < 10)]
-      exact Nat.mul_mod_right _ _
-    rw [ih (s / 10) (e + 1) hs' hd', Nat.div_div_eq_div_mul, ← Nat.pow_succ']
+    have h10 : s % 10 = 0 :=
+      Nat.mod_eq_zero_of_dvd (Nat.dvd_trans ⟨10 ^ j, Nat.pow_succ'⟩ (Nat.dvd_of_mod_eq_zero hd))
+    have hd' : (s / 10) % 10 ^ j = 0 := by rw [← Nat.mod_mul_right_div_self, ← Nat.pow_succ', hd]
+    rw [canonicaliseAux_div s e hs h10, ih (s / 10) (e + 1) (div_ten_nonzero hs h10) hd',
+      Nat.div_div_eq_div_mul, ← Nat.pow_succ']
     congr 1
     push_cast
     omega

@@ -35,14 +35,9 @@ theorem canonical_eq_of_value_eq (hc : d.IsCanonical) {d' : Decimal} (hc' : d'.I
   have h10 := canonical_sig hc (by intro h; rw [h] at h1; simp at h1)
   have h10' := canonical_sig hc' (by intro h; rw [h] at h1'; simp at h1')
   -- equal exponents, else the coarser one is divisible by ten
-  have hexp : d.exponent = d'.exponent := by
-    rcases Int.lt_or_le d.exponent d'.exponent with hlt | hge
-    · exfalso
-      exact not_onGrid_of_finer hlt h10.2 ⟨d'.significand, hv⟩
-    rcases Int.lt_or_eq_of_le hge with hgt | heq
-    · exfalso
-      exact not_onGrid_of_finer hgt h10'.2 ⟨d.significand, hv.symm⟩
-    · exact heq.symm
+  have hexp : d.exponent = d'.exponent :=
+    Int.le_antisymm (Int.not_lt.mp fun h => not_onGrid_of_finer h h10'.2 ⟨_, hv.symm⟩)
+      (Int.not_lt.mp fun h => not_onGrid_of_finer h h10.2 ⟨_, hv⟩)
   rw [hexp] at hv
   have hsig : d.significand = d'.significand := by
     have h10p := ten_zpow_pos d'.exponent
@@ -150,29 +145,15 @@ omit h hs in
 theorem between_grid {y : Rat} (hy : 0 < y) (hyng : ¬ OnGrid i y) :
     ∃ dy : Nat, (dy : Rat) * (10 : Rat) ^ i < y ∧ y < ((dy : Rat) + 1) * (10 : Rat) ^ i := by
   have h10 := ten_zpow_pos i
-  have hV : 0 < y / (10 : Rat) ^ i := (Rat.lt_div_iff h10).mpr (by rw [Rat.zero_mul]; exact hy)
-  have hfl0 : 0 ≤ (y / (10 : Rat) ^ i).floor := by
-    rcases Int.lt_or_le (y / (10 : Rat) ^ i).floor 0 with hneg | hnn
-    · exfalso; have := Rat.floor_lt_iff.mp hneg; simp at this; grind
-    · exact hnn
-  refine ⟨(y / (10 : Rat) ^ i).floor.toNat, ?_, ?_⟩
-  · have hle := Rat.floor_le (y / (10 : Rat) ^ i)
-    have := Rat.mul_le_mul_of_nonneg_right hle (Rat.le_of_lt h10)
-    rw [Rat.div_mul_cancel (Rat.ne_of_gt h10)] at this
+  have hfl0 := floor_nonneg (Rat.le_of_lt (div_pos hy h10))
+  have hle := Rat.mul_le_mul_of_nonneg_right (Rat.floor_le (y / (10 : Rat) ^ i)) (Rat.le_of_lt h10)
+  have hlt := Rat.mul_lt_mul_of_pos_right (Rat.lt_floor_add_one (y / (10 : Rat) ^ i)) h10
+  rw [Rat.div_mul_cancel (Rat.ne_of_gt h10)] at hle hlt
+  refine ⟨(y / (10 : Rat) ^ i).floor.toNat, ?_, ?_⟩ <;>
     rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hfl0]
-    by_cases hlt : ((y / (10 : Rat) ^ i).floor : Rat) * (10 : Rat) ^ i < y
-    · exact hlt
-    · exfalso
-      have heq := Rat.le_antisymm this (Rat.not_lt.mp hlt)
-      apply hyng
-      refine ⟨(y / (10 : Rat) ^ i).floor.toNat, ?_⟩
-      rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hfl0, heq]
-  · have hlt := Rat.lt_floor_add_one (y / (10 : Rat) ^ i)
-    have := Rat.mul_lt_mul_of_pos_right hlt h10
-    rw [Rat.div_mul_cancel (Rat.ne_of_gt h10)] at this
-    rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hfl0]
-    push_cast at this ⊢
-    exact this
+  · exact Rat.lt_of_le_of_ne hle fun heq =>
+      hyng ⟨_, by rw [← Rat.intCast_natCast, Int.toNat_of_nonneg hfl0, heq]⟩
+  · push_cast at hlt ⊢; exact hlt
 
 /-- Every grid point of `R_v` has the output's length. -/
 theorem same_len {c : Nat} (hc1 : 1 ≤ c)
