@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Fast source-level guard for the two-tier axiom split.
+"""Fast source-level guard for the optional Float bridge import boundary.
 
 Fails (exit 1) if the default umbrella `Srtfp.lean` or the performance
 umbrella `Srtfp/Perf.lean` — or anything they transitively import —
 reaches any `Srtfp.Bridge.*` module (the bit round-trip to the runtime
-`Float` and its consumers). The environment-level ground truth is
-`SrtfpBitsAxiomCheck.lean`; this walk just catches a stray import before
-a full build.
+`Float` and its consumers). This walk keeps the Float-quantified API
+optional and catches a stray import before a full build. The separate
+axiom and runtime-replacement audit lives in `SrtfpAudit.lean`.
 """
 import re
 import sys
@@ -43,7 +43,7 @@ def main() -> int:
                 while cur in parent:
                     cur = parent[cur]
                     chain.append(cur)
-                print("AXIOM TIER LEAK: an axiom-free umbrella reaches "
+                print("IMPORT TIER LEAK: a reference/performance umbrella reaches "
                       f"{dep}\n  via: {' <- '.join(chain)}")
                 return 1
             if dep not in seen:

@@ -7,7 +7,7 @@
 all: lean cpp java
 
 lean:
-	python3 tools/check_axiom_free_imports.py
+	python3 tools/check_imports.py
 	lake build benchFloatToString diffDump
 
 cpp:

@@ -13,7 +13,7 @@ A Lean 4 library providing, for IEEE-754 binary64:
 The flagship theorems guarantee that, for every 64-bit float, the
 printer:
 
-1. rejects NaN and ±∞ with an error, and otherwise returns a decimal
+1. rejects NaN and ±∞ with `none`, and otherwise returns a decimal
    that
 2. **round-trips**: reading the decimal back yields the original float,
    bit for bit;
@@ -49,8 +49,9 @@ The library is three tiers, each a separate import:
   compiled code runs the fast path while the proofs still speak about
   the reference. Same axiom budget as the reference tier. Deleting
   `Srtfp/Perf/` leaves the library working, only slower.
-- **Float (`import Srtfp.Bridge`, opt-in)**: the same theorems attached
-  to the runtime `Float` type, across the bit round-trip
+- **Float (`import Srtfp.Bridge`, opt-in)**: an equivalent formulation
+  whose nearest-value competitors range over `Float` rather than bit patterns,
+  across the bit round-trip
   `Float.toBits_ofBits` (constructing a non-NaN `Float` from bits and
   reading it back gives the same bits), proven over core's `Float.Model`
   in `Srtfp/Bridge/Basic.lean`. No axiom; what is trusted is that the
@@ -59,16 +60,47 @@ The library is three tiers, each a separate import:
 
 ## Reading the code
 
-To trust the result, read [`Srtfp/Spec.lean`](Srtfp/Spec.lean) and
-[`Srtfp/Correctness.lean`](Srtfp/Correctness.lean) and nothing else.
+The numerical audit surface is [`Srtfp/Spec.lean`](Srtfp/Spec.lean) and
+the theorem statements in [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean).
 The specification is self-contained: it defines the `Decimal` type and
 its canonical form, reads binary64 words through Lean's own model of
 the format (`Float.Model.UnpackedFloat.unpack`), and otherwise uses
-only core Lean (`Rat`, `Rat.abs`, `Nat.toDigits`). Both theorems in
-`Correctness.lean` are biconditionals: a function satisfies the
+only core Lean (`Rat`, `Rat.abs`, `Nat.toDigits`). The two
+`correct_iff_*` theorems are biconditionals: a function satisfies the
 specification *if and only if* it is the library's function. So the
 specification has exactly one model, and the implementation never
-needs to be inspected.
+needs to be inspected. The reader theorem also establishes existence,
+so the specification's “under every correct reader” is not vacuous.
+`ofDecimal_spec` and `toDecimal_spec` certify the runtime `Float` entry
+points against this same specification; auditing them does not require
+reading the separate Float-quantified vocabulary in `Srtfp/Bridge/`.
+
+Here “shortest” counts **significand digits**, not characters in a
+rendered string. The specification preserves both signs of zero,
+accepts arbitrary decimal significands and exponents, and rounds
+overflow to signed infinity at the stated threshold.
+
+The build checks this boundary in [`SrtfpAudit.lean`](SrtfpAudit.lean),
+using upstream `Lean.collectAxioms`. It checks declarations by their
+defining module, including private helpers and declarations outside the
+`Srtfp` namespace, and permits only `propext`, `Quot.sound`, and
+`Classical.choice`. There is no exception for `sorryAx` or native proofs.
+It also rejects local partial or unsafe definitions and unchecked
+`@[extern]` and `@[implemented_by]` replacements;
+the fast paths use equality proofs via `@[csimp]`.
+This single audit covers the reference, performance, and Float tiers
+and runs in both `lake build` and `lake test`.
+As usual, the Lean kernel, compiler, and
+upstream runtime implementations are trusted.
+
+The text layer has a narrower proved guarantee:
+[`Text.parse_format`](Srtfp/Proofs/Text.lean) says parsing a formatted
+canonical decimal recovers it, for compatible options. This does not
+specify the meaning of every accepted input string or establish conformance
+to JSON, YAML, or MLIR. If those details matter to a consumer, the
+additional audit surface is [`Srtfp/DecimalSyntax.lean`](Srtfp/DecimalSyntax.lean),
+the parsing and formatting definitions in [`Srtfp/Text.lean`](Srtfp/Text.lean),
+and the `CompatibleWith` condition in the text proof file.
 
 The implementation itself is two short modules of exact arithmetic,
 worth reading to understand the algorithms; both import only the
@@ -99,8 +131,8 @@ collisions.
 ## Build
 
 ```
-lake build           # the library
-lake test            # build, axiom-check, and run the test suite
+lake build           # all library tiers and the audit
+lake test            # audit, audit regression checks, and the test suite
 make                 # helper binaries (benchmarks, difftest)
 ```
 

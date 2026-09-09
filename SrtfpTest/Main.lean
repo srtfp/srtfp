@@ -1,6 +1,7 @@
 import SrtfpTest.Spec
 import Srtfp
-import SrtfpAxiomCheck
+import SrtfpAudit
+import SrtfpTest.Audit
 import SrtfpTest.Ryu
 import SrtfpTest.Kernel
 import SrtfpTest.Text

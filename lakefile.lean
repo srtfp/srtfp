@@ -38,13 +38,10 @@ lean_lib SrtfpBridge where
 lean_lib SrtfpPerf where
   roots := #[`Srtfp.Perf]
 
-lean_lib SrtfpAxiomCheck where
-  roots := #[`SrtfpAxiomCheck]
-
--- Axiom linter for the axiom-free tiers: `import Srtfp` and `import
--- Srtfp.Perf` must need only propext / Quot.sound / Classical.choice.
-lean_lib SrtfpBitsAxiomCheck where
-  roots := #[`SrtfpBitsAxiomCheck]
+-- All tiers share one audit and the same three standard logical axioms.
+@[default_target]
+lean_lib SrtfpAudit where
+  roots := #[`SrtfpAudit]
 
 -- Test corpus modules (e.g. `SrtfpTest.Ryu`). The `test` exe imports from this
 -- library; new corpora go in `SrtfpTest/*.lean` and are picked up automatically.

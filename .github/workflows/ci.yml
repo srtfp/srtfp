@@ -43,18 +43,12 @@ jobs:
 
       # Fast source-level guard: the default umbrella must not import the
       # Float tier.
-      - name: Axiom-tier import walk
-        run: python3 tools/check_axiom_free_imports.py
+      - name: Optional bridge import boundary
+        run: python3 tools/check_imports.py
 
-      # Srtfp is the axiom-free reference tier, SrtfpPerf the opt-in
-      # fast-path tier, SrtfpBridge the Float tier. SrtfpBitsAxiomCheck
-      # fails the build if anything reachable from `import Srtfp` or
-      # `import Srtfp.Perf` needs an axiom beyond propext / Quot.sound /
-      # Classical.choice; SrtfpAxiomCheck audits the full Bridge closure
-      # against the same budget.
+      # Default targets build all tiers and audit them in SrtfpAudit.
       - name: Build
-        run: lake build Srtfp SrtfpPerf SrtfpBridge SrtfpBitsAxiomCheck SrtfpAxiomCheck
+        run: lake build
 
       - name: Test
         run: lake test
-
