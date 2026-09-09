@@ -93,6 +93,13 @@ and runs in both `lake build` and `lake test`.
 As usual, the Lean kernel, compiler, and
 upstream runtime implementations are trusted.
 
+For a numerical review, also check the pinned [`lean-toolchain`](lean-toolchain)
+and the package options and audit target in [`lakefile.lean`](lakefile.lean).
+Run `lake build SrtfpAudit` on the checkout being reviewed. The numerical
+theorems certify `Reader.ofDecimalBits`, `Printer.toDecimalBits`,
+`Reader.ofDecimal`, and `Printer.toDecimal`; string rendering, text parsing,
+and the other `Decimal` operations have the additional review requirements below.
+
 The text layer has a narrower proved guarantee:
 [`Text.parse_format`](Srtfp/Proofs/Text.lean) says parsing a formatted
 canonical decimal recovers it, for compatible options. This does not
@@ -100,7 +107,20 @@ specify the meaning of every accepted input string or establish conformance
 to JSON, YAML, or MLIR. If those details matter to a consumer, the
 additional audit surface is [`Srtfp/DecimalSyntax.lean`](Srtfp/DecimalSyntax.lean),
 the parsing and formatting definitions in [`Srtfp/Text.lean`](Srtfp/Text.lean),
-and the `CompatibleWith` condition in the text proof file.
+the canonicalisation helpers used by parsing in
+[`Srtfp/Decimal.lean`](Srtfp/Decimal.lean), and the `CompatibleWith` condition
+and `parse_format` statement in the text proof file. Reviewing all of
+`Decimal.lean` also covers its other constructors, literal instances, and negation.
+
+The performance tier's `Schubfach.floatToString` has a separate reference
+format: zero as `"0"` or `"-0"`, nonzero finite values as signed
+`significand ++ "e" ++ exponent`, and `"NaN"` / signed `"Infinity"`.
+Its extra audit surface is the four reference string definitions at the start
+of [`Srtfp/Perf/StringFast.lean`](Srtfp/Perf/StringFast.lean), their
+`signBit`, `biasedExpBits`, `mantissaBits`, and `isNaNBits` helpers in
+[`Srtfp/Perf/Bits.lean`](Srtfp/Perf/Bits.lean), and the `floatToString_eq`
+statement in [`Srtfp/Perf/Schubfach/Entry.lean`](Srtfp/Perf/Schubfach/Entry.lean).
+This string function is not covered by `Text.parse_format`.
 
 The implementation itself is two short modules of exact arithmetic,
 worth reading to understand the algorithms; both import only the
