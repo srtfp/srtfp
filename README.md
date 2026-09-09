@@ -62,7 +62,7 @@ the implementation and proof bodies need no manual review.
 | `Reader.ofDecimalBits`, `Printer.toDecimalBits`, and their `Float` wrappers | [`Srtfp/Spec.lean`](Srtfp/Spec.lean) | [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean): `correct_iff_ofDecimal`, `correct_iff_toDecimal`, `ofDecimal_spec`, `toDecimal_spec` |
 | `Decimal` canonicalisation, constructors, scientific literals, constants, and negation | `Decimal`, `IsCanonical`, and `Normalizes` in `Srtfp/Spec.lean` | [`Srtfp/Decimal/Correctness.lean`](Srtfp/Decimal/Correctness.lean) |
 | `Text.parse` | [`Srtfp/DecimalSyntax.lean`](Srtfp/DecimalSyntax.lean) and the grammar in [`Srtfp/Text/Spec.lean`](Srtfp/Text/Spec.lean), using `Decimal.Normalizes` | [`Srtfp/Text/Correctness.lean`](Srtfp/Text/Correctness.lean): `parse_spec`, `correct_iff_parse` |
-| `Text.format` | [`Srtfp/Text/FormatOptions.lean`](Srtfp/Text/FormatOptions.lean) and `Formats` / `CorrectFormatter` in `Srtfp/Text/Spec.lean` | `Srtfp/Text/Correctness.lean`: `format_spec`, `correct_iff_format`; `format_parses` for the canonical value |
+| `Text.format` | [`Srtfp/Text/FormatOptions.lean`](Srtfp/Text/FormatOptions.lean) and `Formats` / `CorrectFormatter` in `Srtfp/Text/Spec.lean` | `Srtfp/Text/Correctness.lean`: `format_spec`, `correct_iff_format`; `format_parses` for canonical inputs and compatible options |
 | `Text.floatToString` and its fast emitter | The three definitions in [`Srtfp/Text/Float.lean`](Srtfp/Text/Float.lean), plus the numerical specification above | `Srtfp/Correctness.lean`: `toDecimal_spec`; [`Srtfp/Perf/Schubfach/Entry.lean`](Srtfp/Perf/Schubfach/Entry.lean): `floatToString_eq` |
 
 The numerical specification uses upstream `Float.Model.UnpackedFloat.unpack`,
@@ -83,8 +83,8 @@ the sign even at zero; `ofInt 0` and the named `zero` are positive.
 
 The text parser theorem includes rejection as well as accepted strings and
 canonical values. The formatting theorem fixes the exact spelling on every
-`Decimal`, including noncanonical inputs. Parsing that spelling recovers the
-same canonical value when `FormatOptions.CompatibleWith` holds. The certified
+`Decimal`, including noncanonical inputs. For canonical inputs, parsing that
+spelling recovers the input when `FormatOptions.CompatibleWith` holds. The certified
 grammar is defined by the dialect flags; conformance to external JSON, YAML,
 or MLIR standards is not established.
 
