@@ -1,26 +1,13 @@
-/- # Empirical probe of the `Float.toBits_ofBits` round-trip (once an axiom)
+/- Runtime probe of the `Float.toBits_ofBits` theorem.
 
 Run: `lake env lean SrtfpTest/RuntimeAxiomProbe.lean`
 
-Finding (2026-07-02, x86-64 Linux, Lean 4.27.0): every non-NaN bit
-pattern round-trips exactly (zeros, subnormals, normals, boundary
-values, ±inf), but the runtime CANONICALISES NaN payloads — every NaN
-pattern returns 0x7FF8000000000000. The naive axiom statement
-(`∀ x : UInt64, (Float.ofBits x).toBits = x`) is therefore stronger
-than the runtime warrants on NaN payloads.
-
-Because `ofBits`/`toBits` are opaque to the logic this cannot make
-Lean inconsistent; its cost is that theorems instantiated at NaN
-patterns do not transfer to the running system. The printer rejects
-NaN before any bit-level reasoning, so `correct_iff_toDecimal` needs
-the axiom only on non-NaN patterns, where this probe shows it exact.
-
-DONE (2026-07-02): the statement is restricted to non-NaN words. Since
-v4.33 it is a theorem over core's `Float.Model`
-(`Srtfp/Bridge/Basic.lean`); this probe checks the runtime against the
-model. `isNaNPattern` (biased exponent `0x7FF` and mantissa nonzero, the
-Perf tier's bit-level NaN test) is checked below to agree exactly with
-the empirical NaN/non-NaN split observed above. -/
+Since Lean v4.33 the non-NaN bit round trip is proved over core's
+`Float.Model` in `Srtfp/Bridge/Basic.lean`. This probe checks the compiled
+runtime against that model on zeros, subnormals, normals, boundary values,
+and infinities. NaN payloads are canonicalised to 0x7FF8000000000000,
+which is why the theorem excludes them. These samples exercise the
+runtime contract; they are not the proof of the universal theorem. -/
 
 import Srtfp.Bridge.Basic
 import Srtfp.Perf.Bits

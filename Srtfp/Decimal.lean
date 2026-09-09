@@ -16,7 +16,7 @@ deriving instance Repr, DecidableEq, Inhabited for Decimal
 
 namespace Decimal
 
-/-- The unique zero. -/
+/-- Canonical positive zero. -/
 def zero : Decimal := ⟨.positive, 0, 0⟩
 
 /-- One: `+1 × 10^0`. -/

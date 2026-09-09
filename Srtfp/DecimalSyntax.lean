@@ -30,10 +30,9 @@ structure DecimalSyntax where
       values have no JSON syntax. YAML: yes (canonical forms). Not a
       decimal literal, so `Text.parse` does not consult this flag. -/
   allowNonFiniteLiterals : Bool := false
-  /-- Permit hexadecimal / octal / binary integer literals (`0x...`,
-      `0o...`, `0b...`). JSON: no. YAML 1.1: yes, YAML 1.2: no for octal,
-      yes for the others under specific tags. Not a decimal literal, so
-      `Text.parse` does not consult this flag. -/
+  /-- Consumer metadata for alternative-base integer literals (`0x...`,
+      `0o...`, `0b...`). `Text.parse` never consults this flag or accepts
+      these forms; the consumer supplies their grammar and interpretation. -/
   allowAlternativeBases : Bool := false
   /-- Require the decimal point: a bare integer literal like `"2"` is not
       a float. JSON: no (integers are floats). MLIR: yes. -/
@@ -48,9 +47,12 @@ namespace DecimalSyntax
 /-- Strict RFC 8259 JSON: no permissive features. -/
 def jsonStrict : DecimalSyntax := {}
 
-/-- YAML 1.2 "core schema" floats: permits leading/trailing `.`, explicit
-    `+` on the mantissa, and the non-finite literals. Hex literals are
-    NOT in the core schema (they require the explicit `!!int` tag). -/
+/-- YAML-style decimal floats: permits leading/trailing `.` and explicit
+    `+` on the mantissa, with non-finite tokens delegated to the consumer.
+    This is not the complete YAML core schema: for example, that schema
+    also resolves untagged `0o...` and `0x...` integers (YAML 1.2.2 §10.3.2,
+    https://yaml.org/spec/1.2.2/#1032-tag-resolution). The alternative-base
+    flag is retained as `false` for compatibility; `Text.parse` ignores it. -/
 def yamlCore : DecimalSyntax :=
   { allowLeadingDot          := true
   , allowTrailingDot         := true
