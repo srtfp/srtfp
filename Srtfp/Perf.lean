@@ -33,7 +33,7 @@ public import Srtfp.Perf.Schubfach.NadezhinSweep3
 public import Srtfp.Perf.Schubfach.NadezhinSweep4
 public import Srtfp.Perf.Schubfach.Nadezhin
 public import Srtfp.Perf.Schubfach.Product
-public import Srtfp.Perf.Schubfach.Tests
+public import Srtfp.Perf.Schubfach.Comparisons
 public import Srtfp.Perf.Schubfach.Estimate
 public import Srtfp.Perf.Schubfach.Index
 public import Srtfp.Perf.Schubfach.Kernel

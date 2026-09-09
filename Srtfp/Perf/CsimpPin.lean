@@ -9,7 +9,7 @@ module
 
    The printer's proof path, for orientation: the reference scan
    (`Srtfp/Printer.lean`) = Schubfach's F7 (`Perf/Schubfach/Exact.lean`)
-   = its integer form (`Tests.lean`, R18/R19) = the word-level kernel
+   = its integer form (`Comparisons.lean`, R18/R19) = the word-level kernel
    (`Kernel.lean`, F9 with the estimates of R20–R25), the live kernel.
 
    Wired into `lake build` and `lake test` via Test/Audit.lean.

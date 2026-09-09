@@ -53,86 +53,61 @@ The library has two implementation tiers, each a separate import:
 
 ## Reading the code
 
-The numerical audit surface is [`Srtfp/Spec.lean`](Srtfp/Spec.lean) and
-the theorem statements in [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean).
-The specification is self-contained: it defines the `Decimal` type and
-its canonical form, reads binary64 words through Lean's own model of
-the format (`Float.Model.UnpackedFloat.unpack`), and otherwise uses
-only core Lean (`Rat`, `Rat.abs`, `Nat.toDigits`). The two
-`correct_iff_*` theorems are biconditionals: a function satisfies the
-specification *if and only if* it is the library's function. So the
-specification has exactly one model, and the implementation never
-needs to be inspected. The reader theorem also establishes existence,
-so the specification's “under every correct reader” is not vacuous.
-`ofDecimal_spec` and `toDecimal_spec` certify the runtime `Float` entry
-points against this same specification through `.toBits`.
+Review the specification definitions and the certifying theorem statements
+for the APIs you use, plus the shared checks below. Lean checks the proofs;
+the implementation and proof bodies need no manual review.
 
-Here “shortest” counts **significand digits**, not characters in a
-rendered string. The specification preserves both signs of zero,
-accepts arbitrary decimal significands and exponents, and rounds
-overflow to signed infinity at the stated threshold.
+| API | Specification to read | Certifying statements |
+| --- | --- | --- |
+| `Reader.ofDecimalBits`, `Printer.toDecimalBits`, and their `Float` wrappers | [`Srtfp/Spec.lean`](Srtfp/Spec.lean) | [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean): `correct_iff_ofDecimal`, `correct_iff_toDecimal`, `ofDecimal_spec`, `toDecimal_spec` |
+| `Decimal` canonicalisation, constructors, scientific literals, constants, and negation | `Decimal`, `IsCanonical`, and `Normalizes` in `Srtfp/Spec.lean` | [`Srtfp/Decimal/Correctness.lean`](Srtfp/Decimal/Correctness.lean) |
+| `Text.parse` | [`Srtfp/DecimalSyntax.lean`](Srtfp/DecimalSyntax.lean) and the grammar in [`Srtfp/Text/Spec.lean`](Srtfp/Text/Spec.lean), using `Decimal.Normalizes` | [`Srtfp/Text/Correctness.lean`](Srtfp/Text/Correctness.lean): `parse_spec`, `correct_iff_parse` |
+| `Text.format` | [`Srtfp/Text/FormatOptions.lean`](Srtfp/Text/FormatOptions.lean) and `Formats` / `CorrectFormatter` in `Srtfp/Text/Spec.lean` | `Srtfp/Text/Correctness.lean`: `format_spec`, `correct_iff_format`; `format_parses` for the canonical value |
+| `Text.floatToString` and its fast emitter | The three definitions in [`Srtfp/Text/Float.lean`](Srtfp/Text/Float.lean), plus the numerical specification above | `Srtfp/Correctness.lean`: `toDecimal_spec`; [`Srtfp/Perf/Schubfach/Entry.lean`](Srtfp/Perf/Schubfach/Entry.lean): `floatToString_eq` |
 
-The build checks this boundary in [`Test/Audit.lean`](Test/Audit.lean),
-using upstream `Lean.collectAxioms`. It checks declarations by their
-defining module, including private helpers and declarations outside the
-`Srtfp` namespace, and permits only `propext`, `Quot.sound`, and
-`Classical.choice`. There is no exception for `sorryAx` or native proofs.
-It also rejects local partial or unsafe definitions and unchecked
-`@[extern]` and `@[implemented_by]` replacements;
-the fast paths use equality proofs via `@[csimp]`.
-This single audit covers the reference and performance tiers
-and runs in both `lake build` and `lake test`.
-Its regression fixtures live in [`Test/AuditTests.lean`](Test/AuditTests.lean).
-As usual, the Lean kernel, compiler, and
+The numerical specification uses upstream `Float.Model.UnpackedFloat.unpack`,
+`Rat`, and `Nat.toDigits`. Its biconditionals establish both correctness and
+uniqueness. In particular, existence of a correct reader makes the printer's
+“under every correct reader” condition non-vacuous. The runtime `Float` APIs
+satisfy the same word specification through `.toBits`.
+
+Here “shortest” counts **significand digits**, not rendered characters.
+The specification preserves both signs of zero, accepts arbitrary decimal
+significands and exponents, and rounds overflow to signed infinity at
+`2^1024 - 2^970`.
+
+`Decimal.Normalizes` specifies the unique canonical decimal obtained by
+moving trailing significand zeros into the exponent, preserving the sign.
+The constructor theorems and text grammar share this rule. Negation reverses
+the sign even at zero; `ofInt 0` and the named `zero` are positive.
+
+The text parser theorem includes rejection as well as accepted strings and
+canonical values. The formatting theorem fixes the exact spelling on every
+`Decimal`, including noncanonical inputs. Parsing that spelling recovers the
+same canonical value when `FormatOptions.CompatibleWith` holds. The certified
+grammar is defined by the dialect flags; conformance to external JSON, YAML,
+or MLIR standards is not established.
+
+The compact `Text.floatToString` format prints zero as `"0"` or `"-0"`,
+nonzero finite values as signed `significand ++ "e" ++ exponent`, and
+special values as `"NaN"` or signed `"Infinity"`. It uses upstream integer
+printing and the same binary64 model. It is separate from the configurable
+`Text.format`; importing `Srtfp.Perf` compiles it to the certified fast emitter.
+
+For every review, also inspect [`Test/Audit.lean`](Test/Audit.lean), the pinned
+[`lean-toolchain`](lean-toolchain), and the package options and audit target in
+[`lakefile.lean`](lakefile.lean). Run `lake build Test.Audit` on the checkout.
+The audit uses upstream `Lean.collectAxioms` and selects declarations by their
+defining module, covering private helpers and declarations outside the `Srtfp`
+namespace. Only `propext`, `Quot.sound`, and `Classical.choice` are allowed;
+there is no exception for `sorryAx` or native proofs. It also rejects local
+partial or unsafe definitions and unchecked `@[extern]` or `@[implemented_by]`
+replacements. The fast paths use equality proofs via `@[csimp]`.
+
+This audit covers both implementation tiers and runs in `lake build` and
+`lake test`; its regression fixtures are in
+[`Test/AuditTests.lean`](Test/AuditTests.lean). Lean's kernel, compiler, and
 upstream runtime implementations are trusted.
-
-For a numerical review, also check the pinned [`lean-toolchain`](lean-toolchain)
-and the package options and audit target in [`lakefile.lean`](lakefile.lean).
-Run `lake build Test.Audit` on the checkout being reviewed. The numerical
-theorems certify `Reader.ofDecimalBits`, `Printer.toDecimalBits`,
-`Reader.ofDecimal`, and `Printer.toDecimal`; string rendering, text parsing,
-and the other `Decimal` operations have the additional review requirements below.
-
-For decimal text, additionally read [`Srtfp/DecimalSyntax.lean`](Srtfp/DecimalSyntax.lean),
-[`Srtfp/Text/Spec.lean`](Srtfp/Text/Spec.lean), and the theorem statements in
-[`Srtfp/Text/Correctness.lean`](Srtfp/Text/Correctness.lean).
-`parse_spec` characterizes every accepted string and its canonical value;
-`correct_iff_parse` says these requirements determine the parser uniquely,
-including rejection. The specification describes signs, digit runs, the
-decimal point, the exponent, and removal of trailing significand zeros.
-It uses upstream digit conversion and imports no parser or canonicalisation
-implementation. Those implementations do not need manual review.
-
-For exact presentation, also read
-[`Srtfp/Text/FormatOptions.lean`](Srtfp/Text/FormatOptions.lean).
-`Formats` specifies the decimal-point position, padding, and exponent spelling;
-`format_spec` characterizes the exact output string, and `correct_iff_format`
-says these requirements determine the formatter uniquely on **every** `Decimal`,
-including noncanonical inputs. `format_parses` separately guarantees a permitted
-spelling of the same canonical value when the options satisfy `CompatibleWith`.
-The formatter and its helpers in `Srtfp/Text.lean` need no manual review.
-The certified grammar is defined by the dialect flags; it does not establish
-conformance to an external JSON, YAML, or MLIR standard.
-For decimal construction, read `Decimal.Normalizes` in `Srtfp/Spec.lean` and
-the theorem statements in
-[`Srtfp/Decimal/Correctness.lean`](Srtfp/Decimal/Correctness.lean).
-They characterize `canonical`, `mk'`, `ofNat`, `ofInt`, and scientific literals
-by their unique canonical result. The same normalization rule is used by text
-parsing. `zero_spec`, `one_spec`, and `neg_spec` certify the named constants and
-sign reversal, including signed zero. These operations in `Srtfp/Decimal.lean`
-need no manual review.
-
-`Text.floatToString` has a compact reference
-format: zero as `"0"` or `"-0"`, nonzero finite values as signed
-`significand ++ "e" ++ exponent`, and `"NaN"` / signed `"Infinity"`.
-Its extra audit surface is the three definitions in
-[`Srtfp/Text/Float.lean`](Srtfp/Text/Float.lean), which use upstream integer
-printing and the same binary64 model as the numerical specification.
-`Schubfach.floatToString_eq` in
-[`Srtfp/Perf/Schubfach/Entry.lean`](Srtfp/Perf/Schubfach/Entry.lean)
-certifies the fast emitter against this reference; importing `Srtfp.Perf`
-registers that equality as its compiler replacement.
-This format is separate from the configurable `Text.format`.
 
 The implementation itself is two short modules of exact arithmetic,
 worth reading to understand the algorithms; both import only the

@@ -4,7 +4,7 @@ module
 
 public import Srtfp.Perf.Schubfach.Index
 public import Srtfp.Perf.Schubfach.Estimate
-public import Srtfp.Perf.Schubfach.Tests
+public import Srtfp.Perf.Schubfach.Comparisons
 public import Srtfp.Perf.Schubfach.Nadezhin
 
 @[expose] public section
