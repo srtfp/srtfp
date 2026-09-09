@@ -7,17 +7,6 @@ on:
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        # v4.33.0: the pin (lean-toolchain), and the floor — the spec and
-        #   `Srtfp/Proofs/Model.lean` need core's `Float.Model`. Consumers on older
-        #   toolchains (QuadParsers on v4.27, VeIR on v4.32) pin an earlier
-        #   srtfp commit. Tests must never assert on core Float
-        #   parsing/printing (Float.ofScientific changed in lean4#14110),
-        #   only on srtfp's own functions or hex bit patterns.
-        toolchain:
-          - leanprover/lean4:v4.33.0
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,18 +17,16 @@ jobs:
             | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
-      - name: Select toolchain
-        run: echo "${{ matrix.toolchain }}" > lean-toolchain
-
+      # Elan selects the toolchain pinned by the checkout's lean-toolchain.
       - name: Cache toolchain and build artifacts
         uses: actions/cache@v4
         with:
           path: |
             ~/.elan
             .lake
-          key: lake-${{ matrix.toolchain }}-${{ hashFiles('lakefile.lean', 'lake-manifest.json') }}-${{ github.sha }}
+          key: lake-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lakefile.lean', 'lake-manifest.json') }}-${{ github.sha }}
           restore-keys: |
-            lake-${{ matrix.toolchain }}-${{ hashFiles('lakefile.lean', 'lake-manifest.json') }}-
+            lake-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lakefile.lean', 'lake-manifest.json') }}-
 
       # Default targets build all tiers and audit them in Test.Audit.
       - name: Build
