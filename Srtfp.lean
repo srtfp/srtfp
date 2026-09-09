@@ -34,6 +34,7 @@ public import Srtfp.Proofs.Printer.Scan
 public import Srtfp.Proofs.Printer.Spec
 public import Srtfp.Correctness
 public import Srtfp.Text
+public import Srtfp.Text.Float
 public import Srtfp.Proofs.Text
 public import Srtfp.Text.Correctness
 

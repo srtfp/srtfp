@@ -99,4 +99,4 @@ def main (args : List String) : IO Unit := do
       a ^^^ (emitPush t.1 t.2.1 t.2.2).length))
   timeIt "6e emit: pre-sized buffer + set! pairs (unverified)" N decs.size (fun _ => decs.foldl (init := 0) (fun a t =>
       a ^^^ (emitSet t.1 (UInt64.ofNat t.2.1) t.2.2).length))
-  timeIt "7 FULL floatToStrRef (live: floatToString)" N sz (fun _ => corpus.foldl (init := 0) (fun a f => a ^^^ (floatToStrRef f).length))
+  timeIt "7 FULL Srtfp.Text.floatToString (live: floatToString)" N sz (fun _ => corpus.foldl (init := 0) (fun a f => a ^^^ (Srtfp.Text.floatToString f).length))

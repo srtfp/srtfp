@@ -32,7 +32,7 @@ open Lean Elab Command Lean.Compiler in
         throwError "csimp pin: {src} compiles to {t.toDeclName}, expected {tgt}"
     | none => throwError "csimp pin: {src} has no csimp replacement"
   check `Srtfp.Printer.toDecimal `Srtfp.Schubfach.toDecimal
-  check `Srtfp.Schubfach.floatToStrRef `Srtfp.Schubfach.floatToString
+  check `Srtfp.Text.floatToString `Srtfp.Schubfach.floatToString
   check `Srtfp.Decimal.canonicaliseAux `Srtfp.Decimal.canonicaliseAuxFast
   check `Srtfp.Decimal.canonical `Srtfp.Decimal.canonicalFast
   check `Srtfp.Decimal.mk' `Srtfp.Decimal.mk'Fast

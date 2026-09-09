@@ -455,16 +455,6 @@ def tiePartnerRoundTrips : TestSeq :=
     ((Reader.ofDecimal ⟨.positive, 11258999068426243, -1⟩).toBits
       == (0x4310000000000001 : UInt64))
 
-/-- `intToStrRef` (the ++-spelled exponent-emit reference in StringFast)
-is byte-identical to `toString : Int → String`, including the Int64
-extremes and beyond-64-bit magnitudes. -/
-def intToStrRefAgrees : TestSeq :=
-  test "intToStrRef = toString on samples incl. Int64 extremes"
-    (([0, 1, -1, 9, -9, 10, -10, 42, -324, 292, 1000, -1000,
-       9223372036854775807, -9223372036854775808,
-       18446744073709551621, -18446744073709551621] : List Int).all
-      (fun e => Schubfach.intToStrRef e == toString e))
-
 /-! ## Test runner
 
 `ryuTests` aggregates every group. Add new groups here. -/
@@ -475,7 +465,6 @@ def ryuTests : TestSeq :=
   runGroup "d2s Basic" d2sBasic ++
   runGroup "d2s ExactTies" d2sExactTies ++
   tiePartnerRoundTrips ++
-  intToStrRefAgrees ++
   runGroup "d2s SwitchToSubnormal" d2sSwitchToSubnormal ++
   runGroup "d2s MinAndMax" d2sMinAndMax ++
   runGroup "d2s LotsOfTrailingZeros" d2sLotsOfTrailingZeros ++

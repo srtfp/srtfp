@@ -115,15 +115,17 @@ certifies that negation flips the sign and preserves the magnitude, including
 signed zero. Other `Decimal` constructors and literal instances still require
 reviewing [`Srtfp/Decimal.lean`](Srtfp/Decimal.lean) when used.
 
-The performance tier's `Schubfach.floatToString` has a separate reference
+`Text.floatToString` has a compact reference
 format: zero as `"0"` or `"-0"`, nonzero finite values as signed
 `significand ++ "e" ++ exponent`, and `"NaN"` / signed `"Infinity"`.
-Its extra audit surface is the four reference string definitions at the start
-of [`Srtfp/Perf/StringFast.lean`](Srtfp/Perf/StringFast.lean), their
-`signBit`, `biasedExpBits`, `mantissaBits`, and `isNaNBits` helpers in
-[`Srtfp/Perf/Bits.lean`](Srtfp/Perf/Bits.lean), and the `floatToString_eq`
-statement in [`Srtfp/Perf/Schubfach/Entry.lean`](Srtfp/Perf/Schubfach/Entry.lean).
-This string function is not covered by `Text.format_spec`.
+Its extra audit surface is the three definitions in
+[`Srtfp/Text/Float.lean`](Srtfp/Text/Float.lean), which use upstream integer
+printing and the same binary64 model as the numerical specification.
+`Schubfach.floatToString_eq` in
+[`Srtfp/Perf/Schubfach/Entry.lean`](Srtfp/Perf/Schubfach/Entry.lean)
+certifies the fast emitter against this reference; importing `Srtfp.Perf`
+registers that equality as its compiler replacement.
+This format is separate from the configurable `Text.format`.
 
 The implementation itself is two short modules of exact arithmetic,
 worth reading to understand the algorithms; both import only the

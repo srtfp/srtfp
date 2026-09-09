@@ -4,8 +4,8 @@ import Corpora
 open Srtfp
 
 /-- Reference shape used by the bench; rewritten via `@[csimp]` to
-    `Srtfp.Schubfach.toStringFast` at compile time. -/
-def floatToStr (f : Float) : String := Srtfp.Schubfach.floatToStrRef f
+    `Srtfp.Schubfach.floatToString` at compile time. -/
+def floatToStr (f : Float) : String := Srtfp.Text.floatToString f
 
 /-- Sum of IEEE bit patterns (mod 2^64). Lets `run.sh` verify that Lean,
     C++, and Python iterate over byte-identical arrays. -/

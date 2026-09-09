@@ -9,7 +9,8 @@ import Test.Ryu
 
 namespace Srtfp.Tests.Kernel
 
-open Test.Harness Srtfp Srtfp.Schubfach Srtfp.Float
+open Test.Harness Srtfp Srtfp.Schubfach
+open Srtfp.Text (withSign decimalToString)
 
 open Srtfp.Tests.Ryu in
 /-- The full Ryu corpus, flattened. -/
@@ -30,8 +31,10 @@ private def corpus : Array Float := allRyuFloats ++ #[
 /-- The reference string, from the reference decimal. -/
 private def refString (f : Float) : String :=
   match Printer.toDecimalBits f.toBits with
-  | some d => decimalToStrRef d
-  | none => if isNaNBits f then "NaN" else withSign (signBit f) "Infinity"
+  | some d => decimalToString d
+  | none => match Spec.unpack f.toBits with
+    | .infinity sign => withSign sign "Infinity"
+    | _ => "NaN"
 
 private structure Tally where
   badDecimal : Nat := 0
@@ -50,5 +53,11 @@ def runTests : TestSeq :=
   let t := tally
   test s!"Schubfach.toDecimalBits = reference scan ({corpus.size} values)" (t.badDecimal = 0)
   ++ test s!"floatToString = reference string ({corpus.size} values)" (t.badString = 0)
+  ++ test "compact string spellings for infinities and NaNs"
+      ((#[(0x7FF0000000000000, "Infinity"), (0xFFF0000000000000, "-Infinity"),
+          (0x7FF8000000000001, "NaN"), (0xFFF8000000000001, "NaN"),
+          (0x7FF0000000000001, "NaN")] : Array (UInt64 × String)).all fun (w, s) =>
+        let f := Float.ofBits w
+        floatToString f == s && refString f == s)
 
 end Srtfp.Tests.Kernel

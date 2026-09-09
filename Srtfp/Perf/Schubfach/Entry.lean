@@ -16,6 +16,7 @@ open Float.Model.UnpackedFloat (Sign)
 namespace Srtfp.Schubfach
 
 open Srtfp Srtfp.Float Srtfp.Printer
+open Srtfp.Text (withSign decimalToString)
 
 variable {m : Nat} {q : Int}
 
@@ -163,7 +164,7 @@ theorem printer_toDecimal_csimp : @Printer.toDecimal = @toDecimal := by
   if h : idx ≤ 616 then
     withSign sign (toString sig ++ expTable[idx]'(by rw [expTable_size]; omega))
   else
-    withSign sign (toString sig ++ "e" ++ intToStrRef ((idx : Int) - 324))
+    withSign sign (toString sig ++ "e" ++ toString ((idx : Int) - 324))
 
 theorem emitIdx_eq (sign : Sign) (sig : Nat) (idx : Nat) :
     emitIdx sign sig idx = emitChecked sign sig ((idx : Int) - 324) := by
@@ -171,7 +172,7 @@ theorem emitIdx_eq (sign : Sign) (sig : Nat) (idx : Nat) :
   unfold emitIdx
   split
   · rename_i h
-    rw [show expTable[idx]'(by rw [expTable_size]; omega) = "e" ++ intToStrRef ((idx : Int) - 324)
+    rw [show expTable[idx]'(by rw [expTable_size]; omega) = "e" ++ toString ((idx : Int) - 324)
         from by simp [expTable], String.append_assoc]
   · rfl
 
@@ -186,7 +187,7 @@ theorem emitIdx_eq (sign : Sign) (sig : Nat) (idx : Nat) :
       if sig' = 0 then withSign sign "0" else emitChecked sign sig' exp'
 
 theorem emitTail_eq (sign : Sign) (mU qB : UInt64) :
-    emitTail sign mU qB = decimalToStrRef (decimalTail sign mU qB) := by
+    emitTail sign mU qB = decimalToString (decimalTail sign mU qB) := by
   unfold emitTail decimalTail
   by_cases h0 : mU = 0
   · rw [if_pos h0, if_pos h0]; rfl
@@ -194,7 +195,7 @@ theorem emitTail_eq (sign : Sign) (mU qB : UInt64) :
   generalize kernel mU qB = r
   obtain ⟨sU, kB⟩ := r
   dsimp only
-  rw [decimalToStrRef_mk', emitIdx_eq, emitChecked_eq]
+  rw [decimalToString_mk', emitIdx_eq, emitChecked_eq]
   have hmod : (sU % 10 = 0) ↔ (sU.toNat % 10 = 0) := by
     rw [← UInt64.toNat_inj, UInt64.toNat_mod]; rfl
   by_cases hs0 : sU.toNat = 0
@@ -223,8 +224,8 @@ theorem emitTail_eq (sign : Sign) (mU qB : UInt64) :
       (if expBits = 0 then mantBits else mantBits + 4503599627370496)
       (if expBits = 0 then 0 else expBits - 1)
 
-theorem floatToString_eq (f : _root_.Float) : floatToString f = floatToStrRef f := by
-  unfold floatToStrRef
+theorem floatToString_eq (f : _root_.Float) : floatToString f = Text.floatToString f := by
+  unfold Text.floatToString
   rw [Printer.toDecimal_eq_bits, ← toDecimalBits_eq]
   unfold floatToString toDecimalBits
   have hexp : ((f.toBits >>> 52) &&& 0x7FF : UInt64).toNat = biasedExpBits f := rfl
@@ -232,25 +233,29 @@ theorem floatToString_eq (f : _root_.Float) : floatToString f = floatToStrRef f 
   by_cases h7 : ((f.toBits >>> 52) &&& 0x7FF : UInt64) = 0x7FF
   · rw [if_pos h7, if_pos h7]
     have hbE : biasedExpBits f = 2047 := by rw [← hexp, h7]; rfl
+    have hmodel : Spec.unpack f.toBits =
+        if mantissaBits f = 0 then .infinity (signBit f) else .notANumber := by
+      rw [unpack_eq]
+      change (if biasedExpBits f = 2047 then _ else _) = _
+      rw [if_pos hbE]
+      rfl
     by_cases hm : (f.toBits &&& 0x000F_FFFF_FFFF_FFFF : UInt64) = 0
     · have hm0 : mantissaBits f = 0 := by rw [← hmant, hm]; rfl
-      have hNaN : ¬ isNaNBits f = true := by simp [isNaNBits, hbE, hm0]
       rw [if_neg (by simp [hm])]
-      simp only [hNaN, Bool.false_eq_true, if_false, signBit, withSign]
+      simp only [hmodel, hm0, ↓reduceIte, signBit, withSign]
       split <;> simp_all
     · have hm0 : mantissaBits f ≠ 0 := by
         intro hc
         exact hm (UInt64.toNat_inj.mp (by rw [hmant, hc]; rfl))
-      have hNaN : isNaNBits f = true := by simp [isNaNBits, hbE, hm0]
       rw [if_pos hm]
-      simp [hNaN]
+      simp [hmodel, hm0]
   · rw [if_neg h7, if_neg h7]
     exact emitTail_eq _ _ _
 
 /-- The live `Float → String` registration (`CsimpPin.lean` asserts it is
     in force). -/
 @[csimp]
-theorem floatToStrRef_csimp : @floatToStrRef = @floatToString := by
+theorem floatToString_csimp : @Text.floatToString = @floatToString := by
   funext f; exact (floatToString_eq f).symm
 
 end Srtfp.Schubfach

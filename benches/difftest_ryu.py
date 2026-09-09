@@ -3,7 +3,7 @@
 
 The shortest round-tripping decimal of a binary64 (with round-to-even tie
 break) is UNIQUE, so two correct shortest printers must agree exactly. We
-compare our verified Lean printer (`floatToStrRef`, the live v13 csimp) against
+compare our verified Lean printer (`Text.floatToString`, compiled to Schubfach) against
 `std::to_chars` (libstdc++'s Ryu/Schubfach) over random finite binary64 values,
 checking per input:
 

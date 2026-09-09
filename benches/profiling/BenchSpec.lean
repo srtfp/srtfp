@@ -5,22 +5,15 @@
    `benchFloatToString`.
 
      lake exe benchSpec <adversarial|nice|uniform> [--checksum]   (BENCH_N env) -/
-import Srtfp.Printer
+import Srtfp.Text.Float
 import Corpora
 
 open Srtfp
 
-/-- Verbatim copy of `Schubfach.decimalToStrRef`. -/
-def decimalToStrSpec (d : Decimal) : String :=
-  if d.significand = 0 then (match d.sign with | .negative => "-0" | .positive => "0")
-  else
-    let signStr := match d.sign with | .negative => "-" | .positive => ""
-    signStr ++ toString d.significand ++ "e" ++ toString d.exponent
-
-/-- The shape of `Schubfach.floatToStrRef`, over the grid-scan reference. -/
+/-- The shape of `Text.floatToString`, over the grid-scan reference. -/
 def floatToStrSpec (f : Float) : String :=
   match Printer.toDecimalBits f.toBits with
-  | some d => decimalToStrSpec d
+  | some d => Text.decimalToString d
   | none => if f.isNaN then "NaN" else if f < 0 then "-Infinity" else "Infinity"
 
 def corpusOf (label : String) : Array Float :=
