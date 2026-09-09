@@ -12,7 +12,7 @@ module
    = its integer form (`Tests.lean`, R18/R19) = the word-level kernel
    (`Kernel.lean`, F9 with the estimates of R20–R25), the live kernel.
 
-   Wired into `lake build` and `lake test` via SrtfpAudit.lean.
+   Wired into `lake build` and `lake test` via Test/Audit.lean.
    Not imported by `Srtfp.Perf`
    (it pulls the Lean frontend, which library clients don't need). -/
 

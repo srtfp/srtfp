@@ -10,7 +10,7 @@ module
    identity on valid words. What remains trusted is the compiler's
    `@[extern]` contract, as for every primitive type. The round-trip fails
    on NaN payloads (the runtime, like the model, canonicalises them; see
-   `SrtfpTest/RuntimeAxiomProbe.lean`), hence the side condition. -/
+   `Test/FloatRuntime.lean`), hence the side condition. -/
 public import Srtfp.Proofs.Model
 
 @[expose] public section

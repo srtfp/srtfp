@@ -1,6 +1,6 @@
 /- Regression checks for the audit boundary. Each fixture is discarded after
    checking, so the deliberately invalid declarations never enter the library. -/
-import SrtfpAudit
+import Test.Audit
 import Lean.Elab.Tactic.Decide
 
 open Lean Elab Command
@@ -9,7 +9,7 @@ private def rejects (setup : CommandElabM Unit) (reason : String) : CommandElabM
   withoutModifyingEnv do
     setup
     try
-      SrtfpAudit.checkModules #[(← getEnv).mainModule]
+      Test.Audit.checkModules #[(← getEnv).mainModule]
     catch e =>
       if ((← e.toMessageData.toString).splitOn reason).length > 1 then return
       throw e
@@ -21,7 +21,7 @@ run_cmd withoutModifyingEnv do
   elabCommand (← `(command| def AuditFixture.total : Nat → Nat
     | 0 => 0
     | n + 1 => AuditFixture.total n))
-  SrtfpAudit.checkModules #[(← getEnv).mainModule]
+  Test.Audit.checkModules #[(← getEnv).mainModule]
 
 -- Module ownership covers declarations outside the Srtfp namespace.
 run_cmd rejects (do
@@ -55,4 +55,4 @@ run_cmd rejects (do
   elabCommand (← `(command| theorem AuditFixture.native : (1 : Nat) = 1 := by native_decide))) "disallowed axiom"
 
 -- None of the rejected fixtures leaked into the environment.
-run_cmd SrtfpAudit.checkModules #[(← getEnv).mainModule]
+run_cmd Test.Audit.checkModules #[(← getEnv).mainModule]

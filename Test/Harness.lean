@@ -1,14 +1,6 @@
-/- Minimal in-repo test harness.
+/- Labelled runtime checks, using only the Lean toolchain. -/
 
-   Replaces the LSpec dependency: srtfp's suites only ever used
-   `TestSeq`, `++`, `test`, and `lspecIO`, and pinning an external
-   package across the toolchain matrix (4.27 … 4.33) proved impossible
-   (the pinned rev fails to elaborate on ≥4.32). This shim reproduces
-   exactly that surface with the same call syntax, so the corpus
-   modules are oblivious to the swap — and srtfp now depends on nothing
-   beyond the Lean toolchain, test suite included. -/
-
-namespace SrtfpSpec
+namespace Test.Harness
 
 /-- A flat sequence of labelled boolean checks. -/
 inductive TestSeq where
@@ -44,7 +36,7 @@ structure Suite where
 def Suite.ofList (groups : List (String × List TestSeq)) : Suite := ⟨groups⟩
 
 /-- Run every group; exit code 1 iff any check failed. -/
-def lspecIO (s : Suite) (_args : List String) : IO UInt32 := do
+def Suite.run (s : Suite) : IO UInt32 := do
   let mut passed := 0
   let mut failed := 0
   for (name, seqs) in s.groups do
@@ -57,4 +49,4 @@ def lspecIO (s : Suite) (_args : List String) : IO UInt32 := do
   IO.println s!"{passed} passed, {failed} failed"
   pure (if failed == 0 then 0 else 1)
 
-end SrtfpSpec
+end Test.Harness

@@ -33,7 +33,7 @@
    binary fractions, powers of 2) match Ryu literally; cases that differ
    are commented inline with both Ryu's f32 string and our f64 value. -/
 
-import SrtfpTest.Spec
+import Test.Harness
 import Srtfp.Perf.Schubfach
 import Srtfp.Perf
 import Srtfp.Perf.StringFast
@@ -41,7 +41,7 @@ import Srtfp.Reader
 
 namespace Srtfp.Tests.Ryu
 
-open SrtfpSpec Srtfp
+open Test.Harness Srtfp
 
 /-! ## Helpers -/
 

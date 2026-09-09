@@ -7,14 +7,14 @@
    `run.sh` cross-checks the checksums, so all four see identical inputs.
 
    - `adversarial`: every finite value of the Ryu test suite
-     (`SrtfpTest/Ryu.lean`), hand-picked edge cases, ulp neighbours of
+     (`Test/Ryu.lean`), hand-picked edge cases, ulp neighbours of
      powers of two, and the `0.1 + 0.2` family.
    - `nice`: a stratified model of JSON/API payloads (counts, currency,
      coordinates, timestamps, computed values).
    - `uniform`: random finite binary64 words (uniform sign, biased
      exponent in `[0, 2046]` and mantissa; the zero word is skipped). -/
 import Std.Data.HashSet
-import SrtfpTest.Ryu
+import Test.Ryu
 
 namespace Corpora
 

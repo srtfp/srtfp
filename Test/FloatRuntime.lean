@@ -1,6 +1,6 @@
 /- Runtime probe of the `Float.toBits_ofBits` theorem.
 
-Run: `lake env lean SrtfpTest/RuntimeAxiomProbe.lean`
+Run: `lake env lean Test/FloatRuntime.lean`
 
 Since Lean v4.33 the non-NaN bit round trip is proved over core's
 `Float.Model` in `Srtfp/Bridge/Basic.lean`. This probe checks the compiled

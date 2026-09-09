@@ -80,7 +80,7 @@ rendered string. The specification preserves both signs of zero,
 accepts arbitrary decimal significands and exponents, and rounds
 overflow to signed infinity at the stated threshold.
 
-The build checks this boundary in [`SrtfpAudit.lean`](SrtfpAudit.lean),
+The build checks this boundary in [`Test/Audit.lean`](Test/Audit.lean),
 using upstream `Lean.collectAxioms`. It checks declarations by their
 defining module, including private helpers and declarations outside the
 `Srtfp` namespace, and permits only `propext`, `Quot.sound`, and
@@ -90,12 +90,13 @@ It also rejects local partial or unsafe definitions and unchecked
 the fast paths use equality proofs via `@[csimp]`.
 This single audit covers the reference, performance, and Float tiers
 and runs in both `lake build` and `lake test`.
+Its regression fixtures live in [`Test/AuditTests.lean`](Test/AuditTests.lean).
 As usual, the Lean kernel, compiler, and
 upstream runtime implementations are trusted.
 
 For a numerical review, also check the pinned [`lean-toolchain`](lean-toolchain)
 and the package options and audit target in [`lakefile.lean`](lakefile.lean).
-Run `lake build SrtfpAudit` on the checkout being reviewed. The numerical
+Run `lake build Test.Audit` on the checkout being reviewed. The numerical
 theorems certify `Reader.ofDecimalBits`, `Printer.toDecimalBits`,
 `Reader.ofDecimal`, and `Printer.toDecimal`; string rendering, text parsing,
 and the other `Decimal` operations have the additional review requirements below.
@@ -140,7 +141,7 @@ where the bit-field arithmetic of the fast kernels also lives), or the
 `Float` bridge (`Srtfp/Bridge/`).
 
 Zero dependencies beyond the Lean toolchain: no mathlib, and the test
-suite runs on a small in-repo harness (`SrtfpTest/Spec.lean`). CI builds
+suite runs on a small in-repo harness (`Test/Harness.lean`). CI builds
 and tests the library on Lean v4.33.0 (the pinned toolchain and the
 floor: core's `Float.Model` arrived in v4.33).
 The proofs' small compatibility layer (Mathlib's lemma names over core's

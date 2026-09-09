@@ -41,7 +41,7 @@ jobs:
           restore-keys: |
             lake-${{ matrix.toolchain }}-${{ hashFiles('lakefile.lean', 'lake-manifest.json') }}-
 
-      # Default targets build all tiers and audit them in SrtfpAudit.
+      # Default targets build all tiers and audit them in Test.Audit.
       - name: Build
         run: lake build
 

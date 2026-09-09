@@ -3,13 +3,13 @@
    it): the kernel's `Decimal` and the string emitter, on the Ryu corpora
    and the boundary values. -/
 
-import SrtfpTest.Spec
+import Test.Harness
 import Srtfp.Perf
-import SrtfpTest.Ryu
+import Test.Ryu
 
 namespace Srtfp.Tests.Kernel
 
-open SrtfpSpec Srtfp Srtfp.Schubfach Srtfp.Float
+open Test.Harness Srtfp Srtfp.Schubfach Srtfp.Float
 
 open Srtfp.Tests.Ryu in
 /-- The full Ryu corpus, flattened. -/

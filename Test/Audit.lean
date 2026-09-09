@@ -18,7 +18,7 @@ import Lean.Compiler.Old
 
 open Lean Elab Command
 
-namespace SrtfpAudit
+namespace Test.Audit
 
 /-- Check all declarations defined in the given modules or their submodules.
 The only permitted axioms are Lean's standard logical axioms. -/
@@ -44,7 +44,7 @@ def checkModules (roots : Array Name) : CommandElabM Unit := do
       unless #[`propext, `Quot.sound, `Classical.choice].contains ax do
         throwError "{name} depends on disallowed axiom {ax}"
 
-end SrtfpAudit
+end Test.Audit
 
 -- One audit covers the reference, performance, and Float tiers.
-run_cmd SrtfpAudit.checkModules #[`Srtfp]
+run_cmd Test.Audit.checkModules #[`Srtfp]

@@ -1,18 +1,19 @@
-import SrtfpTest.Spec
+import Test.Harness
 import Srtfp
-import SrtfpTest.Imports
-import SrtfpAudit
-import SrtfpTest.Audit
-import SrtfpTest.Ryu
-import SrtfpTest.Kernel
-import SrtfpTest.Text
-import SrtfpTest.Printer
-import SrtfpTest.Reader
+import Test.Imports
+import Test.Audit
+import Test.AuditTests
+import Test.FloatRuntime
+import Test.Ryu
+import Test.Kernel
+import Test.Text
+import Test.Printer
+import Test.Reader
 
-open SrtfpSpec
+open Test.Harness
 
 def main : IO UInt32 :=
-  lspecIO (.ofList [
+  Suite.run (.ofList [
     ("ryu d2s + f2s edge cases", [Srtfp.Tests.Ryu.ryuTests]),
     ("live printer kernel and emitter vs reference scan",
       [Srtfp.Tests.Kernel.runTests]),
@@ -20,4 +21,4 @@ def main : IO UInt32 :=
       [Srtfp.Tests.Text.runRoundTripTests, Srtfp.Tests.Text.runDialectTests]),
     ("reference printer vs live printer", [Srtfp.Tests.Printer.runTests]),
     ("reader: fast kernel and exact fallback vs reference", [Srtfp.Tests.Reader.runTests])
-  ]) []
+  ])

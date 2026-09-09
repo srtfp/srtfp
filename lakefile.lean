@@ -38,15 +38,14 @@ lean_lib SrtfpBridge where
 lean_lib SrtfpPerf where
   roots := #[`Srtfp.Perf]
 
--- All tiers share one audit and the same three standard logical axioms.
-@[default_target]
-lean_lib SrtfpAudit where
-  roots := #[`SrtfpAudit]
+-- Validation lives under Test/. Runtime suites are imported by Test.Main.
+lean_lib Test where
+  globs := #[.submodules `Test]
 
--- Test corpus modules (e.g. `SrtfpTest.Ryu`). The `test` exe imports from this
--- library; new corpora go in `SrtfpTest/*.lean` and are picked up automatically.
-lean_lib SrtfpTest where
-  globs := #[.submodules `SrtfpTest]
+-- The audit remains mandatory in the default build; the test runner also imports it.
+@[default_target]
+lean_lib Audit where
+  roots := #[`Test.Audit]
 
 -- The bench corpora (`benches/Corpora.lean`), generated at load time from a
 -- fixed seed. `lake exe genCorpora` writes them out for the other harnesses.
@@ -58,9 +57,9 @@ lean_exe genCorpora where
   srcDir := "benches"
   root := `GenCorpora
 
--- The test runner lives in `SrtfpTest/Main.lean` alongside the corpus modules.
+-- The test runner lives in `Test/Main.lean` alongside the corpus modules.
 lean_exe test where
-  root := `SrtfpTest.Main
+  root := `Test.Main
 
 -- Schubfach Float→Decimal kernel microbench (no String emit).
 lean_exe benchToDecimal where

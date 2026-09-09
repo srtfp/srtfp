@@ -2,15 +2,15 @@
    `Printer.toDecimalBits` and `Printer.shortest` deliberately never get a
    csimp registration, so the left side really runs the exact-rational
    reference; `Printer.toDecimal` is redirected to the v7 kernel. -/
-import SrtfpTest.Spec
-import SrtfpTest.Ryu
+import Test.Harness
+import Test.Ryu
 import Srtfp.Printer
 import Srtfp.Perf.Schubfach
 import Srtfp.Perf
 
 namespace Srtfp.Tests.Printer
 
-open SrtfpSpec Srtfp
+open Test.Harness Srtfp
 
 open Srtfp.Tests.Ryu in
 private def corpus : Array Float :=

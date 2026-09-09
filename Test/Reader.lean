@@ -7,13 +7,13 @@
    random sweep of `(m, e)` pairs compares the fast kernel and the exact
    fallback against the reference `read` evaluated on `Rat`. -/
 
-import SrtfpTest.Spec
+import Test.Harness
 import Srtfp.Perf.ReadFast
-import SrtfpTest.Ryu
+import Test.Ryu
 
 namespace Srtfp.Tests.Reader
 
-open SrtfpSpec Srtfp Srtfp.Reader
+open Test.Harness Srtfp Srtfp.Reader
 
 open Srtfp.Tests.Ryu in
 /-- The Ryu suite: every `(float, shortest decimal)` pair. -/

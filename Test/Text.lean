@@ -3,15 +3,15 @@
    pair, plus per-dialect accept/reject spot checks mirroring the
    grammar deltas (JSON vs MLIR vs YAML). -/
 
-import SrtfpTest.Spec
-import SrtfpTest.Ryu
+import Test.Harness
+import Test.Ryu
 import Srtfp.Text
 import Srtfp.Perf.Schubfach
 import Srtfp.Perf
 
 namespace Srtfp.Tests.Text
 
-open SrtfpSpec Srtfp Srtfp.Text
+open Test.Harness Srtfp Srtfp.Text
 
 open Srtfp.Tests.Ryu in
 private def corpusFloats : Array Float :=
