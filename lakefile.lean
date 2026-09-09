@@ -24,13 +24,6 @@ package srtfp where
 lean_lib Srtfp where
   roots := #[`Srtfp]
 
--- The Float tier: everything in `Srtfp` plus the bridge to the runtime
--- `Float` type (`Srtfp/Bridge.lean` and below), across the bit round-trip
--- proven over core's `Float.Model` (Lean ≥ v4.33).
-@[default_target]
-lean_lib SrtfpBridge where
-  roots := #[`Srtfp.Bridge]
-
 -- The performance tier: verified `@[csimp]` fast paths (`Srtfp/Perf.lean`
 -- and below). Opt-in for clients; built by default so the equivalence
 -- proofs and the axiom audit always cover it.

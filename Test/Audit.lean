@@ -7,7 +7,7 @@
    must be total and safe; the compiler's recursive helpers are handled below.
    Local runtime replacements must carry equality proofs (`@[csimp]`),
    rather than an unchecked `@[extern]` or `@[implemented_by]` contract. -/
-import Srtfp.Bridge
+import Srtfp
 import Srtfp.Perf
 import Srtfp.Perf.CsimpPin
 import Lean.Elab.Command
@@ -46,5 +46,5 @@ def checkModules (roots : Array Name) : CommandElabM Unit := do
 
 end Test.Audit
 
--- One audit covers the reference, performance, and Float tiers.
+-- One audit covers both implementations and their word and Float APIs.
 run_cmd Test.Audit.checkModules #[`Srtfp]

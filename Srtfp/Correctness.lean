@@ -7,8 +7,7 @@ module
    `Srtfp/Proofs/Printer/Spec.lean`.
 
    The runtime entry points are certified against this same specification
-   below. `Srtfp/Bridge/Correctness.lean` also provides the original API
-   with competitors quantified over `Float` instead of bit patterns. -/
+   below, through their bit patterns. -/
 
 public import Srtfp.Spec
 public import Srtfp.Reader

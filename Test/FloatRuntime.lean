@@ -1,16 +1,15 @@
-/- Runtime probe of the `Float.toBits_ofBits` theorem.
+/- Runtime probe of `Float.ofBits` and `Float.toBits`.
 
 Run: `lake env lean Test/FloatRuntime.lean`
 
 Since Lean v4.33 the non-NaN bit round trip is proved over core's
-`Float.Model` in `Srtfp/Bridge/Basic.lean`. This probe checks the compiled
+`Float.Model` in `Srtfp/Proofs/Model.lean`. This probe checks the compiled
 runtime against that model on zeros, subnormals, normals, boundary values,
 and infinities. NaN payloads are canonicalised to 0x7FF8000000000000,
 which is why the theorem excludes them. These samples exercise the
 runtime contract; they are not the proof of the universal theorem. -/
 
-import Srtfp.Bridge.Basic
-import Srtfp.Perf.Bits
+import Srtfp.Proofs.Model
 
 /-- The NaN bit patterns: biased exponent `0x7FF` and a nonzero mantissa. -/
 def isNaNPattern (x : UInt64) : Bool :=

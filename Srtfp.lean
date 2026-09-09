@@ -8,12 +8,9 @@ module
    This umbrella is the reference tier: the definitions, the proof
    stack, and the certification in `Srtfp/Correctness.lean`. It is
    axiom-free beyond `propext` / `Quot.sound` / `Classical.choice`.
-   Two further tiers are opt-in:
-
-     - `Srtfp.Perf`   — verified runtime fast paths (`@[csimp]`);
-     - `Srtfp.Bridge` — the same theorems on the runtime `Float` type,
-                        across the bit round-trip proven over core's
-                        `Float.Model` (`Srtfp/Bridge/Basic.lean`). -/
+   Both the bit-pattern and runtime `Float` APIs satisfy the same
+   specification. `Srtfp.Perf` adds verified runtime fast paths
+   (`@[csimp]`) as an opt-in import. -/
 
 public import Srtfp.Spec
 public import Srtfp.Decimal

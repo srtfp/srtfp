@@ -30,7 +30,7 @@ likewise the parser's: a function is a correct shortest-decimal printer iff it i
 is `Reader.ofDecimalBits`. For the exact statements, see
 [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean).
 
-The library is three tiers, each a separate import:
+The library has two implementation tiers, each a separate import:
 
 - **Reference (`import Srtfp`, the default)**: the specification made
   effective, in exact rational arithmetic over Lean's own model of the
@@ -38,7 +38,8 @@ The library is three tiers, each a separate import:
   tests the two grid neighbours of the value against its rounding
   interval; the reader rounds the value to the binary64 grid around it
   and packs the result with core's `Float.Model.pack`. Plus the proofs
-  and the theorems above stated on raw IEEE-754 bit patterns (`UInt64`).
+  and certification of both the `UInt64` and runtime `Float` entry points
+  against the same specification over raw IEEE-754 bit patterns.
   Uses nothing beyond Lean's three standard axioms (`propext`,
   `Quot.sound`, `Classical.choice`); a build-time audit enforces this.
 - **Performance (`import Srtfp.Perf`, opt-in)**: Giulietti's Schubfach
@@ -49,14 +50,6 @@ The library is three tiers, each a separate import:
   compiled code runs the fast path while the proofs still speak about
   the reference. Same axiom budget as the reference tier. Deleting
   `Srtfp/Perf/` leaves the library working, only slower.
-- **Float (`import Srtfp.Bridge`, opt-in)**: an equivalent formulation
-  whose nearest-value competitors range over `Float` rather than bit patterns,
-  across the bit round-trip
-  `Float.toBits_ofBits` (constructing a non-NaN `Float` from bits and
-  reading it back gives the same bits), proven over core's `Float.Model`
-  in `Srtfp/Bridge/Basic.lean`. No axiom; what is trusted is that the
-  compiled `Float.ofBits` and `Float.toBits` implement their definitions,
-  the `@[extern]` contract every primitive type carries.
 
 ## Reading the code
 
@@ -72,8 +65,7 @@ specification has exactly one model, and the implementation never
 needs to be inspected. The reader theorem also establishes existence,
 so the specification's “under every correct reader” is not vacuous.
 `ofDecimal_spec` and `toDecimal_spec` certify the runtime `Float` entry
-points against this same specification; auditing them does not require
-reading the separate Float-quantified vocabulary in `Srtfp/Bridge/`.
+points against this same specification through `.toBits`.
 
 Here “shortest” counts **significand digits**, not characters in a
 rendered string. The specification preserves both signs of zero,
@@ -88,7 +80,7 @@ defining module, including private helpers and declarations outside the
 It also rejects local partial or unsafe definitions and unchecked
 `@[extern]` and `@[implemented_by]` replacements;
 the fast paths use equality proofs via `@[csimp]`.
-This single audit covers the reference, performance, and Float tiers
+This single audit covers the reference and performance tiers
 and runs in both `lake build` and `lake test`.
 Its regression fixtures live in [`Test/AuditTests.lean`](Test/AuditTests.lean).
 As usual, the Lean kernel, compiler, and
@@ -144,9 +136,8 @@ Everything else is proof (`Srtfp/Proofs/`; `Proofs/Model.lean` relates
 core's `pack` and `unpack`, `Proofs/Reader/` and `Proofs/Printer/` are the
 two correctness proofs), operations on `Decimal`
 (`Srtfp/Decimal.lean`), the text layer (`Srtfp/Text.lean`, `Decimal` ↔
-`String` for JSON, YAML, MLIR, …), the performance tier (`Srtfp/Perf/`,
-where the bit-field arithmetic of the fast kernels also lives), or the
-`Float` bridge (`Srtfp/Bridge/`).
+`String` for JSON, YAML, MLIR, …), or the performance tier (`Srtfp/Perf/`,
+where the bit-field arithmetic of the fast kernels also lives).
 
 Zero dependencies beyond the Lean toolchain: no mathlib, and the test
 suite runs on a small in-repo harness (`Test/Harness.lean`). CI builds
