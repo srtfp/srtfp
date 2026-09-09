@@ -103,11 +103,14 @@ decimal point, the exponent, and removal of trailing significand zeros.
 It uses upstream digit conversion and imports no parser or canonicalisation
 implementation. Those implementations do not need manual review.
 
-`format_spec` guarantees that formatting a canonical decimal produces a
-permitted spelling of the same value, for compatible options. To review
-that condition and the exact presentation choices (notation windows,
-padding, exponent case), also read `FormatOptions`, `CompatibleWith`, and
-the formatting definitions in [`Srtfp/Text.lean`](Srtfp/Text.lean).
+For exact presentation, also read
+[`Srtfp/Text/FormatOptions.lean`](Srtfp/Text/FormatOptions.lean).
+`Formats` specifies the decimal-point position, padding, and exponent spelling;
+`format_spec` characterizes the exact output string, and `correct_iff_format`
+says these requirements determine the formatter uniquely on **every** `Decimal`,
+including noncanonical inputs. `format_parses` separately guarantees a permitted
+spelling of the same canonical value when the options satisfy `CompatibleWith`.
+The formatter and its helpers in `Srtfp/Text.lean` need no manual review.
 The certified grammar is defined by the dialect flags; it does not establish
 conformance to an external JSON, YAML, or MLIR standard.
 `Decimal.neg_spec` in [`Srtfp/Proofs/Decimal.lean`](Srtfp/Proofs/Decimal.lean)

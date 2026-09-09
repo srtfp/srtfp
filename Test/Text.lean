@@ -87,5 +87,14 @@ def runDialectTests : TestSeq :=
     ++ test "parse canonicalises padding and uppercase exponents"
       (parse .jsonStrict "1.500E2" == some ⟨.positive, 15, 1⟩
         && parse .mlir "2.000000e+00" == some ⟨.positive, 2, 0⟩)
+    ++ test "formatting uses the exact notation-window boundaries"
+      (format {} ⟨.positive, 1, -5⟩ == "1e-5"
+        && format {} ⟨.positive, 1, -4⟩ == "0.0001"
+        && format {} ⟨.positive, 1, 15⟩ == "1000000000000000"
+        && format {} ⟨.positive, 1, 16⟩ == "1e16")
+    ++ test "formatting retains the supplied noncanonical digits and exponent"
+      (format {} ⟨.positive, 1500, -3⟩ == "1.500"
+        && format {} ⟨.negative, 0, -3⟩ == "-0.000"
+        && format {} ⟨.positive, 0, 23⟩ == "0e23")
 
 end Srtfp.Tests.Text

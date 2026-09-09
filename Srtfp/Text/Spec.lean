@@ -1,8 +1,8 @@
 module
-/- The decimal text grammar and its canonical value.
+/- Decimal text grammar, canonical values, and exact presentation.
    This specification imports no parsing, formatting, or canonicalisation code. -/
 public import Srtfp.Spec
-public import Srtfp.DecimalSyntax
+public import Srtfp.Text.FormatOptions
 public import Init.Data.Nat.ToString
 
 @[expose] public section
@@ -49,5 +49,30 @@ def Parses (opts : DecimalSyntax) (s : String) (d : Decimal) : Prop :=
     Exponent tail exp ∧
     s.toList = pre ++ intD ++ (if dot then '.' :: fracD else []) ++ tail ∧
     Normalizes sign (Nat.ofDigitChars 10 (intD ++ fracD) 0) (exp - fracD.length) d
+
+/-- Exact decimal presentation. `point` counts digits before the decimal point;
+    positions outside the significand are filled with zeros. -/
+def Formats (opts : FormatOptions) (d : Decimal) (s : String) : Prop :=
+  let ds := Nat.toDigits 10 d.significand
+  let leading : Int := d.exponent + ds.length - 1
+  let scientific := opts.mode.scientificAt leading
+  let point : Int := if scientific then 1 else leading + 1
+  let intD := if point ≤ 0 then ['0'] else
+    ds.take point.toNat ++ List.replicate (point.toNat - ds.length) '0'
+  let frac := List.replicate (-point).toNat '0' ++ ds.drop point.toNat
+  let minFrac := if scientific then opts.sciMinFracDigits else opts.minFracDigits
+  let fracD := frac ++ List.replicate (minFrac - frac.length) '0'
+  let expD := Nat.toDigits 10 leading.natAbs
+  let suffix := if scientific then
+    (if opts.upperExp then 'E' else 'e') ::
+      (if leading < 0 then ['-'] else if opts.expPlus then ['+'] else []) ++
+      List.replicate (opts.expMinDigits - expD.length) '0' ++ expD
+    else []
+  s.toList = (match d.sign with | .negative => ['-'] | .positive => []) ++
+    intD ++ (if fracD = [] then [] else '.' :: fracD) ++ suffix
+
+/-- A formatter obeys the presentation rules on every decimal. -/
+def CorrectFormatter (opts : FormatOptions) (p : Decimal → String) : Prop :=
+  ∀ d, Formats opts d (p d)
 
 end Srtfp.Text.Spec
