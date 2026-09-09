@@ -1,13 +1,15 @@
 module
 /- Decimal ↔ String: a dialect-parameterized formatter and parser.
 
-   `Srtfp`'s verified core stops at the `Decimal` record; this module is
+   `Srtfp`'s numerical core stops at the `Decimal` record; this module is
    the shared text layer so that consumers (MLIR, JSON, YAML, ...)
    don't each hand-roll literal printing and parsing. The lexical shape a
    dialect *accepts* is a `DecimalSyntax` (`Srtfp/DecimalSyntax.lean`);
    the shape a printer *emits* is a `FormatOptions` below. One engine,
    per-dialect instantiation; `Srtfp/Proofs/Text.lean` proves
    `parse (format d) = some d` once, for every compatible pair.
+   `Text/Spec.lean` independently specifies accepted strings and their
+   values; `Text/Correctness.lean` certifies both text entry points.
 
    Both directions go through the `Lexeme`: the skeleton
    `[-]int[.frac][e exp]` of a literal, as digit lists.
@@ -30,6 +32,7 @@ module
 
 public import Srtfp.Decimal
 public import Srtfp.DecimalSyntax
+public import Init.Data.Nat.ToString
 
 @[expose] public section
 
@@ -74,6 +77,10 @@ structure FormatOptions where
   upperExp : Bool := false
   deriving Repr, DecidableEq, Inhabited
 
+/-- The formatter emits a decimal point whenever the parsing dialect requires one. -/
+def FormatOptions.CompatibleWith (fopts : FormatOptions) (popts : DecimalSyntax) : Prop :=
+  popts.requireDot = true → 1 ≤ fopts.minFracDigits ∧ 1 ≤ fopts.sciMinFracDigits
+
 namespace FormatOptions
 
 /-- Python `repr`: the `(-5, 16)` window, positional `.0`, bare
@@ -99,17 +106,11 @@ end FormatOptions
 
 /-! ## Digits -/
 
-def digitChar (d : Nat) : Char := Char.ofNat (48 + d)
-
-def digitVal (c : Char) : Nat := c.toNat - 48
-
 /-- Decimal digits of `n`, most significant first (`natChars 0 = ['0']`). -/
-def natChars (n : Nat) : List Char :=
-  if n < 10 then [digitChar n] else natChars (n / 10) ++ [digitChar (n % 10)]
-decreasing_by omega
+def natChars (n : Nat) : List Char := Nat.toDigits 10 n
 
 /-- Value of a digit string, most significant first. -/
-def charsVal (ds : List Char) : Nat := ds.foldl (fun a c => 10 * a + digitVal c) 0
+def charsVal (ds : List Char) : Nat := Nat.ofDigitChars 10 ds 0
 
 /-! ## Lexemes -/
 

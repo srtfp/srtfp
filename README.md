@@ -101,17 +101,25 @@ theorems certify `Reader.ofDecimalBits`, `Printer.toDecimalBits`,
 `Reader.ofDecimal`, and `Printer.toDecimal`; string rendering, text parsing,
 and the other `Decimal` operations have the additional review requirements below.
 
-The text layer has a narrower proved guarantee:
-[`Text.parse_format`](Srtfp/Proofs/Text.lean) says parsing a formatted
-canonical decimal recovers it, for compatible options. This does not
-specify the meaning of every accepted input string or establish conformance
-to JSON, YAML, or MLIR. If those details matter to a consumer, the
-additional audit surface is [`Srtfp/DecimalSyntax.lean`](Srtfp/DecimalSyntax.lean),
-the parsing and formatting definitions in [`Srtfp/Text.lean`](Srtfp/Text.lean),
-the canonicalisation helpers used by parsing in
-[`Srtfp/Decimal.lean`](Srtfp/Decimal.lean), and the `CompatibleWith` condition
-and `parse_format` statement in the text proof file. Reviewing all of
-`Decimal.lean` also covers its other constructors, literal instances, and negation.
+For decimal text, additionally read [`Srtfp/DecimalSyntax.lean`](Srtfp/DecimalSyntax.lean),
+[`Srtfp/Text/Spec.lean`](Srtfp/Text/Spec.lean), and the theorem statements in
+[`Srtfp/Text/Correctness.lean`](Srtfp/Text/Correctness.lean).
+`parse_spec` characterizes every accepted string and its canonical value;
+`correct_iff_parse` says these requirements determine the parser uniquely,
+including rejection. The specification describes signs, digit runs, the
+decimal point, the exponent, and removal of trailing significand zeros.
+It uses upstream digit conversion and imports no parser or canonicalisation
+implementation. Those implementations do not need manual review.
+
+`format_spec` guarantees that formatting a canonical decimal produces a
+permitted spelling of the same value, for compatible options. To review
+that condition and the exact presentation choices (notation windows,
+padding, exponent case), also read `FormatOptions`, `CompatibleWith`, and
+the formatting definitions in [`Srtfp/Text.lean`](Srtfp/Text.lean).
+The certified grammar is defined by the dialect flags; it does not establish
+conformance to an external JSON, YAML, or MLIR standard.
+Other `Decimal` constructors, literal instances, and negation still require
+reviewing [`Srtfp/Decimal.lean`](Srtfp/Decimal.lean) when used.
 
 The performance tier's `Schubfach.floatToString` has a separate reference
 format: zero as `"0"` or `"-0"`, nonzero finite values as signed
@@ -121,7 +129,7 @@ of [`Srtfp/Perf/StringFast.lean`](Srtfp/Perf/StringFast.lean), their
 `signBit`, `biasedExpBits`, `mantissaBits`, and `isNaNBits` helpers in
 [`Srtfp/Perf/Bits.lean`](Srtfp/Perf/Bits.lean), and the `floatToString_eq`
 statement in [`Srtfp/Perf/Schubfach/Entry.lean`](Srtfp/Perf/Schubfach/Entry.lean).
-This string function is not covered by `Text.parse_format`.
+This string function is not covered by `Text.format_spec`.
 
 The implementation itself is two short modules of exact arithmetic,
 worth reading to understand the algorithms; both import only the

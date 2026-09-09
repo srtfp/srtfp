@@ -29,10 +29,6 @@ open Float.Model.UnpackedFloat (Sign)
 
 /-! ## Digits -/
 
-theorem isDigit_digitChar : ∀ d, d < 10 → (digitChar d).isDigit = true := by decide
-theorem digitVal_digitChar : ∀ d, d < 10 → digitVal (digitChar d) = d := by decide
-theorem digitChar_eq_zero : ∀ d, d < 10 → digitChar d = '0' → d = 0 := by decide
-
 /-- A digit string. -/
 def Digits (cs : List Char) : Prop := ∀ c ∈ cs, c.isDigit = true
 
@@ -55,69 +51,38 @@ theorem digits_replicate (k : Nat) : Digits (List.replicate k '0') :=
 theorem digits_padTo {cs : List Char} (h : Digits cs) (n : Nat) : Digits (padTo n cs) :=
   h.append (digits_replicate _)
 
-theorem digits_natChars (n : Nat) : Digits (natChars n) := by
-  induction n using natChars.induct with
-  | case1 n h =>
-    intro c hc
-    rw [natChars, if_pos h, List.mem_singleton] at hc
-    exact hc ▸ isDigit_digitChar n h
-  | case2 n h ih =>
-    rw [natChars, if_neg h]
-    exact ih.append fun c hc => by
-      rw [List.mem_singleton] at hc
-      exact hc ▸ isDigit_digitChar _ (Nat.mod_lt _ (by decide))
+theorem digits_natChars (n : Nat) : Digits (natChars n) :=
+  fun _ hc => Nat.isDigit_of_mem_toDigits (by decide) (by decide) hc
 
-theorem natChars_ne_nil (n : Nat) : natChars n ≠ [] := by
-  rw [natChars]; split <;> simp
+theorem natChars_ne_nil (n : Nat) : natChars n ≠ [] := Nat.toDigits_ne_nil
 
-theorem natChars_zero : natChars 0 = ['0'] := by
-  rw [natChars, if_pos (by decide)]; rfl
+theorem natChars_zero : natChars 0 = ['0'] := Nat.toDigits_zero 10
 
 /-- Only zero prints with a leading `'0'`. -/
 theorem natChars_head_zero (n : Nat) (rest : List Char) :
     (natChars n ++ rest).head? = some '0' → n = 0 := by
-  induction n using natChars.induct generalizing rest with
-  | case1 n h => simpa [natChars, h] using digitChar_eq_zero n h
-  | case2 n h ih =>
-    rw [natChars, if_neg h, List.append_assoc]
-    intro hz
-    have := ih _ hz
-    omega
+  induction n using Nat.strongRecOn generalizing rest with
+  | ind n ih =>
+    by_cases h : n < 10
+    · simp [natChars, Nat.toDigits_of_lt_base h]
+    · rw [natChars, Nat.toDigits_of_base_le (by decide) (by omega), List.append_assoc]
+      intro hz
+      have := ih (n / 10) (Nat.div_lt_self (by omega) (by decide)) _ hz
+      omega
 
 /-! ## `charsVal` -/
 
-private theorem foldl_shift (cs : List Char) (a : Nat) :
-    cs.foldl (fun a c => 10 * a + digitVal c) a
-      = a * 10 ^ cs.length + cs.foldl (fun a c => 10 * a + digitVal c) 0 := by
-  induction cs generalizing a with
-  | nil => simp
-  | cons c cs ih =>
-    simp only [List.foldl, List.length_cons]
-    rw [ih (10 * a + digitVal c), ih (10 * 0 + digitVal c)]
-    grind
-
 theorem charsVal_append (xs ys : List Char) :
     charsVal (xs ++ ys) = charsVal xs * 10 ^ ys.length + charsVal ys := by
-  simp only [charsVal, List.foldl_append]
-  rw [foldl_shift]
-
-theorem charsVal_cons (c : Char) (cs : List Char) :
-    charsVal (c :: cs) = digitVal c * 10 ^ cs.length + charsVal cs := by
-  simpa [charsVal] using charsVal_append [c] cs
+  simpa [charsVal, Nat.mul_comm] using
+    (Nat.ofDigitChars_append (b := 10) (l := xs) (m := ys) 0).trans
+      Nat.ofDigitChars_eq_ofDigitChars_zero
 
 theorem charsVal_replicate (k : Nat) : charsVal (List.replicate k '0') = 0 := by
-  have h0 : digitVal '0' = 0 := by decide
-  induction k with
-  | zero => rfl
-  | succ k ih => simp [List.replicate_succ, charsVal_cons, ih, h0]
+  simp [charsVal]
 
-theorem charsVal_natChars (n : Nat) : charsVal (natChars n) = n := by
-  induction n using natChars.induct with
-  | case1 n h => simp [natChars, h, charsVal, digitVal_digitChar n h]
-  | case2 n h ih =>
-    rw [natChars, if_neg h, charsVal_append, ih]
-    simp [charsVal, digitVal_digitChar (n % 10) (Nat.mod_lt _ (by decide))]
-    omega
+theorem charsVal_natChars (n : Nat) : charsVal (natChars n) = n :=
+  Nat.ofDigitChars_ten_toDigits
 
 /-! ## Canonicalisation absorbs trailing zeros -/
 
@@ -275,14 +240,6 @@ theorem lex_render {popts : DecimalSyntax} {l : Lexeme} (hwf : l.WF popts) (fopt
     cases sign <;> simp [lex, render, hsign, lexSign_neg, hM, lexExpTail_expChars]
 
 /-! ## `place` produces well-formed lexemes -/
-
-/-- Compatibility of a printer with a dialect: if the dialect requires
-    the decimal point, the printer always emits one. The only
-    interaction — everything else a printer can emit (`'+'`-signed or
-    zero-padded exponents, padded fractions) is accepted by every
-    dialect. -/
-def FormatOptions.CompatibleWith (fopts : FormatOptions) (popts : DecimalSyntax) : Prop :=
-  popts.requireDot = true → 1 ≤ fopts.minFracDigits ∧ 1 ≤ fopts.sciMinFracDigits
 
 theorem split_wf {popts : DecimalSyntax} (sign : Sign) {D : List Char} {w n : Nat} (e : Option Int)
     (hD : Digits D) (hDne : D ≠ []) (hw : 1 ≤ w)

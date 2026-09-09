@@ -38,5 +38,6 @@ public import Srtfp.Proofs.Printer.Spec
 public import Srtfp.Correctness
 public import Srtfp.Text
 public import Srtfp.Proofs.Text
+public import Srtfp.Text.Correctness
 
 @[expose] public section

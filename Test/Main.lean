@@ -1,6 +1,7 @@
 import Test.Harness
 import Srtfp
 import Test.Imports
+import Test.SpecImports
 import Test.Audit
 import Test.AuditTests
 import Test.FloatRuntime
