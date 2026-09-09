@@ -53,10 +53,9 @@ def ofNat (n : Nat) : Decimal := canonical ⟨.positive, n, 0⟩
 def ofInt (i : Int) : Decimal :=
   canonical ⟨if i < 0 then .negative else .positive, i.natAbs, 0⟩
 
-/-- Negation: flip sign (zero stays canonical). -/
+/-- Negation flips the sign, including between positive and negative zero. -/
 def neg (d : Decimal) : Decimal :=
-  if d.significand = 0 then zero
-  else { d with sign := -d.sign }
+  { d with sign := -d.sign }
 
 instance : Neg Decimal := ⟨neg⟩
 

@@ -101,6 +101,10 @@ def runTests : TestSeq :=
   let (badR, fastR) := sweep ds
   test s!"Ryu-suite decimals read back to their floats ({ryuPairs.size} pairs)" (rt.isEmpty)
   ++ test "hand-picked edge decimals agree with the reference reader" (badE = 0)
+  ++ test "decimal literals and negation preserve both signs of zero"
+      (ofDecimalBits (-0.0 : Decimal) == 0x8000000000000000
+        && ofDecimalBits (-(-0.0 : Decimal)) == 0
+        && ofDecimalBits (-(-(-0.0 : Decimal))) == 0x8000000000000000)
   ++ test s!"random decimals agree with the reference reader ({ds.size} cases, {fastR} on the fast path)"
       (badR = 0 && fastR * 10 ≥ ds.size * 9)
 

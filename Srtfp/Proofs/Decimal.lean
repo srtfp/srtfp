@@ -55,4 +55,19 @@ theorem mk_pos_props (sign : Sign) (sig : Nat) (exp : Int) (hsig : sig ≠ 0) :
     obtain ⟨hval, hexp_le, hsne, hcanon⟩ := canonicaliseAux_value_gen sig hsig exp s' e' hp
     exact ⟨trivial, hsne, hcanon, hexp_le, hval⟩
 
+namespace Decimal
+
+/-- Negation preserves the magnitude and reverses the sign, even at zero. -/
+theorem neg_spec (d : Decimal) :
+    (-d).sign = -d.sign ∧ (-d).significand = d.significand ∧
+      (-d).exponent = d.exponent := ⟨rfl, rfl, rfl⟩
+
+@[simp] theorem neg_neg (d : Decimal) : -(-d) = d := by
+  rcases d with ⟨sign, sig, exp⟩
+  cases sign <;> rfl
+
+@[simp] theorem neg_isCanonical (d : Decimal) : (-d).IsCanonical ↔ d.IsCanonical := Iff.rfl
+
+end Decimal
+
 end Srtfp

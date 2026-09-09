@@ -110,7 +110,9 @@ padding, exponent case), also read `FormatOptions`, `CompatibleWith`, and
 the formatting definitions in [`Srtfp/Text.lean`](Srtfp/Text.lean).
 The certified grammar is defined by the dialect flags; it does not establish
 conformance to an external JSON, YAML, or MLIR standard.
-Other `Decimal` constructors, literal instances, and negation still require
+`Decimal.neg_spec` in [`Srtfp/Proofs/Decimal.lean`](Srtfp/Proofs/Decimal.lean)
+certifies that negation flips the sign and preserves the magnitude, including
+signed zero. Other `Decimal` constructors and literal instances still require
 reviewing [`Srtfp/Decimal.lean`](Srtfp/Decimal.lean) when used.
 
 The performance tier's `Schubfach.floatToString` has a separate reference
