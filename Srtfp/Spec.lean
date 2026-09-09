@@ -105,7 +105,8 @@ structure CorrectReader (p : Decimal → UInt64) : Prop where
   overflow : ∀ d : Decimal, 2 ^ 1024 - 2 ^ 970 ≤ Rat.abs (toRat d) →
     unpack (p d) = .infinity d.sign
 
-/-- `d` reads back to `w` under every correct reader. -/
+/-- `d` reads back to `w` under every correct reader. The existence and
+uniqueness theorem `correct_iff_ofDecimal` makes this non-vacuous. -/
 def ReadsTo (d : Decimal) (w : UInt64) : Prop := ∀ p, CorrectReader p → p d = w
 
 /-! ## The printer -/

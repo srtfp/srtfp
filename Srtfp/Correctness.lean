@@ -1,15 +1,14 @@
 module
-/- The two correctness theorems, one per direction: a function is a
+/- The correctness theorems: a function is a
    correct reader iff it is `Reader.ofDecimalBits` (`Srtfp/Reader.lean`),
    and a correct printer iff it is `Printer.toDecimalBits`
    (`Srtfp/Printer.lean`). Correctness is defined in `Srtfp/Spec.lean`; the
    proofs are `Srtfp/Proofs/Reader/Spec.lean` and
    `Srtfp/Proofs/Printer/Spec.lean`.
 
-   The same theorems on the runtime `Float` type are derived in
-   `Srtfp/Bridge/Correctness.lean`; those cross to `Float` through the
-   bit round-trip `Float.toBits_ofBits`, a theorem over core's
-   `Float.Model` (`Srtfp/Bridge/Basic.lean`). -/
+   The runtime entry points are certified against this same specification
+   below. `Srtfp/Bridge/Correctness.lean` also provides the original API
+   with competitors quantified over `Float` instead of bit patterns. -/
 
 public import Srtfp.Spec
 public import Srtfp.Reader
@@ -20,7 +19,6 @@ public import Srtfp.Proofs.Printer.Spec
 @[expose] public section
 
 namespace Srtfp.Spec
-
 
 /-- **A function is a correct reader iff it is `Reader.ofDecimalBits`**,
 bit for bit. -/
@@ -40,5 +38,23 @@ theorem correct_iff_toDecimal (p : UInt64 → Option Decimal) :
 theorem shortest_decimal_exists_unique (w : UInt64) (h_fin : (unpack w).isFinite) :
     ∃ d : Decimal, ShortestDecimal w d ∧ ∀ d' : Decimal, ShortestDecimal w d' → d' = d :=
   Printer.shortestDecimal_exists_unique w h_fin
+
+/-- The runtime reader satisfies the same specification, on its result's bits. -/
+theorem ofDecimal_spec : CorrectReader (fun d => (Reader.ofDecimal d).toBits) :=
+  (correct_iff_ofDecimal _).mpr Reader.ofDecimal_toBits
+
+/-- The runtime printer rejects precisely the non-finite inputs. Every
+successful result is the canonical, shortest, closest, ties-to-even decimal
+from the same bit-level specification. -/
+theorem toDecimal_spec (f : Float) :
+    match Printer.toDecimal f with
+    | none => (unpack f.toBits).isFinite = false
+    | some d => (unpack f.toBits).isFinite = true ∧ ShortestDecimal f.toBits d := by
+  have hp := (correct_iff_toDecimal Printer.toDecimalBits).mpr rfl
+  cases hf : (unpack f.toBits).isFinite with
+  | false => simp [Printer.toDecimal_eq_bits, hp.special _ hf]
+  | true =>
+    obtain ⟨d, hd, hs⟩ := hp.finite _ hf
+    simpa [Printer.toDecimal_eq_bits, hd, hf] using hs
 
 end Srtfp.Spec

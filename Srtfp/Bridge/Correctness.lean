@@ -154,8 +154,7 @@ private theorem shortestDecimalF_iff (f : Float) (d : Decimal) :
 /-! ## The printer theorem, `Float` tier -/
 
 /-- **A function is a correct `Float`→shortest-decimal printer iff it is
-`Printer.toDecimal`.** Float tier of `Srtfp.Spec.correct_iff_toDecimal`;
-admits the runtime axiom. -/
+`Printer.toDecimal`.** Float tier of `Srtfp.Spec.correct_iff_toDecimal`. -/
 theorem correct_iff_toDecimalF (p : Float → Option Decimal) :
     CorrectPrinterF p ↔ p = Printer.toDecimal := by
   have hprinter := (correct_iff_toDecimal Printer.toDecimalBits).mpr rfl
