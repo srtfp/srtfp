@@ -30,6 +30,12 @@ significand (`1e2`, not `100e0`). -/
 def Decimal.IsCanonical (d : Decimal) : Prop :=
   (d.significand = 0 ∧ d.exponent = 0) ∨ (d.significand ≠ 0 ∧ d.significand % 10 ≠ 0)
 
+/-- Canonicalisation preserves the sign and moves only trailing zeros into the exponent. -/
+def Decimal.Normalizes (sign : Sign) (sig : Nat) (exp : Int) (d : Decimal) : Prop :=
+  d.IsCanonical ∧ d.sign = sign ∧
+  ((sig = 0 ∧ d.significand = 0) ∨
+    ∃ zeros : Nat, sig = d.significand * 10 ^ zeros ∧ d.exponent = exp + zeros)
+
 namespace Spec
 
 /-! ## Words

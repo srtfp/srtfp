@@ -36,19 +36,13 @@ def Mantissa (opts : DecimalSyntax) (intD fracD : List Char) (dot : Bool) : Prop
   (opts.requireDot = true → dot = true) ∧
   (2 ≤ intD.length → intD.head? = some '0' → opts.allowLeadingZeros = true)
 
-/-- Canonicalisation preserves the sign and moves only trailing zeros into the exponent. -/
-def Normalizes (sign : Sign) (sig : Nat) (exp : Int) (d : Decimal) : Prop :=
-  d.IsCanonical ∧ d.sign = sign ∧
-  ((sig = 0 ∧ d.significand = 0) ∨
-    ∃ zeros : Nat, sig = d.significand * 10 ^ zeros ∧ d.exponent = exp + zeros)
-
 /-- The complete decimal grammar and its canonical value. No whitespace or other suffix is allowed. -/
 def Parses (opts : DecimalSyntax) (s : String) (d : Decimal) : Prop :=
   ∃ pre sign intD fracD dot tail exp,
     SignChars opts.allowExplicitMantissaPlus pre sign ∧ Mantissa opts intD fracD dot ∧
     Exponent tail exp ∧
     s.toList = pre ++ intD ++ (if dot then '.' :: fracD else []) ++ tail ∧
-    Normalizes sign (Nat.ofDigitChars 10 (intD ++ fracD) 0) (exp - fracD.length) d
+    Decimal.Normalizes sign (Nat.ofDigitChars 10 (intD ++ fracD) 0) (exp - fracD.length) d
 
 /-- Exact decimal presentation. `point` counts digits before the decimal point;
     positions outside the significand are filled with zeros. -/

@@ -113,10 +113,14 @@ spelling of the same canonical value when the options satisfy `CompatibleWith`.
 The formatter and its helpers in `Srtfp/Text.lean` need no manual review.
 The certified grammar is defined by the dialect flags; it does not establish
 conformance to an external JSON, YAML, or MLIR standard.
-`Decimal.neg_spec` in [`Srtfp/Proofs/Decimal.lean`](Srtfp/Proofs/Decimal.lean)
-certifies that negation flips the sign and preserves the magnitude, including
-signed zero. Other `Decimal` constructors and literal instances still require
-reviewing [`Srtfp/Decimal.lean`](Srtfp/Decimal.lean) when used.
+For decimal construction, read `Decimal.Normalizes` in `Srtfp/Spec.lean` and
+the theorem statements in
+[`Srtfp/Decimal/Correctness.lean`](Srtfp/Decimal/Correctness.lean).
+They characterize `canonical`, `mk'`, `ofNat`, `ofInt`, and scientific literals
+by their unique canonical result. The same normalization rule is used by text
+parsing. `zero_spec`, `one_spec`, and `neg_spec` certify the named constants and
+sign reversal, including signed zero. These operations in `Srtfp/Decimal.lean`
+need no manual review.
 
 `Text.floatToString` has a compact reference
 format: zero as `"0"` or `"-0"`, nonzero finite values as signed

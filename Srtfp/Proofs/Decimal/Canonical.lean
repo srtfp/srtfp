@@ -2,7 +2,7 @@ module
 /- `Decimal.canonical` is idempotent and lands in `IsCanonical`; unfolding
    lemmas for `canonicaliseAux`. Consumed by the text round-trip proof. -/
 
-public import Srtfp.Decimal
+public import Srtfp.Proofs.Decimal
 
 @[expose] public section
 
@@ -87,5 +87,52 @@ theorem mk'_eq_self_of_isCanonical {sign : Sign} {sig : Nat} {exp : Int}
 
 @[simp] theorem canonical_zero : canonical zero = zero := by
   unfold canonical; simp [zero]
+
+/-! ## Canonicalisation absorbs trailing zeros -/
+
+theorem mk'_mul_ten (s : Sign) (v : Nat) (e : Int) :
+    Decimal.mk' s (v * 10) e = Decimal.mk' s v (e + 1) := by
+  by_cases hv : v = 0
+  · subst hv; rfl
+  · have h10 : v * 10 ≠ 0 := Nat.mul_ne_zero hv (by decide)
+    simp only [Decimal.mk', Decimal.canonical, if_neg hv, if_neg h10,
+      Decimal.canonicaliseAux_div _ _ h10 (Nat.mul_mod_left v 10),
+      Nat.mul_div_cancel v (by decide : 0 < 10)]
+
+/-- Trailing zeros in the significand shift into the exponent. -/
+theorem mk'_shift (s : Sign) (v : Nat) (e : Int) (k : Nat) :
+    Decimal.mk' s (v * 10 ^ k) (e - k) = Decimal.mk' s v e := by
+  induction k with
+  | zero => simp
+  | succ k ih =>
+    rw [Nat.pow_succ, ← Nat.mul_assoc, mk'_mul_ten, show e - ↑(k + 1) + 1 = e - ↑k by omega, ih]
+
+/-! ## The normalization specification -/
+
+theorem normalizes_mk (sign : Sign) (sig : Nat) (exp : Int) :
+    Normalizes sign sig exp (Decimal.mk' sign sig exp) := by
+  refine ⟨Decimal.canonical_isCanonical _, ?_⟩
+  by_cases h : sig = 0
+  · subst sig
+    exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
+  · obtain ⟨hs, _, _, he, hv⟩ := mk_pos_props sign sig exp h
+    refine ⟨hs, Or.inr ⟨((Decimal.mk' sign sig exp).exponent - exp).toNat, hv.symm, ?_⟩⟩
+    omega
+
+theorem normalizes_iff (sign : Sign) (sig : Nat) (exp : Int) (d : Decimal) :
+    Normalizes sign sig exp d ↔ Decimal.mk' sign sig exp = d := by
+  constructor
+  · rintro ⟨hc, hs, hzero | ⟨k, hsig, he⟩⟩
+    · obtain ⟨rfl, hz⟩ := hzero
+      have he : d.exponent = 0 := by
+        rcases hc with h | h
+        · exact h.2
+        · exact False.elim (h.1 hz)
+      cases d
+      simp_all [Decimal.mk', Decimal.canonical]
+    · rw [hsig, ← hs, show exp = d.exponent - k by omega, mk'_shift]
+      exact Decimal.canonical_fixed_of_isCanonical d hc
+  · rintro rfl
+    exact normalizes_mk sign sig exp
 
 end Srtfp.Decimal

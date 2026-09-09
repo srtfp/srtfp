@@ -84,26 +84,6 @@ theorem charsVal_replicate (k : Nat) : charsVal (List.replicate k '0') = 0 := by
 theorem charsVal_natChars (n : Nat) : charsVal (natChars n) = n :=
   Nat.ofDigitChars_ten_toDigits
 
-/-! ## Canonicalisation absorbs trailing zeros -/
-
-theorem mk'_mul_ten (s : Sign) (v : Nat) (e : Int) :
-    Decimal.mk' s (v * 10) e = Decimal.mk' s v (e + 1) := by
-  by_cases hv : v = 0
-  · subst hv; rfl
-  · have h10 : v * 10 ≠ 0 := Nat.mul_ne_zero hv (by decide)
-    simp only [Decimal.mk', Decimal.canonical, if_neg hv, if_neg h10,
-      Decimal.canonicaliseAux_div _ _ h10 (Nat.mul_mod_left v 10),
-      Nat.mul_div_cancel v (by decide : 0 < 10)]
-
-/-- Trailing zeros in the significand shift into the exponent: parsing
-    a zero-padded rendering recovers the unpadded decimal. -/
-theorem mk'_shift (s : Sign) (v : Nat) (e : Int) (k : Nat) :
-    Decimal.mk' s (v * 10 ^ k) (e - k) = Decimal.mk' s v e := by
-  induction k with
-  | zero => simp
-  | succ k ih =>
-    rw [Nat.pow_succ, ← Nat.mul_assoc, mk'_mul_ten, show e - ↑(k + 1) + 1 = e - ↑k by omega, ih]
-
 /-! ## Scanning digit runs -/
 
 /-- `rest` does not begin with a digit. -/
@@ -296,7 +276,7 @@ theorem value_split (sign : Sign) (D : List Char) (w n : Nat) (e : Option Int) :
     List.length_drop, Nat.add_zero]
   rw [show (e.getD 0 - ↑(D.length - w + (n - (D.length - w))))
       = (e.getD 0 - ↑(D.length - w)) - ↑(n - (D.length - w)) by omega]
-  exact mk'_shift ..
+  exact Decimal.mk'_shift ..
 
 theorem value_place (fopts : FormatOptions) {sign : Sign} {sig : Nat} {exp : Int}
     (hcan : Decimal.IsCanonical ⟨sign, sig, exp⟩) :
@@ -311,7 +291,7 @@ theorem value_place (fopts : FormatOptions) {sign : Sign} {sig : Nat} {exp : Int
   · rw [value_split]
     simp only [charsVal_append, charsVal_replicate, charsVal_natChars, List.length_replicate,
       Nat.zero_mul, Nat.zero_add, Nat.add_zero]
-    rw [← hself, ← mk'_shift sign sig exp exp.toNat]
+    rw [← hself, ← Decimal.mk'_shift sign sig exp exp.toNat]
     congr 1
     simp only [List.length_append, List.length_replicate, Option.getD_none]
     omega

@@ -2,36 +2,9 @@ module
 /- The executable parser accepts exactly the grammar in Text.Spec. -/
 public import Srtfp.Text.Spec
 public import Srtfp.Proofs.Text
-public import Srtfp.Proofs.Decimal
 @[expose] public section
 namespace Srtfp.Text.Proof
 open Float.Model.UnpackedFloat (Sign)
-
-private theorem normalizes_mk (sign : Sign) (sig : Nat) (exp : Int) :
-    Spec.Normalizes sign sig exp (Decimal.mk' sign sig exp) := by
-  refine ⟨Decimal.canonical_isCanonical _, ?_⟩
-  by_cases h : sig = 0
-  · subst sig
-    exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
-  · obtain ⟨hs, _, _, he, hv⟩ := mk_pos_props sign sig exp h
-    refine ⟨hs, Or.inr ⟨((Decimal.mk' sign sig exp).exponent - exp).toNat, hv.symm, ?_⟩⟩
-    omega
-
-private theorem normalizes_iff (sign : Sign) (sig : Nat) (exp : Int) (d : Decimal) :
-    Spec.Normalizes sign sig exp d ↔ Decimal.mk' sign sig exp = d := by
-  constructor
-  · rintro ⟨hc, hs, hzero | ⟨k, hsig, he⟩⟩
-    · obtain ⟨rfl, hz⟩ := hzero
-      have he : d.exponent = 0 := by
-        rcases hc with h | h
-        · exact h.2
-        · exact False.elim (h.1 hz)
-      cases d
-      simp_all [Decimal.mk', Decimal.canonical]
-    · rw [hsig, ← hs, show exp = d.exponent - k by omega, mk'_shift]
-      exact Decimal.canonical_fixed_of_isCanonical d hc
-  · rintro rfl
-    exact normalizes_mk sign sig exp
 
 private theorem lexSign_sound {allow : Bool} {cs body : List Char} {sign : Sign}
     (h : lexSign allow cs = some (sign, body)) :
@@ -202,7 +175,7 @@ theorem parse_sound {opts : DecimalSyntax} {s : String} {d : Decimal}
   obtain ⟨pre, hpre, hbody⟩ := lexSign_sound hs
   obtain ⟨dot, hmant, hparts⟩ := lexMantissa_sound hm
   refine ⟨pre, sign, intD, fracD, dot, rest, exp.getD 0, hpre, hmant,
-    lexExpTail_sound he, ?_, normalizes_mk _ _ _⟩
+    lexExpTail_sound he, ?_, Decimal.normalizes_mk _ _ _⟩
   rw [hbody, hparts]
   simp only [List.append_assoc]
 
@@ -219,6 +192,6 @@ theorem parse_complete {opts : DecimalSyntax} {s : String} {d : Decimal}
   rw [parse, htext']
   simp only [lex, Option.bind_eq_bind, hs, Option.bind_some, hm, he, Option.pure_def, Option.map_some,
     Option.some.injEq, Lexeme.value, heval, charsVal]
-  exact (normalizes_iff sign _ _ d).mp hvalue
+  exact (Decimal.normalizes_iff sign _ _ d).mp hvalue
 
 end Srtfp.Text.Proof

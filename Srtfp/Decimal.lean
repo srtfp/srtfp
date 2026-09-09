@@ -46,10 +46,10 @@ def canonical (d : Decimal) : Decimal :=
 def mk' (sign : Sign) (significand : Nat) (exponent : Int) : Decimal :=
   canonical ⟨sign, significand, exponent⟩
 
-/-- Build a Decimal from a Nat (always integer, exponent 0). -/
+/-- Canonical form of a nonnegative integer. Trailing zeros move into the exponent. -/
 def ofNat (n : Nat) : Decimal := canonical ⟨.positive, n, 0⟩
 
-/-- Build a Decimal from an Int (sign + magnitude, exponent 0). -/
+/-- Canonical form of an integer, with positive zero. -/
 def ofInt (i : Int) : Decimal :=
   canonical ⟨if i < 0 then .negative else .positive, i.natAbs, 0⟩
 

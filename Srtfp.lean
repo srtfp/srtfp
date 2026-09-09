@@ -14,6 +14,7 @@ module
 
 public import Srtfp.Spec
 public import Srtfp.Decimal
+public import Srtfp.Decimal.Correctness
 public import Srtfp.DecimalSyntax
 public import Srtfp.Reader
 public import Srtfp.Printer

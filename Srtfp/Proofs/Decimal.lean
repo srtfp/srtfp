@@ -57,11 +57,6 @@ theorem mk_pos_props (sign : Sign) (sig : Nat) (exp : Int) (hsig : sig ≠ 0) :
 
 namespace Decimal
 
-/-- Negation preserves the magnitude and reverses the sign, even at zero. -/
-theorem neg_spec (d : Decimal) :
-    (-d).sign = -d.sign ∧ (-d).significand = d.significand ∧
-      (-d).exponent = d.exponent := ⟨rfl, rfl, rfl⟩
-
 @[simp] theorem neg_neg (d : Decimal) : -(-d) = d := by
   rcases d with ⟨sign, sig, exp⟩
   cases sign <;> rfl
