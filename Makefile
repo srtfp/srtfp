@@ -1,17 +1,25 @@
-# Build everything the benchmarks and the Ryu differential test need.
-# Lean targets go through lake; the C++ and Java helpers (which lake cannot
-# build) live here. `make` rebuilds all of them.
+# Build the library by default. Tests and benchmark helpers are explicit targets.
+# Lake owns Lean builds; Make also builds the C++ and Java benchmark helpers.
 
-.PHONY: all lean cpp java clean
+.PHONY: all lean test check benchmarks bench-lean cpp java clean
 
-all: lean cpp java
+all: lean
 
 lean:
-	python3 tools/check_imports.py
-	lake build benchFloatToString diffDump
+	lake build
+
+test:
+	lake test
+
+check: test
+
+benchmarks: bench-lean cpp java
+
+bench-lean:
+	lake build benchToDecimal benchDecimalToFloat benchFloatToString diffDump genCorpora
 
 cpp:
-	g++ -O3 -std=c++20 -march=native -o benches/bench_ref benches/bench_ref.cpp benches/corpora.cpp
+	g++ -O3 -std=c++20 -march=native -o benches/bench_ref benches/bench_ref.cpp
 	g++ -O2 -std=c++20 -o benches/difftest_ryu benches/difftest_ryu.cpp
 
 java:
@@ -20,4 +28,5 @@ java:
 	else echo "javac not found; skipping JDK bench (only needed for a full plot re-time)"; fi
 
 clean:
+	lake clean
 	rm -f benches/bench_ref benches/difftest_ryu benches/bench_java/*.class

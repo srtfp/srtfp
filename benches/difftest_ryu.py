@@ -126,7 +126,7 @@ def compare(inputs: list[int]):
 def require_dumpers():
     for tool in (LEAN_DUMP, RYU_DUMP):
         if not os.path.exists(tool):
-            sys.exit(f"missing {tool}; build the helpers first with: make")
+            sys.exit(f"missing {tool}; build the helpers first with: make benchmarks")
 
 
 def now() -> str:

@@ -152,8 +152,10 @@ collisions.
 
 ```
 lake build           # all library tiers and the audit
-lake test            # audit, audit regression checks, and the test suite
-make                 # helper binaries (benchmarks, difftest)
+lake test            # audit, import-boundary checks, and the test suite
+make                 # same as lake build
+make test            # same as lake test (make check is an alias)
+make benchmarks      # build benchmark and differential-test helpers
 ```
 
 ## Extra tests

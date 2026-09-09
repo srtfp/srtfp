@@ -41,11 +41,6 @@ jobs:
           restore-keys: |
             lake-${{ matrix.toolchain }}-${{ hashFiles('lakefile.lean', 'lake-manifest.json') }}-
 
-      # Fast source-level guard: the default umbrella must not import the
-      # Float tier.
-      - name: Optional bridge import boundary
-        run: python3 tools/check_imports.py
-
       # Default targets build all tiers and audit them in SrtfpAudit.
       - name: Build
         run: lake build
