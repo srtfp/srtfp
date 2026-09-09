@@ -62,24 +62,12 @@ theorem unpackSign_packComponents (s : Sign) (e : BitVec 11) (m : BitVec 52) :
   omega
 
 theorem unpackExponent_packComponents (s : Sign) (e : BitVec 11) (m : BitVec 52) :
-    @unpackExponent Format.binary64 (packComponents Format.binary64 s e m) = e := by
-  apply BitVec.eq_of_toNat_eq
-  unfold unpackExponent
-  simp only [BitVec.toNat_cast, BitVec.extractLsb, BitVec.extractLsb'_toNat, packComponents_toNat,
-    Nat.shiftRight_eq_div_pow]
-  have := s.toBitVec.isLt; have := e.isLt; have := m.isLt
-  show _ % 2 ^ 11 = _
-  omega
+    @unpackExponent Format.binary64 (packComponents Format.binary64 s e m) = e :=
+  Float.Model.UnpackedFloat.unpackExponent_packComponents
 
 theorem unpackMantissa_packComponents (s : Sign) (e : BitVec 11) (m : BitVec 52) :
-    @unpackMantissa Format.binary64 (packComponents Format.binary64 s e m) = m := by
-  apply BitVec.eq_of_toNat_eq
-  unfold unpackMantissa
-  simp only [BitVec.toNat_cast, BitVec.extractLsb, BitVec.extractLsb'_toNat, packComponents_toNat,
-    Nat.shiftRight_eq_div_pow]
-  have := s.toBitVec.isLt; have := e.isLt; have := m.isLt
-  show _ % 2 ^ 52 = _
-  omega
+    @unpackMantissa Format.binary64 (packComponents Format.binary64 s e m) = m :=
+  Float.Model.UnpackedFloat.unpackMantissa_packComponents
 
 /-- Reassembling the three fields of a word gives the word back. -/
 theorem packComponents_unpack (b : BitVec 64) :
