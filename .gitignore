@@ -7,3 +7,7 @@ benches/bench_java/*.class
 benches/perf.png
 benches/corpora/
 .claude/worktrees/
+
+# Local agent plans and downloaded papers.
+/docs/superpowers/
+/research/
