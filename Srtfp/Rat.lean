@@ -3,7 +3,13 @@ module
    `Rat.abs`, order facts and the `Trans` instances behind `calc`, division
    and cancellation, integer powers and their monotonicity, floors of
    quotients. Everything lives in the `Srtfp.Compat` namespace with scoped
-   notation; proof files start with `open Srtfp.Compat`. -/
+   notation; proof files start with `open Srtfp.Compat`.
+
+   These are local proofs with Mathlib-style names, not a verbatim copy of
+   Mathlib. The rational type and arithmetic are upstream Lean's `Rat`.
+   Specification modules do not import this file (checked by
+   `Test/SpecImports.lean`); its proofs are checked by Lean's kernel and
+   covered by the project's axiom audit. -/
 
 @[expose] public section
 

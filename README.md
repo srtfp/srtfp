@@ -133,10 +133,16 @@ Zero dependencies beyond the Lean toolchain: no mathlib, and the test
 suite runs on a small in-repo harness (`Test/Harness.lean`). CI builds
 and tests the library on Lean v4.33.0 (the pinned toolchain and the
 floor: core's `Float.Model` arrived in v4.33).
-The proofs' small compatibility layer (Mathlib's lemma names over core's
-`Rat`, the `|·|` bars) lives in the `Srtfp.Compat` namespace with scoped
-notation, so srtfp and Mathlib can be imported in the same file without
-collisions.
+The rational type and arithmetic are upstream Lean's `Rat`.
+[`Srtfp/Rat.lean`](Srtfp/Rat.lean) contains locally proved arithmetic lemmas
+with Mathlib-style names, order instances, and notation; it is not a
+verbatim copy of Mathlib. These helpers live in the `Srtfp.Compat` namespace
+with scoped notation. They are outside the manual audit base: Lean checks
+their proofs under the project's axiom audit, and
+[`Test/SpecImports.lean`](Test/SpecImports.lean) prevents specification
+modules from importing them. The small tactic replacements in
+[`Srtfp/Perf/Tactics.lean`](Srtfp/Perf/Tactics.lean) are also local proof
+helpers, not copied Mathlib implementations.
 
 ## Build
 
