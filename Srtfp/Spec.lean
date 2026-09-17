@@ -80,22 +80,18 @@ def ReadsTo (d : Decimal) (w : UInt64) : Prop := d.toModel.toBits = w
 
 /-! ## The printer -/
 
-/-- The three ways a decimal `d` beats another decimal `d'` for the word `w`:
-it is strictly shorter, or just as short and closer to the true value, or
-just as short and as close and the even one. -/
-inductive Beats (w : UInt64) (d d' : Decimal) : Prop
-  | shorter : digits d.significand < digits d'.significand → Beats w d d'
-  | closer  : digits d'.significand = digits d.significand → dist d w < dist d' w → Beats w d d'
-  | even    : digits d'.significand = digits d.significand → dist d w = dist d' w →
-              d.significand % 2 = 0 → Beats w d d'
+/-- Minimise digit count, then distance, then parity (even before odd). -/
+def rank (w : UInt64) (d : Decimal) : Nat × Rat × Nat :=
+  (digits d.significand, dist d w, d.significand % 2)
 
 /-- `d` is THE shortest decimal for `w`. -/
 structure ShortestDecimal (w : UInt64) (d : Decimal) : Prop where
   canonical : d.IsCanonical
   /-- Reading `d` back reproduces `w`, bit for bit. -/
   roundTrip : ReadsTo d w
-  /-- `d` beats every other canonical decimal that reads back to `w`. -/
-  shortest : ∀ d' : Decimal, d' ≠ d → d'.IsCanonical → ReadsTo d' w → Beats w d d'
+  /-- `d` has strictly smaller rank than every other canonical round-trip. -/
+  shortest : ∀ d' : Decimal, d' ≠ d → d'.IsCanonical → ReadsTo d' w →
+    Prod.Lex (· < ·) (Prod.Lex (· < ·) (· < ·)) (rank w d) (rank w d')
 
 /-- A correct printer returns THE shortest decimal for every finite word
 and nothing for a NaN or an infinity. -/

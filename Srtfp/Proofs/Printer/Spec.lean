@@ -273,31 +273,31 @@ end Nonzero
 
 /-! ## The output of `toDecimalBits` -/
 
-/-- `Beats`, with the competitor's parity known on a tie: what the output
-    achieves, and what makes it unique. -/
-def BeatsOdd (w : UInt64) (d d' : Decimal) : Prop :=
-  digits d.significand < digits d'.significand
-  ∨ (digits d'.significand = digits d.significand
-     ∧ (Spec.dist d w < Spec.dist d' w
-        ∨ (Spec.dist d w = Spec.dist d' w ∧ d.significand % 2 = 0 ∧ d'.significand % 2 = 1)))
+/-- Expand the upstream lexicographic relation for the arithmetic proofs. -/
+private theorem rank_lt_iff (w : UInt64) (d d' : Decimal) :
+    Prod.Lex (· < ·) (Prod.Lex (· < ·) (· < ·)) (Spec.rank w d) (Spec.rank w d') ↔
+      digits d.significand < digits d'.significand ∨
+      (digits d'.significand = digits d.significand ∧
+        (Spec.dist d w < Spec.dist d' w ∨
+        (Spec.dist d w = Spec.dist d' w ∧ d.significand % 2 = 0 ∧ d'.significand % 2 = 1))) := by
+  simp only [Spec.rank, Prod.lex_def]
+  have := Nat.mod_lt d.significand (by decide : 0 < 2)
+  have := Nat.mod_lt d'.significand (by decide : 0 < 2)
+  grind
 
-theorem BeatsOdd.beats {w : UInt64} {d d' : Decimal} (h : BeatsOdd w d d') : Spec.Beats w d d' := by
-  rcases h with h | ⟨h1, h2 | ⟨h2, h3, -⟩⟩
-  · exact .shorter h
-  · exact .closer h1 h2
-  · exact .even h1 h2 h3
+private theorem rank_lt_asymm {w : UInt64} {d d' : Decimal}
+    (h : Prod.Lex (· < ·) (Prod.Lex (· < ·) (· < ·)) (Spec.rank w d) (Spec.rank w d'))
+    (h' : Prod.Lex (· < ·) (Prod.Lex (· < ·) (· < ·)) (Spec.rank w d') (Spec.rank w d)) : False := by
+  simp only [Spec.rank, Prod.lex_def] at h h'
+  rcases h with h | ⟨h1, h2 | ⟨h2, h3⟩⟩ <;>
+    rcases h' with h' | ⟨h1', h2' | ⟨h2', h3'⟩⟩ <;> grind
 
-/-- Nothing beats what beats it with an odd tie. -/
-theorem BeatsOdd.not_beats {w : UInt64} {d d' : Decimal} (h : BeatsOdd w d d')
-    (h' : Spec.Beats w d' d) : False := by
-  rcases h with h | ⟨h1, h2 | ⟨h2, h3, h4⟩⟩ <;> rcases h' with h' | ⟨h1', h2'⟩ | ⟨h1', h2', h3'⟩ <;> grind
-
-/-- Finite nonzero words: the output is canonical, reads back, and beats
-    every competitor. -/
+/-- Finite nonzero words: the output is canonical, reads back, and has
+    strictly smaller rank than every competitor. -/
 theorem nonzero_output {s : Sign} {hm : 0 < m} (hu : Spec.unpack wd = .finite s m q hm) :
     ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.referenceBits d₀ = wd
       ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.referenceBits d' = wd →
-          BeatsOdd wd d₀ d' := by
+          Prod.Lex (· < ·) (Prod.Lex (· < ·) (· < ·)) (Spec.rank wd d₀) (Spec.rank wd d') := by
   have h : InRange m q := ⟨hm, legal_of_unpack hu⟩
   have hfin : (Spec.unpack wd).isFinite = true := by rw [hu]; rfl
   have hri := reads_to_finite_iff hu
@@ -333,7 +333,7 @@ theorem nonzero_output {s : Sign} {hm : 0 < m} (hu : Spec.unpack wd = .finite s 
       rw [hdist]; exact dist_of_sign _ _ _
     have hd' : Spec.dist d' wd = |v m q - d'.significand * (10 : Rat) ^ d'.exponent| := by
       rw [hdist, hsign']; exact dist_of_sign _ _ _
-    unfold BeatsOdd
+    rw [rank_lt_iff]
     simp only
     rw [hd₀, hd']
     exact hc
@@ -342,7 +342,7 @@ theorem nonzero_output {s : Sign} {hm : 0 < m} (hu : Spec.unpack wd = .finite s 
 theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
     ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.referenceBits d₀ = wd
       ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.referenceBits d' = wd →
-          BeatsOdd wd d₀ d' := by
+          Prod.Lex (· < ·) (Prod.Lex (· < ·) (· < ·)) (Spec.rank wd d₀) (Spec.rank wd d') := by
   have hfin : (Spec.unpack wd).isFinite = true := by rw [hu]; rfl
   have hri := reads_to_iff hfin
   have hmq : mq (Spec.unpack wd) = (0, -1074) := by rw [hu]; rfl
@@ -377,6 +377,7 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
     have hd' : 0 < Spec.dist d' wd := by
       rw [Reader.dist_eq _ hfin, hmq, hus, hv0, hsign', hneg, Rat.abs_neg, sign_mul_abs]
       exact Rat.abs_pos_iff.mpr (Rat.ne_of_gt (Rat.mul_pos (by exact_mod_cast hf1) (ten_zpow_pos _)))
+    rw [rank_lt_iff]
     rcases Nat.lt_or_ge 1 (digits d'.significand) with hd | hd
     · left; rw [digits_zero]; exact hd
     · right
@@ -385,11 +386,11 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
 
 /-! ## The specification -/
 
-/-- The output beats every competitor, with the competitor's parity on a tie. -/
-theorem output_beats (hw : (Spec.unpack wd).isFinite = true) :
+/-- The output has strictly smaller rank than every competitor. -/
+theorem output_minimises_rank (hw : (Spec.unpack wd).isFinite = true) :
     ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.referenceBits d₀ = wd
       ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.referenceBits d' = wd →
-          BeatsOdd wd d₀ d' := by
+          Prod.Lex (· < ·) (Prod.Lex (· < ·) (· < ·)) (Spec.rank wd d₀) (Spec.rank wd d') := by
   rcases hu : Spec.unpack wd with s | _ | s | ⟨s, m, q, hm⟩
   · rw [hu] at hw; simp [UnpackedFloat.isFinite] at hw
   · rw [hu] at hw; simp [UnpackedFloat.isFinite] at hw
@@ -398,18 +399,18 @@ theorem output_beats (hw : (Spec.unpack wd).isFinite = true) :
 
 theorem toDecimalBits_spec (hw : (Spec.unpack wd).isFinite = true) :
     ∃ d, toDecimalBits wd = some d ∧ Spec.ShortestDecimal wd d :=
-  let ⟨d₀, h₀, hc, hrt, hb⟩ := output_beats hw
+  let ⟨d₀, h₀, hc, hrt, hb⟩ := output_minimises_rank hw
   ⟨d₀, h₀, hc, (readsTo_iff d₀ wd).mpr hrt,
-    fun d' hne hc' hrt' => (hb d' hne hc' ((readsTo_iff d' wd).mp hrt')).beats⟩
+    fun d' hne hc' hrt' => hb d' hne hc' ((readsTo_iff d' wd).mp hrt')⟩
 
 /-- Anything satisfying the specification is the output. -/
 theorem eq_output_of_shortest (hw : (Spec.unpack wd).isFinite = true) {d d₀ : Decimal}
     (h₀ : toDecimalBits wd = some d₀) (hd : Spec.ShortestDecimal wd d) : d = d₀ := by
   by_cases hne : d = d₀
   · exact hne
-  obtain ⟨d₁, h₁, hc₁, hrt₁, hb⟩ := output_beats hw
+  obtain ⟨d₁, h₁, hc₁, hrt₁, hb⟩ := output_minimises_rank hw
   rw [h₁] at h₀; obtain rfl := Option.some.inj h₀
-  exact ((hb d hne hd.canonical ((readsTo_iff d wd).mp hd.roundTrip)).not_beats
+  exact (rank_lt_asymm (hb d hne hd.canonical ((readsTo_iff d wd).mp hd.roundTrip))
     (hd.shortest d₁ (Ne.symm hne) hc₁ ((readsTo_iff d₁ wd).mpr hrt₁))).elim
 
 theorem shortestDecimal_exists_unique (w : UInt64) (h_fin : (Spec.unpack w).isFinite = true) :
