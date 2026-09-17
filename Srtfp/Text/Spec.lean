@@ -22,9 +22,7 @@ def Exponent (cs : List Char) (e : Int) : Prop :=
   (cs = [] ∧ e = 0) ∨ ∃ marker pre sign ds,
     (marker = 'e' ∨ marker = 'E') ∧ SignChars true pre sign ∧
     ds ≠ [] ∧ ds.all Char.isDigit = true ∧ cs = marker :: (pre ++ ds) ∧
-    e = (match sign with
-      | .negative => -(Nat.ofDigitChars 10 ds 0 : Int)
-      | .positive => Nat.ofDigitChars 10 ds 0)
+    e = sign.apply (Nat.ofDigitChars 10 ds 0)
 
 /-- Allowed mantissa digits and decimal point, independently of any scanner. -/
 def Mantissa (opts : DecimalSyntax) (intD fracD : List Char) (dot : Bool) : Prop :=

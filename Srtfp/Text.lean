@@ -123,7 +123,7 @@ def lexSign (allowPlus : Bool) (cs : List Char) : Option (Sign × List Char) :=
 def lexExp (cs : List Char) : Option Int :=
   (lexSign true cs).bind fun (s, ds) =>
     if ds = [] ∨ ¬ ds.all Char.isDigit then none
-    else some (match s with | .negative => -(charsVal ds : Int) | .positive => charsVal ds)
+    else some (s.apply (charsVal ds))
 
 /-- The optional exponent suffix, then end of input. -/
 def lexExpTail : List Char → Option (Option Int)

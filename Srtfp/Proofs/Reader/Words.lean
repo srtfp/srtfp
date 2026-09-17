@@ -82,10 +82,14 @@ theorem eq_of_mq_eq {u u' : UnpackedFloat} (hu : u.isFinite = true) (hu' : u'.is
 
 /-! ## Signs -/
 
+private theorem signVal_eq (s : Sign) :
+    Spec.signVal s = (match s with | .negative => -1 | .positive => 1) := by
+  cases s <;> rfl
+
 theorem sign_mul_abs (s : Sign) (a : Rat) : |Spec.signVal s * a| = |a| := by
   cases s
-  · simp only [Spec.signVal]; rw [show (-1 : Rat) * a = -a by grind, Rat.abs_neg]
-  · simp only [Spec.signVal, Rat.one_mul]
+  · simp only [signVal_eq]; rw [show (-1 : Rat) * a = -a by grind, Rat.abs_neg]
+  · simp only [signVal_eq, Rat.one_mul]
 
 /-- Same sign: the signed distance is the distance of the magnitudes. -/
 theorem dist_of_sign (s : Sign) (a b : Rat) :
@@ -95,14 +99,14 @@ theorem dist_of_sign (s : Sign) (a b : Rat) :
 /-- Any signs: the signed distance is at least the distance of the magnitudes. -/
 theorem dist_ge (s s' : Sign) {a b : Rat} (_ha : 0 ≤ a) (_hb : 0 ≤ b) :
     |a - b| ≤ |Spec.signVal s' * a - Spec.signVal s * b| := by
-  cases s <;> cases s' <;> simp only [Spec.signVal, abs_def] <;> grind
+  cases s <;> cases s' <;> simp only [signVal_eq, abs_def] <;> grind
 
 /-- Equal signed and magnitude distances from a differently signed value: the
 other magnitude is zero. -/
 theorem tie_sign {s s' : Sign} {a b : Rat} (_ha : 0 ≤ a) (_hb : 0 ≤ b)
     (hne : Spec.signVal s' * a ≠ Spec.signVal s * a)
     (heq : |Spec.signVal s' * a - Spec.signVal s * b| = |a - b|) : b = 0 := by
-  cases s <;> cases s' <;> simp only [Spec.signVal, abs_def] at hne heq ⊢ <;> grind
+  cases s <;> cases s' <;> simp only [signVal_eq, abs_def] at hne heq ⊢ <;> grind
 
 theorem mag_nonneg (d : Decimal) : (0 : Rat) ≤ (d.significand : Rat) * (10 : Rat) ^ d.exponent :=
   Rat.mul_nonneg (by exact_mod_cast Nat.zero_le _) (Rat.le_of_lt (ten_zpow_pos _))

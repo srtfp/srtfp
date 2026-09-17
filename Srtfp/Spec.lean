@@ -50,9 +50,7 @@ def unpack (w : UInt64) : UnpackedFloat :=
 /-! ## Values -/
 
 /-- `(-1)^sign`. -/
-def signVal : Sign → Rat
-  | .negative => -1
-  | .positive => 1
+def signVal (sign : Sign) : Rat := sign.apply 1
 
 /-- `(-1)^sign · m · base^e`. -/
 def val (base : Rat) (sign : Sign) (m : Nat) (e : Int) : Rat :=
