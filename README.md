@@ -91,7 +91,6 @@ or MLIR standards is not established.
 `DecimalSyntax` controls decimal literals only. Non-finite tokens and
 alternative bases belong to the consuming parser; the unused
 `allowNonFiniteLiterals` and `allowAlternativeBases` fields have been removed.
-`yaml11` remains a compatibility alias for `yamlCore`.
 
 The compact `Text.floatToString` format prints zero as `"0"` or `"-0"`,
 nonzero finite values as signed `significand ++ "e" ++ exponent`, and

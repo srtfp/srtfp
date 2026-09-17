@@ -47,9 +47,6 @@ def yamlCore : DecimalSyntax :=
   , allowTrailingDot         := true
   , allowExplicitMantissaPlus := true }
 
-/-- Compatibility name for the same decimal grammar as `yamlCore`. -/
-abbrev yaml11 : DecimalSyntax := yamlCore
-
 /-- MLIR float literals: `[0-9]+ '.' [0-9]* ([eE][+-]?[0-9]+)?`. The dot
     is mandatory, may dangle (`"2."`), and leading zeros are allowed
     (`"007.5"`). The mantissa sign is lexed separately in MLIR, so `'+'`
