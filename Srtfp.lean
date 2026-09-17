@@ -25,6 +25,7 @@ public import Srtfp.Proofs.Decimal.Canonical
 public import Srtfp.Proofs.Reader.Round
 public import Srtfp.Proofs.Reader.Words
 public import Srtfp.Proofs.Reader.Compute
+public import Srtfp.Proofs.Reader.Characterize
 public import Srtfp.Proofs.Reader.Nearest
 public import Srtfp.Proofs.Reader.Spec
 public import Srtfp.Proofs.Printer.Vocab

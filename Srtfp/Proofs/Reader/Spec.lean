@@ -4,7 +4,7 @@ module
    about the reader, `reads_to_iff`: a decimal reads back to a finite
    word iff it carries the word's sign and its magnitude lies in the
    word's rounding interval (Giulietti §3.2.1). -/
-public import Srtfp.Proofs.Reader.Compute
+public import Srtfp.Proofs.Reader.Characterize
 public import Srtfp.Proofs.Reader.Nearest
 
 @[expose] public section
@@ -16,21 +16,6 @@ namespace Srtfp.Reader
 open Srtfp.Printer Srtfp.Model
 open Float.Model (UnpackedFloat)
 open Float.Model.UnpackedFloat (Sign)
-
-/-- The word the reader returns unpacks to what `read` computed. -/
-theorem unpack_ofDecimalBits (d : Decimal) : Spec.unpack (ofDecimalBits d) = read d := by
-  unfold ofDecimalBits
-  rw [toBits_pack]
-  have hspec := read_spec d
-  rcases lt_or_ge ((d.significand : Rat) * (10 : Rat) ^ d.exponent) (2 ^ 1024 - 2 ^ 970) with hd | hd
-  · obtain ⟨hfin, -, hleg, -⟩ := hspec.1 hd
-    generalize read d = u at *
-    cases u with
-    | notANumber => simp [UnpackedFloat.isFinite] at hfin
-    | infinity s => simp [UnpackedFloat.isFinite] at hfin
-    | zero s => exact unpack_pack_zero s
-    | finite s n k hn => exact unpack_pack_finite s hn hleg
-  · rw [hspec.2 hd]; exact unpack_pack_infinity _
 
 /-- Every value in `R_w` is below the overflow threshold: the largest
 interval's right endpoint is the threshold, excluded because `2^53 - 1` is odd. -/
