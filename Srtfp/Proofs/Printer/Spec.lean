@@ -273,34 +273,17 @@ end Nonzero
 
 /-! ## The output of `toDecimalBits` -/
 
-/-- Expand the upstream lexicographic relation for the arithmetic proofs. -/
-private theorem rank_lt_iff (w : UInt64) (d d' : Decimal) :
-    Spec.rank w d < Spec.rank w d' ↔
-      digits d.significand < digits d'.significand ∨
-      (digits d'.significand = digits d.significand ∧
-        (Spec.dist d w < Spec.dist d' w ∨
-        (Spec.dist d w = Spec.dist d' w ∧ d.significand % 2 = 0 ∧ d'.significand % 2 = 1))) := by
-  change (digits d.significand < digits d'.significand ∨
-    (digits d.significand = digits d'.significand ∧
-      (Spec.dist d w < Spec.dist d' w ∨
-        (Spec.dist d w = Spec.dist d' w ∧ d.significand % 2 < d'.significand % 2)))) ↔ _
-  have := Nat.mod_lt d.significand (by decide : 0 < 2)
-  have := Nat.mod_lt d'.significand (by decide : 0 < 2)
-  grind
+private theorem preferred_asymm {w : UInt64} {d d' : Decimal}
+    (h : Spec.Preferred w d d')
+    (h' : Spec.Preferred w d' d) : False := by
+  grind [Spec.Preferred]
 
-private theorem rank_lt_asymm {w : UInt64} {d d' : Decimal}
-    (h : Spec.rank w d < Spec.rank w d')
-    (h' : Spec.rank w d' < Spec.rank w d) : False := by
-  rw [rank_lt_iff] at h h'
-  rcases h with h | ⟨h1, h2 | ⟨h2, h3⟩⟩ <;>
-    rcases h' with h' | ⟨h1', h2' | ⟨h2', h3'⟩⟩ <;> grind
-
-/-- Finite nonzero words: the output is canonical, reads back, and has
-    strictly smaller rank than every competitor. -/
+/-- Finite nonzero words: the output is canonical, reads back, and is
+    preferred to every competitor. -/
 theorem nonzero_output {s : Sign} {hm : 0 < m} (hu : Spec.unpack wd = .finite s m q hm) :
     ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.referenceBits d₀ = wd
       ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.referenceBits d' = wd →
-          Spec.rank wd d₀ < Spec.rank wd d' := by
+          Spec.Preferred wd d₀ d' := by
   have h : InRange m q := ⟨hm, legal_of_unpack hu⟩
   have hfin : (Spec.unpack wd).isFinite = true := by rw [hu]; rfl
   have hri := reads_to_finite_iff hu
@@ -336,16 +319,13 @@ theorem nonzero_output {s : Sign} {hm : 0 < m} (hu : Spec.unpack wd = .finite s 
       rw [hdist]; exact dist_of_sign _ _ _
     have hd' : Spec.dist d' wd = |v m q - d'.significand * (10 : Rat) ^ d'.exponent| := by
       rw [hdist, hsign']; exact dist_of_sign _ _ _
-    rw [rank_lt_iff]
-    simp only
-    rw [hd₀, hd']
-    exact hc
+    simpa only [Spec.Preferred, hd₀, hd', and_or_left, eq_comm] using hc
 
 /-- Zero words: the signed zero is the output; every competitor is farther. -/
 theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
     ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.referenceBits d₀ = wd
       ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.referenceBits d' = wd →
-          Spec.rank wd d₀ < Spec.rank wd d' := by
+          Spec.Preferred wd d₀ d' := by
   have hfin : (Spec.unpack wd).isFinite = true := by rw [hu]; rfl
   have hri := reads_to_iff hfin
   have hmq : mq (Spec.unpack wd) = (0, -1074) := by rw [hu]; rfl
@@ -380,20 +360,20 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
     have hd' : 0 < Spec.dist d' wd := by
       rw [Reader.dist_eq _ hfin, hmq, hus, hv0, hsign', hneg, Rat.abs_neg, sign_mul_abs]
       exact Rat.abs_pos_iff.mpr (Rat.ne_of_gt (Rat.mul_pos (by exact_mod_cast hf1) (ten_zpow_pos _)))
-    rw [rank_lt_iff]
+    unfold Spec.Preferred
     rcases Nat.lt_or_ge 1 (digits d'.significand) with hd | hd
     · left; rw [digits_zero]; exact hd
-    · right
+    · right; left
       have := digits_pos d'.significand
-      exact ⟨by rw [digits_zero]; omega, Or.inl (by rw [hd₀]; exact hd')⟩
+      exact ⟨by rw [digits_zero]; omega, by rw [hd₀]; exact hd'⟩
 
 /-! ## The specification -/
 
-/-- The output has strictly smaller rank than every competitor. -/
-theorem output_minimises_rank (hw : (Spec.unpack wd).isFinite = true) :
+/-- The output is preferred to every competitor. -/
+theorem output_preferred (hw : (Spec.unpack wd).isFinite = true) :
     ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.referenceBits d₀ = wd
       ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.referenceBits d' = wd →
-          Spec.rank wd d₀ < Spec.rank wd d' := by
+          Spec.Preferred wd d₀ d' := by
   rcases hu : Spec.unpack wd with s | _ | s | ⟨s, m, q, hm⟩
   · rw [hu] at hw; simp [UnpackedFloat.isFinite] at hw
   · rw [hu] at hw; simp [UnpackedFloat.isFinite] at hw
@@ -402,7 +382,7 @@ theorem output_minimises_rank (hw : (Spec.unpack wd).isFinite = true) :
 
 theorem toDecimalBits_spec (hw : (Spec.unpack wd).isFinite = true) :
     ∃ d, toDecimalBits wd = some d ∧ Spec.ShortestDecimal wd d :=
-  let ⟨d₀, h₀, hc, hrt, hb⟩ := output_minimises_rank hw
+  let ⟨d₀, h₀, hc, hrt, hb⟩ := output_preferred hw
   ⟨d₀, h₀, hc, (readsTo_iff d₀ wd).mpr hrt,
     fun d' hne hc' hrt' => hb d' hne hc' ((readsTo_iff d' wd).mp hrt')⟩
 
@@ -411,9 +391,9 @@ theorem eq_output_of_shortest (hw : (Spec.unpack wd).isFinite = true) {d d₀ : 
     (h₀ : toDecimalBits wd = some d₀) (hd : Spec.ShortestDecimal wd d) : d = d₀ := by
   by_cases hne : d = d₀
   · exact hne
-  obtain ⟨d₁, h₁, hc₁, hrt₁, hb⟩ := output_minimises_rank hw
+  obtain ⟨d₁, h₁, hc₁, hrt₁, hb⟩ := output_preferred hw
   rw [h₁] at h₀; obtain rfl := Option.some.inj h₀
-  exact (rank_lt_asymm (hb d hne hd.canonical ((readsTo_iff d wd).mp hd.roundTrip))
+  exact (preferred_asymm (hb d hne hd.canonical ((readsTo_iff d wd).mp hd.roundTrip))
     (hd.shortest d₁ (Ne.symm hne) hc₁ ((readsTo_iff d₁ wd).mpr hrt₁))).elim
 
 theorem shortestDecimal_exists_unique (w : UInt64) (h_fin : (Spec.unpack w).isFinite = true) :

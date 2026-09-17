@@ -80,26 +80,21 @@ def ReadsTo (d : Decimal) (w : UInt64) : Prop := d.toModel.toBits = w
 
 /-! ## The printer -/
 
-/-- The printer's priorities, in order: digit count, distance, parity. -/
-def Rank := Nat × Rat × Nat
-
-/-- Compare both pairs lexicographically, using Lean's built-in ordering. -/
-instance : LT Rank :=
-  letI : LT (Rat × Nat) := ⟨Prod.lexLt⟩
-  ⟨Prod.lexLt⟩
-
-/-- Lower ranks are better; even parity is 0 and odd parity is 1. -/
-def rank (w : UInt64) (d : Decimal) : Rank :=
-  (digits d.significand, dist d w, d.significand % 2)
+/-- Prefer fewer digits, then a closer value, then an even final digit over an odd one. -/
+def Preferred (w : UInt64) (d d' : Decimal) : Prop :=
+  digits d.significand < digits d'.significand ∨
+  (digits d.significand = digits d'.significand ∧ dist d w < dist d' w) ∨
+  (digits d.significand = digits d'.significand ∧ dist d w = dist d' w ∧
+    d.significand % 2 = 0 ∧ d'.significand % 2 = 1)
 
 /-- `d` is THE shortest decimal for `w`. -/
 structure ShortestDecimal (w : UInt64) (d : Decimal) : Prop where
   canonical : d.IsCanonical
   /-- Reading `d` back reproduces `w`, bit for bit. -/
   roundTrip : ReadsTo d w
-  /-- `d` has strictly smaller rank than every other canonical round-trip. -/
+  /-- `d` is preferred to every other canonical round-trip. -/
   shortest : ∀ d' : Decimal, d' ≠ d → d'.IsCanonical → ReadsTo d' w →
-    rank w d < rank w d'
+    Preferred w d d'
 
 /-- A correct printer returns THE shortest decimal for every finite word
 and nothing for a NaN or an infinity. -/
