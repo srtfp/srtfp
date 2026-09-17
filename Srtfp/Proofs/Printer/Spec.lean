@@ -275,20 +275,23 @@ end Nonzero
 
 /-- Expand the upstream lexicographic relation for the arithmetic proofs. -/
 private theorem rank_lt_iff (w : UInt64) (d d' : Decimal) :
-    Prod.Lex (· < ·) (Prod.Lex (· < ·) (· < ·)) (Spec.rank w d) (Spec.rank w d') ↔
+    Spec.rank w d < Spec.rank w d' ↔
       digits d.significand < digits d'.significand ∨
       (digits d'.significand = digits d.significand ∧
         (Spec.dist d w < Spec.dist d' w ∨
         (Spec.dist d w = Spec.dist d' w ∧ d.significand % 2 = 0 ∧ d'.significand % 2 = 1))) := by
-  simp only [Spec.rank, Prod.lex_def]
+  change (digits d.significand < digits d'.significand ∨
+    (digits d.significand = digits d'.significand ∧
+      (Spec.dist d w < Spec.dist d' w ∨
+        (Spec.dist d w = Spec.dist d' w ∧ d.significand % 2 < d'.significand % 2)))) ↔ _
   have := Nat.mod_lt d.significand (by decide : 0 < 2)
   have := Nat.mod_lt d'.significand (by decide : 0 < 2)
   grind
 
 private theorem rank_lt_asymm {w : UInt64} {d d' : Decimal}
-    (h : Prod.Lex (· < ·) (Prod.Lex (· < ·) (· < ·)) (Spec.rank w d) (Spec.rank w d'))
-    (h' : Prod.Lex (· < ·) (Prod.Lex (· < ·) (· < ·)) (Spec.rank w d') (Spec.rank w d)) : False := by
-  simp only [Spec.rank, Prod.lex_def] at h h'
+    (h : Spec.rank w d < Spec.rank w d')
+    (h' : Spec.rank w d' < Spec.rank w d) : False := by
+  rw [rank_lt_iff] at h h'
   rcases h with h | ⟨h1, h2 | ⟨h2, h3⟩⟩ <;>
     rcases h' with h' | ⟨h1', h2' | ⟨h2', h3'⟩⟩ <;> grind
 
@@ -297,7 +300,7 @@ private theorem rank_lt_asymm {w : UInt64} {d d' : Decimal}
 theorem nonzero_output {s : Sign} {hm : 0 < m} (hu : Spec.unpack wd = .finite s m q hm) :
     ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.referenceBits d₀ = wd
       ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.referenceBits d' = wd →
-          Prod.Lex (· < ·) (Prod.Lex (· < ·) (· < ·)) (Spec.rank wd d₀) (Spec.rank wd d') := by
+          Spec.rank wd d₀ < Spec.rank wd d' := by
   have h : InRange m q := ⟨hm, legal_of_unpack hu⟩
   have hfin : (Spec.unpack wd).isFinite = true := by rw [hu]; rfl
   have hri := reads_to_finite_iff hu
@@ -342,7 +345,7 @@ theorem nonzero_output {s : Sign} {hm : 0 < m} (hu : Spec.unpack wd = .finite s 
 theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
     ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.referenceBits d₀ = wd
       ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.referenceBits d' = wd →
-          Prod.Lex (· < ·) (Prod.Lex (· < ·) (· < ·)) (Spec.rank wd d₀) (Spec.rank wd d') := by
+          Spec.rank wd d₀ < Spec.rank wd d' := by
   have hfin : (Spec.unpack wd).isFinite = true := by rw [hu]; rfl
   have hri := reads_to_iff hfin
   have hmq : mq (Spec.unpack wd) = (0, -1074) := by rw [hu]; rfl
@@ -390,7 +393,7 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
 theorem output_minimises_rank (hw : (Spec.unpack wd).isFinite = true) :
     ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.referenceBits d₀ = wd
       ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.referenceBits d' = wd →
-          Prod.Lex (· < ·) (Prod.Lex (· < ·) (· < ·)) (Spec.rank wd d₀) (Spec.rank wd d') := by
+          Spec.rank wd d₀ < Spec.rank wd d' := by
   rcases hu : Spec.unpack wd with s | _ | s | ⟨s, m, q, hm⟩
   · rw [hu] at hw; simp [UnpackedFloat.isFinite] at hw
   · rw [hu] at hw; simp [UnpackedFloat.isFinite] at hw
