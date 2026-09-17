@@ -718,42 +718,6 @@ theorem roundCore_binary (sign : Sign) {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 6
 
 /-! ## Proof: the kernel -/
 
-theorem threshold_pos : (0 : Rat) < (2 : Rat) ^ 1024 - 2 ^ 970 := by
-  have h : (2 : Rat) ^ (970 : Int) < (2 : Rat) ^ (1024 : Int) := by
-    have := zpow_le_zpow_right₀ (a := (2 : Rat)) (by decide) (show (970 : Int) ≤ 1023 by decide)
-    have h2 := Rat.zpow_add_one (show (2 : Rat) ≠ 0 by decide) 1023
-    rw [show (1023 : Int) + 1 = 1024 by decide] at h2
-    rw [h2]
-    have hpos := two_zpow_pos (1023 : Int)
-    grind
-  have h' : (2 : Rat) ^ (970 : Nat) < (2 : Rat) ^ (1024 : Nat) := h
-  grind
-
-theorem readMag_zero (s : Sign) : readMag s 0 = .zero s := by
-  unfold readMag
-  rw [if_neg (Rat.not_le.mpr threshold_pos), show roundEven (0 / (2 : Rat) ^ gridExp 0) = 0 by
-    rw [Rat.div_def, Rat.zero_mul]
-    exact roundEven_eq_of (n := 0) (by grind) (by grind) (fun h => absurd h (by grind))
-      (fun h => absurd h (by grind))]
-  rfl
-
-theorem readMag_infinity (s : Sign) {x : Rat} (hx : (2 : Rat) ^ 1024 - 2 ^ 970 ≤ x) :
-    readMag s x = .infinity s := by
-  unfold readMag; rw [if_pos hx]
-
-/-- `m · 10^e` overflows for `m ≥ 1` and `e ≥ 309`. -/
-theorem overflow_of_big {m : Nat} (hm : m ≠ 0) {e : Int} (he : 308 < e) :
-    (2 : Rat) ^ 1024 - 2 ^ 970 ≤ (m : Rat) * (10 : Rat) ^ e := by
-  have h1 : (2 : Rat) ^ (1024 : Nat) ≤ (10 : Rat) ^ (309 : Nat) := by
-    exact_mod_cast (show (2 : Nat) ^ 1024 ≤ 10 ^ 309 by decide +kernel)
-  have h2 : (10 : Rat) ^ (309 : Nat) ≤ (10 : Rat) ^ e :=
-    zpow_le_zpow_right₀ (a := 10) (by decide) (by omega : (309 : Int) ≤ e)
-  have h3 : (1 : Rat) * (10 : Rat) ^ e ≤ (m : Rat) * (10 : Rat) ^ e :=
-    Rat.mul_le_mul_of_nonneg_right (by exact_mod_cast Nat.one_le_iff_ne_zero.mpr hm)
-      (Rat.le_of_lt (ten_zpow_pos e))
-  have h5 : (0 : Rat) < (2 : Rat) ^ (970 : Nat) := Rat.pow_pos (by decide)
-  grind
-
 theorem readFast_some (d : Decimal) {w : UInt64} (h : readFast d = w) (hw : w ≠ declined) :
     w = ofDecimalBits d := by
   unfold readFast at h
