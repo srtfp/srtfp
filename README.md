@@ -88,6 +88,11 @@ spelling recovers the input when `FormatOptions.CompatibleWith` holds. The certi
 grammar is defined by the dialect flags; conformance to external JSON, YAML,
 or MLIR standards is not established.
 
+`DecimalSyntax` controls decimal literals only. Non-finite tokens and
+alternative bases belong to the consuming parser; the unused
+`allowNonFiniteLiterals` and `allowAlternativeBases` fields have been removed.
+`yaml11` remains a compatibility alias for `yamlCore`.
+
 The compact `Text.floatToString` format prints zero as `"0"` or `"-0"`,
 nonzero finite values as signed `significand ++ "e" ++ exponent`, and
 special values as `"NaN"` or signed `"Infinity"`. It uses upstream integer

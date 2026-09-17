@@ -39,8 +39,7 @@ private def fmts : Array (String × FormatOptions) :=
     ("cScientific", .cScientific)]
 
 private def dialects : Array (String × DecimalSyntax) :=
-  #[("json", .jsonStrict), ("mlir", .mlir), ("yamlCore", .yamlCore),
-    ("yaml11", .yaml11)]
+  #[("json", .jsonStrict), ("mlir", .mlir), ("yamlCore", .yamlCore)]
 
 /-- Runtime mirror of `FormatOptions.CompatibleWith`. -/
 private def compatB (f : FormatOptions) (p : DecimalSyntax) : Bool :=

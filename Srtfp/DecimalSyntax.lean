@@ -8,9 +8,9 @@ module
 
      [-]?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?
 
-   and each flag admits one more form. Two of the flags describe tokens
-   that are not decimal literals at all (`.nan`, `0x..`); `Text.parse`
-   never consults them and a consumer handles those tokens itself. -/
+   The flags adjust this grammar. Non-finite tokens (`.nan`, `.inf`)
+   and alternative bases (`0x...`, `0o...`, `0b...`) belong to the
+   consuming parser; this record describes decimal literals only. -/
 
 @[expose] public section
 
@@ -26,14 +26,6 @@ structure DecimalSyntax where
   allowTrailingDot : Bool := false
   /-- Allow an explicit `'+'` mantissa sign, e.g. `"+5"`. JSON: no. YAML: yes. -/
   allowExplicitMantissaPlus : Bool := false
-  /-- Permit `.nan` / `.inf` / `-.inf` literals. JSON: no — non-finite
-      values have no JSON syntax. YAML: yes (canonical forms). Not a
-      decimal literal, so `Text.parse` does not consult this flag. -/
-  allowNonFiniteLiterals : Bool := false
-  /-- Consumer metadata for alternative-base integer literals (`0x...`,
-      `0o...`, `0b...`). `Text.parse` never consults this flag or accepts
-      these forms; the consumer supplies their grammar and interpretation. -/
-  allowAlternativeBases : Bool := false
   /-- Require the decimal point: a bare integer literal like `"2"` is not
       a float. JSON: no (integers are floats). MLIR: yes. -/
   requireDot : Bool := false
@@ -48,22 +40,15 @@ namespace DecimalSyntax
 def jsonStrict : DecimalSyntax := {}
 
 /-- YAML-style decimal floats: permits leading/trailing `.` and explicit
-    `+` on the mantissa, with non-finite tokens delegated to the consumer.
-    This is not the complete YAML core schema: for example, that schema
-    also resolves untagged `0o...` and `0x...` integers (YAML 1.2.2 §10.3.2,
-    https://yaml.org/spec/1.2.2/#1032-tag-resolution). The alternative-base
-    flag is retained as `false` for compatibility; `Text.parse` ignores it. -/
+    `+` on the mantissa. This describes decimal syntax, not a complete
+    YAML schema. -/
 def yamlCore : DecimalSyntax :=
   { allowLeadingDot          := true
   , allowTrailingDot         := true
-  , allowExplicitMantissaPlus := true
-  , allowNonFiniteLiterals    := true
-  , allowAlternativeBases     := false }
+  , allowExplicitMantissaPlus := true }
 
-/-- YAML 1.1 extended: like `yamlCore` plus hex/octal/binary integers
-    (which several YAML 1.1 emitters still produce in the wild). -/
-def yaml11 : DecimalSyntax :=
-  { yamlCore with allowAlternativeBases := true }
+/-- Compatibility name for the same decimal grammar as `yamlCore`. -/
+abbrev yaml11 : DecimalSyntax := yamlCore
 
 /-- MLIR float literals: `[0-9]+ '.' [0-9]* ([eE][+-]?[0-9]+)?`. The dot
     is mandatory, may dangle (`"2."`), and leading zeros are allowed
