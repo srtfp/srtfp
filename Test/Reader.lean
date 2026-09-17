@@ -3,7 +3,8 @@
    `Reader.ofDecimalBits` compiles to the fast kernel (`readFast`, falling
    back to `readExact`) through `@[csimp]`; its correctness is the proof
    `Srtfp.Reader.ofDecimalBits_fast_eq`. These tests are the runtime
-   witness: every Ryu-suite decimal reads back to its float's bits, and a
+   witness: direct calls to Lean's `ofScientific` exercise its own
+   registration too. Every Ryu-suite decimal reads back to its float's bits, and a
    random sweep of `(m, e)` pairs compares the fast kernel and the exact
    fallback against the reference `read` evaluated on `Rat`. -/
 
@@ -25,8 +26,11 @@ private def ryuPairs : Array (Float × Decimal) :=
     ++ f2sRegression ++ f2sLooksLikePow5 ++ f2sOutputLength ++ d2sExactTies).map
     (fun c => (c.2.1, c.2.2))
 
-/-- The reference reader, evaluated as written (no `@[csimp]` applies to `read`). -/
-private def referenceBits (d : Decimal) : UInt64 := (Float.Model.pack (Reader.read d)).toBits
+/-- Call the upstream entry point directly so compilation exercises its
+    registration independently of the public reader wrappers. -/
+private def scientificBits (d : Decimal) : UInt64 :=
+  let x := Float.Model.ofScientific d.significand d.exponent
+  (match d.sign with | .positive => x | .negative => -x).toBits
 
 /-- Shortest decimals read back to their float, on every path. -/
 private def roundTripMismatches : Array (Float × Decimal) := Id.run do
@@ -36,7 +40,8 @@ private def roundTripMismatches : Array (Float × Decimal) := Id.run do
     let live := Reader.ofDecimalBits d
     let exact := (Float.Model.pack (readExact d)).toBits
     let fast := let w := readFast d; if w = declined then exact else w
-    if live != bits || exact != bits || fast != bits then out := out.push (f, d)
+    if live != bits || scientificBits d != bits || exact != bits || fast != bits then
+      out := out.push (f, d)
   return out
 
 structure Rng where state : UInt64
@@ -62,7 +67,14 @@ private def edgeDecimals : Array Decimal := #[
   ⟨.positive, 12345678901234567890, 5⟩, ⟨.positive, 1, 54⟩, ⟨.positive, 1, 55⟩,
   ⟨.positive, 7, 54⟩, ⟨.positive, 7, 55⟩, ⟨.negative, 15, -1⟩,
   ⟨.positive, 4503599627370496, -1074⟩, ⟨.positive, 1, -325⟩, ⟨.positive, 10000000000000000000, -325⟩,
-  ⟨.positive, 123456789012345678901234567890, -20⟩, ⟨.negative, 100000000000000000000000, -30⟩]
+  ⟨.positive, 123456789012345678901234567890, -20⟩, ⟨.negative, 100000000000000000000000, -30⟩,
+  ⟨.positive, 0, 2049⟩, ⟨.negative, 0, -2049⟩,
+  ⟨.positive, 1, 2049⟩, ⟨.negative, 1, -2049⟩,
+  ⟨.positive, 5 ^ 1075 - 1, -1075⟩, ⟨.negative, 5 ^ 1075, -1075⟩,
+  ⟨.positive, 5 ^ 1075 + 1, -1075⟩,
+  ⟨.positive, (2 ^ 54 - 1) * 2 ^ 970 - 1, 0⟩,
+  ⟨.negative, (2 ^ 54 - 1) * 2 ^ 970, 0⟩,
+  ⟨.positive, (2 ^ 54 - 1) * 2 ^ 970 + 1, 0⟩]
 
 /-- Random `(m, e)` with one to twenty digits and `e ∈ [-340, 320]`. -/
 private def randomDecimals (n : Nat) : Array Decimal := Id.run do
@@ -84,10 +96,10 @@ private def sweep (ds : Array Decimal) : Nat × Nat := Id.run do
   let mut bad := 0
   let mut fast := 0
   for d in ds do
-    let ref := referenceBits d
+    let ref := Reader.referenceBits d
     let exact := (Float.Model.pack (readExact d)).toBits
     let live := Reader.ofDecimalBits d
-    if exact != ref || live != ref then bad := bad + 1
+    if exact != ref || live != ref || scientificBits d != ref then bad := bad + 1
     let w := readFast d
     if w != declined then
       fast := fast + 1
@@ -100,7 +112,7 @@ def runTests : TestSeq :=
   let ds := randomDecimals 4000
   let (badR, fastR) := sweep ds
   test s!"Ryu-suite decimals read back to their floats ({ryuPairs.size} pairs)" (rt.isEmpty)
-  ++ test "hand-picked edge decimals agree with the reference reader" (badE = 0)
+  ++ test "reader wrappers and upstream conversion agree at rounding boundaries" (badE = 0)
   ++ test "decimal literals and negation preserve both signs of zero"
       (ofDecimalBits (-0.0 : Decimal) == 0x8000000000000000
         && ofDecimalBits (-(-0.0 : Decimal)) == 0

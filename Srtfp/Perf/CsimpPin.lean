@@ -38,3 +38,4 @@ open Lean Elab Command Lean.Compiler in
   check `Srtfp.Decimal.mk' `Srtfp.Decimal.mk'Fast
   check `Srtfp.Reader.ofDecimalBits `Srtfp.Reader.ofDecimalBits_fast
   check `Srtfp.Reader.ofDecimal `Srtfp.Reader.ofDecimal_fast
+  check `Float.Model.ofScientific `Srtfp.Reader.ofScientificFast

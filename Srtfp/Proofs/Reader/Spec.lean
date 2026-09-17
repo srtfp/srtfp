@@ -1,10 +1,8 @@
 module
-/- The reader meets `Srtfp/Spec.lean`: a function is a correct reader iff
-   it is `Reader.ofDecimalBits`. Also the one fact the printer proof uses
-   about the reader, `reads_to_iff`: a decimal reads back to a finite
-   word iff it carries the word's sign and its magnitude lies in the
-   word's rounding interval (Giulietti §3.2.1). -/
-public import Srtfp.Proofs.Reader.Characterize
+/- Connect Lean's decimal conversion to rounding intervals: a decimal
+   reads back to a finite word iff it carries the word's sign and its
+   magnitude lies in the word's rounding interval. -/
+public import Srtfp.Proofs.Reader.Upstream
 public import Srtfp.Proofs.Reader.Nearest
 
 @[expose] public section
@@ -48,53 +46,21 @@ theorem lt_threshold_of_InRv {m : Nat} {q : Int} {x : Rat} (h : Legal m q) (hx :
       rw [heq]; exact Rat.mul_lt_mul_of_pos_right (by grind) (two_zpow_pos _)
     · exact lt_of_lt_of_le (Rat.lt_of_le_of_ne hr heq) hle
 
-/-! ## The reader theorem -/
+/-- The public wrapper agrees with the internal arithmetic reader. -/
+theorem ofDecimalBits_eq_reference (d : Decimal) : ofDecimalBits d = referenceBits d :=
+  congrArg Float.Model.toBits (Upstream.toModel_eq_read d)
 
-/-- `Reader.ofDecimalBits` is a correct reader. -/
-theorem correctReader_ofDecimalBits : Spec.CorrectReader ofDecimalBits where
-  inRange d hd := by
-    rw [abs_toRat] at hd
-    obtain ⟨hfin, hs, -, hmem⟩ := (read_spec d).1 hd
-    rw [← unpack_ofDecimalBits] at hfin hs hmem
-    exact nearestWord_of_InRv hfin hs hmem
-  overflow d hd := by
-    rw [abs_toRat] at hd
-    rw [unpack_ofDecimalBits, (read_spec d).2 hd]
-
-/-- **The reader theorem.** A function is a correct reader iff it is
-`Reader.ofDecimalBits`. -/
-theorem correctReader_iff_ofDecimal (p : Decimal → UInt64) :
-    Spec.CorrectReader p ↔ ∀ d : Decimal, p d = ofDecimalBits d := by
-  constructor
-  · intro h d
-    rcases lt_or_ge |Spec.toRat d| (2 ^ 1024 - 2 ^ 970) with hd | hd
-    · have hn := h.inRange d hd
-      rw [abs_toRat] at hd
-      obtain ⟨hfin, hs, -, hmem⟩ := (read_spec d).1 hd
-      rw [← unpack_ofDecimalBits] at hfin hs hmem
-      exact eq_of_nearestWord hn hfin hs hmem
-    · have h1 := h.overflow d hd
-      rw [abs_toRat] at hd
-      have h2 : Spec.unpack (ofDecimalBits d) = .infinity d.sign := by
-        rw [unpack_ofDecimalBits, (read_spec d).2 hd]
-      exact word_inj (by rw [h1]; exact fun e => UnpackedFloat.noConfusion e) (h1.trans h2.symm)
-  · intro h
-    have : p = ofDecimalBits := funext h
-    subst this
-    exact correctReader_ofDecimalBits
-
-/-- `d` reads back to `w` under every correct reader iff under ours. -/
-theorem readsTo_iff (d : Decimal) (w : UInt64) : Spec.ReadsTo d w ↔ ofDecimalBits d = w := by
-  constructor
-  · intro h; exact h _ correctReader_ofDecimalBits
-  · intro h p hp; rw [(correctReader_iff_ofDecimal p).mp hp d, h]
+/-- Translate upstream round-tripping to the internal reader used in the proofs. -/
+theorem readsTo_iff (d : Decimal) (w : UInt64) : Spec.ReadsTo d w ↔ referenceBits d = w := by
+  change ofDecimalBits d = w ↔ referenceBits d = w
+  rw [ofDecimalBits_eq_reference]
 
 /-! ## The interface to the printer proof -/
 
 /-- Reading a decimal back yields the finite word `w` iff the decimal
 carries `w`'s sign and its magnitude lies in `R_w`. -/
 theorem reads_to_iff {w : UInt64} (hw : (Spec.unpack w).isFinite = true) (d : Decimal) :
-    ofDecimalBits d = w ↔
+    referenceBits d = w ↔
       (d.sign = usign (Spec.unpack w)
         ∧ InRv (mq (Spec.unpack w)).1 (mq (Spec.unpack w)).2
             ((d.significand : Rat) * (10 : Rat) ^ d.exponent) = true) := by
@@ -103,23 +69,23 @@ theorem reads_to_iff {w : UInt64} (hw : (Spec.unpack w).isFinite = true) (d : De
   · intro h
     rcases lt_or_ge ((d.significand : Rat) * (10 : Rat) ^ d.exponent) (2 ^ 1024 - 2 ^ 970) with hd | hd
     · obtain ⟨-, hs, -, hmem⟩ := (read_spec d).1 hd
-      rw [← unpack_ofDecimalBits, h] at hs hmem
+      rw [← unpack_referenceBits, h] at hs hmem
       exact ⟨hs.symm, hmem⟩
     · exfalso
       have := (read_spec d).2 hd
-      rw [← unpack_ofDecimalBits, h] at this
+      rw [← unpack_referenceBits, h] at this
       rw [this] at hw
       simp [UnpackedFloat.isFinite] at hw
   · rintro ⟨hs, hmem⟩
     have hd := lt_threshold_of_InRv hleg hmem
     obtain ⟨hfin', hs', -, hmem'⟩ := (read_spec d).1 hd
-    rw [← unpack_ofDecimalBits] at hfin' hs' hmem'
+    rw [← unpack_referenceBits] at hfin' hs' hmem'
     exact (eq_of_nearestWord (nearestWord_of_InRv hw hs.symm hmem) hfin' hs' hmem').symm
 
 /-- The same, for a finite nonzero word given by its fields. -/
 theorem reads_to_finite_iff {w : UInt64} {s : Sign} {m : Nat} {q : Int} {hm : 0 < m}
     (hw : Spec.unpack w = .finite s m q hm) (d : Decimal) :
-    ofDecimalBits d = w ↔
+    referenceBits d = w ↔
       (d.sign = s ∧ InRv m q ((d.significand : Rat) * (10 : Rat) ^ d.exponent) = true) := by
   have hfin : (Spec.unpack w).isFinite = true := by rw [hw]; rfl
   rw [reads_to_iff hfin, hw]; rfl

@@ -1,9 +1,9 @@
 module
-/- The two arithmetic helpers of `Srtfp/Reader.lean`, read over `Rat`:
+/- The two arithmetic helpers of `Srtfp/Proofs/Reader/Reference.lean`, read over `Rat`:
    `roundEven` is the nearest integer with ties to even, and `gridExp`
    the exponent of the binary64 grid around a magnitude. -/
 
-public import Srtfp.Reader
+public import Srtfp.Proofs.Reader.Reference
 public import Srtfp.Proofs.Printer.Interval
 
 @[expose] public section

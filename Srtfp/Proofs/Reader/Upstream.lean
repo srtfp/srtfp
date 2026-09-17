@@ -129,11 +129,8 @@ theorem readMag_neg (s : Sign) (x : Rat) : readMag (-s) x = (readMag s x).neg :=
     · rfl
     · split <;> rfl
 
-theorem ofScientific_eq_read (d : Decimal) :
-    (match d.sign with
-     | .positive => Float.Model.ofScientific d.significand d.exponent
-     | .negative => -(Float.Model.ofScientific d.significand d.exponent)) =
-      Float.Model.pack (read d) := by
+theorem toModel_eq_read (d : Decimal) :
+    d.toModel = Float.Model.pack (read d) := by
   cases d with
   | mk s m e =>
     cases s with
@@ -143,7 +140,7 @@ theorem ofScientific_eq_read (d : Decimal) :
     | negative =>
       have hu : (Float.Model.pack (readMag .positive ((m : Rat) * (10 : Rat) ^ e))).unpack =
           readMag .positive ((m : Rat) * (10 : Rat) ^ e) := by
-        have h := unpack_ofDecimalBits ⟨.positive, m, e⟩
+        have h := unpack_referenceBits ⟨.positive, m, e⟩
         change (Float.Model.pack (read ⟨.positive, m, e⟩)).unpack = read ⟨.positive, m, e⟩ at h
         simpa only [read_eq_readMag, abs_toRat] using h
       change -(Float.Model.ofScientific m e) = _

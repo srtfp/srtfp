@@ -122,8 +122,8 @@ def readMag (s : Sign) (x : Rat) : UnpackedFloat :=
 theorem read_eq_readMag (d : Decimal) : read d = readMag d.sign (Rat.abs (Spec.toRat d)) := rfl
 
 /-- The word the reader returns unpacks to what `read` computed. -/
-theorem unpack_ofDecimalBits (d : Decimal) : Spec.unpack (ofDecimalBits d) = read d := by
-  unfold ofDecimalBits
+theorem unpack_referenceBits (d : Decimal) : Spec.unpack (referenceBits d) = read d := by
+  unfold referenceBits
   rw [toBits_pack]
   have hspec := read_spec d
   rcases lt_or_ge ((d.significand : Rat) * (10 : Rat) ^ d.exponent) (2 ^ 1024 - 2 ^ 970) with hd | hd

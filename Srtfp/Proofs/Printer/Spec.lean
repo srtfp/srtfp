@@ -295,8 +295,8 @@ theorem BeatsOdd.not_beats {w : UInt64} {d d' : Decimal} (h : BeatsOdd w d d')
 /-- Finite nonzero words: the output is canonical, reads back, and beats
     every competitor. -/
 theorem nonzero_output {s : Sign} {hm : 0 < m} (hu : Spec.unpack wd = .finite s m q hm) :
-    ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.ofDecimalBits d₀ = wd
-      ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.ofDecimalBits d' = wd →
+    ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.referenceBits d₀ = wd
+      ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.referenceBits d' = wd →
           BeatsOdd wd d₀ d' := by
   have h : InRange m q := ⟨hm, legal_of_unpack hu⟩
   have hfin : (Spec.unpack wd).isFinite = true := by rw [hu]; rfl
@@ -340,8 +340,8 @@ theorem nonzero_output {s : Sign} {hm : 0 < m} (hu : Spec.unpack wd = .finite s 
 
 /-- Zero words: the signed zero is the output; every competitor is farther. -/
 theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
-    ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.ofDecimalBits d₀ = wd
-      ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.ofDecimalBits d' = wd →
+    ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.referenceBits d₀ = wd
+      ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.referenceBits d' = wd →
           BeatsOdd wd d₀ d' := by
   have hfin : (Spec.unpack wd).isFinite = true := by rw [hu]; rfl
   have hri := reads_to_iff hfin
@@ -387,8 +387,8 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
 
 /-- The output beats every competitor, with the competitor's parity on a tie. -/
 theorem output_beats (hw : (Spec.unpack wd).isFinite = true) :
-    ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.ofDecimalBits d₀ = wd
-      ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.ofDecimalBits d' = wd →
+    ∃ d₀, toDecimalBits wd = some d₀ ∧ d₀.IsCanonical ∧ Reader.referenceBits d₀ = wd
+      ∧ ∀ d' : Decimal, d' ≠ d₀ → d'.IsCanonical → Reader.referenceBits d' = wd →
           BeatsOdd wd d₀ d' := by
   rcases hu : Spec.unpack wd with s | _ | s | ⟨s, m, q, hm⟩
   · rw [hu] at hw; simp [UnpackedFloat.isFinite] at hw

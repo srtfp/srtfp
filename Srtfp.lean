@@ -2,8 +2,8 @@ module
 /- srtfp: a verified shortest round-trip float printer (and parser).
 
    Shortest-round-trip binary64 printing and correctly-rounded
-   parsing, with the correctness theorems proven at the `.toBits`
-   level.
+   decimal conversion through Lean's Float.Model.ofScientific, with
+   the printer's correctness theorems proven at the `.toBits` level.
 
    This umbrella is the reference tier: the definitions, the proof
    stack, and the certification in `Srtfp/Correctness.lean`. It is
@@ -22,6 +22,7 @@ public import Srtfp.Rat
 public import Srtfp.Proofs.Model
 public import Srtfp.Proofs.Decimal
 public import Srtfp.Proofs.Decimal.Canonical
+public import Srtfp.Proofs.Reader.Reference
 public import Srtfp.Proofs.Reader.Round
 public import Srtfp.Proofs.Reader.Words
 public import Srtfp.Proofs.Reader.Compute

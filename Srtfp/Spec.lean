@@ -1,10 +1,7 @@
 module
-/- The specification: what it means to be a correct binary64 reader and a
-   correct shortest-decimal printer. Stated on raw IEEE-754 bit patterns
-   (`UInt64` words), read through Lean's own model of binary64
-   (`Float.Model.UnpackedFloat.unpack`, core since v4.33). The theorems
-   that the library's functions are the unique such reader and printer are
-   in `Srtfp/Correctness.lean`.
+/- The shortest-decimal printer specification, using Lean's binary64
+   model for decimal conversion and raw IEEE-754 words for round-trips.
+   Srtfp/Correctness.lean proves correctness and uniqueness.
 
    Everything needed to read this file is core Lean or defined here. -/
 
@@ -36,6 +33,13 @@ def Decimal.Normalizes (sign : Sign) (sig : Nat) (exp : Int) (d : Decimal) : Pro
   ((sig = 0 ∧ d.significand = 0) ∨
     ∃ zeros : Nat, sig = d.significand * 10 ^ zeros ∧ d.exponent = exp + zeros)
 
+/-- Lean's decimal-to-binary64 conversion, preserving the sign even at zero. -/
+def Decimal.toModel (d : Decimal) : Float.Model :=
+  let magnitude := Float.Model.ofScientific d.significand d.exponent
+  match d.sign with
+  | .positive => magnitude
+  | .negative => -magnitude
+
 namespace Spec
 
 /-! ## Words
@@ -65,53 +69,14 @@ def wordVal (w : UInt64) : Rat :=
   | .finite s m e _ => val 2 s m e
   | _ => 0
 
-/-- The sign of a word; a NaN counts as positive. -/
-def wordSign (w : UInt64) : Sign :=
-  match unpack w with
-  | .finite s _ _ _ | .zero s | .infinity s => s
-  | .notANumber => .positive
-
-/-- The integer significand of a finite word; `0` for a zero. -/
-def wordSig (w : UInt64) : Nat :=
-  match unpack w with
-  | .finite _ m _ _ => m
-  | _ => 0
-
 /-- The distance between a decimal's value and a word's. -/
 def dist (d : Decimal) (w : UInt64) : Rat := Rat.abs (wordVal w - toRat d)
 
 /-- Number of base-10 digits (`digits 0 = 1`). -/
 def digits (n : Nat) : Nat := (Nat.toDigits 10 n).length
 
-/-! ## The reader
-
-The printer's specification is stated in terms of the reader, so the
-reader is pinned down first. -/
-
-/-- `w` is THE nearest finite binary64 word to `d`, over every finite bit
-pattern, not merely those some runtime `Float` happens to produce. -/
-structure NearestWord (d : Decimal) (w : UInt64) : Prop where
-  finite : (unpack w).isFinite
-  /-- `d`'s sign is carried; on a zero only the sign can show it. -/
-  sign : wordSign w = d.sign
-  /-- No finite word is closer to `d`, and an exact tie against a word of a
-  different value goes to the even significand. -/
-  nearest : ∀ v : UInt64, (unpack v).isFinite →
-      dist d w ≤ dist d v
-    ∧ (wordVal v ≠ wordVal w → dist d v = dist d w → wordSig w % 2 = 0)
-
-/-- A correct reader returns the nearest word in range, and the infinity of
-the decimal's sign at or past the threshold `2^1024 - 2^970`, the midpoint
-between the largest finite value and its would-be successor (ties-to-even
-sends the midpoint itself to infinity). -/
-structure CorrectReader (p : Decimal → UInt64) : Prop where
-  inRange : ∀ d : Decimal, Rat.abs (toRat d) < 2 ^ 1024 - 2 ^ 970 → NearestWord d (p d)
-  overflow : ∀ d : Decimal, 2 ^ 1024 - 2 ^ 970 ≤ Rat.abs (toRat d) →
-    unpack (p d) = .infinity d.sign
-
-/-- `d` reads back to `w` under every correct reader. The existence and
-uniqueness theorem `correct_iff_ofDecimal` makes this non-vacuous. -/
-def ReadsTo (d : Decimal) (w : UInt64) : Prop := ∀ p, CorrectReader p → p d = w
+/-- Lean's conversion of `d` reproduces `w`, bit for bit. -/
+def ReadsTo (d : Decimal) (w : UInt64) : Prop := d.toModel.toBits = w
 
 /-! ## The printer -/
 

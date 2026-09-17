@@ -57,18 +57,27 @@ theorem nearest_of_InRv (h : Legal m q) (h' : Legal m' q') (hx : InRv m q x = tr
 
 /-! ## The nearest word -/
 
+/-- Internal characterization of the nearest finite word, with even ties. -/
+structure NearestWord (d : Decimal) (w : UInt64) : Prop where
+  finite : (Spec.unpack w).isFinite
+  sign : usign (Spec.unpack w) = d.sign
+  nearest : ∀ v : UInt64, (Spec.unpack v).isFinite →
+      Spec.dist d w ≤ Spec.dist d v
+    ∧ (Spec.wordVal v ≠ Spec.wordVal w → Spec.dist d v = Spec.dist d w →
+        (mq (Spec.unpack w)).1 % 2 = 0)
+
 /-- A finite word of the decimal's sign whose interval contains the
 decimal's magnitude is the decimal's nearest word. -/
 theorem nearestWord_of_InRv {d : Decimal} {w : UInt64} (hw : (Spec.unpack w).isFinite = true)
     (hs : usign (Spec.unpack w) = d.sign)
     (hx : InRv (mq (Spec.unpack w)).1 (mq (Spec.unpack w)).2
       ((d.significand : Rat) * (10 : Rat) ^ d.exponent) = true) :
-    Spec.NearestWord d w := by
+    NearestWord d w := by
   have hX := mag_nonneg d
   have hleg := legal_mq hw
-  refine ⟨hw, by rw [wordSign_eq, hs], fun u hu => ?_⟩
+  refine ⟨hw, hs, fun u hu => ?_⟩
   have hlegu := legal_mq hu
-  rw [wordSig_eq, dist_eq d hw, dist_eq d hu, wordVal_eq hu, wordVal_eq hw]
+  rw [dist_eq d hw, dist_eq d hu, wordVal_eq hu, wordVal_eq hw]
   generalize (d.significand : Rat) * (10 : Rat) ^ d.exponent = X at *
   generalize d.sign = s at *
   generalize mq (Spec.unpack w) = dw at *
@@ -100,7 +109,7 @@ theorem nearestWord_of_InRv {d : Decimal} {w : UInt64} (hw : (Spec.unpack w).isF
 
 /-- Any nearest word is the finite word of the right sign whose interval
 contains the magnitude. -/
-theorem eq_of_nearestWord {d : Decimal} {w w' : UInt64} (h : Spec.NearestWord d w)
+theorem eq_of_nearestWord {d : Decimal} {w w' : UInt64} (h : NearestWord d w)
     (hw' : (Spec.unpack w').isFinite = true) (hs' : usign (Spec.unpack w') = d.sign)
     (hx : InRv (mq (Spec.unpack w')).1 (mq (Spec.unpack w')).2
       ((d.significand : Rat) * (10 : Rat) ^ d.exponent) = true) :
@@ -113,13 +122,12 @@ theorem eq_of_nearestWord {d : Decimal} {w w' : UInt64} (h : Spec.NearestWord d 
   obtain ⟨hle, htie⟩ := h.nearest w' hw'
   obtain ⟨hle', htie'⟩ := h'.nearest w hw
   have heq : Spec.dist d w' = Spec.dist d w := Rat.le_antisymm hle' hle
-  have hs : usign (Spec.unpack w) = d.sign := by rw [← wordSign_eq]; exact h.sign
+  have hs : usign (Spec.unpack w) = d.sign := h.sign
   have hne : Spec.unpack w ≠ .notANumber := fun e => by rw [e] at hw; exact absurd hw (by decide)
   refine word_inj hne (eq_of_mq_eq hw hw' ?_ (by rw [hs, hs']))
   have heqd := heq
   rw [dist_eq d hw', dist_eq d hw, hs, hs'] at heq
   rw [wordVal_eq hw', wordVal_eq hw, hs, hs'] at htie htie'
-  rw [wordSig_eq] at htie htie'
   generalize (d.significand : Rat) * (10 : Rat) ^ d.exponent = X at *
   generalize d.sign = s at *
   generalize mq (Spec.unpack w) = dw at *

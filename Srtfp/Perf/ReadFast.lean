@@ -722,7 +722,8 @@ theorem readFast_some (d : Decimal) {w : UInt64} (h : readFast d = w) (hw : w �
     w = ofDecimalBits d := by
   unfold readFast at h
   dsimp only at h
-  unfold ofDecimalBits
+  rw [ofDecimalBits_eq_reference]
+  unfold referenceBits
   rw [read_eq_readMag, abs_toRat]
   split at h
   · rename_i hm0
@@ -753,7 +754,7 @@ theorem ofDecimalBits_fast_eq (d : Decimal) : ofDecimalBits_fast d = ofDecimalBi
   unfold ofDecimalBits_fast
   dsimp only
   by_cases hd : readFast d = declined
-  · rw [if_pos hd, readExact_eq]; rfl
+  · rw [if_pos hd, readExact_eq, ofDecimalBits_eq_reference]; rfl
   · rw [if_neg hd]; exact readFast_some d rfl hd
 
 @[csimp]
@@ -772,13 +773,13 @@ theorem read_ne_nan (d : Decimal) : read d ≠ .notANumber := by
 /-- `ofDecimal` through its bits: the model's round-trip on a word that is
     never a NaN. -/
 theorem ofDecimal_eq_ofBits (d : Decimal) : ofDecimal d = Float.ofBits (ofDecimalBits d) := by
-  show Float.ofModel (Float.Model.pack (read d))
-    = Float.ofModel (Float.Model.ofBits (Float.Model.pack (read d)).toBits)
+  show Float.ofModel d.toModel = Float.ofModel (Float.Model.ofBits d.toModel.toBits)
+  rw [Upstream.toModel_eq_read]
   apply congrArg
   apply Srtfp.Model.model_ext
   rw [Srtfp.Model.toBits_ofBits _ (by
-    show Spec.unpack (ofDecimalBits d) ≠ _
-    rw [unpack_ofDecimalBits]; exact read_ne_nan d)]
+    show Spec.unpack (referenceBits d) ≠ _
+    rw [unpack_referenceBits]; exact read_ne_nan d)]
 
 /-- `ofDecimal` over the fast kernel. -/
 def ofDecimal_fast (d : Decimal) : Float := Float.ofBits (ofDecimalBits_fast d)
@@ -788,5 +789,21 @@ theorem ofDecimal_eq_fast : @ofDecimal = @ofDecimal_fast :=
   funext fun d => by
     show ofDecimal d = Float.ofBits (ofDecimalBits_fast d)
     rw [ofDecimal_eq_ofBits, ofDecimalBits_fast_eq]
+
+/-- The verified fast conversion as a replacement for Lean's model operation. -/
+def ofScientificFast (m : Nat) (e : Int) : Float.Model where
+  toBits := ofDecimalBits_fast ⟨.positive, m, e⟩
+  valid := by
+    rw [ofDecimalBits_fast_eq]
+    exact (Float.Model.ofScientific m e).valid
+
+theorem ofScientificFast_eq (m : Nat) (e : Int) :
+    ofScientificFast m e = Float.Model.ofScientific m e := by
+  apply Srtfp.Model.model_ext
+  exact ofDecimalBits_fast_eq ⟨.positive, m, e⟩
+
+@[csimp]
+theorem ofScientific_eq_fast : @Float.Model.ofScientific = @ofScientificFast :=
+  funext fun m => funext fun e => (ofScientificFast_eq m e).symm
 
 end Srtfp.Reader

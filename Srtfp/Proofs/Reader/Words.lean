@@ -2,7 +2,7 @@ module
 /- Finite binary64 values as `(m, q)` pairs (`Srtfp.Model.Legal`):
    injectivity of the value `m · 2^q`, and the gap around a value: no
    legal value lies strictly between `m · 2^q` and its two neighbours.
-   Also the spec's vocabulary (`wordVal`, `wordSign`, `wordSig`, `dist`)
+   Also the spec's vocabulary (`wordVal`, `dist`)
    read off an unpacked word, and the algebra of signed distances. -/
 public import Srtfp.Proofs.Model
 public import Srtfp.Proofs.Printer.Interval
@@ -49,14 +49,6 @@ theorem wordVal_eq {w : UInt64} (hw : (Spec.unpack w).isFinite = true) :
     show (0 : Rat) = _ * (((0 : Nat) : Rat) * _)
     rw [Rat.natCast_ofNat, Rat.zero_mul, Rat.mul_zero]
   | finite s n k hn => rfl
-
-theorem wordSign_eq (w : UInt64) : Spec.wordSign w = usign (Spec.unpack w) := by
-  unfold Spec.wordSign
-  rcases Spec.unpack w with s | _ | s | ⟨s, n, k, hn⟩ <;> rfl
-
-theorem wordSig_eq (w : UInt64) : Spec.wordSig w = (mq (Spec.unpack w)).1 := by
-  unfold Spec.wordSig
-  rcases Spec.unpack w with s | _ | s | ⟨s, n, k, hn⟩ <;> rfl
 
 /-- Finite words with the same fields are the same. -/
 theorem eq_of_mq_eq {u u' : UnpackedFloat} (hu : u.isFinite = true) (hu' : u'.isFinite = true)

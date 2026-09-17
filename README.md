@@ -15,8 +15,8 @@ printer:
 
 1. rejects NaN and ±∞ with `none`, and otherwise returns a decimal
    that
-2. **round-trips**: reading the decimal back yields the original float,
-   bit for bit;
+2. **round-trips**: Lean's `Float.Model.ofScientific`, with the decimal's
+   sign applied, yields the original float, bit for bit;
 3. is **shortest**: no other round-tripping decimal has fewer
    significant digits;
 4. is **closest**: among equally short candidates, it is nearest the
@@ -24,10 +24,10 @@ printer:
 5. **breaks ties to even**: at equal distance, it has the even
    significand.
 
-These properties uniquely determine the printer's behavior, and
-likewise the parser's: a function is a correct shortest-decimal printer iff it is
-`Printer.toDecimalBits`, and a correct round-to-nearest reader iff it
-is `Reader.ofDecimalBits`. For the exact statements, see
+These properties uniquely determine the printer's behavior: a function is a
+correct shortest-decimal printer iff it is `Printer.toDecimalBits`.
+Decimal-to-float conversion is defined directly by Lean's model. For the
+printer's exact statements, see
 [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean).
 
 The library has two implementation tiers, each a separate import:
@@ -36,17 +36,19 @@ The library has two implementation tiers, each a separate import:
   effective, in exact rational arithmetic over Lean's own model of the
   format. The printer walks the decimal grids from coarse to fine and
   tests the two grid neighbours of the value against its rounding
-  interval; the reader rounds the value to the binary64 grid around it
-  and packs the result with core's `Float.Model.pack`. Plus the proofs
-  and certification of both the `UInt64` and runtime `Float` entry points
+  interval; the reader wraps upstream `Float.Model.ofScientific` and
+  applies the decimal's sign. Plus the proofs
+  and certification of both the printer's `UInt64` and runtime `Float` entry points
   against the same specification over raw IEEE-754 bit patterns.
   Uses nothing beyond Lean's three standard axioms (`propext`,
   `Quot.sound`, `Classical.choice`); a build-time audit enforces this.
 - **Performance (`import Srtfp.Perf`, opt-in)**: Giulietti's Schubfach
   printer on 64-bit words, written to follow the paper and proven
   result by result (`Srtfp/Perf/Schubfach/`), and an Eisel–Lemire
-  kernel with an exact big-integer fallback for reading, each proven
-  equal to the reference and registered as a `@[csimp]` rewrite, so
+  kernel with an exact big-integer fallback for reading. The conversion
+  is proven equal to upstream `Float.Model.ofScientific` for every
+  significand and exponent and registered as its `@[csimp]` replacement.
+  The printer and reader wrappers also have verified replacements, so
   compiled code runs the fast path while the proofs still speak about
   the reference. Same axiom budget as the reference tier. Deleting
   `Srtfp/Perf/` leaves the library working, only slower.
@@ -59,22 +61,24 @@ the implementation and proof bodies need no manual review.
 
 | API | Specification to read | Certifying statements |
 | --- | --- | --- |
-| `Reader.ofDecimalBits`, `Printer.toDecimalBits`, and their `Float` wrappers | [`Srtfp/Spec.lean`](Srtfp/Spec.lean) | [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean): `correct_iff_ofDecimal`, `correct_iff_toDecimal`, `ofDecimal_spec`, `toDecimal_spec` |
+| `Printer.toDecimalBits` and `Printer.toDecimal` | [`Srtfp/Spec.lean`](Srtfp/Spec.lean) | [`Srtfp/Correctness.lean`](Srtfp/Correctness.lean): `correct_iff_toDecimal`, `shortest_decimal_exists_unique`, `toDecimal_spec` |
+| `Reader.ofDecimalBits` and `Reader.ofDecimal` | `Decimal.toModel` in `Srtfp/Spec.lean` | The two direct wrappers in [`Srtfp/Reader.lean`](Srtfp/Reader.lean) |
 | `Decimal` canonicalisation, constructors, scientific literals, constants, and negation | `Decimal`, `IsCanonical`, and `Normalizes` in `Srtfp/Spec.lean` | [`Srtfp/Decimal/Correctness.lean`](Srtfp/Decimal/Correctness.lean) |
 | `Text.parse` | [`Srtfp/DecimalSyntax.lean`](Srtfp/DecimalSyntax.lean) and the grammar in [`Srtfp/Text/Spec.lean`](Srtfp/Text/Spec.lean), using `Decimal.Normalizes` | [`Srtfp/Text/Correctness.lean`](Srtfp/Text/Correctness.lean): `parse_spec`, `correct_iff_parse` |
 | `Text.format` | [`Srtfp/Text/FormatOptions.lean`](Srtfp/Text/FormatOptions.lean) and `Formats` / `CorrectFormatter` in `Srtfp/Text/Spec.lean` | `Srtfp/Text/Correctness.lean`: `format_spec`, `correct_iff_format`; `format_parses` for canonical inputs and compatible options |
 | `Text.floatToString` and its fast emitter | The three definitions in [`Srtfp/Text/Float.lean`](Srtfp/Text/Float.lean), plus the numerical specification above | `Srtfp/Correctness.lean`: `toDecimal_spec`; [`Srtfp/Perf/Schubfach/Entry.lean`](Srtfp/Perf/Schubfach/Entry.lean): `floatToString_eq` |
 
-The numerical specification uses upstream `Float.Model.UnpackedFloat.unpack`,
-`Rat`, and `Nat.toDigits`. Its biconditionals establish both correctness and
-uniqueness. In particular, existence of a correct reader makes the printer's
-“under every correct reader” condition non-vacuous. The runtime `Float` APIs
-satisfy the same word specification through `.toBits`.
+The numerical specification uses upstream `Float.Model.ofScientific`, model
+negation and unpacking, `Rat`, and `Nat.toDigits`. It contains no local rounding
+algorithm or reader correctness predicate: `ReadsTo` compares the upstream
+conversion's bits directly with the input word. The printer's biconditional
+establishes both correctness and uniqueness. Its runtime `Float` API satisfies
+the same word specification through `.toBits`.
 
 Here “shortest” counts **significand digits**, not rendered characters.
 The specification preserves both signs of zero, accepts arbitrary decimal
-significands and exponents, and rounds overflow to signed infinity at
-`2^1024 - 2^970`.
+significands and exponents, and inherits binary64 rounding, underflow and
+overflow from Lean's model.
 
 `Decimal.Normalizes` specifies the unique canonical decimal obtained by
 moving trailing significand zeros into the exponent, preserving the sign.
@@ -113,18 +117,18 @@ This audit covers both implementation tiers and runs in `lake build` and
 [`Test/AuditTests.lean`](Test/AuditTests.lean). Lean's kernel, compiler, and
 upstream runtime implementations are trusted.
 
-The implementation itself is two short modules of exact arithmetic,
-worth reading to understand the algorithms; both import only the
+The public implementations are two short modules, each importing only the
 specification:
 
 | Module | Contents |
 | --- | --- |
 | [`Srtfp/Printer.lean`](Srtfp/Printer.lean) | the printer, `toDecimalBits`: the rounding interval and the scan over decimal grids |
-| [`Srtfp/Reader.lean`](Srtfp/Reader.lean) | the reader, `ofDecimalBits`: round to the binary64 grid, pack with core's model |
+| [`Srtfp/Reader.lean`](Srtfp/Reader.lean) | direct `UInt64` and `Float` wrappers around the signed upstream conversion |
 
 Everything else is proof (`Srtfp/Proofs/`; `Proofs/Model.lean` relates
-core's `pack` and `unpack`, `Proofs/Reader/` and `Proofs/Printer/` are the
-two correctness proofs), operations on `Decimal`
+core's `pack` and `unpack`, `Proofs/Reader/` connects rounding intervals and
+an internal arithmetic reader to upstream conversion, and `Proofs/Printer/`
+proves the printer correct), operations on `Decimal`
 (`Srtfp/Decimal.lean`), the text layer (`Srtfp/Text.lean`, `Decimal` ↔
 `String` for JSON, YAML, MLIR, …), or the performance tier (`Srtfp/Perf/`,
 where the bit-field arithmetic of the fast kernels also lives).
