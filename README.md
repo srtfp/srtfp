@@ -29,6 +29,13 @@ The main APIs are `Printer.toDecimal`, `Reader.ofDecimal`, `Text.parse`, and
 `Text.format`, in the `Srtfp` namespace. `Text.floatToString` provides a compact
 float renderer; `Text.format` provides configurable decimal formatting.
 
+## Performance
+
+![Float-to-string conversion time in nanoseconds per call; lower is better](benches/perf.svg)
+
+See [the benchmark guide](benches/README.md) for recorded results, methodology,
+and reproduction commands.
+
 ## Audit
 
 Start with [the numerical specification](Srtfp/Spec.lean) and
@@ -44,6 +51,4 @@ lake build  # all library tiers and the mandatory audit
 lake test   # runtime tests, audit regressions, and specification import checks
 ```
 
-`make` and `make test` run the same commands. See
-[benches/README.md](benches/README.md) for benchmarks, recorded results, and
-differential testing.
+`make` and `make test` run the same commands.
