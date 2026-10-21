@@ -198,28 +198,26 @@ theorem pickK_eq (out vb vbl vbr s : UInt64) (o pvb pvbl pvbr : Int) (sN : Nat)
   unfold pickK pickI
   simp only [c1, c2, c3, c4, c5, toNat_ite, hs, ht]
 
-/-- F9 computes F7 (through its integer form). -/
-theorem kernel_eq (h : InRange m q) (mU qB : UInt64) (hm : mU.toNat = m)
-    (hq : (qB.toNat : Int) = q + 1074) :
-    ((kernel mU qB).1.toNat, ((kernel mU qB).2.toNat : Int) - 324) = Exact.shortest m q := by
-  rw [← shortestI_eq]
-  have hm1 : 1 ≤ m := h.1
-  have hq2 : qB.toNat ≤ 2045 := by have := h.2.2.2.1; omega
-  obtain ⟨hkr1, hkr2⟩ := k_range h
-  unfold kMin at hkr1
-  unfold kMax at hkr2
-  -- `kB`
-  have hkB : ((kBOfMQ mU qB).toNat : Int) = kOfMQ m q + 324 := by
-    rw [kBOfMQ_toNat mU qB hq2, hm, show (qB.toNat : Int) - 1074 = q by omega]
-  obtain ⟨⟨e1, e2, e3⟩, b1, b2, b3⟩ := vbars_eq h mU qB (kBOfMQ mU qB) hm hq hkB
-  have ho : ((mU &&& 1).toNat : Int) = out m := by unfold out; split <;> word
-  have hob : (mU &&& 1).toNat ≤ 1 := by word
-  unfold kernel shortestI
+/-- Keep the branch proof abstract in the table-derived words. This prevents
+specializing its arithmetic conversions to the full table computation. -/
+private theorem kernel_words_eq (m : Nat) (q : Int) (mU kB vb vbl vbr : UInt64)
+    (hkB : (kB.toNat : Int) = kOfMQ m q + 324) (hkb : kB.toNat ≤ 616)
+    (e1 : (vb.toNat : Int) = ro (4 * V m q (kOfMQ m q)))
+    (e2 : (vbl.toNat : Int) = ro (4 * Vl m q (kOfMQ m q)))
+    (e3 : (vbr.toNat : Int) = ro (4 * Vr m q (kOfMQ m q)))
+    (b1 : vb.toNat < 2 ^ 60) (b2 : vbl.toNat < 2 ^ 60) (b3 : vbr.toNat < 2 ^ 60)
+    (ho : ((mU &&& 1).toNat : Int) = out m) (hob : (mU &&& 1).toNat ≤ 1) :
+    (let outU := mU &&& 1
+     let s := vb >>> 2
+     let result := if s ≥ 10 then
+       let s' := s / 10
+       if vbl + outU ≤ 4 * (10 * s') then (s', kB + 1)
+       else if 4 * (10 * (s' + 1)) + outU ≤ vbr then (s' + 1, kB + 1)
+       else (pickK outU vb vbl vbr s, kB)
+     else (pickK outU vb vbl vbr s, kB)
+     (result.1.toNat, (result.2.toNat : Int) - 324)) = shortestI m q := by
+  unfold shortestI
   simp only []
-  generalize hvs : vbars mU qB (kBOfMQ mU qB) = vs at e1 e2 e3 b1 b2 b3
-  generalize hkb : kBOfMQ mU qB = kB at hkB
-  obtain ⟨vb, vbl, vbr⟩ := vs
-  simp only [] at e1 e2 e3 b1 b2 b3 ⊢
   -- `s`
   have hs : (vb >>> 2).toNat = (ro (4 * V m q (kOfMQ m q)) / 4).toNat := by word
   have hsb : (vb >>> 2).toNat < 2 ^ 60 := by word
@@ -249,5 +247,27 @@ theorem kernel_eq (h : InRange m q) (mU qB : UInt64) (hm : mU.toNat = m)
       · rw [ite_eq_left (cw.mpr hc2), ite_eq_left hc2, hs'1, hk1]
       · rw [ite_eq_right (fun hc => hc2 (cw.mp hc)), ite_eq_right hc2, hpick, hk0]
   · rw [ite_eq_right (fun hc => hc0 (h10.mp hc)), ite_eq_right hc0, hpick, hk0]
+
+/-- F9 computes F7 (through its integer form). -/
+theorem kernel_eq (h : InRange m q) (mU qB : UInt64) (hm : mU.toNat = m)
+    (hq : (qB.toNat : Int) = q + 1074) :
+    ((kernel mU qB).1.toNat, ((kernel mU qB).2.toNat : Int) - 324) = Exact.shortest m q := by
+  rw [← shortestI_eq]
+  have hq2 : qB.toNat ≤ 2045 := by have := h.2.2.2.1; omega
+  obtain ⟨hkr1, hkr2⟩ := k_range h
+  unfold kMin at hkr1
+  unfold kMax at hkr2
+  -- `kB`
+  have hkB : ((kBOfMQ mU qB).toNat : Int) = kOfMQ m q + 324 := by
+    rw [kBOfMQ_toNat mU qB hq2, hm, show (qB.toNat : Int) - 1074 = q by omega]
+  obtain ⟨⟨e1, e2, e3⟩, b1, b2, b3⟩ := vbars_eq h mU qB (kBOfMQ mU qB) hm hq hkB
+  have ho : ((mU &&& 1).toNat : Int) = out m := by unfold out; split <;> word
+  have hob : (mU &&& 1).toNat ≤ 1 := by word
+  have hkb : (kBOfMQ mU qB).toNat ≤ 616 := by omega
+  exact kernel_words_eq m q mU (kBOfMQ mU qB)
+    (vbars mU qB (kBOfMQ mU qB)).1
+    (vbars mU qB (kBOfMQ mU qB)).2.1
+    (vbars mU qB (kBOfMQ mU qB)).2.2
+    hkB hkb e1 e2 e3 b1 b2 b3 ho hob
 
 end Srtfp.Schubfach
