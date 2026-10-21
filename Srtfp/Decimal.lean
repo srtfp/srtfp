@@ -11,7 +11,7 @@ namespace Srtfp
 
 open Float.Model.UnpackedFloat (Sign)
 
-deriving instance DecidableEq, Inhabited for Sign
+deriving instance Inhabited for Sign
 deriving instance Repr, DecidableEq, Inhabited for Decimal
 
 namespace Decimal
