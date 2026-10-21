@@ -63,7 +63,7 @@ theorem flog2pow10Exact_spec (e : Int) :
     ∧ (10 : Rat) ^ e < (2 : Rat) ^ (flog2pow10Exact e + 1) := by
   unfold flog2pow10Exact
   by_cases he : 0 ≤ e
-  · rw [if_pos he]
+  · rw [ite_eq_left he]
     obtain ⟨n, rfl⟩ : ∃ n : Nat, e = n := ⟨e.toNat, (Int.toNat_of_nonneg he).symm⟩
     simp only [Int.toNat_natCast]
     obtain ⟨h1, h2⟩ := log2_bounds (Nat.pow_pos (by decide) : 0 < 10 ^ n)
@@ -71,7 +71,7 @@ theorem flog2pow10Exact_spec (e : Int) :
     rw [Rat.zpow_add_one (by decide), Rat.zpow_natCast, Rat.zpow_natCast]
     rw [Nat.pow_succ] at h2
     exact_mod_cast h2
-  · rw [if_neg he]
+  · rw [ite_eq_right he]
     obtain ⟨n, rfl⟩ : ∃ n : Nat, e = -(n : Int) := ⟨(-e).toNat, by omega⟩
     simp only [Int.neg_neg, Int.toNat_natCast]
     obtain ⟨h1, h2⟩ := log2_bounds (Nat.pow_pos (by decide) : 0 < 10 ^ n)
@@ -122,25 +122,25 @@ def gDen (k : Int) : Nat :=
 theorem gDen_pos (k : Int) : 0 < gDen k := by
   unfold gDen
   by_cases he : 0 ≤ -k
-  · rw [if_pos he]
+  · rw [ite_eq_left he]
     by_cases hr : 0 ≤ r k
-    · rw [if_pos hr]; exact Nat.pow_pos (by decide)
-    · rw [if_neg hr]; decide
-  · rw [if_neg he]; exact Nat.pow_pos (by decide)
+    · rw [ite_eq_left hr]; exact Nat.pow_pos (by decide)
+    · rw [ite_eq_right hr]; decide
+  · rw [ite_eq_right he]; exact Nat.pow_pos (by decide)
 
 theorem g_eq (k : Int) : g k = gNum k / gDen k + 1 := by
   unfold g gNum gDen
   by_cases he : 0 ≤ -k
-  · rw [if_pos he, if_pos he, if_pos he]
+  · rw [ite_eq_left he, ite_eq_left he, ite_eq_left he]
     by_cases hr : 0 ≤ r k
-    · rw [if_pos hr, if_pos hr, if_pos hr]
-    · rw [if_neg hr, if_neg hr, if_neg hr, Nat.div_one]
-  · rw [if_neg he, if_neg he, if_neg he]
+    · rw [ite_eq_left hr, ite_eq_left hr, ite_eq_left hr]
+    · rw [ite_eq_right hr, ite_eq_right hr, ite_eq_right hr, Nat.div_one]
+  · rw [ite_eq_right he, ite_eq_right he, ite_eq_right he]
 
 /-- `r < 0` when `k > 0`: then `⌊log₂ 10^{-k}⌋ ≤ −1`. -/
 theorem r_neg_of_k_pos (k : Int) (hk : 0 < k) : r k < 0 := by
   unfold r flog2pow10Exact
-  rw [if_neg (by omega)]
+  rw [ite_eq_right (by omega)]
   omega
 
 theorem gNum_div_gDen (k : Int) :
@@ -148,17 +148,17 @@ theorem gNum_div_gDen (k : Int) :
   rw [div_eq_iff (by exact_mod_cast gDen_pos k)]
   unfold gNum gDen
   by_cases he : 0 ≤ -k
-  · rw [if_pos he, if_pos he, ten_zpow_toNat he]
+  · rw [ite_eq_left he, ite_eq_left he, ten_zpow_toNat he]
     by_cases hr : 0 ≤ r k
-    · rw [if_pos hr, if_pos hr]
+    · rw [ite_eq_left hr, ite_eq_left hr]
       have hA : (2 : Rat) ^ (-(r k)) * (2 : Rat) ^ (r k) = 1 := by
         rw [← Rat.zpow_add (by decide), show -(r k) + r k = 0 by omega, Rat.zpow_zero]
       rw [two_zpow_toNat hr] at hA
       grind
-    · rw [if_neg hr, if_neg hr, two_zpow_toNat (by omega : 0 ≤ -(r k))]
+    · rw [ite_eq_right hr, ite_eq_right hr, two_zpow_toNat (by omega : 0 ≤ -(r k))]
       push_cast
       grind
-  · rw [if_neg he, if_neg he]
+  · rw [ite_eq_right he, ite_eq_right he]
     have hr : r k < 0 := r_neg_of_k_pos k (by omega)
     have hA : (10 : Rat) ^ (-k) * (10 : Rat) ^ k = 1 := by
       rw [← Rat.zpow_add (by decide), show -k + k = 0 by omega, Rat.zpow_zero]

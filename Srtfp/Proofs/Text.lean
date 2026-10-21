@@ -138,7 +138,7 @@ theorem lexExp_of_sign {cs ds : List Char} {s : Sign} (h : lexSign true cs = som
     lexExp cs = some (match (generalizing := false) s with
       | .negative => -(charsVal ds : Int) | .positive => charsVal ds) := by
   simp only [lexExp, h, Option.bind_some]
-  rw [if_neg (fun h' => h'.elim hne fun h' => h' (List.all_eq_true.mpr hds))]
+  rw [ite_eq_right (fun h' => h'.elim hne fun h' => h' (List.all_eq_true.mpr hds))]
   cases s <;> rfl
 
 /-- `T` is empty or begins with the exponent marker. -/
@@ -177,15 +177,15 @@ theorem lexExpTail_expChars (opts : FormatOptions) (e : Int) :
   have hne := expDigits_ne_nil opts.expMinDigits e
   rw [hm]
   by_cases hneg : e < 0
-  · rw [if_pos hneg, List.singleton_append, lexExp_of_sign (lexSign_neg _ _) hds hne,
+  · rw [ite_eq_left hneg, List.singleton_append, lexExp_of_sign (lexSign_neg _ _) hds hne,
       charsVal_expDigits]
     simp; omega
-  · rw [if_neg hneg]
+  · rw [ite_eq_right hneg]
     by_cases hp : opts.expPlus
-    · rw [if_pos hp, List.singleton_append, lexExp_of_sign (lexSign_plus _) hds hne,
+    · rw [ite_eq_left hp, List.singleton_append, lexExp_of_sign (lexSign_plus _) hds hne,
         charsVal_expDigits]
       simp; omega
-    · rw [if_neg hp, List.nil_append,
+    · rw [ite_eq_right hp, List.nil_append,
         lexExp_of_sign (by simpa using lexSign_digits true hds hne []) hds hne, charsVal_expDigits]
       simp; omega
 
@@ -197,14 +197,14 @@ theorem lexMantissa_render {popts : DecimalSyntax} {l : Lexeme} (hwf : l.WF popt
   have hlead' : ¬ (¬ popts.allowLeadingZeros = true ∧ 2 ≤ l.intD.length ∧ l.intD.head? = some '0') :=
     fun ⟨h1, h2, h3⟩ => h1 (hlead h2 h3)
   by_cases hF0 : l.fracD = []
-  · rw [if_pos hF0, List.nil_append]
+  · rw [ite_eq_left hF0, List.nil_append]
     simp only [lexMantissa, takeWhile_digits hI hT.stops, dropWhile_digits hI hT.stops]
-    rw [if_neg (fun h => hne h.1), if_neg hlead', if_neg hT.noDot,
-      if_neg (fun h => h.elim (fun h => hdot h hF0) hne), hF0]
-  · rw [if_neg hF0, List.cons_append]
+    rw [ite_eq_right (fun h => hne h.1), ite_eq_right hlead', ite_eq_right hT.noDot,
+      ite_eq_right (fun h => h.elim (fun h => hdot h hF0) hne), hF0]
+  · rw [ite_eq_right hF0, List.cons_append]
     simp only [lexMantissa, takeWhile_digits hI (stops_dot _), dropWhile_digits hI (stops_dot _),
       List.head?_cons, List.tail_cons, takeWhile_digits hF hT.stops, dropWhile_digits hF hT.stops]
-    rw [if_neg (fun h => hne h.1), if_neg hlead', if_pos trivial, if_neg (fun h => hF0 h.1)]
+    rw [ite_eq_right (fun h => hne h.1), ite_eq_right hlead', ite_eq_left trivial, ite_eq_right (fun h => hF0 h.1)]
 
 theorem lex_render {popts : DecimalSyntax} {l : Lexeme} (hwf : l.WF popts) (fopts : FormatOptions) :
     lex popts (render fopts l) = some l := by
@@ -231,7 +231,7 @@ theorem split_wf {popts : DecimalSyntax} (sign : Sign) {D : List Char} {w n : Na
   ne := by simp [Lexeme.split, List.take_eq_nil_iff, hDne]; omega
   lead := fun h2 h0 => by
     simp only [Lexeme.split, List.length_take] at h2
-    rw [Lexeme.split, List.head?_take, if_neg (by omega)] at h0
+    rw [Lexeme.split, List.head?_take, ite_eq_right (by omega)] at h0
     exact hlead (by omega) h0
   dot := fun h => by
     simp only [Lexeme.split, padTo, ne_eq, List.append_eq_nil_iff, List.drop_eq_nil_iff,

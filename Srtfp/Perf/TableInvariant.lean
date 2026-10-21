@@ -29,7 +29,7 @@ theorem pow10Lookup128_in_range (k : Int) (hLo : -324 ≤ k) (hHi : k ≤ 324) :
   have hidx : (k + 324).toNat < pow10Table128.size := by rw [pow10Table128_size_eq]; omega
   have hLo' : ¬ k < pow10Table128_kMin := Int.not_lt.mpr hLo
   unfold pow10Lookup128 tableIdx
-  rw [if_neg hLo']
+  rw [ite_eq_right hLo']
   exact (Array.getElem_eq_getD pow10Table128_default (h := hidx)).symm.trans (getElem!_pos pow10Table128 _ hidx).symm
 
 /-- The `i`-th entry is the computed entry for `k = i - 324`. -/

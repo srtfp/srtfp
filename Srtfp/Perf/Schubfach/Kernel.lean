@@ -34,14 +34,14 @@ theorem Vr_eq (m : Nat) (q k : Int) :
 theorem Vl_eq_reg (hm : 1 ≤ m) (hirr : isIrregular m q = false) (k : Int) :
     Vl m q k = ((4 * m - 2 : Nat) : Rat) / 4 * (2 : Rat) ^ q * (10 : Rat) ^ (-k) := by
   unfold Vl vl
-  rw [if_neg (fun hc => by rw [isIrregular_iff.mpr hc] at hirr; cases hirr), Rat.div_def,
+  rw [ite_eq_right (fun hc => by rw [isIrregular_iff.mpr hc] at hirr; cases hirr), Rat.div_def,
     ← Rat.zpow_neg]
   rw [← Rat.intCast_natCast (4 * m - 2), Int.ofNat_sub (by omega)]; push_cast; grind
 
 theorem Vl_eq_irr (hm : 1 ≤ m) (hirr : isIrregular m q = true) (k : Int) :
     Vl m q k = ((4 * m - 1 : Nat) : Rat) / 4 * (2 : Rat) ^ q * (10 : Rat) ^ (-k) := by
   unfold Vl vl
-  rw [if_pos (isIrregular_iff.mp hirr), Rat.div_def, ← Rat.zpow_neg]
+  rw [ite_eq_left (isIrregular_iff.mp hirr), Rat.div_def, ← Rat.zpow_neg]
   rw [← Rat.intCast_natCast (4 * m - 1), Int.ofNat_sub (by omega)]; push_cast; grind
 
 /-- `0 ≤ r_o(4x) < 2^60` for `x = (c̄/4)·2^q·10^{-k}` with `c̄ < 2^55`. -/
@@ -135,9 +135,9 @@ theorem vbars_eq (h : InRange m q) (mU qB kB : UInt64) (hm : mU.toNat = m)
       ∧ Vl m q (kOfMQ m q) = (mb : Rat) / 4 * (2 : Rat) ^ q * (10 : Rat) ^ (-(kOfMQ m q)) := by
     rw [isIrregularB_eq, hm, show (qB.toNat : Int) - 1074 = q by omega]
     cases hirr : isIrregular m q
-    · exact ⟨4 * m - 2, by omega, by omega, by rw [if_neg Bool.false_ne_true]; word,
+    · exact ⟨4 * m - 2, by omega, by omega, by rw [ite_eq_right Bool.false_ne_true]; word,
         Vl_eq_reg hm1 hirr _⟩
-    · exact ⟨4 * m - 1, by omega, by omega, by rw [if_pos rfl]; word, Vl_eq_irr hm1 hirr _⟩
+    · exact ⟨4 * m - 1, by omega, by omega, by rw [ite_eq_left rfl]; word, Vl_eq_irr hm1 hirr _⟩
   obtain ⟨e1, b1⟩ := step (4 * m) (4 * mU) _ (by word) (by omega) (by omega) (V_eq m q _) hs
   obtain ⟨e2, b2⟩ := step mbl _ _ hcbl hmbl hmbl55 hxl hsl
   obtain ⟨e3, b3⟩ :=
@@ -241,13 +241,13 @@ theorem kernel_eq (h : InRange m q) (mU qB : UInt64) (hm : mU.toNat = m)
   have hpick := pickK_eq (mU &&& 1) vb vbl vbr s (out m) _ _ _ sN ho e1 e2 e3 hs
     ⟨b1, b2, b3, hsb, hob⟩
   by_cases hc0 : sN ≥ 10
-  · rw [if_pos (h10.mpr hc0), if_pos hc0]
+  · rw [ite_eq_left (h10.mpr hc0), ite_eq_left hc0]
     by_cases hc1 : ro (4 * Vl m q (kOfMQ m q)) + out m ≤ 4 * ((10 * (sN / 10) : Nat) : Int)
-    · rw [if_pos (cu.mpr hc1), if_pos hc1, hs', hk1]
-    · rw [if_neg (fun hc => hc1 (cu.mp hc)), if_neg hc1]
+    · rw [ite_eq_left (cu.mpr hc1), ite_eq_left hc1, hs', hk1]
+    · rw [ite_eq_right (fun hc => hc1 (cu.mp hc)), ite_eq_right hc1]
       by_cases hc2 : 4 * ((10 * (sN / 10 + 1) : Nat) : Int) + out m ≤ ro (4 * Vr m q (kOfMQ m q))
-      · rw [if_pos (cw.mpr hc2), if_pos hc2, hs'1, hk1]
-      · rw [if_neg (fun hc => hc2 (cw.mp hc)), if_neg hc2, hpick, hk0]
-  · rw [if_neg (fun hc => hc0 (h10.mp hc)), if_neg hc0, hpick, hk0]
+      · rw [ite_eq_left (cw.mpr hc2), ite_eq_left hc2, hs'1, hk1]
+      · rw [ite_eq_right (fun hc => hc2 (cw.mp hc)), ite_eq_right hc2, hpick, hk0]
+  · rw [ite_eq_right (fun hc => hc0 (h10.mp hc)), ite_eq_right hc0, hpick, hk0]
 
 end Srtfp.Schubfach

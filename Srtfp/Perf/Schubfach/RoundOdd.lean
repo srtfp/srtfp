@@ -83,10 +83,10 @@ theorem R18_left (m : Nat) (a : Rat) (n : Int) :
   have h1 := ro_le_iff (4 * a) (2 * n)
   have h2 := ro_lt_iff (4 * a) (2 * n)
   by_cases hev : m % 2 = 0
-  · rw [if_pos hev, if_pos hev, decide_eq_decide]
+  · rw [ite_eq_left hev, ite_eq_left hev, decide_eq_decide]
     rw [show (4 : Rat) * a ≤ 2 * ((2 * n : Int) : Rat) ↔ a ≤ n by push_cast; grind] at h1
     rw [h1]; push_cast; omega
-  · rw [if_neg hev, if_neg hev, decide_eq_decide]
+  · rw [ite_eq_right hev, ite_eq_right hev, decide_eq_decide]
     rw [show (4 : Rat) * a < 2 * ((2 * n : Int) : Rat) ↔ a < n by push_cast; grind] at h2
     rw [h2]; push_cast; omega
 
@@ -96,10 +96,10 @@ theorem R18_right (m : Nat) (n : Int) (a : Rat) :
   have h1 := ro_ge_iff (4 * a) (2 * n)
   have h2 := ro_gt_iff (4 * a) (2 * n)
   by_cases hev : m % 2 = 0
-  · rw [if_pos hev, if_pos hev, decide_eq_decide]
+  · rw [ite_eq_left hev, ite_eq_left hev, decide_eq_decide]
     rw [show 2 * ((2 * n : Int) : Rat) ≤ (4 : Rat) * a ↔ n ≤ a by push_cast; grind] at h1
     rw [h1]; push_cast; omega
-  · rw [if_neg hev, if_neg hev, decide_eq_decide]
+  · rw [ite_eq_right hev, ite_eq_right hev, decide_eq_decide]
     rw [show 2 * ((2 * n : Int) : Rat) < (4 : Rat) * a ↔ n < a by push_cast; grind] at h2
     rw [h2]; push_cast; omega
 
@@ -160,9 +160,9 @@ theorem R22 {ε x x' : Rat} (hε1 : ε ≤ 1) (hsep : Separated ε (2 * x)) (hlo
   have hlt := Rat.lt_floor_add_one (2 * x)
   rcases hsep with h | ⟨h1, h2⟩
   · -- `2x` is an integer: `2x'` is within `ε` above it
-    rw [if_pos (by grind), if_pos h.symm]
+    rw [ite_eq_left (by grind), ite_eq_left h.symm]
   · -- `2x` is at least `ε` above its floor, so is `2x'`; and `2x ≠ ⌊2x⌋`
-    rw [if_neg (by grind), if_neg (by grind)]
+    rw [ite_eq_right (by grind), ite_eq_right (by grind)]
 
 /-- R23: `r'_o` from `⌊x⌋`, for `2ε ≤ 1`. -/
 theorem R23 {ε : Rat} (hε : 2 * ε ≤ 1) (x : Rat) :
@@ -174,11 +174,11 @@ theorem R23 {ε : Rat} (hε : 2 * ε ≤ 1) (x : Rat) :
   have hx : x = 2 * (x / 2) := by grind
   have hx2 : (x.floor / 2) = (x / 2).floor := floor_ediv_two x
   by_cases hc : x / 2 - (x / 2).floor < ε
-  · rw [if_pos hc, if_pos hc]
+  · rw [ite_eq_left hc, ite_eq_left hc]
     -- `x < 2⌊x/2⌋ + 2ε ≤ 2⌊x/2⌋ + 1`, so `⌊x⌋ = 2⌊x/2⌋`
     have : x.floor = 2 * (x / 2).floor := floor_eq_of (by push_cast; grind) (by push_cast; grind)
     exact this.symm
-  · rw [if_neg hc, if_neg hc]
+  · rw [ite_eq_right hc, ite_eq_right hc]
     split <;> omega
 
 end Srtfp.Schubfach

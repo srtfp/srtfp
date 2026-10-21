@@ -14,11 +14,11 @@ namespace Srtfp.Decimal
 
 theorem canonicaliseAux_not_div (s : Nat) (e : Int) (hs : s ≠ 0) (h10 : s % 10 ≠ 0) :
     canonicaliseAux s e = (s, e) := by
-  rw [canonicaliseAux.eq_def, dif_neg hs, if_neg h10]
+  rw [canonicaliseAux.eq_def, dite_eq_right hs, ite_eq_right h10]
 
 theorem canonicaliseAux_div (s : Nat) (e : Int) (hs : s ≠ 0) (h10 : s % 10 = 0) :
     canonicaliseAux s e = canonicaliseAux (s / 10) (e + 1) := by
-  rw [canonicaliseAux.eq_def, dif_neg hs, if_pos h10]
+  rw [canonicaliseAux.eq_def, dite_eq_right hs, ite_eq_left h10]
 
 /-! ## Key invariant: nonzero input ⇒ nonzero output, mod-10-nonzero output -/
 
@@ -75,7 +75,7 @@ theorem canonical_fixed_of_isCanonical (d : Decimal) (h : IsCanonical d) :
     simp
   · rcases d with ⟨sd, sigd, ed⟩
     simp at hne h10 ⊢
-    rw [if_neg hne, canonicaliseAux_not_div _ _ hne h10]
+    rw [ite_eq_right hne, canonicaliseAux_not_div _ _ hne h10]
 
 /-- `mk'` is the identity on canonical field triples. -/
 theorem mk'_eq_self_of_isCanonical {sign : Sign} {sig : Nat} {exp : Int}
@@ -95,7 +95,7 @@ theorem mk'_mul_ten (s : Sign) (v : Nat) (e : Int) :
   by_cases hv : v = 0
   · subst hv; rfl
   · have h10 : v * 10 ≠ 0 := Nat.mul_ne_zero hv (by decide)
-    simp only [Decimal.mk', Decimal.canonical, if_neg hv, if_neg h10,
+    simp only [Decimal.mk', Decimal.canonical, ite_eq_right hv, ite_eq_right h10,
       Decimal.canonicaliseAux_div _ _ h10 (Nat.mul_mod_left v 10),
       Nat.mul_div_cancel v (by decide : 0 < 10)]
 

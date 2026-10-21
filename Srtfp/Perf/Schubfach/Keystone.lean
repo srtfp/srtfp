@@ -63,7 +63,7 @@ theorem fastDenoms_acc_subset (fuel : Nat) :
     unfold fastDenoms
     by_cases hrc : rc = 0
     · simp [hrc, List.mem_reverse, hx]
-    · simp only [hrc, if_false]
+    · simp only [hrc, ite_false]
       exact IH _ _ _ _ _ x (List.mem_cons_of_mem _ hx)
 
 theorem fastDenoms_fuel_mono :
@@ -78,7 +78,7 @@ theorem fastDenoms_fuel_mono :
     unfold fastDenoms
     by_cases hrc : rc = 0
     · simp [hrc, List.mem_reverse, hx]
-    · simp only [hrc, if_false]
+    · simp only [hrc, ite_false]
       exact fastDenoms_acc_subset 0 _ _ _ _ _ _ (List.mem_cons_of_mem _ hx)
   | succ f IH =>
     intro rp rc bp bc acc x hx
@@ -90,7 +90,7 @@ theorem fastDenoms_fuel_mono :
           fastDenoms (f+1) rc (rp % rc) bc (rp/rc*bc+bp) ((rp/rc*bc+bp)::acc)) from rfl]
     by_cases hrc : rc = 0
     · simp [hrc] at hx ⊢; exact hx
-    · simp only [hrc, if_false] at hx ⊢
+    · simp only [hrc, ite_false] at hx ⊢
       exact IH _ _ _ _ _ x hx
 
 theorem fastDenoms_fuel_mono_le :
@@ -126,7 +126,7 @@ theorem fastDenoms_emit (u M : Nat) (hM : 0 < M) :
     intro t bp acc hpos hbp j hj1 hj2
     have hrc : 0 < rem u M (t+1) := hpos (t+1) (by omega)
     unfold fastDenoms
-    simp only [(Nat.ne_of_gt hrc), if_false]
+    simp only [(Nat.ne_of_gt hrc), ite_false]
     have hqt : rem u M t / rem u M (t+1) = qt u M t := rfl
     have hbnext : (rem u M t / rem u M (t+1)) * denN u M t + bp = denN u M (t+1) := by
       rw [hqt]; exact hbp

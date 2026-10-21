@@ -22,7 +22,7 @@ theorem pack_overflow (s : Sign) {m : Nat} {e : Int} (hm : 0 < m) (he : 972 ≤ 
     change 2048 ≤ (e + 1023 + 52).toNat + 1
     omega
   simp only [Float.Model.pack, UnpackedFloat.pack]
-  rw [if_pos ht]
+  rw [ite_eq_left ht]
 
 theorem pack_ofSig_eq_readMag (s : Sign) {x : Rat} (hx : 0 ≤ x) :
     Float.Model.pack (ofSig s (roundEven (x / 2 ^ gridExp x)).toNat (gridExp x)) =
@@ -61,7 +61,7 @@ theorem pack_ofSig_eq_readMag (s : Sign) {x : Rat} (hx : 0 ≤ x) :
         have := roundEven_ge hlo
         omega
       unfold ofSig
-      rw [dif_neg (Nat.ne_of_gt hn)]
+      rw [dite_eq_right (Nat.ne_of_gt hn)]
       split <;> exact pack_overflow s _ (by omega)
   · rfl
 
@@ -80,7 +80,7 @@ theorem readMag_small (s : Sign) {x : Rat} (hx : 0 ≤ x)
     roundEven_eq_of_strict (by simp only [Rat.natCast_ofNat]; grind)
       (by simpa only [Rat.natCast_ofNat, Rat.zero_add] using hy)
   unfold readMag
-  rw [if_neg ht, hgrid, hr]
+  rw [ite_eq_right ht, hgrid, hr]
   rfl
 
 theorem exponent_le_grid {x : Rat} {e : Int} (hx : 0 ≤ x)

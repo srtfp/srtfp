@@ -25,13 +25,13 @@ private theorem canonicaliseAux_value_gen (s : Nat) (hs0 : s ≠ 0) :
     unfold Decimal.canonicaliseAux at heq
     simp only [hs0, ↓reduceDIte] at heq
     by_cases hmod : s % 10 = 0
-    · rw [if_pos hmod] at heq
+    · rw [ite_eq_left hmod] at heq
       obtain ⟨hval, hexp, hsne, hcanon⟩ :=
         ih (s / 10) (Nat.div_lt_self (Nat.pos_of_ne_zero hs0) (by decide)) (by omega) (e + 1) s' e' heq
       refine ⟨?_, by omega, hsne, hcanon⟩
       rw [show (e' - e).toNat = (e' - (e + 1)).toNat + 1 by omega, Nat.pow_succ, ← Nat.mul_assoc, hval]
       omega
-    · rw [if_neg hmod] at heq
+    · rw [ite_eq_right hmod] at heq
       obtain ⟨rfl, rfl⟩ := Prod.mk.inj heq
       exact ⟨by simp, Int.le_refl _, hs0, hmod⟩
 

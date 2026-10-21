@@ -31,11 +31,11 @@ theorem two_zpow_le_ten_zpow {j : Int} (hj : 0 ≤ j) : (2 : Rat) ^ j ≤ (10 : 
 
 theorem width_lt_two_zpow (hirr : isIrregular m q = true) :
     vr m q - vl m q = 3 / 4 * (2 : Rat) ^ q := by
-  rw [width_eq, if_pos (isIrregular_iff.mp hirr)]
+  rw [width_eq, ite_eq_left (isIrregular_iff.mp hirr)]
 
 theorem width_eq_two_zpow (hirr : isIrregular m q = false) :
     vr m q - vl m q = (2 : Rat) ^ q := by
-  rw [width_eq, if_neg (fun hc => by rw [isIrregular_iff.mpr hc] at hirr; cases hirr), Rat.one_mul]
+  rw [width_eq, ite_eq_right (fun hc => by rw [isIrregular_iff.mpr hc] at hirr; cases hirr), Rat.one_mul]
 
 /-- Regular spacing, `q < 0`: `k < 0`. -/
 theorem band_reg_neg (h : InRange m q) (hirr : isIrregular m q = false) (hq : q < 0) :
@@ -156,7 +156,7 @@ theorem separated_of_checkAt (m' : Nat) (q' k : Int) (hm : 0 < m') (hm54 : m' < 
   unfold checkAt at hcheck
   by_cases hq' : 0 ≤ q'
   · by_cases hk : 0 ≤ k
-    · rw [if_pos ⟨hq', hk⟩] at hcheck
+    · rw [ite_eq_left ⟨hq', hk⟩] at hcheck
       rw [band2_val m' hk (hb2 hq' hk)]
       refine separated_of_gaps _ _ 64 (Nat.pow_pos (by decide)) ?_
       have := check2_sound q'.toNat k.toNat (by omega) hcheck m' hm hm54
@@ -168,7 +168,7 @@ theorem separated_of_checkAt (m' : Nat) (q' k : Int) (hm : 0 < m') (hm54 : m' < 
     rcases Int.lt_or_le k q' with hkq | hqk
     · rw [int_val' m' hk hkq]
       exact separated_natCast _ _
-    · rw [if_neg (by omega), if_pos ⟨hq'', hk⟩] at hcheck
+    · rw [ite_eq_right (by omega), ite_eq_left ⟨hq'', hk⟩] at hcheck
       rw [band1_val m' hk hqk]
       refine separated_of_gaps _ _ 64 (Nat.pow_pos (by decide)) ?_
       have := check1_sound (-q').toNat (-k).toNat (by omega) hcheck m' hm hm54
@@ -192,14 +192,14 @@ theorem twoVl_eq_reg (h : InRange m q) (hirr : isIrregular m q = false) (k : Int
     2 * Vl m q k = ((2 * m - 1 : Nat) : Rat) * (2 : Rat) ^ q * (10 : Rat) ^ (-k) := by
   have hm := h.1
   unfold Vl vl
-  rw [if_neg (fun hc => by rw [isIrregular_iff.mpr hc] at hirr; cases hirr), Rat.div_def, ← Rat.zpow_neg]
+  rw [ite_eq_right (fun hc => by rw [isIrregular_iff.mpr hc] at hirr; cases hirr), Rat.div_def, ← Rat.zpow_neg]
   rw [← Rat.intCast_natCast (2 * m - 1), Int.ofNat_sub (by omega)]; push_cast; grind
 
 theorem twoVl_eq_irr (h : InRange m q) (hirr : isIrregular m q = true) (k : Int) :
     2 * Vl m q k = ((4 * m - 1 : Nat) : Rat) * (2 : Rat) ^ (q - 1) * (10 : Rat) ^ (-k) := by
   have hm := h.1
   unfold Vl vl
-  rw [if_pos (isIrregular_iff.mp hirr), Rat.div_def, ← Rat.zpow_neg]
+  rw [ite_eq_left (isIrregular_iff.mp hirr), Rat.div_def, ← Rat.zpow_neg]
   rw [← Rat.intCast_natCast (4 * m - 1), Int.ofNat_sub (by omega), Rat.zpow_sub_one (by decide)]
   push_cast; grind
 
@@ -215,7 +215,7 @@ theorem R20_of_checkQ (h : InRange m q) (hcheck : checkQ q = true) :
   obtain ⟨⟨⟨c15, _⟩, c14⟩, c14'⟩ := hcheck
   by_cases hirr : isIrregular m q = true
   · have hm52 : m = 2 ^ 52 := (isIrregular_iff.mp hirr).1
-    have hk : kOfMQ m q = floorLog10ThreeQuartersPow2 q := by unfold kOfMQ; rw [if_pos hirr]
+    have hk : kOfMQ m q = floorLog10ThreeQuartersPow2 q := by unfold kOfMQ; rw [ite_eq_left hirr]
     rw [← hk] at c14 c14'
     have hb2 : 0 ≤ q → 0 ≤ kOfMQ m q → kOfMQ m q ≤ q := fun _ hk0 => by
       rcases Int.lt_or_le q 1 with h1 | h1
@@ -230,7 +230,7 @@ theorem R20_of_checkQ (h : InRange m q) (hcheck : checkQ q = true) :
     · rw [twoVl_eq_irr h hirr]; exact separated_of_checkAt _ _ _ (by omega) (by omega) c14' hb2' hb1'
     · rw [twoVr_eq]; exact separated_of_checkAt _ _ _ (by omega) (by omega) c14 hb2 hb1
   · have hirr' : isIrregular m q = false := Bool.eq_false_iff.mpr hirr
-    have hk : kOfMQ m q = floorLog10Pow2 q := by unfold kOfMQ; rw [if_neg hirr]
+    have hk : kOfMQ m q = floorLog10Pow2 q := by unfold kOfMQ; rw [ite_eq_right hirr]
     rw [← hk] at c15
     have hb2 : 0 ≤ q → 0 ≤ kOfMQ m q → kOfMQ m q ≤ q := fun hq _ => (band_reg_nonneg h hirr' hq).2
     have hb1 : q < 0 → kOfMQ m q < 0 := fun hq => band_reg_neg h hirr' hq

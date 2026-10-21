@@ -86,14 +86,14 @@ theorem chunk (p j : UInt64) (jn B : Nat) {s c : UInt64} {s₀ : Nat} {e : Int}
   refine ⟨?_, stripS_ne_zero p s hs, stripC_le p j s c B hc (by omega) hB⟩
   unfold stripS stripC
   by_cases h : s % p = 0
-  · rw [if_pos h, if_pos h, ← he]
+  · rw [ite_eq_left h, ite_eq_left h, ← he]
     word_simp at h ⊢
     rw [hp] at h
     rw [hp, hj]
     rw [Nat.mod_eq_of_lt (by omega : c.toNat + jn < 2 ^ 64),
       show e + ((c.toNat + jn : Nat) : Int) = e + (c.toNat : Int) + (jn : Int) by push_cast; omega]
     exact (canonicaliseAux_div_pow s.toNat (e + (c.toNat : Int)) jn hs h).symm
-  · rw [if_neg h, if_neg h]; exact he
+  · rw [ite_eq_right h, ite_eq_right h]; exact he
 
 /-- `canonicaliseAux` with the trailing zeros stripped in chunks of
     `10^8, 10^8, 10^4, 10^2, 10`, all in `UInt64` (significand and zero
@@ -128,13 +128,13 @@ theorem canonicaliseAux_eq_fast (s : Nat) (e : Int) :
     canonicaliseAux s e = canonicaliseAuxFast s e := by
   unfold canonicaliseAuxFast
   by_cases hs0 : s = 0
-  · rw [if_pos hs0, hs0, canonicaliseAux_zero]
-  rw [if_neg hs0]
+  · rw [ite_eq_left hs0, hs0, canonicaliseAux_zero]
+  rw [ite_eq_right hs0]
   by_cases hmod : s % 10 ≠ 0
-  · rw [if_pos hmod, canonicaliseAux_not_div s e hs0 hmod]
-  rw [if_neg hmod]
+  · rw [ite_eq_left hmod, canonicaliseAux_not_div s e hs0 hmod]
+  rw [ite_eq_right hmod]
   by_cases hlt : s >>> 64 = 0
-  · rw [dif_pos hlt]
+  · rw [dite_eq_left hlt]
     have hs64 : s < 2 ^ 64 := by
       rw [Nat.shiftRight_eq_div_pow] at hlt
       exact Nat.lt_of_div_eq_zero (Nat.two_pow_pos 64) hlt
@@ -153,10 +153,10 @@ theorem canonicaliseAux_eq_fast (s : Nat) (e : Int) :
       (UInt64.ofNat s))))) = s5 at e5 n5 ⊢
     -- the finisher
     by_cases hz : s5 % 10 = 0
-    · rw [if_pos hz, e5]
-    · rw [if_neg hz, ← e5]
+    · rw [ite_eq_left hz, e5]
+    · rw [ite_eq_right hz, ← e5]
       exact canonicaliseAux_not_div _ _ n5 (fun hc => hz ((UInt64_mod10_eq_zero_iff s5).mpr hc))
-  · rw [dif_neg hlt]
+  · rw [dite_eq_right hlt]
 
 /-- The live registration for `canonicaliseAux`. -/
 @[csimp]
@@ -182,8 +182,8 @@ theorem canonical_eq_fast (d : Decimal) : Decimal.canonical d = canonicalFast d 
   · simp [hs0]
   simp only [hs0, ite_false]
   by_cases hsmod : d.significand % 10 ≠ 0
-  · rw [if_pos hsmod, canonicaliseAux_not_div _ _ hs0 hsmod]
-  · rw [if_neg hsmod]
+  · rw [ite_eq_left hsmod, canonicaliseAux_not_div _ _ hs0 hsmod]
+  · rw [ite_eq_right hsmod]
 
 @[csimp]
 theorem canonical_csimp : @Decimal.canonical = @canonicalFast := by

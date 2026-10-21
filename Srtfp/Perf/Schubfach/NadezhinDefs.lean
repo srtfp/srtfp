@@ -171,7 +171,7 @@ theorem check2_sound (q' k : Nat) (hkq : k ≤ q') (h : check2 q' k = true) :
   · exact gaps_of_small _ _ _ (Nat.pow_pos (by decide))
       (calc 5 ^ k ≤ 5 ^ 27 := Nat.pow_le_pow_right (by decide) hk
         _ ≤ 2 ^ 64 := by decide)
-  · rw [if_neg (by omega)] at h
+  · rw [ite_eq_right (by omega)] at h
     have hM : 0 < 5 ^ k := Nat.pow_pos (by decide)
     have hco : Nat.Coprime (2 ^ (q' - k)) (5 ^ k) :=
       Nat.Coprime.pow _ _ (by decide : Nat.Coprime 2 5)
@@ -183,7 +183,7 @@ theorem check1_sound (qNeg' kNeg : Nat) (hkq : kNeg ≤ qNeg') (h : check1 qNeg'
   unfold check1 at h
   by_cases he : qNeg' - kNeg ≤ 64
   · exact gaps_of_small _ _ _ (Nat.pow_pos (by decide)) (Nat.pow_le_pow_right (by decide) he)
-  · rw [if_neg (by omega)] at h
+  · rw [ite_eq_right (by omega)] at h
     have hM : 0 < 2 ^ (qNeg' - kNeg) := Nat.pow_pos (by decide)
     have hco : Nat.Coprime (5 ^ kNeg) (2 ^ (qNeg' - kNeg)) :=
       Nat.Coprime.pow _ _ (by decide : Nat.Coprime 5 2)

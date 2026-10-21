@@ -163,19 +163,19 @@ theorem candidate_eq_pick (hm : 1 ≤ m)
   simp only [u_mem hm, w_mem hm]
   cases hU : InRv m q (u m q k) <;> cases hW : InRv m q (w m q k) <;> simp only [hU, hW] at hhit ⊢ <;>
     simp only [Bool.not_true, Bool.not_false, Bool.and_true, Bool.and_false,
-      Bool.false_eq_true, if_false, if_true] <;> try rfl
+      Bool.false_eq_true, ite_false, ite_true] <;> try rfl
   · exact absurd hhit (by simp)
   · -- both: the nearer, ties to even
     by_cases h1 : v m q - u m q k < w m q k - v m q
-    · rw [if_pos (twoV_lt_iff.mpr h1), if_pos (Or.inl h1)]
-    · rw [if_neg (fun h => h1 (twoV_lt_iff.mp h))]
+    · rw [ite_eq_left (twoV_lt_iff.mpr h1), ite_eq_left (Or.inl h1)]
+    · rw [ite_eq_right (fun h => h1 (twoV_lt_iff.mp h))]
       by_cases h2 : w m q k - v m q < v m q - u m q k
-      · rw [if_pos (twoV_gt_iff.mpr h2), if_neg (by grind)]
-      · rw [if_neg (fun h => h2 (twoV_gt_iff.mp h))]
+      · rw [ite_eq_left (twoV_gt_iff.mpr h2), ite_eq_right (by grind)]
+      · rw [ite_eq_right (fun h => h2 (twoV_gt_iff.mp h))]
         have heq : v m q - u m q k = w m q k - v m q := by grind
         by_cases he : s m q k % 2 = 0
-        · rw [if_pos he, if_pos (Or.inr ⟨heq, he⟩)]
-        · rw [if_neg he, if_neg (by grind)]
+        · rw [ite_eq_left he, ite_eq_left (Or.inr ⟨heq, he⟩)]
+        · rw [ite_eq_right he, ite_eq_right (by grind)]
 
 /-! ## R10: `10^k ≤ ‖R_v‖ < 10^{k+1}` -/
 
@@ -191,13 +191,13 @@ theorem k_spec (h : InRange m q) :
   rw [width_eq]
   unfold kOfMQ
   by_cases hirr : isIrregular m q = true
-  · rw [if_pos hirr, if_pos (isIrregular_iff.mp hirr)]
+  · rw [ite_eq_left hirr, ite_eq_left (isIrregular_iff.mp hirr)]
     have hR := R14HoldsAt_in_binary64_range q hq1 hq2
     have e1 := le_of_ratio hR.1
     have e2 := lt_of_ratio hR.2
     push_cast at e1 e2
     constructor <;> grind
-  · rw [if_neg hirr, if_neg (fun h => hirr (isIrregular_iff.mpr h))]
+  · rw [ite_eq_right hirr, ite_eq_right (fun h => hirr (isIrregular_iff.mpr h))]
     have hR := R15HoldsAt_in_binary64_range q hq1 hq2
     have e1 := le_of_ratio (a := 1) (c := 1) (by rw [Nat.one_mul, Nat.one_mul]; exact hR.1)
     have e2 := lt_of_ratio (a := 1) (c := 1) (by rw [Nat.one_mul, Nat.one_mul]; exact hR.2)
@@ -244,16 +244,16 @@ theorem hit_of_le_width {j : Int} (hm : 1 ≤ m) (hj : (10 : Rat) ^ j ≤ vr m q
   have hhi : ((c : Rat) + 1) * (10 : Rat) ^ j ≤ vr m q := by grind
   unfold InRv
   by_cases hev : m % 2 = 0
-  · rw [if_pos hev]; simp only [decide_eq_true_eq]; exact ⟨Rat.le_of_lt hlo, hhi⟩
-  · rw [if_neg hev]; simp only [decide_eq_true_eq]
+  · rw [ite_eq_left hev]; simp only [decide_eq_true_eq]; exact ⟨Rat.le_of_lt hlo, hhi⟩
+  · rw [ite_eq_right hev]; simp only [decide_eq_true_eq]
     refine ⟨hlo, Rat.lt_of_le_of_ne hhi fun heq => ?_⟩
     -- the endpoint case: `‖R_v‖ = 10^j` and `vl` on the grid, impossible for odd `m`
     have hw : vr m q - vl m q = (10 : Rat) ^ j := by grind
     have hvl' : vl m q = (c : Rat) * (10 : Rat) ^ j := by grind
     have hreg : ¬ (m = 2 ^ 52 ∧ q > -1074) := fun h => hev (by rw [h.1])
-    rw [width_eq, if_neg hreg, Rat.one_mul] at hw
+    rw [width_eq, ite_eq_right hreg, Rat.one_mul] at hw
     unfold vl at hvl'
-    rw [if_neg hreg, ← hw] at hvl'
+    rw [ite_eq_right hreg, ← hw] at hvl'
     have hp := two_zpow_pos q
     have : ((m : Rat) - 1/2) = c := (mul_left_inj' (Rat.ne_of_gt hp)).mp hvl'
     have : (2 * m : Rat) = 2 * c + 1 := by grind
@@ -289,7 +289,7 @@ theorem shortest_spec (h : InRange m q) :
   unfold shortest
   simp only [hk, u'_mem hm, w'_mem hm]
   by_cases h10 : Printer.s m q k ≥ 10
-  · rw [if_pos h10]
+  · rw [ite_eq_left h10]
     have hs1 : 1 ≤ Printer.s m q (k + 1) := by rw [s_succ]; omega
     have hu' : (Printer.s m q k / 10 : Nat) = Printer.s m q (k + 1) := (s_succ k).symm
     -- a hit on `10^(k+1)` is unique, and above it the scan can hit nothing else
@@ -299,7 +299,7 @@ theorem shortest_spec (h : InRange m q) :
         (candidate_none_iff hm).mp (hnone (k + 1) (by omega)) ⟨x, hx, hxR⟩
       exact eq_of_onGrid_coarse hk2 (onGrid_of_le hlt ⟨n, rfl⟩) hmemn hx hxR
     cases hU : InRv m q (u m q (k + 1)) <;> cases hW : InRv m q (w m q (k + 1)) <;>
-      simp only [Bool.false_eq_true, if_false, if_true]
+      simp only [Bool.false_eq_true, ite_false, ite_true]
     · -- neither: no hit on `10^(k+1)`, hence none above `k`
       obtain ⟨rfl, rfl⟩ := finish fun j hj => by
         rw [candidate_none_iff hm]
@@ -316,7 +316,7 @@ theorem shortest_spec (h : InRange m q) :
       unfold u w at this
       have h10 := ten_zpow_pos (k + 1)
       grind
-  · rw [if_neg h10]
+  · rw [ite_eq_right h10]
     -- Schubfach picks on `10^k`. So does the scan, unless `10^(k+1) ∈ R_v`:
     -- then the scan says `1 · 10^(k+1)`, and Schubfach `10 · 10^k`.
     have hs0 : Printer.s m q (k + 1) = 0 := by rw [s_succ]; omega

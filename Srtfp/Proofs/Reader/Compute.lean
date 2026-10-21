@@ -46,7 +46,7 @@ theorem InRv_of_round {y : Rat} {k : Int} {n : Nat}
     have hP' := two_zpow_pos k
     have h1 : (n : Rat) - 1/2 < y := Rat.lt_of_le_of_ne hlo (fun h => hodd (hlo' h.symm))
     have h2 : y < n + 1/2 := Rat.lt_of_le_of_ne hhi (fun h => hodd (hhi' h))
-    rw [if_neg (fun h => hodd (by rw [h.1]))]
+    rw [ite_eq_right (fun h => hodd (by rw [h.1]))]
     exact ⟨Rat.mul_lt_mul_of_pos_right h1 hP', Rat.mul_lt_mul_of_pos_right h2 hP'⟩
 
 /-- What `read` returns, below and above the threshold. -/

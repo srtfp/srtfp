@@ -83,7 +83,7 @@ private theorem lexExpTail_complete {cs : List Char} {e : Int}
     have hn := digits_no_sign hd'
     have hl := lexExp_of_sign (lexSign_complete hs hn.1 hn.2) hd' hne
     refine ⟨some _, ?_, rfl⟩
-    simp only [lexExpTail, if_pos hm, hl, Option.map_some, charsVal]
+    simp only [lexExpTail, ite_eq_left hm, hl, Option.map_some, charsVal]
     rfl
 
 private theorem exponent_tail {cs : List Char} {e : Int} (h : Spec.Exponent cs e) : ExpTail cs := by
@@ -141,12 +141,12 @@ private theorem lexMantissa_complete {opts : DecimalSyntax} {intD fracD rest : L
     subst fracD
     simp only [Bool.false_eq_true, ↓reduceIte, List.append_nil]
     simp only [lexMantissa, takeWhile_digits hI' hrest.stops, dropWhile_digits hI' hrest.stops]
-    rw [if_neg (by grind), if_neg hlead', if_neg hrest.noDot, if_neg (by grind)]
+    rw [ite_eq_right (by grind), ite_eq_right hlead', ite_eq_right hrest.noDot, ite_eq_right (by grind)]
   | true =>
     simp only [↓reduceIte, List.append_assoc, List.cons_append]
     simp only [lexMantissa, takeWhile_digits hI' (stops_dot _), dropWhile_digits hI' (stops_dot _),
       List.head?_cons, List.tail_cons, takeWhile_digits hF' hrest.stops, dropWhile_digits hF' hrest.stops]
-    rw [if_neg (by grind), if_neg hlead', if_pos trivial, if_neg (by grind)]
+    rw [ite_eq_right (by grind), ite_eq_right hlead', ite_eq_left trivial, ite_eq_right (by grind)]
 
 private theorem mantissa_no_sign {opts : DecimalSyntax} {intD fracD rest : List Char}
     {dot : Bool} (h : Spec.Mantissa opts intD fracD dot) :

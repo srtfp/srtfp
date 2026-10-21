@@ -342,7 +342,7 @@ theorem zero_output {s : Sign} (hu : Spec.unpack wd = .zero s) :
         * (10 : Rat) ^ (⟨s, 0, 0⟩ : Decimal).exponent = 0 := by simp
     rw [h0]
     apply InRv_of_strict
-    · unfold vl; rw [if_neg (by decide), Rat.natCast_ofNat]
+    · unfold vl; rw [ite_eq_right (by decide), Rat.natCast_ofNat]
       generalize (2 : Rat) ^ (-1074 : Int) = P at hP ⊢; grind
     · unfold vr; rw [Rat.natCast_ofNat]
       generalize (2 : Rat) ^ (-1074 : Int) = P at hP ⊢; grind

@@ -54,7 +54,7 @@ theorem roundEven_div (p q : Nat) (hq : 0 < q) :
       rw [show (p : Rat) / q = (n : Rat) + 1/2 by rw [div_eq_iff hqR]; push_cast at hdmR ⊢; grind,
         roundEven_tie]
       split <;> omega
-  · rw [if_neg (fun h => hr0 h.1)]
+  · rw [ite_eq_right (fun h => hr0 h.1)]
     have h1 : (1 : Rat) ≤ r := by exact_mod_cast Nat.pos_of_ne_zero hr0
     have h2 : (r : Rat) < 2 * q := by exact_mod_cast hr
     apply roundEven_eq_of_between hq <;> push_cast <;> grind
@@ -137,8 +137,8 @@ theorem readExact_eq (d : Decimal) : readExact d = read d := by
     generalize (2 : Rat) ^ 970 = B
     constructor <;> intro h <;> grind
   by_cases hover : 2 ^ 1024 * D ≤ N + 2 ^ 970 * D
-  · rw [if_pos hover, if_pos (hthr.mpr hover)]
-  rw [if_neg hover, if_neg (fun h => hover (hthr.mp h))]
+  · rw [ite_eq_left hover, ite_eq_left (hthr.mpr hover)]
+  rw [ite_eq_right hover, ite_eq_right (fun h => hover (hthr.mp h))]
   -- the grid exponent
   generalize hY : N * 2 ^ 1074 / D = Y
   have hYlo : Y * D ≤ N * 2 ^ 1074 := by rw [← hY]; exact Nat.div_mul_le_self _ _

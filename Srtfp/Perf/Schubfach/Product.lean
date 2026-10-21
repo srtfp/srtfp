@@ -103,11 +103,11 @@ theorem ro'_natDiv (N : Nat) :
       rw [Rat.div_def, Rat.one_mul], div_lt_div_iff h128 (by exact_mod_cast Nat.two_pow_pos 64)]
     norm_cast; omega
   by_cases hc : N % 2 ^ 128 < 2 ^ 64
-  · rw [if_pos (hcond.mpr hc), if_pos hc]
-  · rw [if_neg (fun h => hc (hcond.mp h)), if_neg hc]
+  · rw [ite_eq_left (hcond.mpr hc), ite_eq_left hc]
+  · rw [ite_eq_right (fun h => hc (hcond.mp h)), ite_eq_right hc]
     by_cases he : (N / 2 ^ 127) % 2 = 0
-    · rw [if_pos (by omega), if_pos he]
-    · rw [if_neg (by omega), if_neg he]
+    · rw [ite_eq_left (by omega), ite_eq_left he]
+    · rw [ite_eq_right (by omega), ite_eq_right he]
 
 theorem or_one_eq (n : Nat) : n ||| 1 = if n % 2 = 0 then n + 1 else n := by
   apply Nat.eq_of_testBit_eq
@@ -131,14 +131,14 @@ theorem rop_eq (g1 g0 cp : UInt64) (hg1 : g1.toNat < 2 ^ 63) (hg0 : g0.toNat < 2
   generalize cp.toNat * (g1.toNat * 2 ^ 63 + g0.toNat) = N
   unfold ropNat
   by_cases hc : N % 2 ^ 128 < 2 ^ 64
-  · rw [if_pos hc, if_pos (by omega), Nat.or_zero]
-  · rw [if_neg hc]
+  · rw [ite_eq_left hc, ite_eq_left (by omega), Nat.or_zero]
+  · rw [ite_eq_right hc]
     by_cases he : (N / 2 ^ 127) % 2 = 0
     · -- bit 127 clear, so bits 64..126 are not all zero
-      rw [if_neg (by omega), or_one_eq, if_pos he, if_pos he]; simp
-    · rw [if_neg he]
+      rw [ite_eq_right (by omega), or_one_eq, ite_eq_left he, ite_eq_left he]; simp
+    · rw [ite_eq_right he]
       by_cases hb : (N / 2 ^ 64) % 2 ^ 63 = 0
-      · rw [if_pos hb, Nat.or_zero]
-      · rw [if_neg hb, or_one_eq, if_neg he]
+      · rw [ite_eq_left hb, Nat.or_zero]
+      · rw [ite_eq_right hb, or_one_eq, ite_eq_right he]
 
 end Srtfp.Schubfach

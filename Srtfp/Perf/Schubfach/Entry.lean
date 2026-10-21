@@ -65,7 +65,7 @@ theorem decimalTail_eq (sign : Sign) (mU qB : UInt64) (h : InRange m q) (hm : mU
   have hm0 : mU ≠ 0 := fun hc => by
     have := h.1; rw [← hm, hc] at this; exact absurd this (by decide)
   unfold decimalTail
-  rw [if_neg hm0, ← finite_eq sign h, ← kernel_eq h mU qB hm hq]
+  rw [ite_eq_right hm0, ← finite_eq sign h, ← kernel_eq h mU qB hm hq]
 
 /-- The shortest round-trip `Decimal` of a binary64 bit pattern; `none` for
     a NaN or an infinity. -/
@@ -118,32 +118,32 @@ theorem toDecimalBits_eq (w : UInt64) : toDecimalBits w = Printer.toDecimalBits 
   generalize Word.biasedExp w = E at *
   by_cases h7 : expBits = 0x7FF
   · have hE : E = 2047 := by rw [← hexp, h7]; rfl
-    rw [if_pos h7]
-    rw [if_pos hE] at hu
+    rw [ite_eq_left h7]
+    rw [ite_eq_left hE] at hu
     by_cases hm : Word.mantissa w = 0
-    · rw [if_pos hm] at hu; rw [printer_inf hu]
-    · rw [if_neg hm] at hu; rw [printer_nan hu]
+    · rw [ite_eq_left hm] at hu; rw [printer_inf hu]
+    · rw [ite_eq_right hm] at hu; rw [printer_nan hu]
   · have hE : E ≠ 2047 := by word_simp at h7 ⊢; omega
-    rw [if_neg h7]
-    rw [if_neg hE] at hu
+    rw [ite_eq_right h7]
+    rw [ite_eq_right hE] at hu
     by_cases h0 : expBits = 0
     · have hE0 : E = 0 := by rw [← hexp, h0]; rfl
-      rw [if_pos h0, if_pos h0]
-      rw [if_pos hE0] at hu
+      rw [ite_eq_left h0, ite_eq_left h0]
+      rw [ite_eq_left hE0] at hu
       by_cases hm : mantBits = 0
       · have hM0 : Word.mantissa w = 0 := by rw [← hmant, hm]; rfl
-        rw [dif_pos hM0] at hu
+        rw [dite_eq_left hM0] at hu
         rw [printer_zero hu]
         unfold decimalTail
-        rw [if_pos hm]
+        rw [ite_eq_left hm]
       · have hM0 : Word.mantissa w ≠ 0 := by word_simp at hm ⊢; omega
-        rw [dif_neg hM0] at hu
+        rw [dite_eq_right hM0] at hu
         rw [printer_finite hu, decimalTail_eq (Word.signBit w) mantBits 0 (m := Word.mantissa w)
           (q := -1074) ⟨Nat.pos_of_ne_zero hM0, by omega, by omega, by omega, fun h => absurd rfl h⟩
           hmant rfl]
     · have hE0 : E ≠ 0 := by word_simp at h0 ⊢; omega
-      rw [if_neg h0, if_neg h0]
-      rw [if_neg hE0] at hu
+      rw [ite_eq_right h0, ite_eq_right h0]
+      rw [ite_eq_right hE0] at hu
       rw [printer_finite hu, decimalTail_eq (Word.signBit w) (mantBits + 4503599627370496) (expBits - 1)
         (m := Word.mantissa w + 2 ^ 52) (q := (E : Int) - 1075)
         ⟨by omega, by omega, by omega, by omega, fun _ => by omega⟩
@@ -190,8 +190,8 @@ theorem emitTail_eq (sign : Sign) (mU qB : UInt64) :
     emitTail sign mU qB = decimalToString (decimalTail sign mU qB) := by
   unfold emitTail decimalTail
   by_cases h0 : mU = 0
-  · rw [if_pos h0, if_pos h0]; rfl
-  rw [if_neg h0, if_neg h0]
+  · rw [ite_eq_left h0, ite_eq_left h0]; rfl
+  rw [ite_eq_right h0, ite_eq_right h0]
   generalize kernel mU qB = r
   obtain ⟨sU, kB⟩ := r
   dsimp only
@@ -199,14 +199,14 @@ theorem emitTail_eq (sign : Sign) (mU qB : UInt64) :
   have hmod : (sU % 10 = 0) ↔ (sU.toNat % 10 = 0) := by
     rw [← UInt64.toNat_inj, UInt64.toNat_mod]; rfl
   by_cases hs0 : sU.toNat = 0
-  · rw [if_pos hs0]
+  · rw [ite_eq_left hs0]
     have hm0 : ¬ (sU % 10 ≠ 0) := fun hc => hc (hmod.mpr (by rw [hs0]))
-    rw [if_neg hm0, hs0, Decimal.canonicaliseAux_zero]
+    rw [ite_eq_right hm0, hs0, Decimal.canonicaliseAux_zero]
     simp
-  · rw [if_neg hs0]
+  · rw [ite_eq_right hs0]
     by_cases hm : sU.toNat % 10 ≠ 0
-    · rw [if_pos hm, if_pos (fun hc => hm (hmod.mp hc))]
-    · rw [if_neg hm, if_neg (fun hc => hm (fun hc' => hc (hmod.mpr hc')))]
+    · rw [ite_eq_left hm, ite_eq_left (fun hc => hm (hmod.mp hc))]
+    · rw [ite_eq_right hm, ite_eq_right (fun hc => hm (fun hc' => hc (hmod.mpr hc')))]
       rcases Decimal.canonicaliseAux sU.toNat ((kB.toNat : Int) - 324) with ⟨sig', exp'⟩
       simp only [emitChecked_eq]
 
@@ -231,25 +231,25 @@ theorem floatToString_eq (f : _root_.Float) : floatToString f = Text.floatToStri
   have hexp : ((f.toBits >>> 52) &&& 0x7FF : UInt64).toNat = biasedExpBits f := rfl
   have hmant : (f.toBits &&& 0x000F_FFFF_FFFF_FFFF : UInt64).toNat = mantissaBits f := rfl
   by_cases h7 : ((f.toBits >>> 52) &&& 0x7FF : UInt64) = 0x7FF
-  · rw [if_pos h7, if_pos h7]
+  · rw [ite_eq_left h7, ite_eq_left h7]
     have hbE : biasedExpBits f = 2047 := by rw [← hexp, h7]; rfl
     have hmodel : Spec.unpack f.toBits =
         if mantissaBits f = 0 then .infinity (signBit f) else .notANumber := by
       rw [unpack_eq]
       change (if biasedExpBits f = 2047 then _ else _) = _
-      rw [if_pos hbE]
+      rw [ite_eq_left hbE]
       rfl
     by_cases hm : (f.toBits &&& 0x000F_FFFF_FFFF_FFFF : UInt64) = 0
     · have hm0 : mantissaBits f = 0 := by rw [← hmant, hm]; rfl
-      rw [if_neg (by simp [hm])]
+      rw [ite_eq_right (by simp [hm])]
       simp only [hmodel, hm0, ↓reduceIte, signBit, withSign]
       split <;> simp_all
     · have hm0 : mantissaBits f ≠ 0 := by
         intro hc
         exact hm (UInt64.toNat_inj.mp (by rw [hmant, hc]; rfl))
-      rw [if_pos hm]
+      rw [ite_eq_left hm]
       simp [hmodel, hm0]
-  · rw [if_neg h7, if_neg h7]
+  · rw [ite_eq_right h7, ite_eq_right h7]
     exact emitTail_eq _ _ _
 
 /-- The live `Float → String` registration (`CsimpPin.lean` asserts it is

@@ -55,7 +55,7 @@ theorem unpackSign_packComponents (s : Sign) (e : BitVec 11) (m : BitVec 52) :
     @unpackSign Format.binary64 (packComponents Format.binary64 s e m) = s.toBitVec := by
   apply BitVec.eq_of_toNat_eq
   unfold unpackSign
-  simp only [BitVec.toNat_cast, BitVec.extractLsb, BitVec.extractLsb'_toNat, packComponents_toNat,
+  simp only [BitVec.extractLsb'_toNat, packComponents_toNat,
     Nat.shiftRight_eq_div_pow]
   have := s.toBitVec.isLt; have := e.isLt; have := m.isLt
   show _ % 2 ^ 1 = _
@@ -76,7 +76,7 @@ theorem packComponents_unpack (b : BitVec 64) :
   apply BitVec.eq_of_toNat_eq
   rw [packComponents_toNat, Sign.toBitVec_ofBitVec]
   unfold unpackSign unpackExponent unpackMantissa
-  simp only [BitVec.toNat_cast, BitVec.extractLsb, BitVec.extractLsb'_toNat, Nat.shiftRight_eq_div_pow]
+  simp only [BitVec.extractLsb'_toNat, Nat.shiftRight_eq_div_pow]
   have hb := b.isLt
   omega
 
@@ -136,12 +136,12 @@ theorem pack_finite (s : Sign) {n : Nat} {k : Int} (hn : 0 < n) (h : Legal n k) 
   have hlog : n.log2 = 52 ↔ ¬ n < 2 ^ 52 := by rw [Nat.log2_eq_iff (by omega)]; omega
   unfold UnpackedFloat.pack
   simp only
-  rw [if_neg (by omega)]
+  rw [ite_eq_right (by omega)]
   split
-  · rw [if_neg (hlog.mp (by omega)),
+  · rw [ite_eq_right (hlog.mp (by omega)),
       show (k + Format.binary64.exponentBias + Format.binary64.mantissaBitsWithoutImplicit).toNat
         = (k + 1075).toNat by omega]
-  · rw [if_pos (by have := hlog.mpr; omega)]
+  · rw [ite_eq_left (by have := hlog.mpr; omega)]
 
 theorem unpack_pack_finite (s : Sign) {n : Nat} {k : Int} (hn : 0 < n) (h : Legal n k) :
     UnpackedFloat.unpack Format.binary64 (UnpackedFloat.pack Format.binary64 (.finite s n k hn))
@@ -151,10 +151,10 @@ theorem unpack_pack_finite (s : Sign) {n : Nat} {k : Int} (hn : 0 < n) (h : Lega
   simp only [BitVec.toNat_ofNat]
   by_cases hlt : n < 2 ^ 52
   · -- subnormal: `k = -1074`
-    rw [if_pos hlt, if_neg (by omega), if_pos (by omega), dif_neg (by omega)]
+    rw [ite_eq_left hlt, ite_eq_right (by omega), ite_eq_left (by omega), dite_eq_right (by omega)]
     simp only [UnpackedFloat.finite.injEq, true_and]; omega
   · -- normal
-    rw [if_neg hlt, if_neg (by omega), if_neg (by omega)]
+    rw [ite_eq_right hlt, ite_eq_right (by omega), ite_eq_right (by omega)]
     simp only [UnpackedFloat.finite.injEq, true_and]; omega
 
 /-! ## The bounds of a finite word -/
@@ -206,11 +206,11 @@ theorem pack_unpack_packComponents (s : Sign) (e : BitVec 11) (m : BitVec 52)
         show packComponents Format.binary64 s 0 0 = _
         apply BitVec.eq_of_toNat_eq
         rw [packComponents_toNat, packComponents_toNat, hZ, hM]; rfl
-      · rw [pack_finite s _ ⟨by omega, by omega, by decide, fun h => absurd rfl h⟩, if_pos hMlt]
+      · rw [pack_finite s _ ⟨by omega, by omega, by decide, fun h => absurd rfl h⟩, ite_eq_left hMlt]
         apply BitVec.eq_of_toNat_eq
         rw [packComponents_toNat, packComponents_toNat, BitVec.toNat_ofNat, BitVec.toNat_ofNat]; omega
     · rename_i hZ
-      rw [pack_finite s _ ⟨by omega, by omega, by omega, fun _ => by omega⟩, if_neg (by omega)]
+      rw [pack_finite s _ ⟨by omega, by omega, by omega, fun _ => by omega⟩, ite_eq_right (by omega)]
       apply BitVec.eq_of_toNat_eq
       rw [packComponents_toNat, packComponents_toNat, BitVec.toNat_ofNat, BitVec.toNat_ofNat]; omega
 
@@ -228,7 +228,7 @@ theorem valid_of_ne_nan {b : BitVec 64} (h : UnpackedFloat.unpack Format.binary6
   eq_packedNaN hE hM := by
     exfalso; apply h
     unfold UnpackedFloat.unpack
-    simp only [hE, hM, if_true, if_false]
+    simp only [hE, hM, ite_true, ite_false]
 
 /-- `unpack` is injective away from NaN. -/
 theorem unpack_inj {b b' : BitVec 64} (h : UnpackedFloat.unpack Format.binary64 b ≠ .notANumber)

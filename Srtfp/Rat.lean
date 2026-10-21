@@ -204,9 +204,9 @@ theorem zpow_ratio (b : Nat) (hb : 0 < b) (e : Int) :
       = ((if e ≥ 0 then b ^ e.natAbs else 1 : Nat) : Rat) := by
   have hbq : (b : Rat) ≠ 0 := Rat.ne_of_gt (by exact_mod_cast hb)
   by_cases he : e ≥ 0
-  · rw [if_pos he, if_pos he]; push_cast
+  · rw [ite_eq_left he, ite_eq_left he]; push_cast
     rw [Rat.mul_one, ← Rat.zpow_natCast, Int.natAbs_of_nonneg he]
-  · rw [if_neg he, if_neg he]; push_cast
+  · rw [ite_eq_right he, ite_eq_right he]; push_cast
     rw [← Rat.zpow_natCast, Int.ofNat_natAbs_of_nonpos (by omega), ← Rat.zpow_add hbq,
       show e + -e = 0 by omega, Rat.zpow_zero]
 

@@ -151,7 +151,7 @@ theorem threshold_pos : (0 : Rat) < (2 : Rat) ^ 1024 - 2 ^ 970 := by
 
 theorem readMag_zero (s : Sign) : readMag s 0 = .zero s := by
   unfold readMag
-  rw [if_neg (Rat.not_le.mpr threshold_pos), show roundEven (0 / (2 : Rat) ^ gridExp 0) = 0 by
+  rw [ite_eq_right (Rat.not_le.mpr threshold_pos), show roundEven (0 / (2 : Rat) ^ gridExp 0) = 0 by
     rw [Rat.div_def, Rat.zero_mul]
     exact roundEven_eq_of (n := 0) (by grind) (by grind) (fun h => absurd h (by grind))
       (fun h => absurd h (by grind))]
@@ -159,7 +159,7 @@ theorem readMag_zero (s : Sign) : readMag s 0 = .zero s := by
 
 theorem readMag_infinity (s : Sign) {x : Rat} (hx : (2 : Rat) ^ 1024 - 2 ^ 970 ≤ x) :
     readMag s x = .infinity s := by
-  unfold readMag; rw [if_pos hx]
+  unfold readMag; rw [ite_eq_left hx]
 
 /-- `m · 10^e` overflows for `m ≥ 1` and `e ≥ 309`. -/
 theorem overflow_of_big {m : Nat} (hm : m ≠ 0) {e : Int} (he : 308 < e) :

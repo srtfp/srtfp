@@ -117,12 +117,12 @@ theorem eI_eq (u M : Nat) : ∀ n,
       have hdist : (qt u M (n+1) : Int) * -((rem u M (n+2) : Nat) : Int)
           = -((qt u M (n+1) : Int) * ((rem u M (n+2) : Nat) : Int)) := by grind
       rcases Nat.mod_two_eq_zero_or_one n with hk | hk
-      · rw [if_pos hk, if_neg (by omega : ¬((n+1) % 2 = 0)),
-            if_pos (by omega : (n+2) % 2 = 0)]
+      · rw [ite_eq_left hk, ite_eq_right (by omega : ¬((n+1) % 2 = 0)),
+            ite_eq_left (by omega : (n+2) % 2 = 0)]
         simp only [show n+1+1 = n+2 from rfl, show n+2+1 = n+3 from rfl, hdist]
         omega
-      · rw [if_neg (by omega : ¬(n % 2 = 0)), if_pos (by omega : (n+1) % 2 = 0),
-            if_neg (by omega : ¬((n+2) % 2 = 0))]
+      · rw [ite_eq_right (by omega : ¬(n % 2 = 0)), ite_eq_left (by omega : (n+1) % 2 = 0),
+            ite_eq_right (by omega : ¬((n+2) % 2 = 0))]
         simp only [show n+1+1 = n+2 from rfl, show n+2+1 = n+3 from rfl]
         omega
 
@@ -147,8 +147,8 @@ theorem det_eq (u M : Nat) : ∀ n,
       grind
     rw [hstep, IH]
     rcases Nat.mod_two_eq_zero_or_one n with hk | hk
-    · rw [if_pos hk, if_neg (by omega : ¬((n+1) % 2 = 0))]
-    · rw [if_neg (by omega : ¬(n % 2 = 0)), if_pos (by omega : (n+1) % 2 = 0)]
+    · rw [ite_eq_left hk, ite_eq_right (by omega : ¬((n+1) % 2 = 0))]
+    · rw [ite_eq_right (by omega : ¬(n % 2 = 0)), ite_eq_left (by omega : (n+1) % 2 = 0)]
       decide
 
 /-! ## The fundamental identity `rem (n+1) · denI (n+1) + rem (n+2) · denI n = M` -/
@@ -345,9 +345,9 @@ theorem bracket_eq_denI (u M p d n : Nat) (hM : 0 < M)
     have h2 : eI u M n * eI u M (n+1) ≤ 0 := by
       rw [hE0, hE1]
       rcases Nat.mod_two_eq_zero_or_one n with hk | hk
-      · rw [if_pos hk, if_neg (by omega)]
+      · rw [ite_eq_left hk, ite_eq_right (by omega)]
         exact Int.mul_nonpos_of_nonneg_of_nonpos (by omega) (by omega)
-      · rw [if_neg (by omega), if_pos (by omega)]
+      · rw [ite_eq_right (by omega), ite_eq_left (by omega)]
         exact Int.mul_nonpos_of_nonpos_of_nonneg (by omega) (by omega)
     rw [show (α * eI u M n) * (β * eI u M (n+1)) = (α * β) * (eI u M n * eI u M (n+1)) by grind]
     exact Int.mul_nonneg_of_nonpos_of_nonpos h1 h2

@@ -20,7 +20,7 @@ open Float.Model Float.Model.UnpackedFloat
 theorem unpackExponent_toNat (w : UInt64) :
     (@unpackExponent Format.binary64 w.toBitVec).toNat = Word.biasedExp w := by
   unfold unpackExponent Word.biasedExp
-  simp only [BitVec.toNat_cast, BitVec.extractLsb, BitVec.extractLsb'_toNat]
+  simp only [BitVec.extractLsb'_toNat]
   rw [UInt64.toNat_and, UInt64.toNat_shiftRight, show (2047 : UInt64).toNat = 2 ^ 11 - 1 by decide,
     Nat.and_two_pow_sub_one_eq_mod, show (52 : UInt64).toNat % 64 = 52 by decide]
   rfl
@@ -28,7 +28,7 @@ theorem unpackExponent_toNat (w : UInt64) :
 theorem unpackMantissa_toNat (w : UInt64) :
     (@unpackMantissa Format.binary64 w.toBitVec).toNat = Word.mantissa w := by
   unfold unpackMantissa Word.mantissa
-  simp only [BitVec.toNat_cast, BitVec.extractLsb, BitVec.extractLsb'_toNat]
+  simp only [BitVec.extractLsb'_toNat]
   rw [UInt64.toNat_and, show (4503599627370495 : UInt64).toNat = 2 ^ 52 - 1 by decide,
     Nat.and_two_pow_sub_one_eq_mod]
   rfl
@@ -37,7 +37,7 @@ theorem unpackSign_eq (w : UInt64) :
     Sign.ofBitVec (@unpackSign Format.binary64 w.toBitVec) = Word.signBit w := by
   have h1 : (@unpackSign Format.binary64 w.toBitVec).toNat = w.toNat >>> 63 := by
     unfold unpackSign
-    simp only [BitVec.toNat_cast, BitVec.extractLsb, BitVec.extractLsb'_toNat]
+    simp only [BitVec.extractLsb'_toNat]
     show w.toNat >>> 63 % 2 ^ 1 = _
     have := w.toNat_lt
     rw [Nat.shiftRight_eq_div_pow]; exact Nat.mod_eq_of_lt (by omega)

@@ -33,7 +33,7 @@ private theorem positional_digits (ds : List Char) (hne : ds ≠ []) (exp : Int)
       have hw : (-(exp + ds.length - 1)).toNat + ds.length - (-exp).toNat = 1 := by omega
       have hz : (-(exp + ds.length - 1)).toNat - 1 = (-(exp + ds.length)).toNat := by omega
       simp only [hright, List.replicate_zero, List.append_nil, List.length_append,
-        List.length_replicate, hw, if_pos hp, hpoint, List.drop_zero]
+        List.length_replicate, hw, ite_eq_left hp, hpoint, List.drop_zero]
       rw [List.take_append_of_le_length (by simpa using hl), List.take_replicate,
         Nat.min_eq_left hl, List.replicate_one,
         List.drop_append_of_le_length (by simpa using hl), List.drop_replicate, hz]

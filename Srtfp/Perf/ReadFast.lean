@@ -214,17 +214,17 @@ theorem packFinite_toBits (sign : Sign) {nU : UInt64} {n : Nat} {k : Int} (hn : 
       = (Float.Model.pack (ofSig sign n k)).toBits := by
   unfold ofSig
   by_cases hn0 : n = 0
-  · rw [if_pos (by word), dif_pos hn0, toBits_pack_zero]
-  rw [if_neg (by word), dif_neg hn0]
+  · rw [ite_eq_left (by word), dite_eq_left hn0, toBits_pack_zero]
+  rw [ite_eq_right (by word), dite_eq_right hn0]
   unfold packFinite
   by_cases hc53 : n = 2 ^ 53
-  · rw [if_pos hc53, if_neg (by word), if_pos (by word),
+  · rw [ite_eq_left hc53, ite_eq_right (by word), ite_eq_left (by word),
       toBits_pack_finite sign (by decide) ⟨by decide, by omega, by omega, fun _ => Nat.le_refl _⟩,
-      if_neg (Nat.lt_irrefl _), Nat.mod_self, show k + 1 + 1075 = k + 1076 by omega]
-  rw [if_neg hc53, toBits_pack_finite sign (Nat.pos_of_ne_zero hn0) ⟨by omega, by omega, by omega, h52⟩]
+      ite_eq_right (Nat.lt_irrefl _), Nat.mod_self, show k + 1 + 1075 = k + 1076 by omega]
+  rw [ite_eq_right hc53, toBits_pack_finite sign (Nat.pos_of_ne_zero hn0) ⟨by omega, by omega, by omega, h52⟩]
   by_cases hlt : n < 2 ^ 52
-  · rw [if_pos (by word), if_pos hlt, Nat.mod_eq_of_lt hlt, hn]
-  · rw [if_neg (by word), if_neg (by word), if_neg hlt,
+  · rw [ite_eq_left (by word), ite_eq_left hlt, Nat.mod_eq_of_lt hlt, hn]
+  · rw [ite_eq_right (by word), ite_eq_right (by word), ite_eq_right hlt,
       show (nU - 4503599627370496).toNat = n % 2 ^ 52 by word]
 
 /-! ## Proof: the shifts -/
@@ -308,26 +308,26 @@ theorem round_from_bits (Pn sN : Nat) (hs : 1 ≤ sN) (X : Rat) (mz : Nat) (exac
   have hr : (r : Rat) < H := by exact_mod_cast hr2
   have h2HR : (0 : Rat) < ((2 * H : Nat) : Rat) := by exact_mod_cast Nat.mul_pos (by decide) hH0
   rw [hP] at hXP
-  cases exact <;> simp only [Bool.false_eq_true, Bool.true_eq_false, false_and, true_and, if_false,
-    if_true, false_implies, forall_const] at hPX hguard ⊢
+  cases exact <;> simp only [Bool.false_eq_true, Bool.true_eq_false, false_and, true_and, ite_false,
+    ite_true, false_implies, forall_const] at hPX hguard ⊢
   · -- inexact: `2QH + bH < X`
     have hmz : (mz : Rat) ≤ r := by exact_mod_cast hguard
     rw [hP] at hPX
     rcases (show b = 0 ∨ b = 1 by omega) with rfl | rfl
-    · rw [if_pos rfl]; apply roundEven_eq_of_between (by omega : 0 < 2 * H) <;> push_cast <;> grind
-    · rw [if_neg (by decide)]; apply roundEven_eq_of_between (by omega : 0 < 2 * H) <;> push_cast <;> grind
+    · rw [ite_eq_left rfl]; apply roundEven_eq_of_between (by omega : 0 < 2 * H) <;> push_cast <;> grind
+    · rw [ite_eq_right (by decide)]; apply roundEven_eq_of_between (by omega : 0 < 2 * H) <;> push_cast <;> grind
   · -- exact: `X = 2QH + bH + r`
     subst hPX
     rw [hP]
     rcases (show b = 0 ∨ b = 1 by omega) with rfl | rfl
-    · rw [if_pos rfl]; apply roundEven_eq_of_between (by omega : 0 < 2 * H) <;> push_cast <;> grind
-    · rw [if_neg (by decide)]
+    · rw [ite_eq_left rfl]; apply roundEven_eq_of_between (by omega : 0 < 2 * H) <;> push_cast <;> grind
+    · rw [ite_eq_right (by decide)]
       by_cases hr0 : r = 0
-      · rw [if_pos hr0]; subst hr0
+      · rw [ite_eq_left hr0]; subst hr0
         rw [show (2 * ((Q : Rat) * H) + ((1 : Nat) : Rat) * H + ((0 : Nat) : Rat))
             / ((2 * H : Nat) : Rat) = (Q : Rat) + 1/2 by rw [div_eq_iff h2HR]; push_cast; grind]
         exact roundEven_tie Q
-      · rw [if_neg hr0]
+      · rw [ite_eq_right hr0]
         have hr1 : (1 : Rat) ≤ r := by exact_mod_cast Nat.pos_of_ne_zero hr0
         apply roundEven_eq_of_between (by omega : 0 < 2 * H) <;> push_cast <;> grind
 
@@ -353,8 +353,8 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
       else (val192 pHi pMid pLo : Rat) - mz.toNat < mz.toNat * Y := by
     rw [hPR]
     split at hgY
-    · rename_i hex; rw [if_pos hex, hgY]
-    · rename_i hex; rw [if_neg hex]
+    · rename_i hex; rw [ite_eq_left hex, hgY]
+    · rename_i hex; rw [ite_eq_right hex]
       have := Rat.mul_lt_mul_of_pos_left hgY (lt_of_lt_of_le (Rat.pow_pos (by decide)) hmzR); grind
   generalize mz.toNat * Y = X at *
   have hHi := pHi.toNat_lt
@@ -394,11 +394,11 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
     rcases (show topN = 0 ∨ topN = 1 by omega) with rfl | rfl
     · exact hX190
     cases exact
-    · rw [if_neg Bool.false_ne_true] at hPX
+    · rw [ite_eq_right Bool.false_ne_true] at hPX
       have hm : ((2 ^ 191 + mz.toNat : Nat) : Rat) ≤ Pn := by exact_mod_cast hmarg rfl rfl
       push_cast at hm
       exact Rat.le_of_lt (lt_of_le_of_lt (by grind) hPX)
-    · rw [if_pos rfl] at hPX
+    · rw [ite_eq_left rfl] at hPX
       rw [hPX]; exact_mod_cast (by omega : 2 ^ (190 + 1) ≤ Pn)
   -- `x = X / 2^hz` lies in the binade `[2^t, 2^(t + 1))`, `t = 190 + topN - hz`
   have hzpos : (0 : Rat) < (2 : Rat) ^ hz := two_zpow_pos hz
@@ -452,7 +452,7 @@ theorem roundCore_spec (sign : Sign) (mz pHi pMid pLo : UInt64) (hz : Int) (exac
   -- assemble
   subst h
   rw [packFinite_toBits sign (n := nN) _ hn53 (by omega) (by omega) hn52]
-  · unfold readMag; rw [if_neg hthr, hk', hn', Int.toNat_natCast]
+  · unfold readMag; rw [ite_eq_right hthr, hk', hn', Int.toNat_natCast]
   · rw [← hnN]; simp only [apply_ite UInt64.toNat, hq, hqU1, hqUodd, hbU0, hrestZ]
 
 /-! ## Proof: the table entry against `10^e` -/
@@ -463,7 +463,7 @@ theorem pow10Num_ge (k : Int) (hLo : -324 ≤ k) (hHi : k ≤ 324) :
     2 ^ 127 * pow10Den k (pow10Shift k) ≤ pow10Num k (pow10Shift k) := by
   unfold pow10Num pow10Den pow10Shift
   by_cases hk : k ≥ 0
-  · rw [if_pos hk]
+  · rw [ite_eq_left hk]
     generalize hn : 10 ^ k.toNat = n
     have hn0 : n ≠ 0 := by rw [← hn]; exact Nat.ne_of_gt (Nat.pow_pos (by decide))
     generalize hL : Nat.log2 n = L
@@ -478,7 +478,7 @@ theorem pow10Num_ge (k : Int) (hLo : -324 ≤ k) (hHi : k ≤ 324) :
       simp only [Nat.pow_zero, Nat.mul_one, Nat.one_mul]
       rw [← Nat.pow_add, Nat.add_sub_cancel' (by omega)]
       exact h2
-  · rw [if_neg hk]
+  · rw [ite_eq_right hk]
     generalize hn : 10 ^ (-k).toNat = n
     have hn0 : n ≠ 0 := by rw [← hn]; exact Nat.ne_of_gt (Nat.pow_pos (by decide))
     generalize hL : Nat.log2 n = L
@@ -494,7 +494,7 @@ open Srtfp.Schubfach in
 theorem pow10Den_dvd (k : Int) (h0 : 0 ≤ k) (h54 : k ≤ 54) :
     pow10Den k (pow10Shift k) ∣ pow10Num k (pow10Shift k) := by
   unfold pow10Num pow10Den pow10Shift
-  rw [if_pos h0, show (-k).toNat = 0 by omega, Nat.pow_zero, Nat.one_mul]
+  rw [ite_eq_left h0, show (-k).toNat = 0 by omega, Nat.pow_zero, Nat.one_mul]
   generalize hn : 10 ^ k.toNat = n
   have hn0 : n ≠ 0 := by rw [← hn]; exact Nat.ne_of_gt (Nat.pow_pos (by decide))
   generalize hL : Nat.log2 n = L
@@ -568,7 +568,7 @@ theorem lz_step (x bound w : UInt64) (wN : Nat) (hw : wN ≤ 32)
   have hxlt := x.toNat_lt
   have hp := Nat.two_pow_pos wN
   by_cases hc : x < bound
-  · rw [show z = w from if_pos hc, UInt64.toNat_shiftLeft, hwN, Nat.mod_eq_of_lt (by omega : wN < 64),
+  · rw [show z = w from ite_eq_left hc, UInt64.toNat_shiftLeft, hwN, Nat.mod_eq_of_lt (by omega : wN < 64),
       Nat.shiftLeft_eq]
     rw [UInt64.lt_iff_toNat_lt, hb] at hc
     have hprod : x.toNat * 2 ^ wN < 2 ^ 64 := by
@@ -578,7 +578,7 @@ theorem lz_step (x bound w : UInt64) (wN : Nat) (hw : wN ≤ 32)
       have := Nat.mul_le_mul_right (2 ^ wN) hx
       rwa [← Nat.pow_add, show 64 - 2 * wN + wN = 64 - wN by omega] at this
     exact ⟨Nat.mod_eq_of_lt hprod, by rw [Nat.mod_eq_of_lt hprod]; exact hlo, Nat.le_refl _⟩
-  · rw [show z = 0 from if_neg hc]
+  · rw [show z = 0 from ite_eq_right hc]
     rw [UInt64.lt_iff_toNat_lt, hb] at hc
     exact ⟨by word, by word, by word⟩
 
@@ -714,7 +714,7 @@ theorem roundCore_binary (sign : Sign) {m : Nat} (hm0 : m ≠ 0) (hm : m < 2 ^ 6
       Rat.mul_inv_cancel _ (Rat.ne_of_gt (Rat.pow_pos (by decide)))
     grind]
   exact roundCore_spec sign mz _ _ _ _ true _ (2 ^ 127) (by omega) hPval (by exact_mod_cast Nat.le_refl _)
-    Rat.le_refl (by rw [if_pos rfl]) h hw
+    Rat.le_refl (by rw [ite_eq_left rfl]) h hw
 
 /-! ## Proof: the kernel -/
 
@@ -754,8 +754,8 @@ theorem ofDecimalBits_fast_eq (d : Decimal) : ofDecimalBits_fast d = ofDecimalBi
   unfold ofDecimalBits_fast
   dsimp only
   by_cases hd : readFast d = declined
-  · rw [if_pos hd, readExact_eq, ofDecimalBits_eq_reference]; rfl
-  · rw [if_neg hd]; exact readFast_some d rfl hd
+  · rw [ite_eq_left hd, readExact_eq, ofDecimalBits_eq_reference]; rfl
+  · rw [ite_eq_right hd]; exact readFast_some d rfl hd
 
 @[csimp]
 theorem ofDecimalBits_eq_fast : @ofDecimalBits = @ofDecimalBits_fast :=

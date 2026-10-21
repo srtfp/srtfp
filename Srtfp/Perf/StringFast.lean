@@ -63,14 +63,14 @@ theorem decimalToString_mk' (sign : Sign) (sig : Nat) (exp : Int) :
   unfold decimalToString _root_.Srtfp.Decimal.mk' _root_.Srtfp.Decimal.canonical
   by_cases hs0 : sig = 0
   · simp [hs0]
-  simp only [hs0, if_false]
+  simp only [hs0, ite_false]
   by_cases hsmod : sig % 10 ≠ 0
   · have hCanon : canonicaliseAux sig exp = (sig, exp) := by
       unfold canonicaliseAux
       simp [hs0, hsmod]
-    rw [hCanon, if_pos hsmod]
+    rw [hCanon, ite_eq_left hsmod]
     simp [hs0]
-  · rw [if_neg hsmod]
+  · rw [ite_eq_right hsmod]
     split <;> simp_all
 
 end Srtfp.Schubfach
